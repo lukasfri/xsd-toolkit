@@ -1,0 +1,25 @@
+[package]
+name = "xsd-codegen-xmlity"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+xsd = { path = "../xsd" }
+xmlity = { version = "0.0.1", features = [
+  "derive",
+], git = "https://github.com/lukasfri/xmlity.git", rev = "b6fe256ad89c51d45bca4a70869dd9dfe4a4123d" }
+proc-macro2 = "1.0.66"
+quote = "1.0.33"
+syn = { version = "2.0.29", features = ["full"] }
+prettyplease = "0.2.15"
+thiserror.workspace = true
+xsd-simple-type-compiler = { path = "../xsd-simple-type-compiler" }
+
+[dev-dependencies]
+xsd-xmlity = { path = "../xsd-xmlity" }
+xmlity-quick-xml = { version = "0.0.1", git = "https://github.com/lukasfri/xmlity.git", rev = "b6fe256ad89c51d45bca4a70869dd9dfe4a4123d" }
+insta = { version = "1.31.0", features = [] }

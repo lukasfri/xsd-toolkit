@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = ["xsd", "xsd-codegen-xmlity", "xsd-simple-type-compiler", "xsd-xmlity"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.82.0"
+authors = ["Lukas Friman <lukas@dreamplay.net>"]
+repository = "https://github.com/lukasfri/xsd-toolkit"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+thiserror = "^2.0.4"
+pretty_assertions = "^1.4.1"
+rstest = "^0.25.0"

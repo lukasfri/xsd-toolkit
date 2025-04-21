@@ -1,0 +1,13 @@
+[package]
+name = "xsd-simple-type-compiler"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+syn = { version = "2.0.29", features = ["full"] }
+xsd = { path = "../xsd" }
+thiserror.workspace = true

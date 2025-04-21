@@ -1,0 +1,13 @@
+[package]
+name = "xsd"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+xmlity = { version = "0.0.1", features = [
+  "derive",
+], git = "https://github.com/lukasfri/xmlity.git", rev = "b6fe256ad89c51d45bca4a70869dd9dfe4a4123d" }
