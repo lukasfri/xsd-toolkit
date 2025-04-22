@@ -43,7 +43,7 @@ impl TypeGenerator for TopLevelElementGenerator {
                 local_items.extend(output.related_mod().map(Item::Mod));
                 let target_ident = &output.target_ident;
                 let path_to_target: syn::TypePath = parse_quote!(#mod_ident::#target_ident);
-                local_items.push(output.target);
+                local_items.extend(output.item);
 
                 path_to_target.into()
             }

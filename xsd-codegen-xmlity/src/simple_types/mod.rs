@@ -1,18 +1,126 @@
 use proc_macro2::Span;
-use syn::{parse_quote, Ident, Item, ItemStruct, Type, Variant};
-use xsd_simple_type_compiler::{CompiledSimpleType, LocalSimpleTypeCompiler, SimpleTypeCompiler};
-
-use crate::{
-    annotation_to_doc_attribute, rustify_name, Context, ResolvedType, Result, TypeGenerator,
-    TypesOutput,
+use syn::{parse_quote, Ident, Item, ItemType, Variant};
+use xsd_simple_type_compiler::{
+    CompiledSimpleType, LocalSimpleTypeCompiler, SimpleTypeCompiler, WithMetadata,
 };
+
+use crate::{Context, Result, TypeGenerator, TypesOutput};
 
 pub struct CompiledSimpleTypeGenerator;
 impl TypeGenerator for CompiledSimpleTypeGenerator {
     type Input = CompiledSimpleType;
 
     fn generate_type(&self, input: &Self::Input, context: &Context) -> Result<TypesOutput> {
-        todo!()
+        let derive_traits = context.derive_traits.as_slice();
+
+        match input {
+            CompiledSimpleType::Literal {
+                literal:
+                    WithMetadata {
+                        value,
+                        recommended_name,
+                        ..
+                    },
+                ..
+            } => {
+                let ident = Ident::new(recommended_name, Span::call_site());
+
+                let output = TypesOutput::new(
+                    parse_quote!(
+                        #[derive(#(#derive_traits,)* Serialize, Deserialize)]
+                        pub enum #ident {
+                            #[xvalue(value = #value)]
+                            #ident,
+                        }
+                    ),
+                    ident,
+                );
+
+                Ok(output)
+            }
+            CompiledSimpleType::Type(qname_ref) => {
+                todo!("Need to resolve dynamic locations of types")
+            }
+            // context.resolve_type(&qname_ref.value),
+            CompiledSimpleType::Options(WithMetadata {
+                value,
+                recommended_name,
+                ..
+            }) => {
+                let ident = Ident::new(recommended_name, Span::call_site());
+
+                let mut variants = Vec::<Variant>::new();
+
+                let mod_name = TypesOutput::to_mod_name(&ident);
+
+                let mut related = vec![];
+                for (i, a) in value.iter().enumerate() {
+                    if let CompiledSimpleType::Literal {
+                        literal:
+                            WithMetadata {
+                                value,
+                                recommended_name,
+                                ..
+                            },
+                        ..
+                    } = a
+                    {
+                        let variant_ident = Ident::new(recommended_name, Span::call_site());
+
+                        variants.push(parse_quote! {
+                            #[xvalue(value = #value)]
+                            #variant_ident(#mod_name::#variant_ident)
+                        });
+                        continue;
+                    }
+                    let option = CompiledSimpleTypeGenerator
+                        .generate_type(a, &context.sub_context(i.to_string()))?;
+
+                    related.extend(option.related_mod().map(Item::Mod));
+                    related.extend(option.item);
+
+                    let variant_ident = option.target_ident;
+
+                    variants.push(parse_quote!(#variant_ident(#mod_name::#variant_ident)));
+                }
+
+                let mut output = TypesOutput::new(
+                    parse_quote!(
+                        #[derive(#(#derive_traits,)* Serialize, Deserialize)]
+                        pub enum #ident {
+                            #(#variants),*
+                        }
+                    ),
+                    ident,
+                );
+
+                output.related = related;
+
+                Ok(output)
+            }
+            CompiledSimpleType::List(WithMetadata {
+                value,
+                recommended_name,
+                ..
+            }) => {
+                let ident = Ident::new(recommended_name, Span::call_site());
+
+                let types_output = CompiledSimpleTypeGenerator.generate_type(value, context)?;
+
+                let mod_name = TypesOutput::to_mod_name(&ident);
+
+                let target_ident = &types_output.target_ident;
+
+                let type_: ItemType =
+                    parse_quote!(pub type #ident = xsd_root::List::<#mod_name::#target_ident>;);
+
+                let mut output = TypesOutput::new(type_.into(), ident);
+
+                output.related = Vec::from_iter(types_output.related_mod().map(Item::Mod));
+
+                Ok(output)
+            }
+        }
     }
 }
 
@@ -305,8 +413,7 @@ mod tests {
         let mut items = Vec::new();
 
         items.extend(result.related_mod().map(Item::Mod));
-
-        items.extend([result.target]);
+        items.extend(result.item);
 
         let file = File {
             shebang: None,
@@ -388,8 +495,7 @@ mod tests {
         let mut items = Vec::new();
 
         items.extend(result.related_mod().map(Item::Mod));
-
-        items.extend([result.target]);
+        items.extend(result.item);
 
         let file = File {
             shebang: None,
@@ -465,8 +571,7 @@ mod tests {
         let mut items = Vec::new();
 
         items.extend(result.related_mod().map(Item::Mod));
-
-        items.extend([result.target]);
+        items.extend(result.item);
 
         let file = File {
             shebang: None,

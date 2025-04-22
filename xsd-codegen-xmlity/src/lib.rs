@@ -105,14 +105,14 @@ impl Context<'_> {
 
 pub struct TypesOutput {
     pub target_ident: syn::Ident,
-    pub target: syn::Item,
+    pub item: Option<syn::Item>,
     pub related: Vec<syn::Item>,
 }
 
 impl ToTokens for TypesOutput {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         self.related_mod().to_tokens(tokens);
-        self.target.to_tokens(tokens);
+        self.item.to_tokens(tokens);
     }
 }
 
@@ -120,7 +120,7 @@ impl TypesOutput {
     pub fn new(target: syn::Item, target_ident: syn::Ident) -> Self {
         Self {
             target_ident,
-            target,
+            item: Some(target),
             related: Vec::new(),
         }
     }

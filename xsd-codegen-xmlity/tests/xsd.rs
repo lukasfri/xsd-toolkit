@@ -4,7 +4,7 @@ use xsd_xmlity::schema::Schema;
 
 #[test]
 fn generate_xsd_types() {
-    let schema = include_str!("../../schema/XMLSchema.xsd");
+    let schema = include_str!("../../schemas/XMLSchema.xsd");
     let mut schema: XmlRoot<Schema> = xmlity_quick_xml::from_str(schema).unwrap();
     let schema_pos = schema
         .elements
