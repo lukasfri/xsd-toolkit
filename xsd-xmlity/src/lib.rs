@@ -1,11 +1,48 @@
-use xsd::schema::{Namespace, XmlValue};
+use xmlity::{de::NamespaceContext, Deserialize, ExpandedName, LocalName, Prefix, XmlNamespace};
 
 pub mod schema;
 
-impl From<schema::Schema> for xsd::schema::Schema {
+#[derive(Debug, PartialEq)]
+pub struct InternalReference(pub XmlNamespace<'static>);
+
+impl<'de> Deserialize<'de> for InternalReference {
+    fn deserialize<D: xmlity::Deserializer<'de>>(reader: D) -> Result<Self, D::Error> {
+        struct __Visitor;
+
+        impl<'de> xmlity::de::Visitor<'de> for __Visitor {
+            type Value = InternalReference;
+
+            fn visit_text<E, V>(self, value: V) -> Result<Self::Value, E>
+            where
+                E: xmlity::de::Error,
+                V: xmlity::de::XmlText<'de>,
+            {
+                let prefix = Prefix::new(value.as_str()).map_err(|e| {
+                    E::custom(format!("Internal reference is not valid prefix: {e:?}"))
+                })?;
+
+                let namespace = value
+                    .namespace_context()
+                    .resolve_prefix(prefix.as_ref())
+                    .ok_or_else(|| E::custom(format!("Prefix {prefix:?} is not defined")))?
+                    .into_owned();
+
+                Ok(InternalReference(namespace))
+            }
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("Internal reference")
+            }
+        }
+
+        reader.deserialize_any(__Visitor)
+    }
+}
+
+impl From<schema::Schema> for xsd::old_schema::Schema {
     fn from(value: schema::Schema) -> Self {
         Self {
-            target_namespace: value.target_namespace.map(|a| a.0),
+            target_namespace: value.target_namespace.0,
             version: value.version.map(Into::into),
             final_default: value.final_default.map(|a| a.0).map(Into::into),
             block_default: value.block_default.map(|a| a.0).map(Into::into),
@@ -22,13 +59,13 @@ impl From<schema::Schema> for xsd::schema::Schema {
     }
 }
 
-impl From<schema::Version> for xsd::schema::Version {
+impl From<schema::Version> for xsd::old_schema::Version {
     fn from(value: schema::Version) -> Self {
         Self(value.0)
     }
 }
 
-impl From<schema::TypeDerivationControlType> for xsd::schema::TypeDerivationControlType {
+impl From<schema::TypeDerivationControlType> for xsd::old_schema::TypeDerivationControlType {
     fn from(value: schema::TypeDerivationControlType) -> Self {
         match value {
             schema::TypeDerivationControlType::Extension => Self::Extension,
@@ -39,7 +76,7 @@ impl From<schema::TypeDerivationControlType> for xsd::schema::TypeDerivationCont
     }
 }
 
-impl From<schema::FullDerivationSetType> for xsd::schema::FullDerivationSetType {
+impl From<schema::FullDerivationSetType> for xsd::old_schema::FullDerivationSetType {
     fn from(value: schema::FullDerivationSetType) -> Self {
         match value {
             schema::FullDerivationSetType::All => Self::All,
@@ -56,7 +93,7 @@ impl From<schema::FullDerivationSetType> for xsd::schema::FullDerivationSetType 
     }
 }
 
-impl From<schema::BlockSetItemType> for xsd::schema::BlockSetItemType {
+impl From<schema::BlockSetItemType> for xsd::old_schema::BlockSetItemType {
     fn from(value: schema::BlockSetItemType) -> Self {
         match value {
             schema::BlockSetItemType::Extension => Self::Extension,
@@ -66,7 +103,7 @@ impl From<schema::BlockSetItemType> for xsd::schema::BlockSetItemType {
     }
 }
 
-impl From<schema::BlockSetType> for xsd::schema::BlockSetType {
+impl From<schema::BlockSetType> for xsd::old_schema::BlockSetType {
     fn from(value: schema::BlockSetType) -> Self {
         match value {
             schema::BlockSetType::All => Self::All,
@@ -77,7 +114,7 @@ impl From<schema::BlockSetType> for xsd::schema::BlockSetType {
     }
 }
 
-impl From<schema::FormChoiceType> for xsd::schema::FormChoiceType {
+impl From<schema::FormChoiceType> for xsd::old_schema::FormChoiceType {
     fn from(value: schema::FormChoiceType) -> Self {
         match value {
             schema::FormChoiceType::Qualified => Self::Qualified,
@@ -86,7 +123,7 @@ impl From<schema::FormChoiceType> for xsd::schema::FormChoiceType {
     }
 }
 
-impl From<schema::QName> for xsd::schema::QNameRef {
+impl From<schema::QName> for ExpandedName<'static> {
     fn from(value: schema::QName) -> Self {
         //TODO: REDO REQUIRES SUPPORT IN XMLITY
         let mut name_parts = value.0.split(":");
@@ -95,23 +132,19 @@ impl From<schema::QName> for xsd::schema::QNameRef {
         if let Some(localname_new) = name_parts.next() {
             localname = localname_new;
         }
+        let local_name = LocalName::new(localname).unwrap().into_owned();
+
         if value.0.starts_with("xs:") {
-            Self {
-                namespace: Some(Namespace("http://www.w3.org/2001/XMLSchema".to_owned())),
-                name: localname.to_owned(),
-            }
+            Self::new(local_name, Some(XmlNamespace::XMLNS))
         } else if value.0.starts_with("xml:") {
-            Self {
-                namespace: Some(Namespace("http://www.w3.org/XML/1998/namespace".to_owned())),
-                name: localname.to_owned(),
-            }
+            Self::new(local_name, Some(XmlNamespace::XML))
         } else {
             todo!()
         }
     }
 }
 
-impl From<schema::XpathDefaultNamespaceType> for xsd::schema::XpathDefaultNamespaceType {
+impl From<schema::XpathDefaultNamespaceType> for xsd::old_schema::XpathDefaultNamespaceType {
     fn from(value: schema::XpathDefaultNamespaceType) -> Self {
         match value {
             schema::XpathDefaultNamespaceType::String(a) => Self::String(a),
@@ -122,25 +155,25 @@ impl From<schema::XpathDefaultNamespaceType> for xsd::schema::XpathDefaultNamesp
     }
 }
 
-impl From<schema::Id> for xsd::schema::Id {
+impl From<schema::Id> for xsd::old_schema::Id {
     fn from(value: schema::Id) -> Self {
         Self(value.0)
     }
 }
 
-impl From<schema::XmlLang> for xsd::schema::XmlLang {
+impl From<schema::XmlLang> for xsd::old_schema::XmlLang {
     fn from(value: schema::XmlLang) -> Self {
         Self(value.0)
     }
 }
 
-impl From<schema::SchemaLocation> for xsd::schema::SchemaLocation {
+impl From<schema::SchemaLocation> for xsd::old_schema::SchemaLocation {
     fn from(value: schema::SchemaLocation) -> Self {
         Self(value.0)
     }
 }
 
-impl From<schema::Include> for xsd::schema::Include {
+impl From<schema::Include> for xsd::old_schema::Include {
     fn from(value: schema::Include) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -150,13 +183,13 @@ impl From<schema::Include> for xsd::schema::Include {
     }
 }
 
-impl From<schema::Namespace> for xsd::schema::Namespace {
+impl From<schema::Namespace> for XmlNamespace<'static> {
     fn from(value: schema::Namespace) -> Self {
-        Self(value.0)
+        XmlNamespace::new(value.0).unwrap().into_owned()
     }
 }
 
-impl From<schema::Import> for xsd::schema::Import {
+impl From<schema::Import> for xsd::old_schema::Import {
     fn from(value: schema::Import) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -167,7 +200,7 @@ impl From<schema::Import> for xsd::schema::Import {
     }
 }
 
-impl From<schema::LocalRestriction> for xsd::schema::LocalRestriction {
+impl From<schema::LocalRestriction> for xsd::old_schema::LocalRestriction {
     fn from(value: schema::LocalRestriction) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -179,7 +212,7 @@ impl From<schema::LocalRestriction> for xsd::schema::LocalRestriction {
     }
 }
 
-impl From<schema::List> for xsd::schema::List {
+impl From<schema::List> for xsd::old_schema::List {
     fn from(value: schema::List) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -190,7 +223,7 @@ impl From<schema::List> for xsd::schema::List {
     }
 }
 
-impl From<schema::Union> for xsd::schema::Union {
+impl From<schema::Union> for xsd::old_schema::Union {
     fn from(value: schema::Union) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -203,7 +236,7 @@ impl From<schema::Union> for xsd::schema::Union {
     }
 }
 
-impl From<schema::SimpleDerivation> for xsd::schema::SimpleDerivation {
+impl From<schema::SimpleDerivation> for xsd::old_schema::SimpleDerivation {
     fn from(value: schema::SimpleDerivation) -> Self {
         match value {
             schema::SimpleDerivation::Restriction(a) => Self::Restriction(Box::new((*a).into())),
@@ -213,7 +246,7 @@ impl From<schema::SimpleDerivation> for xsd::schema::SimpleDerivation {
     }
 }
 
-impl From<schema::SimpleDerivationSetItemType> for xsd::schema::SimpleDerivationSetItemType {
+impl From<schema::SimpleDerivationSetItemType> for xsd::old_schema::SimpleDerivationSetItemType {
     fn from(value: schema::SimpleDerivationSetItemType) -> Self {
         match value {
             schema::SimpleDerivationSetItemType::Restriction => Self::Restriction,
@@ -224,7 +257,7 @@ impl From<schema::SimpleDerivationSetItemType> for xsd::schema::SimpleDerivation
     }
 }
 
-impl From<schema::SimpleDerivationSetType> for xsd::schema::SimpleDerivationSetType {
+impl From<schema::SimpleDerivationSetType> for xsd::old_schema::SimpleDerivationSetType {
     fn from(value: schema::SimpleDerivationSetType) -> Self {
         match value {
             schema::SimpleDerivationSetType::All => Self::All,
@@ -241,7 +274,7 @@ impl From<schema::SimpleDerivationSetType> for xsd::schema::SimpleDerivationSetT
     }
 }
 
-impl From<schema::LocalSimpleType> for xsd::schema::LocalSimpleType {
+impl From<schema::LocalSimpleType> for xsd::old_schema::LocalSimpleType {
     fn from(value: schema::LocalSimpleType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -252,7 +285,7 @@ impl From<schema::LocalSimpleType> for xsd::schema::LocalSimpleType {
     }
 }
 
-impl From<schema::ReducedDerivationControlType> for xsd::schema::ReducedDerivationControlType {
+impl From<schema::ReducedDerivationControlType> for xsd::old_schema::ReducedDerivationControlType {
     fn from(value: schema::ReducedDerivationControlType) -> Self {
         match value {
             schema::ReducedDerivationControlType::Extension => Self::Extension,
@@ -261,7 +294,7 @@ impl From<schema::ReducedDerivationControlType> for xsd::schema::ReducedDerivati
     }
 }
 
-impl From<schema::DerivationSetType> for xsd::schema::DerivationSetType {
+impl From<schema::DerivationSetType> for xsd::old_schema::DerivationSetType {
     fn from(value: schema::DerivationSetType) -> Self {
         match value {
             schema::DerivationSetType::All => Self::All,
@@ -278,7 +311,7 @@ impl From<schema::DerivationSetType> for xsd::schema::DerivationSetType {
     }
 }
 
-impl From<schema::OpenContentModeType> for xsd::schema::OpenContentModeType {
+impl From<schema::OpenContentModeType> for xsd::old_schema::OpenContentModeType {
     fn from(value: schema::OpenContentModeType) -> Self {
         match value {
             schema::OpenContentModeType::Interleave => Self::Interleave,
@@ -288,7 +321,7 @@ impl From<schema::OpenContentModeType> for xsd::schema::OpenContentModeType {
     }
 }
 
-impl From<schema::BasicNamespaceListItemType> for xsd::schema::BasicNamespaceListItemType {
+impl From<schema::BasicNamespaceListItemType> for xsd::old_schema::BasicNamespaceListItemType {
     fn from(value: schema::BasicNamespaceListItemType) -> Self {
         match value {
             schema::BasicNamespaceListItemType::String(string) => Self::String(string),
@@ -298,7 +331,7 @@ impl From<schema::BasicNamespaceListItemType> for xsd::schema::BasicNamespaceLis
     }
 }
 
-impl From<schema::NamespaceListType> for xsd::schema::NamespaceListType {
+impl From<schema::NamespaceListType> for xsd::old_schema::NamespaceListType {
     fn from(value: schema::NamespaceListType) -> Self {
         match value {
             schema::NamespaceListType::Any => Self::Any,
@@ -316,7 +349,7 @@ impl From<schema::NamespaceListType> for xsd::schema::NamespaceListType {
     }
 }
 
-impl From<schema::ProcessContentsType> for xsd::schema::ProcessContentsType {
+impl From<schema::ProcessContentsType> for xsd::old_schema::ProcessContentsType {
     fn from(value: schema::ProcessContentsType) -> Self {
         match value {
             schema::ProcessContentsType::Skip => Self::Skip,
@@ -326,7 +359,7 @@ impl From<schema::ProcessContentsType> for xsd::schema::ProcessContentsType {
     }
 }
 
-impl From<schema::WildcardType> for xsd::schema::WildcardType {
+impl From<schema::WildcardType> for xsd::old_schema::WildcardType {
     fn from(value: schema::WildcardType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -340,7 +373,7 @@ impl From<schema::WildcardType> for xsd::schema::WildcardType {
     }
 }
 
-impl From<schema::AnyType> for xsd::schema::AnyType {
+impl From<schema::AnyType> for xsd::old_schema::AnyType {
     fn from(value: schema::AnyType) -> Self {
         Self {
             wildcard: value.wildcard.into(),
@@ -348,7 +381,7 @@ impl From<schema::AnyType> for xsd::schema::AnyType {
     }
 }
 
-impl From<schema::OpenContent> for xsd::schema::OpenContent {
+impl From<schema::OpenContent> for xsd::old_schema::OpenContent {
     fn from(value: schema::OpenContent) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -359,7 +392,7 @@ impl From<schema::OpenContent> for xsd::schema::OpenContent {
     }
 }
 
-impl From<schema::MaxOccursValue> for xsd::schema::MaxOccursValue {
+impl From<schema::MaxOccursValue> for xsd::old_schema::MaxOccursValue {
     fn from(value: schema::MaxOccursValue) -> Self {
         match value {
             schema::MaxOccursValue::Unbounded => Self::Unbounded,
@@ -368,7 +401,7 @@ impl From<schema::MaxOccursValue> for xsd::schema::MaxOccursValue {
     }
 }
 
-impl From<schema::ChoiceType> for xsd::schema::ChoiceType {
+impl From<schema::ChoiceType> for xsd::old_schema::ChoiceType {
     fn from(value: schema::ChoiceType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -381,7 +414,7 @@ impl From<schema::ChoiceType> for xsd::schema::ChoiceType {
     }
 }
 
-impl From<schema::SequenceType> for xsd::schema::SequenceType {
+impl From<schema::SequenceType> for xsd::old_schema::SequenceType {
     fn from(value: schema::SequenceType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -394,7 +427,7 @@ impl From<schema::SequenceType> for xsd::schema::SequenceType {
     }
 }
 
-impl From<schema::ElementTypeContent> for xsd::schema::ElementTypeContent {
+impl From<schema::ElementTypeContent> for xsd::old_schema::ElementTypeContent {
     fn from(value: schema::ElementTypeContent) -> Self {
         match value {
             schema::ElementTypeContent::SimpleType(a) => Self::SimpleType(Box::new((*a).into())),
@@ -403,7 +436,7 @@ impl From<schema::ElementTypeContent> for xsd::schema::ElementTypeContent {
     }
 }
 
-impl From<schema::AltTypeContent> for xsd::schema::AltTypeContent {
+impl From<schema::AltTypeContent> for xsd::old_schema::AltTypeContent {
     fn from(value: schema::AltTypeContent) -> Self {
         match value {
             schema::AltTypeContent::Annotation(a) => Self::Annotation(Box::new((*a).into())),
@@ -413,7 +446,7 @@ impl From<schema::AltTypeContent> for xsd::schema::AltTypeContent {
     }
 }
 
-impl From<schema::AltType> for xsd::schema::AltType {
+impl From<schema::AltType> for xsd::old_schema::AltType {
     fn from(value: schema::AltType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -425,13 +458,13 @@ impl From<schema::AltType> for xsd::schema::AltType {
     }
 }
 
-impl From<schema::XPath> for xsd::schema::XPath {
+impl From<schema::XPath> for xsd::old_schema::XPath {
     fn from(value: schema::XPath) -> Self {
         Self(value.0)
     }
 }
 
-impl From<schema::Selector> for xsd::schema::Selector {
+impl From<schema::Selector> for xsd::old_schema::Selector {
     fn from(value: schema::Selector) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -442,7 +475,7 @@ impl From<schema::Selector> for xsd::schema::Selector {
     }
 }
 
-impl From<schema::Field> for xsd::schema::Field {
+impl From<schema::Field> for xsd::old_schema::Field {
     fn from(value: schema::Field) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -453,7 +486,7 @@ impl From<schema::Field> for xsd::schema::Field {
     }
 }
 
-impl From<schema::KeybaseTypeContent> for xsd::schema::KeybaseTypeContent {
+impl From<schema::KeybaseTypeContent> for xsd::old_schema::KeybaseTypeContent {
     fn from(value: schema::KeybaseTypeContent) -> Self {
         Self {
             annotations: value.annotations.into_iter().map(Into::into).collect(),
@@ -463,7 +496,7 @@ impl From<schema::KeybaseTypeContent> for xsd::schema::KeybaseTypeContent {
     }
 }
 
-impl From<schema::Unique> for xsd::schema::Unique {
+impl From<schema::Unique> for xsd::old_schema::Unique {
     fn from(value: schema::Unique) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -474,7 +507,7 @@ impl From<schema::Unique> for xsd::schema::Unique {
     }
 }
 
-impl From<schema::Key> for xsd::schema::Key {
+impl From<schema::Key> for xsd::old_schema::Key {
     fn from(value: schema::Key) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -486,13 +519,13 @@ impl From<schema::Key> for xsd::schema::Key {
     }
 }
 
-impl From<schema::Refer> for xsd::schema::Refer {
+impl From<schema::Refer> for xsd::old_schema::Refer {
     fn from(value: schema::Refer) -> Self {
         Self(value.0.into())
     }
 }
 
-impl From<schema::Keyref> for xsd::schema::Keyref {
+impl From<schema::Keyref> for xsd::old_schema::Keyref {
     fn from(value: schema::Keyref) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -504,7 +537,7 @@ impl From<schema::Keyref> for xsd::schema::Keyref {
     }
 }
 
-impl From<schema::IdentityConstraint> for xsd::schema::IdentityConstraint {
+impl From<schema::IdentityConstraint> for xsd::old_schema::IdentityConstraint {
     fn from(value: schema::IdentityConstraint) -> Self {
         match value {
             schema::IdentityConstraint::Unique(a) => Self::Unique(Box::new((*a).into())),
@@ -514,7 +547,7 @@ impl From<schema::IdentityConstraint> for xsd::schema::IdentityConstraint {
     }
 }
 
-impl From<schema::LocalElement> for xsd::schema::LocalElement {
+impl From<schema::LocalElement> for xsd::old_schema::LocalElement {
     fn from(value: schema::LocalElement) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -547,7 +580,7 @@ impl From<schema::LocalElement> for xsd::schema::LocalElement {
     }
 }
 
-impl From<schema::QnameListItemType> for xsd::schema::QnameListItemType {
+impl From<schema::QnameListItemType> for xsd::old_schema::QnameListItemType {
     fn from(value: schema::QnameListItemType) -> Self {
         match value {
             schema::QnameListItemType::Qname(qname) => Self::Qname(qname.into()),
@@ -557,7 +590,7 @@ impl From<schema::QnameListItemType> for xsd::schema::QnameListItemType {
     }
 }
 
-impl From<schema::Any> for xsd::schema::Any {
+impl From<schema::Any> for xsd::old_schema::Any {
     fn from(value: schema::Any) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -574,7 +607,7 @@ impl From<schema::Any> for xsd::schema::Any {
     }
 }
 
-impl From<schema::GroupTypeContent> for xsd::schema::GroupTypeContent {
+impl From<schema::GroupTypeContent> for xsd::old_schema::GroupTypeContent {
     fn from(value: schema::GroupTypeContent) -> Self {
         match value {
             schema::GroupTypeContent::All(all) => Self::All(Box::new((*all).into())),
@@ -593,7 +626,7 @@ impl From<schema::GroupTypeContent> for xsd::schema::GroupTypeContent {
     }
 }
 
-impl From<schema::AllType> for xsd::schema::AllType {
+impl From<schema::AllType> for xsd::old_schema::AllType {
     fn from(value: schema::AllType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -606,7 +639,7 @@ impl From<schema::AllType> for xsd::schema::AllType {
     }
 }
 
-impl From<schema::FacetType> for xsd::schema::FacetType {
+impl From<schema::FacetType> for xsd::old_schema::FacetType {
     fn from(value: schema::FacetType) -> Self {
         Self {
             fixed: value.fixed.map(|a| a.0),
@@ -616,7 +649,7 @@ impl From<schema::FacetType> for xsd::schema::FacetType {
     }
 }
 
-impl From<schema::MinExclusive> for xsd::schema::MinExclusive {
+impl From<schema::MinExclusive> for xsd::old_schema::MinExclusive {
     fn from(value: schema::MinExclusive) -> Self {
         Self {
             facet_type: value.facet_type.into(),
@@ -624,7 +657,7 @@ impl From<schema::MinExclusive> for xsd::schema::MinExclusive {
     }
 }
 
-impl From<schema::MinInclusive> for xsd::schema::MinInclusive {
+impl From<schema::MinInclusive> for xsd::old_schema::MinInclusive {
     fn from(value: schema::MinInclusive) -> Self {
         Self {
             facet_type: value.facet_type.into(),
@@ -632,7 +665,7 @@ impl From<schema::MinInclusive> for xsd::schema::MinInclusive {
     }
 }
 
-impl From<schema::MaxExclusive> for xsd::schema::MaxExclusive {
+impl From<schema::MaxExclusive> for xsd::old_schema::MaxExclusive {
     fn from(value: schema::MaxExclusive) -> Self {
         Self {
             facet_type: value.facet_type.into(),
@@ -640,7 +673,7 @@ impl From<schema::MaxExclusive> for xsd::schema::MaxExclusive {
     }
 }
 
-impl From<schema::MaxInclusive> for xsd::schema::MaxInclusive {
+impl From<schema::MaxInclusive> for xsd::old_schema::MaxInclusive {
     fn from(value: schema::MaxInclusive) -> Self {
         Self {
             facet_type: value.facet_type.into(),
@@ -648,7 +681,7 @@ impl From<schema::MaxInclusive> for xsd::schema::MaxInclusive {
     }
 }
 
-impl From<schema::Enumeration> for xsd::schema::Enumeration {
+impl From<schema::Enumeration> for xsd::old_schema::Enumeration {
     fn from(value: schema::Enumeration) -> Self {
         Self {
             fixed: value.fixed.map(|a| a.0),
@@ -657,7 +690,7 @@ impl From<schema::Enumeration> for xsd::schema::Enumeration {
     }
 }
 
-impl From<schema::Facet> for xsd::schema::Facet {
+impl From<schema::Facet> for xsd::old_schema::Facet {
     fn from(value: schema::Facet) -> Self {
         match value {
             schema::Facet::MinExclusive(a) => Self::MinExclusive(Box::new((*a).into())),
@@ -669,7 +702,7 @@ impl From<schema::Facet> for xsd::schema::Facet {
     }
 }
 
-impl From<schema::AttributeUseType> for xsd::schema::AttributeUseType {
+impl From<schema::AttributeUseType> for xsd::old_schema::AttributeUseType {
     fn from(value: schema::AttributeUseType) -> Self {
         match value {
             schema::AttributeUseType::Prohibited => Self::Prohibited,
@@ -679,7 +712,7 @@ impl From<schema::AttributeUseType> for xsd::schema::AttributeUseType {
     }
 }
 
-impl From<schema::LocalAttribute> for xsd::schema::LocalAttribute {
+impl From<schema::LocalAttribute> for xsd::old_schema::LocalAttribute {
     fn from(value: schema::LocalAttribute) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -698,7 +731,7 @@ impl From<schema::LocalAttribute> for xsd::schema::LocalAttribute {
     }
 }
 
-impl From<schema::QnameListAItemType> for xsd::schema::QnameListAItemType {
+impl From<schema::QnameListAItemType> for xsd::old_schema::QnameListAItemType {
     fn from(value: schema::QnameListAItemType) -> Self {
         match value {
             schema::QnameListAItemType::Qname(qname) => Self::Qname(qname.into()),
@@ -707,7 +740,7 @@ impl From<schema::QnameListAItemType> for xsd::schema::QnameListAItemType {
     }
 }
 
-impl From<schema::AnyAttribute> for xsd::schema::AnyAttribute {
+impl From<schema::AnyAttribute> for xsd::old_schema::AnyAttribute {
     fn from(value: schema::AnyAttribute) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -722,7 +755,7 @@ impl From<schema::AnyAttribute> for xsd::schema::AnyAttribute {
     }
 }
 
-impl From<schema::AssertionType> for xsd::schema::AssertionType {
+impl From<schema::AssertionType> for xsd::old_schema::AssertionType {
     fn from(value: schema::AssertionType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -733,7 +766,7 @@ impl From<schema::AssertionType> for xsd::schema::AssertionType {
     }
 }
 
-impl From<schema::RestrictionTypeContent> for xsd::schema::RestrictionTypeContent {
+impl From<schema::RestrictionTypeContent> for xsd::old_schema::RestrictionTypeContent {
     fn from(value: schema::RestrictionTypeContent) -> Self {
         match value {
             schema::RestrictionTypeContent::SimpleType(simple_type) => {
@@ -774,7 +807,7 @@ impl From<schema::RestrictionTypeContent> for xsd::schema::RestrictionTypeConten
     }
 }
 
-impl From<schema::Restriction> for xsd::schema::Restriction {
+impl From<schema::Restriction> for xsd::old_schema::Restriction {
     fn from(value: schema::Restriction) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -784,7 +817,7 @@ impl From<schema::Restriction> for xsd::schema::Restriction {
     }
 }
 
-impl From<schema::ExtensionTypeContent> for xsd::schema::ExtensionTypeContent {
+impl From<schema::ExtensionTypeContent> for xsd::old_schema::ExtensionTypeContent {
     fn from(value: schema::ExtensionTypeContent) -> Self {
         use schema::ExtensionTypeContent as Variant;
         match value {
@@ -810,7 +843,7 @@ impl From<schema::ExtensionTypeContent> for xsd::schema::ExtensionTypeContent {
     }
 }
 
-impl From<schema::ExtensionType> for xsd::schema::ExtensionType {
+impl From<schema::ExtensionType> for xsd::old_schema::ExtensionType {
     fn from(value: schema::ExtensionType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -820,7 +853,7 @@ impl From<schema::ExtensionType> for xsd::schema::ExtensionType {
     }
 }
 
-impl From<schema::SimpleContentContent> for xsd::schema::SimpleContentContent {
+impl From<schema::SimpleContentContent> for xsd::old_schema::SimpleContentContent {
     fn from(value: schema::SimpleContentContent) -> Self {
         match value {
             schema::SimpleContentContent::Restriction(restriction) => {
@@ -836,7 +869,7 @@ impl From<schema::SimpleContentContent> for xsd::schema::SimpleContentContent {
     }
 }
 
-impl From<schema::SimpleContent> for xsd::schema::SimpleContent {
+impl From<schema::SimpleContent> for xsd::old_schema::SimpleContent {
     fn from(value: schema::SimpleContent) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -845,7 +878,7 @@ impl From<schema::SimpleContent> for xsd::schema::SimpleContent {
     }
 }
 
-impl From<schema::RestrictionContent> for xsd::schema::RestrictionContent {
+impl From<schema::RestrictionContent> for xsd::old_schema::RestrictionContent {
     fn from(value: schema::RestrictionContent) -> Self {
         match value {
             schema::RestrictionContent::Other(xml_value) => {
@@ -856,7 +889,7 @@ impl From<schema::RestrictionContent> for xsd::schema::RestrictionContent {
     }
 }
 
-impl From<schema::ComplexRestrictionType> for xsd::schema::ComplexRestrictionType {
+impl From<schema::ComplexRestrictionType> for xsd::old_schema::ComplexRestrictionType {
     fn from(value: schema::ComplexRestrictionType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -868,7 +901,7 @@ impl From<schema::ComplexRestrictionType> for xsd::schema::ComplexRestrictionTyp
     }
 }
 
-impl From<schema::ComplexContentContent> for xsd::schema::ComplexContentContent {
+impl From<schema::ComplexContentContent> for xsd::old_schema::ComplexContentContent {
     fn from(value: schema::ComplexContentContent) -> Self {
         match value {
             schema::ComplexContentContent::Annotation(annotation) => {
@@ -884,7 +917,7 @@ impl From<schema::ComplexContentContent> for xsd::schema::ComplexContentContent 
     }
 }
 
-impl From<schema::ComplexContent> for xsd::schema::ComplexContent {
+impl From<schema::ComplexContent> for xsd::old_schema::ComplexContent {
     fn from(value: schema::ComplexContent) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -894,41 +927,38 @@ impl From<schema::ComplexContent> for xsd::schema::ComplexContent {
     }
 }
 
-impl From<schema::ComplexBaseTypeContent> for xsd::schema::ComplexBaseTypeContent {
-    fn from(value: schema::ComplexBaseTypeContent) -> Self {
+impl From<schema::ComplexTypeModel> for xsd::old_schema::ComplexTypeModel {
+    fn from(value: schema::ComplexTypeModel) -> Self {
         match value {
-            schema::ComplexBaseTypeContent::SimpleContent(simple_content) => {
+            schema::ComplexTypeModel::SimpleContent(simple_content) => {
                 Self::SimpleContent(simple_content.into())
             }
-            schema::ComplexBaseTypeContent::ComplexContent(complex_content) => {
+            schema::ComplexTypeModel::ComplexContent(complex_content) => {
                 Self::ComplexContent(complex_content.into())
-            }
-            schema::ComplexBaseTypeContent::OpenContent(open_content) => {
-                Self::OpenContent(open_content.into())
-            }
-            schema::ComplexBaseTypeContent::Group(group_type) => Self::Group(group_type.into()),
-            schema::ComplexBaseTypeContent::All(all_type) => Self::All(all_type.into()),
-            schema::ComplexBaseTypeContent::Choice(choice_type) => Self::Choice(choice_type.into()),
-            schema::ComplexBaseTypeContent::Sequence(sequence_type) => {
-                Self::Sequence(sequence_type.into())
-            }
-            schema::ComplexBaseTypeContent::Attribute(local_attribute) => {
-                Self::Attribute(local_attribute.into())
-            }
-            schema::ComplexBaseTypeContent::AttributeGroup(attribute_group_type) => {
-                Self::AttributeGroup(attribute_group_type.into())
-            }
-            schema::ComplexBaseTypeContent::AnyAttribute(any_attribute) => {
-                Self::AnyAttribute(any_attribute.into())
-            }
-            schema::ComplexBaseTypeContent::Assert(assertion_type) => {
-                Self::Assert(assertion_type.into())
-            }
+            } // schema::ComplexTypeModel::OpenContent(open_content) => {
+              //     Self::OpenContent(open_content.into())
+              // }
+              // schema::ComplexTypeModel::Group(group_type) => Self::Group(group_type.into()),
+              // schema::ComplexTypeModel::All(all_type) => Self::All(all_type.into()),
+              // schema::ComplexTypeModel::Choice(choice_type) => Self::Choice(choice_type.into()),
+              // schema::ComplexTypeModel::Sequence(sequence_type) => {
+              //     Self::Sequence(sequence_type.into())
+              // }
+              // schema::ComplexTypeModel::Attribute(local_attribute) => {
+              //     Self::Attribute(local_attribute.into())
+              // }
+              // schema::ComplexTypeModel::AttributeGroup(attribute_group_type) => {
+              //     Self::AttributeGroup(attribute_group_type.into())
+              // }
+              // schema::ComplexTypeModel::AnyAttribute(any_attribute) => {
+              //     Self::AnyAttribute(any_attribute.into())
+              // }
+              // schema::ComplexTypeModel::Assert(assertion_type) => Self::Assert(assertion_type.into()),
         }
     }
 }
 
-impl From<schema::LocalComplexType> for xsd::schema::LocalComplexType {
+impl From<schema::LocalComplexType> for xsd::old_schema::LocalComplexType {
     fn from(value: schema::LocalComplexType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -938,12 +968,12 @@ impl From<schema::LocalComplexType> for xsd::schema::LocalComplexType {
             block: value.block.map(|a| a.0).map(Into::into),
             default_attributes_apply: value.default_attributes_apply.map(|a| a.0),
             annotation: value.annotation.map(Into::into),
-            content: value.content.into_iter().map(Into::into).collect(),
+            content: value.content.into(),
         }
     }
 }
 
-impl From<schema::RedefineContent> for xsd::schema::RedefineContent {
+impl From<schema::RedefineContent> for xsd::old_schema::RedefineContent {
     fn from(value: schema::RedefineContent) -> Self {
         match value {
             schema::RedefineContent::SimpleType(simple_type) => {
@@ -961,7 +991,7 @@ impl From<schema::RedefineContent> for xsd::schema::RedefineContent {
     }
 }
 
-impl From<schema::Redefine> for xsd::schema::Redefine {
+impl From<schema::Redefine> for xsd::old_schema::Redefine {
     fn from(value: schema::Redefine) -> Self {
         Self {
             schema_location: value.schema_location,
@@ -971,7 +1001,7 @@ impl From<schema::Redefine> for xsd::schema::Redefine {
     }
 }
 
-impl From<schema::OverrideContent> for xsd::schema::OverrideContent {
+impl From<schema::OverrideContent> for xsd::old_schema::OverrideContent {
     fn from(value: schema::OverrideContent) -> Self {
         match value {
             schema::OverrideContent::Annotation(a) => Self::Annotation(a.into()),
@@ -986,7 +1016,7 @@ impl From<schema::OverrideContent> for xsd::schema::OverrideContent {
     }
 }
 
-impl From<schema::Override> for xsd::schema::Override {
+impl From<schema::Override> for xsd::old_schema::Override {
     fn from(value: schema::Override) -> Self {
         Self {
             schema_location: value.schema_location,
@@ -996,13 +1026,13 @@ impl From<schema::Override> for xsd::schema::Override {
     }
 }
 
-impl From<schema::Source> for xsd::schema::Source {
+impl From<schema::Source> for xsd::old_schema::Source {
     fn from(value: schema::Source) -> Self {
         Self(value.0)
     }
 }
 
-impl From<schema::Appinfo> for xsd::schema::Appinfo {
+impl From<schema::Appinfo> for xsd::old_schema::Appinfo {
     fn from(value: schema::Appinfo) -> Self {
         Self {
             source: value.source.map(Into::into),
@@ -1010,7 +1040,7 @@ impl From<schema::Appinfo> for xsd::schema::Appinfo {
     }
 }
 
-impl From<schema::Documentation> for xsd::schema::Documentation {
+impl From<schema::Documentation> for xsd::old_schema::Documentation {
     fn from(value: schema::Documentation) -> Self {
         Self {
             source: value.source.map(Into::into),
@@ -1021,7 +1051,7 @@ impl From<schema::Documentation> for xsd::schema::Documentation {
     }
 }
 
-impl From<schema::AnnotationContent> for xsd::schema::AnnotationContent {
+impl From<schema::AnnotationContent> for xsd::old_schema::AnnotationContent {
     fn from(value: schema::AnnotationContent) -> Self {
         match value {
             schema::AnnotationContent::Appinfo(appinfo) => Self::Appinfo(appinfo.into()),
@@ -1032,7 +1062,7 @@ impl From<schema::AnnotationContent> for xsd::schema::AnnotationContent {
     }
 }
 
-impl From<schema::Annotation> for xsd::schema::Annotation {
+impl From<schema::Annotation> for xsd::old_schema::Annotation {
     fn from(value: schema::Annotation) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -1041,7 +1071,7 @@ impl From<schema::Annotation> for xsd::schema::Annotation {
     }
 }
 
-impl From<schema::Composition> for xsd::schema::Composition {
+impl From<schema::Composition> for xsd::old_schema::Composition {
     fn from(value: schema::Composition) -> Self {
         match value {
             schema::Composition::Include(include) => Self::Include(include.into()),
@@ -1053,7 +1083,7 @@ impl From<schema::Composition> for xsd::schema::Composition {
     }
 }
 
-impl From<schema::DefaultOpenContentModeType> for xsd::schema::DefaultOpenContentModeType {
+impl From<schema::DefaultOpenContentModeType> for xsd::old_schema::DefaultOpenContentModeType {
     fn from(value: schema::DefaultOpenContentModeType) -> Self {
         match value {
             schema::DefaultOpenContentModeType::Interleave => Self::Interleave,
@@ -1062,7 +1092,7 @@ impl From<schema::DefaultOpenContentModeType> for xsd::schema::DefaultOpenConten
     }
 }
 
-impl From<schema::DefaultOpenContent> for xsd::schema::DefaultOpenContent {
+impl From<schema::DefaultOpenContent> for xsd::old_schema::DefaultOpenContent {
     fn from(value: schema::DefaultOpenContent) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -1074,18 +1104,16 @@ impl From<schema::DefaultOpenContent> for xsd::schema::DefaultOpenContent {
     }
 }
 
-impl From<schema::TopLevelElement> for xsd::schema::TopLevelElement {
+impl From<schema::TopLevelElement> for xsd::old_schema::TopLevelElement {
     fn from(value: schema::TopLevelElement) -> Self {
         Self {
             id: value.id.map(Into::into),
-            name: value.name.map(Into::into),
+            name: value.name.into(),
             type_: value.type_.map(|a| a.0).map(Into::into),
             substitution_group: value
                 .substitution_group
                 .map(|a| a.0 .0.into_iter().map(Into::into).collect())
                 .unwrap_or_default(),
-            min_occurs: value.min_occurs.map(|a| a.0),
-            max_occurs: value.max_occurs.map(|a| a.0).map(Into::into),
             default: value.default.map(|a| a.0),
             fixed: value.fixed.map(|a| a.0),
             nillable: value.nillable.map(|a| a.0),
@@ -1106,11 +1134,11 @@ impl From<schema::TopLevelElement> for xsd::schema::TopLevelElement {
     }
 }
 
-impl From<schema::TopLevelAttribute> for xsd::schema::TopLevelAttribute {
+impl From<schema::TopLevelAttribute> for xsd::old_schema::TopLevelAttribute {
     fn from(value: schema::TopLevelAttribute) -> Self {
         Self {
             id: value.id.map(Into::into),
-            name: value.name.map(Into::into),
+            name: value.name.into(),
             type_: value.type_.map(|a| a.0).map(Into::into),
             use_: value.use_.map(|a| a.0).map(Into::into),
             default: value.default.map(|a| a.0),
@@ -1124,11 +1152,11 @@ impl From<schema::TopLevelAttribute> for xsd::schema::TopLevelAttribute {
     }
 }
 
-impl From<schema::TopLevelSimpleType> for xsd::schema::TopLevelSimpleType {
+impl From<schema::TopLevelSimpleType> for xsd::old_schema::TopLevelSimpleType {
     fn from(value: schema::TopLevelSimpleType) -> Self {
         Self {
             id: value.id.map(Into::into),
-            name: value.name.map(Into::into),
+            name: value.name.into(),
             final_: value.final_.map(|a| a.0).map(Into::into),
             annotation: value.annotation.map(Into::into),
             content: value.content.into(),
@@ -1136,23 +1164,23 @@ impl From<schema::TopLevelSimpleType> for xsd::schema::TopLevelSimpleType {
     }
 }
 
-impl From<schema::TopLevelComplexType> for xsd::schema::TopLevelComplexType {
+impl From<schema::TopLevelComplexType> for xsd::old_schema::TopLevelComplexType {
     fn from(value: schema::TopLevelComplexType) -> Self {
         Self {
             id: value.id.map(Into::into),
-            name: value.name.map(Into::into),
+            name: value.name.into(),
             mixed: value.mixed.map(|a| a.0),
             abstract_: value.abstract_.map(|a| a.0),
             final_: value.final_.map(|a| a.0).map(Into::into),
             block: value.block.map(|a| a.0).map(Into::into),
             default_attributes_apply: value.default_attributes_apply.map(|a| a.0),
             annotation: value.annotation.map(Into::into),
-            content: value.content.into_iter().map(Into::into).collect(),
+            content: value.content.into(),
         }
     }
 }
 
-impl From<schema::GroupType> for xsd::schema::GroupType {
+impl From<schema::GroupType> for xsd::old_schema::GroupType {
     fn from(value: schema::GroupType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -1166,7 +1194,7 @@ impl From<schema::GroupType> for xsd::schema::GroupType {
     }
 }
 
-impl From<schema::AttributeGroupTypeContent> for xsd::schema::AttributeGroupTypeContent {
+impl From<schema::AttributeGroupTypeContent> for xsd::old_schema::AttributeGroupTypeContent {
     fn from(value: schema::AttributeGroupTypeContent) -> Self {
         use schema::AttributeGroupTypeContent as S;
         match value {
@@ -1177,7 +1205,7 @@ impl From<schema::AttributeGroupTypeContent> for xsd::schema::AttributeGroupType
     }
 }
 
-impl From<schema::AttributeGroupType> for xsd::schema::AttributeGroupType {
+impl From<schema::AttributeGroupType> for xsd::old_schema::AttributeGroupType {
     fn from(value: schema::AttributeGroupType) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -1189,7 +1217,7 @@ impl From<schema::AttributeGroupType> for xsd::schema::AttributeGroupType {
     }
 }
 
-impl From<schema::Redefineable> for xsd::schema::Redefineable {
+impl From<schema::Redefineable> for xsd::old_schema::Redefineable {
     fn from(value: schema::Redefineable) -> Self {
         match value {
             schema::Redefineable::SimpleType(top_level_simple_type) => {
@@ -1206,13 +1234,13 @@ impl From<schema::Redefineable> for xsd::schema::Redefineable {
     }
 }
 
-impl From<schema::Name> for xsd::schema::Name {
+impl From<schema::Name> for xsd::old_schema::Name {
     fn from(value: schema::Name) -> Self {
         Self(value.0)
     }
 }
 
-impl From<schema::Notation> for xsd::schema::Notation {
+impl From<schema::Notation> for xsd::old_schema::Notation {
     fn from(value: schema::Notation) -> Self {
         Self {
             id: value.id.map(Into::into),
@@ -1224,7 +1252,7 @@ impl From<schema::Notation> for xsd::schema::Notation {
     }
 }
 
-impl From<schema::SchemaTop> for xsd::schema::SchemaTop {
+impl From<schema::SchemaTop> for xsd::old_schema::SchemaTop {
     fn from(value: schema::SchemaTop) -> Self {
         match value {
             schema::SchemaTop::Element(element) => Self::Element(element.into()),

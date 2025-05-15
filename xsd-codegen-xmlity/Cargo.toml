@@ -9,19 +9,19 @@ license.workspace = true
 
 [dependencies]
 xsd = { path = "../xsd" }
-xmlity = { version = "0.0.1", features = [
-  "derive",
-], git = "https://github.com/lukasfri/xmlity.git", rev = "b6fe256ad89c51d45bca4a70869dd9dfe4a4123d" }
+xmlity.workspace = true
 proc-macro2 = "1.0.66"
 quote = "1.0.33"
-syn = { version = "2.0.29", features = ["full"] }
+syn = { version = "2.0.29", features = ["full", "extra-traits"] }
 prettyplease = "0.2.15"
 thiserror.workspace = true
-xsd-simple-type-compiler = { path = "../xsd-simple-type-compiler" }
+xsd-type-compiler = { path = "../xsd-type-compiler" }
+dyn-clone = "1.0.14"
 
 [dev-dependencies]
 pretty_assertions.workspace = true
 rstest.workspace = true
-xsd-xmlity = { path = "../xsd-xmlity" }
-xmlity-quick-xml = { version = "0.0.1", git = "https://github.com/lukasfri/xmlity.git", rev = "b6fe256ad89c51d45bca4a70869dd9dfe4a4123d" }
+# xsd-xmlity = { path = "../xsd-xmlity" }
+xmlity-quick-xml.workspace = true
 insta = { version = "1.31.0", features = [] }
+map-macro = "0.3.0"

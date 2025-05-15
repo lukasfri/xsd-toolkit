@@ -77,6 +77,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 
 [[package]]
+name = "dyn-clone"
+version = "1.0.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c7a8fb8a9fbf66c1f703fe16184d10ca0ee9d23be5b4436400408ba54a95005"
+
+[[package]]
 name = "encode_unicode"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -145,9 +151,9 @@ checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 
 [[package]]
 name = "hashbrown"
-version = "0.15.2"
+version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
+checksum = "84b26c544d002229e640969970a2e74021aadf6e2f96372b9c58eff97de08eb3"
 
 [[package]]
 name = "ident_case"
@@ -167,14 +173,12 @@ dependencies = [
 
 [[package]]
 name = "insta"
-version = "1.42.2"
+version = "1.43.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50259abbaa67d11d2bcafc7ba1d094ed7a0c70e3ce893f0d0997f73558cb3084"
+checksum = "154934ea70c58054b556dd430b99a98c2a7ff5309ac9891597e339b5c28f4371"
 dependencies = [
  "console",
- "linked-hash-map",
  "once_cell",
- "pin-project",
  "similar",
 ]
 
@@ -185,10 +189,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d750af042f7ef4f724306de029d18836c26c1765a54a6a3f094cbd23a7267ffa"
 
 [[package]]
-name = "linked-hash-map"
-version = "0.5.6"
+name = "map-macro"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
+checksum = "fb950a42259642e5a3483115aca87eebed2a64886993463af9c9739c205b8d3a"
 
 [[package]]
 name = "memchr"
@@ -201,26 +205,6 @@ name = "once_cell"
 version = "1.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
-
-[[package]]
-name = "pin-project"
-version = "1.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "677f1add503faace112b9f1373e43e9e054bfdd22ff1a63c1bc485eaec6a6a8a"
-dependencies = [
- "pin-project-internal",
-]
-
-[[package]]
-name = "pin-project-internal"
-version = "1.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e918e4ff8c4549eb882f14b3a4bc8c8bc93de829416eacf579f1207a8fbf861"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
 
 [[package]]
 name = "pin-project-lite"
@@ -265,18 +249,18 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.94"
+version = "1.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a31971752e70b8b2686d7e46ec17fb38dad4051d94024c88df49b667caea9c84"
+checksum = "02b3e5e68a3a1a02aad3ec490a98007cbc13c37cbe84a3cd7b8e406d76e7f778"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "quick-xml"
-version = "0.37.4"
+version = "0.37.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4ce8c88de324ff838700f36fb6ab86c96df0e3c4ab6ef3a9b2044465cce1369"
+checksum = "331e97a1af0bf59823e6eadffe373d7b27f485be8748f71471c662c1f269b7fb"
 dependencies = [
  "memchr",
 ]
@@ -393,9 +377,9 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "syn"
-version = "2.0.100"
+version = "2.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b09a44accad81e1ba1cd74a32461ba89dee89095ba17b32f5d03683b1b1fc2a0"
+checksum = "8ce2b7fc941b3a24138a0a7cf8e858bfc6a992e7978a068a5c760deb0ed43caf"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -424,15 +408,15 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "0.6.8"
+version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dd7358ecb8fc2f8d014bf86f6f638ce72ba252a2c3a2572f2a795f1d23efb41"
+checksum = "3da5db5a963e24bc68be8b17b6fa82814bb22ee8660f192bb182771d498f09a3"
 
 [[package]]
 name = "toml_edit"
-version = "0.22.24"
+version = "0.22.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17b4795ff5edd201c7cd6dca065ae59972ce77d1b80fa0a84d94950ece7d1474"
+checksum = "310068873db2c5b3e7659d2cc35d21855dbafa50d1ce336397c666e3cb08137e"
 dependencies = [
  "indexmap",
  "toml_datetime",
@@ -520,17 +504,17 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
-version = "0.7.6"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63d3fcd9bba44b03821e7d699eeee959f3126dcc4aa8e4ae18ec617c2a5cea10"
+checksum = "c06928c8748d81b05c9be96aad92e1b6ff01833332f281e8cfca3be4b35fc9ec"
 dependencies = [
  "memchr",
 ]
 
 [[package]]
 name = "xmlity"
-version = "0.0.1"
-source = "git+https://github.com/lukasfri/xmlity.git?rev=b6fe256ad89c51d45bca4a70869dd9dfe4a4123d#b6fe256ad89c51d45bca4a70869dd9dfe4a4123d"
+version = "0.0.4"
+source = "git+https://github.com/lukasfri/xmlity.git?branch=main#88748cbd2f16ef69e89b8fe3180c55c9e5a7e0c3"
 dependencies = [
  "thiserror",
  "xmlity-derive",
@@ -538,8 +522,8 @@ dependencies = [
 
 [[package]]
 name = "xmlity-derive"
-version = "0.0.1"
-source = "git+https://github.com/lukasfri/xmlity.git?rev=b6fe256ad89c51d45bca4a70869dd9dfe4a4123d#b6fe256ad89c51d45bca4a70869dd9dfe4a4123d"
+version = "0.0.4"
+source = "git+https://github.com/lukasfri/xmlity.git?branch=main#88748cbd2f16ef69e89b8fe3180c55c9e5a7e0c3"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -549,8 +533,8 @@ dependencies = [
 
 [[package]]
 name = "xmlity-quick-xml"
-version = "0.0.1"
-source = "git+https://github.com/lukasfri/xmlity.git?rev=b6fe256ad89c51d45bca4a70869dd9dfe4a4123d#b6fe256ad89c51d45bca4a70869dd9dfe4a4123d"
+version = "0.0.4"
+source = "git+https://github.com/lukasfri/xmlity.git?branch=main#88748cbd2f16ef69e89b8fe3180c55c9e5a7e0c3"
 dependencies = [
  "quick-xml",
  "thiserror",
@@ -561,14 +545,18 @@ dependencies = [
 name = "xsd"
 version = "0.0.0"
 dependencies = [
+ "rstest",
  "xmlity",
+ "xmlity-quick-xml",
 ]
 
 [[package]]
 name = "xsd-codegen-xmlity"
 version = "0.0.0"
 dependencies = [
+ "dyn-clone",
  "insta",
+ "map-macro",
  "pretty_assertions",
  "prettyplease",
  "proc-macro2",
@@ -579,29 +567,18 @@ dependencies = [
  "xmlity",
  "xmlity-quick-xml",
  "xsd",
- "xsd-simple-type-compiler",
- "xsd-xmlity",
+ "xsd-type-compiler",
 ]
 
 [[package]]
-name = "xsd-simple-type-compiler"
+name = "xsd-type-compiler"
 version = "0.0.0"
 dependencies = [
  "insta",
+ "map-macro",
  "pretty_assertions",
  "rstest",
  "syn",
- "thiserror",
- "xmlity-quick-xml",
- "xsd",
- "xsd-xmlity",
-]
-
-[[package]]
-name = "xsd-xmlity"
-version = "0.0.0"
-dependencies = [
- "rstest",
  "thiserror",
  "xmlity",
  "xmlity-quick-xml",

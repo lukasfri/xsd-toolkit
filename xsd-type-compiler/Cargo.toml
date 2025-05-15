@@ -1,5 +1,5 @@
 [package]
-name = "xsd-simple-type-compiler"
+name = "xsd-type-compiler"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,10 +11,12 @@ license.workspace = true
 syn = { version = "2.0.29", features = ["full"] }
 xsd = { path = "../xsd" }
 thiserror.workspace = true
+xmlity.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true
 rstest.workspace = true
-xsd-xmlity = { path = "../xsd-xmlity" }
-xmlity-quick-xml = { version = "0.0.1", git = "https://github.com/lukasfri/xmlity.git", rev = "b6fe256ad89c51d45bca4a70869dd9dfe4a4123d" }
+# xsd-xmlity = { path = "../xsd-xmlity" }
+xmlity-quick-xml.workspace = true
 insta = { version = "1.31.0", features = [] }
+map-macro = "0.3.0"

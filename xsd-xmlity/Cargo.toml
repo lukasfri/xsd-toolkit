@@ -11,11 +11,9 @@ license.workspace = true
 
 [dependencies]
 xsd = { path = "../xsd" }
-xmlity = { version = "0.0.1", features = [
-  "derive",
-], git = "https://github.com/lukasfri/xmlity.git", rev = "b6fe256ad89c51d45bca4a70869dd9dfe4a4123d" }
-xmlity-quick-xml = { version = "0.0.1", git = "https://github.com/lukasfri/xmlity.git", rev = "b6fe256ad89c51d45bca4a70869dd9dfe4a4123d" }
+xmlity.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true
+xmlity-quick-xml.workspace = true

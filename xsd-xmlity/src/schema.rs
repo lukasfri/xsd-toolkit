@@ -155,25 +155,25 @@ pub struct XPathDefaultNamespace(pub XpathDefaultNamespaceType);
     preferred_prefix = "xs"
 )]
 pub struct Schema {
-    #[xattribute(default)]
-    pub target_namespace: Option<TargetNamespace>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true)]
+    pub target_namespace: TargetNamespace,
+    #[xattribute(deferred = true, default)]
     pub version: Option<Version>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub final_default: Option<FinalDefault>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub block_default: Option<BlockDefault>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub attribute_form_default: Option<AttributeFormDefault>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub element_form_default: Option<ElementFormDefault>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub default_attributes: Option<DefaultAttributes>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub xpath_default_namespace: Option<XPathDefaultNamespace>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub lang: Option<XmlLang>,
     #[xvalue(default)]
     pub compositions: Vec<Composition>,
@@ -439,9 +439,9 @@ pub struct Namespace(pub String);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "include", namespace_expr = NS_XSD)]
 pub struct Include {
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub id: Option<Id>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub schema_location: SchemaLocation,
     pub annotation: Option<Annotation>,
 }
@@ -449,11 +449,11 @@ pub struct Include {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "import", namespace_expr = NS_XSD)]
 pub struct Import {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub namespace: Option<Namespace>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub schema_location: Option<SchemaLocation>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -463,7 +463,7 @@ pub struct Import {
 #[xelement(name = "redefine", namespace_expr = NS_XSD)]
 pub struct Redefine {
     pub schema_location: String,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub id: Option<Id>,
     pub content: Vec<RedefineContent>,
 }
@@ -480,7 +480,7 @@ pub enum RedefineContent {
 #[xelement(name = "override", namespace_expr = NS_XSD)]
 pub struct Override {
     pub schema_location: String,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub id: Option<Id>,
     pub content: Vec<OverrideContent>,
 }
@@ -499,7 +499,7 @@ pub enum OverrideContent {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "annotation", namespace_expr = NS_XSD)]
 pub struct Annotation {
-    #[xattribute(default = true)]
+    #[xattribute(deferred = true, default = true)]
     pub id: Option<Id>,
     pub content: Vec<AnnotationContent>,
 }
@@ -521,7 +521,7 @@ pub enum AnnotationContent {
     namespace_expr = NS_XSD
 )]
 pub struct DefaultOpenContent {
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub id: Option<Id>,
     pub applies_to_empty: bool,
     pub mode: DefaultOpenContentModeType,
@@ -546,9 +546,9 @@ pub struct Final2(pub SimpleDerivationSetType);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "simpleType", namespace_expr = NS_XSD)]
 pub struct LocalSimpleType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub final_: Option<Final2>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -558,12 +558,12 @@ pub struct LocalSimpleType {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "simpleType", namespace_expr = NS_XSD)]
 pub struct TopLevelSimpleType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub final_: Option<Final2>,
-    #[xattribute(default)]
-    pub name: Option<Name>,
+    #[xattribute(deferred = true)]
+    pub name: Name,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
     pub content: SimpleDerivation,
@@ -603,58 +603,56 @@ pub struct DefaultAttributesApply(pub bool);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "complexType", namespace_expr = NS_XSD)]
 pub struct LocalComplexType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub mixed: Option<Mixed>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub abstract_: Option<Abstract>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub final_: Option<Final>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub block: Option<Block>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub default_attributes_apply: Option<DefaultAttributesApply>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
-    pub content: Vec<ComplexBaseTypeContent>,
+    pub content: ComplexTypeModel,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "complexType", namespace_expr = NS_XSD)]
 pub struct TopLevelComplexType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
-    pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true)]
+    pub name: Name,
+    #[xattribute(deferred = true, default)]
     pub mixed: Option<Mixed>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub abstract_: Option<Abstract>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub final_: Option<Final>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub block: Option<Block>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub default_attributes_apply: Option<DefaultAttributesApply>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
-    pub content: Vec<ComplexBaseTypeContent>,
+    pub content: ComplexTypeModel,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub enum ComplexBaseTypeContent {
+pub enum ComplexTypeModel {
     SimpleContent(SimpleContent),
     ComplexContent(ComplexContent),
-    OpenContent(OpenContent),
-    Group(GroupType),
-    All(AllType),
-    Choice(ChoiceType),
-    Sequence(SequenceType),
-    Attribute(LocalAttribute),
-    AttributeGroup(AttributeGroupType),
-    AnyAttribute(AnyAttribute),
-    Assert(AssertionType),
+    // Other {
+    //     open_content: Option<OpenContent>,
+    //     type_def_particle: Option<TypeDefParticle>,
+    //     #[xgroup]
+    //     attr_decls: Vec<AttrDecls>,
+    //     assertions: Vec<Assertions>,
+    // },
 }
 
 impl LocalComplexType {
@@ -671,15 +669,15 @@ impl LocalComplexType {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "group", namespace_expr = NS_XSD)]
 pub struct GroupType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub ref_: Option<Ref>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub min_occurs: Option<MinOccurs>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub max_occurs: Option<MaxOccurs>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -690,15 +688,15 @@ pub struct GroupType {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "all", namespace_expr = NS_XSD)]
 pub struct AllType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub ref_: Option<Ref>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub min_occurs: Option<MinOccurs>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub max_occurs: Option<MaxOccurs>,
     pub content: Vec<GroupTypeContent>,
 }
@@ -706,15 +704,15 @@ pub struct AllType {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "choice", namespace_expr = NS_XSD)]
 pub struct ChoiceType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub ref_: Option<Ref>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub min_occurs: Option<MinOccurs>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub max_occurs: Option<MaxOccurs>,
     pub content: Vec<GroupTypeContent>,
 }
@@ -722,15 +720,15 @@ pub struct ChoiceType {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "sequence", namespace_expr = NS_XSD)]
 pub struct SequenceType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub ref_: Option<Ref>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub min_occurs: Option<MinOccurs>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub max_occurs: Option<MaxOccurs>,
     pub content: Vec<GroupTypeContent>,
 }
@@ -761,11 +759,11 @@ impl GroupType {
     namespace_expr = NS_XSD
 )]
 pub struct AttributeGroupType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub ref_: Option<Ref>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -813,40 +811,40 @@ pub struct Form(pub FormChoiceType);
 
 #[derive(Debug, Clone, Eq, PartialEq, SerializeAttribute, Deserialize)]
 #[xattribute(name = "targetNamespace")]
-pub struct TargetNamespace(pub String);
+pub struct TargetNamespace(pub XmlNamespace<'static>);
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "element", namespace_expr = NS_XSD)]
 pub struct LocalElement {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub ref_: Option<Ref>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub type_: Option<Type>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub substitution_group: Option<SubstitutionGroup>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub min_occurs: Option<MinOccurs>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub max_occurs: Option<MaxOccurs>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub default: Option<DefaultAttr>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub fixed: Option<Fixed>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub nillable: Option<Nillable>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub abstract_: Option<Abstract>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub final_: Option<Final>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub block: Option<Block2>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub form: Option<Form>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub target_namespace: Option<TargetNamespace>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -861,33 +859,29 @@ pub struct LocalElement {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "element", namespace_expr = NS_XSD)]
 pub struct TopLevelElement {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
-    pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true)]
+    pub name: Name,
+    #[xattribute(deferred = true, default)]
     pub type_: Option<Type>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub substitution_group: Option<SubstitutionGroup>,
-    #[xattribute(default)]
-    pub min_occurs: Option<MinOccurs>,
-    #[xattribute(default)]
-    pub max_occurs: Option<MaxOccurs>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub default: Option<DefaultAttr>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub fixed: Option<Fixed>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub nillable: Option<Nillable>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub abstract_: Option<Abstract>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub final_: Option<Final>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub block: Option<Block2>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub form: Option<Form>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub target_namespace: Option<TargetNamespace>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -938,25 +932,25 @@ pub struct Inheritable(pub bool);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "attribute", namespace_expr = NS_XSD)]
 pub struct LocalAttribute {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub ref_: Option<Ref>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub type_: Option<Type>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub use_: Option<AttrUse>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub default: Option<DefaultAttr>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub fixed: Option<Fixed>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub form: Option<Form>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub target_namespace: Option<TargetNamespace>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub inheritable: Option<Inheritable>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -973,23 +967,23 @@ impl LocalAttribute {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "attribute", namespace_expr = NS_XSD)]
 pub struct TopLevelAttribute {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
-    pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true)]
+    pub name: Name,
+    #[xattribute(deferred = true, default)]
     pub type_: Option<Type>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub use_: Option<AttrUse>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub default: Option<DefaultAttr>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub fixed: Option<Fixed>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub form: Option<Form>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub target_namespace: Option<TargetNamespace>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub inheritable: Option<Inheritable>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -1014,13 +1008,13 @@ pub struct System(pub String);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "notation", namespace_expr = NS_XSD)]
 pub struct Notation {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub name: Name,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub public: Option<Public>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub system: Option<System>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -1100,7 +1094,7 @@ impl_to_string_serialize!(BlockSetItemType);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "appinfo", namespace_expr = NS_XSD)]
 pub struct Appinfo {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub source: Option<Source>,
 }
 
@@ -1115,9 +1109,9 @@ pub struct XmlLang(pub String);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "documentation", namespace_expr = NS_XSD)]
 pub struct Documentation {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub source: Option<Source>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub lang: Option<XmlLang>,
     #[xvalue(default)]
     pub any: Vec<xmlity::XmlValue>,
@@ -1156,7 +1150,7 @@ impl_to_string_serialize!(DefaultOpenContentModeType);
 
 #[derive(Debug, Clone, Eq, PartialEq, SerializationGroup, DeserializationGroup)]
 pub struct WildcardType {
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub id: Option<Id>,
     pub namespace: Option<NamespaceListType>,
     pub not_namespace: Option<BasicNamespaceListType>,
@@ -1207,13 +1201,13 @@ pub struct ItemType(pub QName);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "list", namespace_expr = NS_XSD)]
 pub struct List {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
     #[xvalue(default)]
     pub simple_type: Option<LocalSimpleType>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub item_type: Option<ItemType>,
 }
 
@@ -1224,14 +1218,14 @@ pub struct MemberTypes(pub ElementSubstitutionGroupType);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "union", namespace_expr = NS_XSD)]
 pub struct Union {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
     #[xvalue(default)]
     pub simple_types: Vec<LocalSimpleType>,
 
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub member_types: Option<MemberTypes>,
 }
 
@@ -1268,7 +1262,7 @@ impl_to_string_serialize!(DerivationSetType);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "simpleContent", namespace_expr = NS_XSD)]
 pub struct SimpleContent {
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub id: Option<Id>,
     pub content: Vec<SimpleContentContent>,
 }
@@ -1284,9 +1278,9 @@ pub enum SimpleContentContent {
     namespace_expr = NS_XSD
 )]
 pub struct ComplexContent {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub mixed: Option<Mixed>,
     pub content: Vec<ComplexContentContent>,
 }
@@ -1307,7 +1301,7 @@ pub struct AnyType {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "openContent", namespace_expr = NS_XSD)]
 pub struct OpenContent {
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub id: Option<Id>,
     pub mode: OpenContentModeType,
     pub annotation: Option<Annotation>,
@@ -1339,15 +1333,15 @@ pub struct NotQName(pub QnameListAType);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "anyAttribute", namespace_expr = NS_XSD)]
 pub struct AnyAttribute {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub namespace: Option<NamespaceAnyAttribute>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub not_namespace: Option<NotNamespaceAnyAttribute>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub process_contents: ProcessContents,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub not_q_name: Option<NotQName>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -1361,12 +1355,12 @@ impl AnyAttribute {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "assertion", namespace_expr = NS_XSD)]
 pub struct AssertionType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub test: Option<Test>,
-    #[xattribute(default)]
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
+    #[xattribute(deferred = true, default)]
     pub xpath_default_namespace: Option<XPathDefaultNamespace>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -1387,19 +1381,19 @@ pub struct NotQNameAnyAttribute(pub QnameListType);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "any", namespace_expr = NS_XSD)]
 pub struct Any {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub namespace: Option<AnyNamespace>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub not_namespace: Option<NotNamespaceAnyAttribute>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub process_contents: ProcessContents,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub not_q_name: Option<NotQNameAnyAttribute>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub min_occurs: Option<MinOccurs>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub max_occurs: Option<MaxOccurs>,
     pub annotation: Option<Annotation>,
 }
@@ -1457,13 +1451,13 @@ pub struct Test(pub String);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "alternative", namespace_expr = NS_XSD)]
 pub struct AltType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub test: Option<Test>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub type_: Option<Type>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub xpath_default_namespace: Option<XPathDefaultNamespace>,
     #[xvalue(default)]
     pub content: Vec<AltTypeContent>,
@@ -1478,11 +1472,11 @@ pub enum AltTypeContent {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "unique", namespace_expr = NS_XSD)]
 pub struct Unique {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub ref_: Option<Ref>,
     #[xgroup]
     pub content: Option<KeybaseTypeContent>,
@@ -1491,11 +1485,11 @@ pub struct Unique {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "key", namespace_expr = NS_XSD)]
 pub struct Key {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub ref_: Option<Ref>,
     // #[xgroup]
     // pub content: Option<KeybaseTypeContent>,
@@ -1518,13 +1512,13 @@ pub struct Refer(pub QName);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "keyref", namespace_expr = NS_XSD)]
 pub struct Keyref {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub name: Option<Name>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub ref_: Option<Ref>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub refer: Option<Refer>,
     #[xgroup]
     pub content: Option<KeybaseTypeContent>,
@@ -1705,20 +1699,20 @@ impl_to_string_serialize!(SimpleDerivationSetItemList);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "enumeration", namespace_expr = NS_XSD)]
 pub struct Enumeration {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub fixed: Option<Fixed>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub value: ValueAttr,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, SerializationGroup, DeserializationGroup)]
 #[xgroup]
 pub struct FacetType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub fixed: Option<Fixed>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub value: ValueAttr,
 }
 
@@ -1807,9 +1801,9 @@ pub struct Base(pub QName);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "restriction", namespace_expr = NS_XSD)]
 pub struct Restriction {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub base: Base,
     #[xvalue(default)]
     pub content: Vec<RestrictionTypeContent>,
@@ -1834,9 +1828,9 @@ pub enum RestrictionTypeContent {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "restriction", namespace_expr = NS_XSD)]
 pub struct LocalRestriction {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub base: Base,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -1849,9 +1843,9 @@ pub struct LocalRestriction {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "restriction", namespace_expr = NS_XSD)]
 pub struct SimpleRestrictionType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub base: Base,
     #[xvalue(default)]
     pub annotations: Option<Annotation>,
@@ -1866,11 +1860,11 @@ pub struct SimpleRestrictionType {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "restriction", namespace_expr = NS_XSD)]
 pub struct ComplexRestrictionType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub base: Option<Base>,
     #[xvalue(default)]
     pub simple_type: Option<LocalSimpleType>,
@@ -1892,9 +1886,9 @@ pub enum RestrictionContent {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "extension", namespace_expr = NS_XSD)]
 pub struct ExtensionType {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub base: Base,
     #[xvalue(default)]
     pub content: Vec<ExtensionTypeContent>,
@@ -2014,11 +2008,11 @@ impl_to_string_serialize!(QnameListType);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "field", namespace_expr = NS_XSD)]
 pub struct Field {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub xpath: XPath,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub xpath_default_namespace: Option<XPathDefaultNamespace>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
@@ -2031,11 +2025,11 @@ pub struct XPath(pub String);
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[xelement(name = "selector", namespace_expr = NS_XSD)]
 pub struct Selector {
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute]
+    #[xattribute(deferred = true)]
     pub xpath: XPath,
-    #[xattribute(default)]
+    #[xattribute(deferred = true, default)]
     pub xpath_default_namespace: Option<XPathDefaultNamespace>,
     #[xvalue(default)]
     pub annotations: Vec<Annotation>,
