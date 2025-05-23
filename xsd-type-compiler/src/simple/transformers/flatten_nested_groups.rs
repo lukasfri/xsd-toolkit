@@ -1,12 +1,14 @@
 use std::collections::VecDeque;
 
 use crate::simple::SimpleTypeFragment;
-use crate::transformers::{Context, XmlnsContextTransformer};
+use crate::transformers::{Context, TransformChange, XmlnsContextTransformer};
 
 pub struct FlattenNestedUnions;
 
 impl XmlnsContextTransformer for FlattenNestedUnions {
-    fn transform(self, mut ctx: Context<'_>) {
+    type Error = ();
+
+    fn transform(self, mut ctx: Context<'_>) -> Result<TransformChange, Self::Error> {
         for fragment_idx in ctx.iter_simple_fragment_ids() {
             let fragment = ctx.get_simple_fragment(&fragment_idx).unwrap();
             let SimpleTypeFragment::Union { fragments } = fragment else {
@@ -34,5 +36,7 @@ impl XmlnsContextTransformer for FlattenNestedUnions {
             };
             *fragments = new_fragments;
         }
+
+        Ok(todo!())
     }
 }

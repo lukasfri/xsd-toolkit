@@ -6,68 +6,183 @@ pub mod transformers;
 
 use std::{
     collections::{BTreeMap, VecDeque},
+    marker::PhantomData,
     sync::LazyLock,
 };
 
 use crate::{
-    simple::{SimpleTypeFragmentCompiler, ToSimpleFragments},
-    ComplexTypeIdent, SimpleTypeIdent,
+    simple::{self, SimpleTypeFragmentCompiler, ToSimpleFragments},
+    NamedOrAnonymous, SimpleTypeIdent,
 };
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd::schema::{
-    AllType, Any, ChoiceType, ElementTypeContent, GroupRef, GroupTypeContent, LocalElement,
-    MaxOccursValue, MinOccurs, SequenceType, TypeDefParticle,
-};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FragmentIdx(usize);
+use xsd::schema::{self as xs, GroupTypeContent};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FragmentId(pub XmlNamespace<'static>, pub FragmentIdx);
+#[derive(Debug)]
+pub struct FragmentIdx<T>(usize, PhantomData<T>);
 
-pub struct SimpleContent {}
+impl<T> FragmentIdx<T> {
+    pub fn new(index: usize) -> Self {
+        Self(index, PhantomData)
+    }
+}
 
-pub struct ComplexContent {}
+impl<T> Clone for FragmentIdx<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
 
-pub enum Content {
-    Simple(SimpleContent),
-    Complex(ComplexContent),
+impl<T> Copy for FragmentIdx<T> {}
+impl<T> PartialEq for FragmentIdx<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0 && self.1 == other.1
+    }
+}
+impl<T> Eq for FragmentIdx<T> {}
+impl<T> PartialOrd for FragmentIdx<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl<T> Ord for FragmentIdx<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.cmp(&other.0).then_with(|| self.1.cmp(&other.1))
+    }
+}
+impl<T> std::hash::Hash for FragmentIdx<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+        self.1.hash(state);
+    }
+}
+
+// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+// pub struct FragmentId(pub XmlNamespace<'static>, pub FragmentIdx);
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TypeDefParticleId {
+    Group(FragmentIdx<GroupRefTypeFragment>),
+    All(FragmentIdx<AllFragment>),
+    Sequence(FragmentIdx<SequenceFragment>),
+    Choice(FragmentIdx<ChoiceFragment>),
+}
+
+impl From<FragmentIdx<GroupRefTypeFragment>> for TypeDefParticleId {
+    fn from(value: FragmentIdx<GroupRefTypeFragment>) -> Self {
+        Self::Group(value)
+    }
+}
+impl From<FragmentIdx<AllFragment>> for TypeDefParticleId {
+    fn from(value: FragmentIdx<AllFragment>) -> Self {
+        Self::All(value)
+    }
+}
+impl From<FragmentIdx<SequenceFragment>> for TypeDefParticleId {
+    fn from(value: FragmentIdx<SequenceFragment>) -> Self {
+        Self::Sequence(value)
+    }
+}
+impl From<FragmentIdx<ChoiceFragment>> for TypeDefParticleId {
+    fn from(value: FragmentIdx<ChoiceFragment>) -> Self {
+        Self::Choice(value)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Extension {
-    pub base: ComplexTypeIdent,
-    pub content_fragment: Option<FragmentId>,
+pub struct ExtensionFragment {
+    pub base: ExpandedName<'static>,
+    pub content_fragment: Option<TypeDefParticleId>,
+    pub attribute_declarations: VecDeque<AttributeDeclarationId>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Restriction {
-    pub base: ComplexTypeIdent,
-    pub content_fragment: Option<FragmentId>,
+pub struct RestrictionFragment {
+    pub base: ExpandedName<'static>,
+    pub content_fragment: Option<TypeDefParticleId>,
+    pub attribute_declarations: VecDeque<AttributeDeclarationId>,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AttributeDeclarationId {
+    Attribute(FragmentIdx<LocalAttributeFragment>),
+    AttributeGroupRef(FragmentIdx<AttributeGroupRefFragment>),
+}
+
+impl From<FragmentIdx<LocalAttributeFragment>> for AttributeDeclarationId {
+    fn from(value: FragmentIdx<LocalAttributeFragment>) -> Self {
+        Self::Attribute(value)
+    }
+}
+impl From<FragmentIdx<AttributeGroupRefFragment>> for AttributeDeclarationId {
+    fn from(value: FragmentIdx<AttributeGroupRefFragment>) -> Self {
+        Self::AttributeGroupRef(value)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AttributeUse {
+    Required,
+    Optional,
+    Prohibited,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LocalAttributeTypeFragment {
+    pub name: LocalName<'static>,
+    pub type_: Option<LocalAttributeFragmentType>,
+    pub use_: Option<AttributeUse>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReferenceAttributeTypeFragment {
+    pub name: ExpandedName<'static>,
+    pub use_: Option<AttributeUse>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum LocalAttributeFragment {
+    Local(LocalAttributeTypeFragment),
+    Reference(ReferenceAttributeTypeFragment),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum LocalAttributeFragmentType {
+    SimpleType(simple::FragmentId),
+    SimpleTypeRef(ExpandedName<'static>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AttributeGroupRefFragment {}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SimpleContentFragment {}
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ComplexContentFragment {
-    Extension(Extension),
-    Restriction(Restriction),
+pub struct ComplexContentFragment {
+    pub mixed: Option<bool>,
+    pub content_fragment: ComplexContentChildId,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ComplexContentChildId {
+    Extension(FragmentIdx<ExtensionFragment>),
+    Restriction(FragmentIdx<RestrictionFragment>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocalElementTypeFragment {
     pub name: LocalName<'static>,
-    pub type_: ComplexTypeIdent,
-    pub min_occurs: Option<MinOccurs>,
-    pub max_occurs: Option<MaxOccursValue>,
+    pub type_: NamedOrAnonymous<ElementTypeContentId>,
+    pub min_occurs: Option<xs::MinOccurs>,
+    pub max_occurs: Option<xs::MaxOccursValue>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReferenceElementTypeFragment {
     pub name: ExpandedName<'static>,
-    pub min_occurs: Option<MinOccurs>,
-    pub max_occurs: Option<MaxOccursValue>,
+    pub min_occurs: Option<xs::MinOccurs>,
+    pub max_occurs: Option<xs::MaxOccursValue>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -78,22 +193,28 @@ pub enum ElementTypeFragment {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupRefTypeFragment {
-    pub ref_: ComplexTypeIdent,
+    pub ref_: ExpandedName<'static>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct AllTypeFragment {
-    pub fragments: VecDeque<FragmentId>,
+pub struct AllFragment {
+    pub min_occurs: Option<xs::MinOccurs>,
+    pub max_occurs: Option<xs::MaxOccursValue>,
+    pub fragments: VecDeque<GroupTypeContentId>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ChoiceTypeFragment {
-    pub fragments: VecDeque<FragmentId>,
+pub struct ChoiceFragment {
+    pub min_occurs: Option<xs::MinOccurs>,
+    pub max_occurs: Option<xs::MaxOccursValue>,
+    pub fragments: VecDeque<GroupTypeContentId>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct SequenceTypeFragment {
-    pub fragments: VecDeque<FragmentId>,
+pub struct SequenceFragment {
+    pub min_occurs: Option<xs::MinOccurs>,
+    pub max_occurs: Option<xs::MaxOccursValue>,
+    pub fragments: VecDeque<GroupTypeContentId>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -108,24 +229,236 @@ pub struct SimpleTypeTypeFragment {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ComplexTypeFragment {
-    SimpleContent(SimpleContentFragment),
-    ComplexContent(ComplexContentFragment),
-    GroupRef(GroupRefTypeFragment),
-    All(AllTypeFragment),
-    Choice(ChoiceTypeFragment),
-    Sequence(SequenceTypeFragment),
-    Element(ElementTypeFragment),
-    Attribute(AttributeTypeFragment),
-    SimpleType(SimpleTypeTypeFragment),
+pub enum ComplexTypeModelId {
+    SimpleContent(FragmentIdx<SimpleContentFragment>),
+    ComplexContent(FragmentIdx<ComplexContentFragment>),
+    Other { particle: TypeDefParticleId },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ComplexTypeRootFragment {
+    pub name: Option<LocalName<'static>>,
+    pub content: ComplexTypeModelId,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AnyFragment {}
+
+#[derive(Debug, Clone)]
+pub struct FragmentCollection<T> {
+    fragment_id_count: usize,
+    pub fragments: BTreeMap<FragmentIdx<T>, T>,
+}
+
+impl<T> FragmentCollection<T> {
+    pub fn new() -> Self {
+        Self {
+            fragment_id_count: 0,
+            fragments: BTreeMap::new(),
+        }
+    }
+
+    fn generate_fragment_id(&mut self) -> FragmentIdx<T> {
+        let fragment_id = FragmentIdx::new(self.fragment_id_count);
+        self.fragment_id_count += 1;
+        fragment_id
+    }
+
+    fn len(&self) -> usize {
+        self.fragments.len()
+    }
+}
+
+impl<T> FragmentCollection<T> {
+    fn get_fragment(&self, fragment_id: &FragmentIdx<T>) -> Option<&T> {
+        self.fragments.get(&fragment_id)
+    }
+
+    fn get_fragment_mut(&mut self, fragment_id: &FragmentIdx<T>) -> Option<&mut T> {
+        self.fragments.get_mut(&fragment_id)
+    }
+
+    fn push_fragment(&mut self, fragment: T) -> FragmentIdx<T> {
+        let fragment_id = self.generate_fragment_id();
+        self.fragments.insert(fragment_id, fragment);
+        fragment_id
+    }
+
+    pub fn iter_fragment_ids(&self) -> Vec<FragmentIdx<T>> {
+        self.fragments.keys().map(|idx| *idx).collect::<Vec<_>>()
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct ComplexTypeFragmentCompiler {
-    fragment_id_count: usize,
     pub namespace: XmlNamespace<'static>,
-    pub fragments: BTreeMap<FragmentIdx, ComplexTypeFragment>,
     pub simple_type_fragments: SimpleTypeFragmentCompiler,
+    pub complex_types: FragmentCollection<ComplexTypeRootFragment>,
+    pub simple_contents: FragmentCollection<SimpleContentFragment>,
+    pub restrictions: FragmentCollection<RestrictionFragment>,
+    pub extensions: FragmentCollection<ExtensionFragment>,
+    pub complex_contents: FragmentCollection<ComplexContentFragment>,
+    pub group_refs: FragmentCollection<GroupRefTypeFragment>,
+    pub alls: FragmentCollection<AllFragment>,
+    pub choices: FragmentCollection<ChoiceFragment>,
+    pub sequences: FragmentCollection<SequenceFragment>,
+    pub elements: FragmentCollection<ElementTypeFragment>,
+    pub attributes: FragmentCollection<AttributeTypeFragment>,
+    pub local_attributes: FragmentCollection<LocalAttributeFragment>,
+    pub simple_types: FragmentCollection<SimpleTypeTypeFragment>,
+}
+
+pub trait FragmentAccess<F>: Sized {
+    fn get_fragment(&self, fragment_id: &FragmentIdx<F>) -> Option<&F>;
+    fn get_fragment_mut(&mut self, fragment_id: &FragmentIdx<F>) -> Option<&mut F>;
+
+    fn push_fragment(&mut self, fragment: F) -> FragmentIdx<F>;
+
+    fn iter_fragment_ids(&self) -> Vec<FragmentIdx<F>>;
+}
+
+trait HasFragmentCollection<F> {
+    fn get_fragment_collection(&self) -> &FragmentCollection<F>;
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<F>;
+}
+
+impl HasFragmentCollection<ComplexTypeRootFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<ComplexTypeRootFragment> {
+        &self.complex_types
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<ComplexTypeRootFragment> {
+        &mut self.complex_types
+    }
+}
+
+impl HasFragmentCollection<SimpleContentFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<SimpleContentFragment> {
+        &self.simple_contents
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<SimpleContentFragment> {
+        &mut self.simple_contents
+    }
+}
+
+impl HasFragmentCollection<ExtensionFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<ExtensionFragment> {
+        &self.extensions
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<ExtensionFragment> {
+        &mut self.extensions
+    }
+}
+
+impl HasFragmentCollection<RestrictionFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<RestrictionFragment> {
+        &self.restrictions
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<RestrictionFragment> {
+        &mut self.restrictions
+    }
+}
+
+impl HasFragmentCollection<ComplexContentFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<ComplexContentFragment> {
+        &self.complex_contents
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<ComplexContentFragment> {
+        &mut self.complex_contents
+    }
+}
+
+impl HasFragmentCollection<GroupRefTypeFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<GroupRefTypeFragment> {
+        &self.group_refs
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<GroupRefTypeFragment> {
+        &mut self.group_refs
+    }
+}
+
+impl HasFragmentCollection<AllFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<AllFragment> {
+        &self.alls
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<AllFragment> {
+        &mut self.alls
+    }
+}
+
+impl HasFragmentCollection<ChoiceFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<ChoiceFragment> {
+        &self.choices
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<ChoiceFragment> {
+        &mut self.choices
+    }
+}
+
+impl HasFragmentCollection<SequenceFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<SequenceFragment> {
+        &self.sequences
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<SequenceFragment> {
+        &mut self.sequences
+    }
+}
+
+impl HasFragmentCollection<ElementTypeFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<ElementTypeFragment> {
+        &self.elements
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<ElementTypeFragment> {
+        &mut self.elements
+    }
+}
+
+impl HasFragmentCollection<AttributeTypeFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<AttributeTypeFragment> {
+        &self.attributes
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<AttributeTypeFragment> {
+        &mut self.attributes
+    }
+}
+
+impl HasFragmentCollection<LocalAttributeFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<LocalAttributeFragment> {
+        &self.local_attributes
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<LocalAttributeFragment> {
+        &mut self.local_attributes
+    }
+}
+
+impl HasFragmentCollection<SimpleTypeTypeFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<SimpleTypeTypeFragment> {
+        &self.simple_types
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<SimpleTypeTypeFragment> {
+        &mut self.simple_types
+    }
+}
+
+impl<T: 'static> FragmentAccess<T> for ComplexTypeFragmentCompiler
+where
+    ComplexTypeFragmentCompiler: HasFragmentCollection<T>,
+{
+    fn get_fragment(&self, fragment_id: &FragmentIdx<T>) -> Option<&T> {
+        self.get_fragment_collection().get_fragment(fragment_id)
+    }
+
+    fn get_fragment_mut(&mut self, fragment_id: &FragmentIdx<T>) -> Option<&mut T> {
+        self.get_fragment_collection_mut()
+            .get_fragment_mut(fragment_id)
+    }
+
+    fn push_fragment(&mut self, fragment: T) -> FragmentIdx<T> {
+        self.get_fragment_collection_mut().push_fragment(fragment)
+    }
+
+    fn iter_fragment_ids(&self) -> Vec<FragmentIdx<T>> {
+        self.get_fragment_collection().iter_fragment_ids()
+    }
 }
 
 impl ComplexTypeFragmentCompiler {
@@ -134,50 +467,47 @@ impl ComplexTypeFragmentCompiler {
         simple_type_fragments: SimpleTypeFragmentCompiler,
     ) -> Self {
         Self {
-            fragment_id_count: 0,
-            fragments: BTreeMap::new(),
             namespace,
             simple_type_fragments,
+            complex_types: FragmentCollection::new(),
+            simple_contents: FragmentCollection::new(),
+            restrictions: FragmentCollection::new(),
+            extensions: FragmentCollection::new(),
+            complex_contents: FragmentCollection::new(),
+            group_refs: FragmentCollection::new(),
+            alls: FragmentCollection::new(),
+            choices: FragmentCollection::new(),
+            sequences: FragmentCollection::new(),
+            elements: FragmentCollection::new(),
+            attributes: FragmentCollection::new(),
+            local_attributes: FragmentCollection::new(),
+            simple_types: FragmentCollection::new(),
         }
     }
 
-    fn generate_fragment_id(&mut self) -> FragmentId {
-        let fragment_id = FragmentId(self.namespace.clone(), FragmentIdx(self.fragment_id_count));
-        self.fragment_id_count += 1;
-        fragment_id
-    }
+    // pub fn push_fragment(&mut self, fragment: ComplexTypeFragment) -> Self::FragmentId {
+    //     let fragment_id = self.generate_fragment_id();
 
-    pub fn push_fragment(&mut self, fragment: ComplexTypeFragment) -> FragmentId {
-        let fragment_id = self.generate_fragment_id();
+    //     self.fragments.insert(fragment_id.1, fragment);
 
-        self.fragments.insert(fragment_id.1, fragment);
+    //     fragment_id
+    // }
 
-        fragment_id
-    }
+    // pub fn get_fragment(&self, idx: &FragmentId) -> Option<&ComplexTypeFragment> {
+    //     if self.namespace != idx.0 {
+    //         return None;
+    //     }
 
-    pub fn get_fragment(&self, idx: &FragmentId) -> Option<&ComplexTypeFragment> {
-        if self.namespace != idx.0 {
-            return None;
-        }
+    //     self.fragments.get(&idx.1)
+    // }
 
-        self.fragments.get(&idx.1)
-    }
+    // pub fn get_fragment_mut(&mut self, idx: &FragmentId) -> Option<&mut ComplexTypeFragment> {
+    //     if self.namespace != idx.0 {
+    //         return None;
+    //     }
 
-    pub fn get_fragment_mut(&mut self, idx: &FragmentId) -> Option<&mut ComplexTypeFragment> {
-        if self.namespace != idx.0 {
-            return None;
-        }
-
-        self.fragments.get_mut(&idx.1)
-    }
-
-    pub fn iter_fragment_ids(&self) -> impl Iterator<Item = FragmentId> {
-        self.fragments
-            .keys()
-            .map(|idx| FragmentId(self.namespace.clone(), *idx))
-            .collect::<Vec<_>>()
-            .into_iter()
-    }
+    //     self.fragments.get_mut(&idx.1)
+    // }
 }
 
 impl AsMut<SimpleTypeFragmentCompiler> for ComplexTypeFragmentCompiler {
@@ -192,52 +522,102 @@ impl AsMut<ComplexTypeFragmentCompiler> for ComplexTypeFragmentCompiler {
     }
 }
 
-pub trait ToComplexFragments {
+impl AsRef<SimpleTypeFragmentCompiler> for ComplexTypeFragmentCompiler {
+    fn as_ref(&self) -> &SimpleTypeFragmentCompiler {
+        &self.simple_type_fragments
+    }
+}
+
+impl AsRef<ComplexTypeFragmentCompiler> for ComplexTypeFragmentCompiler {
+    fn as_ref(&self) -> &ComplexTypeFragmentCompiler {
+        self
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Error;
+
+pub trait ComplexFragmentEquivalent: Sized {
+    type FragmentId;
+
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         compiler: T,
-    ) -> FragmentId;
+    ) -> Self::FragmentId;
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error>;
 }
 
-impl ToComplexFragments for ElementTypeContent {
+#[derive(Debug, Clone, PartialEq)]
+pub enum ElementTypeContentId {
+    SimpleType(simple::FragmentId),
+    ComplexType(FragmentIdx<ComplexTypeRootFragment>),
+}
+
+impl ComplexFragmentEquivalent for xs::ElementTypeContent {
+    type FragmentId = ElementTypeContentId;
+
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> FragmentId {
+    ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
         match self {
-            ElementTypeContent::SimpleType(local_simple_type) => {
+            xs::ElementTypeContent::SimpleType(local_simple_type) => {
                 let simple_type_fragment = local_simple_type.to_simple_fragments(&mut compiler);
 
-                compiler.push_fragment(ComplexTypeFragment::SimpleType(SimpleTypeTypeFragment {
-                    type_: SimpleTypeIdent::Anonymous(simple_type_fragment),
-                }))
+                ElementTypeContentId::SimpleType(simple_type_fragment)
             }
-            ElementTypeContent::ComplexType(local_complex_type) => {
-                local_complex_type.to_complex_fragments(compiler)
+            xs::ElementTypeContent::ComplexType(local_complex_type) => {
+                let complex_type_fragment = local_complex_type.to_complex_fragments(compiler);
+
+                ElementTypeContentId::ComplexType(complex_type_fragment)
+            }
+        }
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        match fragment_id {
+            ElementTypeContentId::SimpleType(fragment_id) => {
+                xs::LocalSimpleType::from_complex_fragments(compiler, fragment_id)
+                    .map(xs::ElementTypeContent::from)
+            }
+            ElementTypeContentId::ComplexType(fragment_idx) => {
+                xs::LocalComplexType::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::ElementTypeContent::from)
             }
         }
     }
 }
 
-impl ToComplexFragments for LocalElement {
+impl ComplexFragmentEquivalent for xs::LocalElement {
+    type FragmentId = FragmentIdx<ElementTypeFragment>;
+
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> FragmentId {
+    ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
         let max_occurs = self.max_occurs.as_ref().map(|a| a.0);
         let min_occurs = self.min_occurs.clone();
 
         if let Some(ref_) = self.ref_.as_ref() {
-            compiler.push_fragment(ComplexTypeFragment::Element(
-                ElementTypeFragment::Reference(ReferenceElementTypeFragment {
+            compiler.push_fragment(ElementTypeFragment::Reference(
+                ReferenceElementTypeFragment {
                     name: ref_.0 .0.clone(),
                     max_occurs,
                     min_occurs,
-                }),
+                },
             ))
         } else {
             let name = self
@@ -246,8 +626,8 @@ impl ToComplexFragments for LocalElement {
                 .map(|a| a.0.clone())
                 .expect("If ref is none, type_choice should be Some");
 
-            let type_: ComplexTypeIdent = if let Some(type_) = self.type_.as_ref() {
-                ComplexTypeIdent::Named(type_.0 .0.clone())
+            let type_ = if let Some(type_) = self.type_.as_ref() {
+                NamedOrAnonymous::Named(type_.0 .0.clone())
             } else {
                 let type_choice = self
                     .type_choice
@@ -256,263 +636,880 @@ impl ToComplexFragments for LocalElement {
 
                 let content_type = type_choice.to_complex_fragments(&mut compiler);
 
-                ComplexTypeIdent::Anonymous(content_type)
+                NamedOrAnonymous::Anonymous(content_type)
             };
 
-            compiler.push_fragment(ComplexTypeFragment::Element(ElementTypeFragment::Local(
-                LocalElementTypeFragment {
-                    name,
-                    type_,
-                    max_occurs,
-                    min_occurs,
-                },
-            )))
+            compiler.push_fragment(ElementTypeFragment::Local(LocalElementTypeFragment {
+                name,
+                type_,
+                max_occurs,
+                min_occurs,
+            }))
+        }
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).unwrap();
+
+        match fragment {
+            ElementTypeFragment::Local(fragment) => Ok(xs::LocalElement::builder()
+                .name(xs::Name(fragment.name.clone()))
+                .maybe_type_(match &fragment.type_ {
+                    NamedOrAnonymous::Named(expanded_name) => {
+                        Some(xs::Type(xs::QName(expanded_name.clone())))
+                    }
+                    NamedOrAnonymous::Anonymous(_) => None,
+                })
+                .maybe_type_choice(
+                    match &fragment.type_ {
+                        NamedOrAnonymous::Anonymous(content_type) => Some(
+                            xs::ElementTypeContent::from_complex_fragments(compiler, content_type),
+                        ),
+                        NamedOrAnonymous::Named(_) => None,
+                    }
+                    .transpose()?,
+                )
+                .alternatives(Vec::new())
+                .identity_constraints(Vec::new())
+                .build()),
+            ElementTypeFragment::Reference(fragment) => Ok(xs::LocalElement::builder()
+                .ref_(xs::Ref(xs::QName(fragment.name.clone())))
+                .build()),
         }
     }
 }
 
-impl ToComplexFragments for GroupRef {
+impl ComplexFragmentEquivalent for xs::GroupRef {
+    type FragmentId = FragmentIdx<GroupRefTypeFragment>;
+
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> FragmentId {
+    ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(ComplexTypeFragment::GroupRef(GroupRefTypeFragment {
-            ref_: ComplexTypeIdent::from(self.ref_.0 .0.clone()),
-        }))
+        compiler.push_fragment(GroupRefTypeFragment {
+            ref_: self.ref_.0 .0.clone(),
+        })
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).unwrap();
+
+        Ok(xs::GroupRef {
+            id: None,
+            ref_: xs::Ref(xs::QName(fragment.ref_.clone())),
+            annotation: None,
+        })
     }
 }
 
-impl ToComplexFragments for Any {
+impl ComplexFragmentEquivalent for xs::Any {
+    type FragmentId = FragmentIdx<AnyFragment>;
+
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> FragmentId {
+    ) -> Self::FragmentId {
         let _compiler = compiler.as_mut();
+
+        todo!()
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        _fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let _compiler = compiler.as_ref();
 
         todo!()
     }
 }
 
-impl ToComplexFragments for GroupTypeContent {
-    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
-        &self,
-        mut compiler: T,
-    ) -> FragmentId {
-        let compiler = compiler.as_mut();
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GroupTypeContentId {
+    Element(FragmentIdx<ElementTypeFragment>),
+    Group(FragmentIdx<GroupRefTypeFragment>),
+    All(FragmentIdx<AllFragment>),
+    Choice(FragmentIdx<ChoiceFragment>),
+    Sequence(FragmentIdx<SequenceFragment>),
+    Any(FragmentIdx<AnyFragment>),
+}
 
-        match self {
-            GroupTypeContent::Element(local_element) => {
-                local_element.to_complex_fragments(compiler)
-            }
-            GroupTypeContent::Group(group_type) => group_type.to_complex_fragments(compiler),
-            GroupTypeContent::All(all_type) => all_type.to_complex_fragments(compiler),
-            GroupTypeContent::Choice(choice_type) => choice_type.to_complex_fragments(compiler),
-            GroupTypeContent::Sequence(sequence_type) => {
-                sequence_type.to_complex_fragments(compiler)
-            }
-            GroupTypeContent::Any(any) => any.to_complex_fragments(compiler),
+impl From<TypeDefParticleId> for GroupTypeContentId {
+    fn from(value: TypeDefParticleId) -> Self {
+        match value {
+            TypeDefParticleId::Group(fragment_idx) => Self::Group(fragment_idx),
+            TypeDefParticleId::All(fragment_idx) => Self::All(fragment_idx),
+            TypeDefParticleId::Choice(fragment_idx) => Self::Choice(fragment_idx),
+            TypeDefParticleId::Sequence(fragment_idx) => Self::Sequence(fragment_idx),
         }
     }
 }
 
-impl ToComplexFragments for AllType {
-    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
-        &self,
-        mut compiler: T,
-    ) -> FragmentId {
-        let mut compiler = compiler.as_mut();
-
-        let all = ComplexTypeFragment::All(AllTypeFragment {
-            fragments: self
-                .content
-                .iter()
-                .map(|content| content.to_complex_fragments(&mut compiler))
-                .collect(),
-        });
-
-        compiler.push_fragment(all)
+impl From<FragmentIdx<ElementTypeFragment>> for GroupTypeContentId {
+    fn from(value: FragmentIdx<ElementTypeFragment>) -> Self {
+        Self::Element(value)
+    }
+}
+impl From<FragmentIdx<GroupRefTypeFragment>> for GroupTypeContentId {
+    fn from(value: FragmentIdx<GroupRefTypeFragment>) -> Self {
+        Self::Group(value)
+    }
+}
+impl From<FragmentIdx<AllFragment>> for GroupTypeContentId {
+    fn from(value: FragmentIdx<AllFragment>) -> Self {
+        Self::All(value)
+    }
+}
+impl From<FragmentIdx<ChoiceFragment>> for GroupTypeContentId {
+    fn from(value: FragmentIdx<ChoiceFragment>) -> Self {
+        Self::Choice(value)
+    }
+}
+impl From<FragmentIdx<SequenceFragment>> for GroupTypeContentId {
+    fn from(value: FragmentIdx<SequenceFragment>) -> Self {
+        Self::Sequence(value)
     }
 }
 
-impl ToComplexFragments for ChoiceType {
-    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
-        &self,
-        mut compiler: T,
-    ) -> FragmentId {
-        let mut compiler = compiler.as_mut();
-
-        let all = ComplexTypeFragment::Choice(ChoiceTypeFragment {
-            fragments: self
-                .content
-                .iter()
-                .map(|content| content.to_complex_fragments(&mut compiler))
-                .collect(),
-        });
-
-        compiler.push_fragment(all)
+impl From<FragmentIdx<AnyFragment>> for GroupTypeContentId {
+    fn from(value: FragmentIdx<AnyFragment>) -> Self {
+        Self::Any(value)
     }
 }
 
-impl ToComplexFragments for SequenceType {
+impl ComplexFragmentEquivalent for xs::GroupTypeContent {
+    type FragmentId = GroupTypeContentId;
+
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> FragmentId {
-        let mut compiler = compiler.as_mut();
-
-        let all = ComplexTypeFragment::Sequence(SequenceTypeFragment {
-            fragments: self
-                .content
-                .iter()
-                .map(|content| content.to_complex_fragments(&mut compiler))
-                .collect(),
-        });
-
-        compiler.push_fragment(all)
-    }
-}
-
-impl ToComplexFragments for TypeDefParticle {
-    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
-        &self,
-        mut compiler: T,
-    ) -> FragmentId {
-        let compiler = compiler.as_mut();
+    ) -> Self::FragmentId {
+        let compiler: &mut ComplexTypeFragmentCompiler = compiler.as_mut();
 
         match self {
-            xsd::schema::TypeDefParticle::Group(group_ref) => {
-                let type_ident = ComplexTypeIdent::from(group_ref.ref_.0 .0.clone());
-
-                compiler.push_fragment(ComplexTypeFragment::GroupRef(GroupRefTypeFragment {
-                    ref_: type_ident,
-                }))
+            xs::GroupTypeContent::Element(local_element) => {
+                local_element.to_complex_fragments(compiler).into()
             }
-            xsd::schema::TypeDefParticle::All(all) => all.to_complex_fragments(compiler),
-            xsd::schema::TypeDefParticle::Choice(choice) => choice.to_complex_fragments(compiler),
-            xsd::schema::TypeDefParticle::Sequence(sequence) => {
-                sequence.to_complex_fragments(compiler)
+            xs::GroupTypeContent::Group(group_type) => {
+                group_type.to_complex_fragments(compiler).into()
+            }
+            xs::GroupTypeContent::All(all_type) => all_type.to_complex_fragments(compiler).into(),
+            xs::GroupTypeContent::Choice(choice_type) => {
+                choice_type.to_complex_fragments(compiler).into()
+            }
+            xs::GroupTypeContent::Sequence(sequence_type) => {
+                sequence_type.to_complex_fragments(compiler).into()
+            }
+            xs::GroupTypeContent::Any(any) => any.to_complex_fragments(compiler).into(),
+        }
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+        match fragment_id {
+            GroupTypeContentId::Element(fragment_idx) => {
+                xs::LocalElement::from_complex_fragments(compiler, fragment_idx)
+                    .map(GroupTypeContent::from)
+            }
+            GroupTypeContentId::Group(fragment_idx) => {
+                xs::GroupRef::from_complex_fragments(compiler, fragment_idx)
+                    .map(GroupTypeContent::from)
+            }
+            GroupTypeContentId::All(fragment_idx) => {
+                xs::AllType::from_complex_fragments(compiler, fragment_idx)
+                    .map(GroupTypeContent::from)
+            }
+            GroupTypeContentId::Choice(fragment_idx) => {
+                xs::ChoiceType::from_complex_fragments(compiler, fragment_idx)
+                    .map(GroupTypeContent::from)
+            }
+            GroupTypeContentId::Sequence(fragment_idx) => {
+                xs::SequenceType::from_complex_fragments(compiler, fragment_idx)
+                    .map(GroupTypeContent::from)
+            }
+            GroupTypeContentId::Any(_) => {
+                unreachable!()
             }
         }
     }
 }
 
-impl ToComplexFragments for xsd::schema::ExtensionType {
+impl ComplexFragmentEquivalent for xs::AllType {
+    type FragmentId = FragmentIdx<AllFragment>;
+
+    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> Self::FragmentId {
+        let mut compiler = compiler.as_mut();
+
+        let all = AllFragment {
+            min_occurs: self.min_occurs,
+            max_occurs: self.max_occurs.map(|a| a.0),
+            fragments: self
+                .content
+                .iter()
+                .map(|content| content.to_complex_fragments(&mut compiler))
+                .collect(),
+        };
+
+        compiler.push_fragment(all)
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        todo!()
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::ChoiceType {
+    type FragmentId = FragmentIdx<ChoiceFragment>;
+
+    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> Self::FragmentId {
+        let mut compiler = compiler.as_mut();
+
+        let all = ChoiceFragment {
+            min_occurs: self.min_occurs,
+            max_occurs: self.max_occurs.map(|a| a.0),
+            fragments: self
+                .content
+                .iter()
+                .map(|content| content.to_complex_fragments(&mut compiler))
+                .collect(),
+        };
+
+        compiler.push_fragment(all)
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+        let fragment = compiler.get_fragment(fragment_id).unwrap();
+
+        Ok(xs::ChoiceType::builder()
+            .maybe_min_occurs(fragment.min_occurs)
+            .maybe_max_occurs(fragment.max_occurs.map(xs::MaxOccurs))
+            .content(
+                fragment
+                    .fragments
+                    .iter()
+                    .map(|fragment| {
+                        xs::GroupTypeContent::from_complex_fragments(compiler, fragment)
+                    })
+                    .collect::<Result<_, _>>()?,
+            )
+            .build())
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::SequenceType {
+    type FragmentId = FragmentIdx<SequenceFragment>;
+
+    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> Self::FragmentId {
+        let mut compiler = compiler.as_mut();
+
+        let all = SequenceFragment {
+            min_occurs: self.min_occurs,
+            max_occurs: self.max_occurs.map(|a| a.0),
+            fragments: self
+                .content
+                .iter()
+                .map(|content| content.to_complex_fragments(&mut compiler))
+                .collect(),
+        };
+
+        compiler.push_fragment(all)
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+        let fragment = compiler.get_fragment(fragment_id).unwrap();
+
+        Ok(xs::SequenceType {
+            id: None,
+            name: None,
+            ref_: None,
+            min_occurs: fragment.min_occurs,
+            max_occurs: fragment.max_occurs.map(xs::MaxOccurs),
+            content: fragment
+                .fragments
+                .iter()
+                .map(|fragment| xs::GroupTypeContent::from_complex_fragments(compiler, fragment))
+                .collect::<Result<_, _>>()?,
+        })
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::TypeDefParticle {
+    type FragmentId = TypeDefParticleId;
+
+    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> Self::FragmentId {
+        let compiler = compiler.as_mut();
+
+        match self {
+            xs::TypeDefParticle::Group(group_ref) => {
+                let ref_ = group_ref.ref_.0 .0.clone();
+
+                compiler.push_fragment(GroupRefTypeFragment { ref_ }).into()
+            }
+            xs::TypeDefParticle::All(all) => all.to_complex_fragments(compiler).into(),
+            xs::TypeDefParticle::Choice(choice) => choice.to_complex_fragments(compiler).into(),
+            xs::TypeDefParticle::Sequence(sequence) => {
+                sequence.to_complex_fragments(compiler).into()
+            }
+        }
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        match fragment_id {
+            TypeDefParticleId::Group(group_ref) => {
+                let group_ref = xs::GroupRef::from_complex_fragments(compiler, group_ref)?;
+                Ok(xs::TypeDefParticle::Group(group_ref))
+            }
+            TypeDefParticleId::All(all) => {
+                let all = xs::AllType::from_complex_fragments(compiler, all)?;
+                Ok(xs::TypeDefParticle::All(all))
+            }
+            TypeDefParticleId::Choice(choice) => {
+                let choice = xs::ChoiceType::from_complex_fragments(compiler, choice)?;
+                Ok(xs::TypeDefParticle::Choice(choice))
+            }
+            TypeDefParticleId::Sequence(sequence) => {
+                let sequence = xs::SequenceType::from_complex_fragments(compiler, sequence)?;
+                Ok(xs::TypeDefParticle::Sequence(sequence))
+            }
+        }
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::ExtensionType {
+    type FragmentId = FragmentIdx<ExtensionFragment>;
+
     /// This method expects all references to already be defined.
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> FragmentId {
+    ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let base = ComplexTypeIdent::from(self.base.0 .0.clone());
+        let base = self.base.0 .0.clone();
 
         let content_fragment = self
             .particle
             .as_ref()
             .map(|content| content.to_complex_fragments(&mut compiler));
 
-        let root_fragment = ComplexContentFragment::Extension(Extension {
+        let attribute_declarations = self
+            .attributes
+            .iter()
+            .map(|attribute| attribute.to_complex_fragments(&mut compiler))
+            .collect();
+
+        let root_fragment = ExtensionFragment {
             base,
             content_fragment,
-        });
+            attribute_declarations,
+        };
 
-        compiler.push_fragment(ComplexTypeFragment::ComplexContent(root_fragment))
+        compiler.push_fragment(root_fragment)
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        let extension = compiler.get_fragment(fragment_id).unwrap();
+
+        let particle = extension
+            .content_fragment
+            .as_ref()
+            .map(|fragment_id| xs::TypeDefParticle::from_complex_fragments(compiler, fragment_id))
+            .transpose()?;
+
+        let attributes = extension
+            .attribute_declarations
+            .iter()
+            .map(|a| xs::AttributeDeclaration::from_complex_fragments(compiler, a))
+            .collect::<Result<_, _>>()?;
+
+        Ok(Self {
+            base: xs::Base(xs::QName(extension.base.clone())),
+            particle,
+            id: None,
+            annotation: None,
+            open_content: None,
+            attributes,
+        })
     }
 }
 
-impl ToComplexFragments for xsd::schema::ComplexRestrictionType {
+impl ComplexFragmentEquivalent for xs::ComplexRestrictionType {
+    type FragmentId = FragmentIdx<RestrictionFragment>;
+
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> FragmentId {
+    ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let base = ComplexTypeIdent::from(self.base.0 .0.clone());
+        let base = self.base.0 .0.clone();
 
         let content_fragment = self
             .particle
             .as_ref()
             .map(|particle| particle.to_complex_fragments(&mut compiler));
 
-        let root_fragment = ComplexContentFragment::Restriction(Restriction {
+        let attribute_declarations = self
+            .attributes
+            .iter()
+            .map(|attribute| attribute.to_complex_fragments(&mut compiler))
+            .collect();
+
+        let root_fragment = RestrictionFragment {
             base,
             content_fragment,
-        });
+            attribute_declarations,
+        };
 
-        compiler.push_fragment(ComplexTypeFragment::ComplexContent(root_fragment))
+        compiler.push_fragment(root_fragment)
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).unwrap();
+
+        let particle = fragment
+            .content_fragment
+            .map(|a| xs::TypeDefParticle::from_complex_fragments(compiler, &a))
+            .transpose()?;
+
+        let attributes = fragment
+            .attribute_declarations
+            .iter()
+            .map(|a| xs::AttributeDeclaration::from_complex_fragments(compiler, a))
+            .collect::<Result<_, _>>()?;
+
+        Ok(xs::ComplexRestrictionType {
+            annotation: None,
+            base: xs::Base(xs::QName(fragment.base.clone())),
+            id: None,
+            simple_type: None,
+            open_content: None,
+            particle,
+            attributes,
+        })
     }
 }
 
-impl ToComplexFragments for xsd::schema::ComplexTypeModel {
+impl ComplexFragmentEquivalent for xs::AttributeDeclaration {
+    type FragmentId = AttributeDeclarationId;
+
+    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> Self::FragmentId {
+        let compiler = compiler.as_mut();
+
+        match self {
+            xs::AttributeDeclaration::Attribute(local) => {
+                AttributeDeclarationId::Attribute(local.to_complex_fragments(compiler))
+            }
+            xs::AttributeDeclaration::AttributeGroup(group) => {
+                AttributeDeclarationId::AttributeGroupRef(group.to_complex_fragments(compiler))
+            }
+        }
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        match fragment_id {
+            AttributeDeclarationId::Attribute(fragment_idx) => {
+                xs::LocalAttribute::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::AttributeDeclaration::Attribute)
+            }
+            AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
+                xs::AttributeGroupRefType::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::AttributeDeclaration::AttributeGroup)
+            }
+        }
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::LocalSimpleType {
+    type FragmentId = simple::FragmentId;
+
+    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+        &self,
+        compiler: T,
+    ) -> Self::FragmentId {
+        todo!()
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        todo!()
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::LocalAttribute {
+    type FragmentId = FragmentIdx<LocalAttributeFragment>;
+
+    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> Self::FragmentId {
+        let mut compiler = compiler.as_mut();
+
+        let use_ = self.use_.as_ref().map(|a| match a.0 {
+            xs::AttributeUseType::Prohibited => AttributeUse::Prohibited,
+            xs::AttributeUseType::Optional => AttributeUse::Optional,
+            xs::AttributeUseType::Required => AttributeUse::Required,
+        });
+
+        if let Some(ref ref_) = self.ref_ {
+            compiler.push_fragment(LocalAttributeFragment::Reference(
+                ReferenceAttributeTypeFragment {
+                    name: ref_.0 .0.clone(),
+                    use_,
+                },
+            ))
+        } else {
+            let name = self
+                .name
+                .as_ref()
+                .expect("name is required if not a reference");
+
+            let type_ = if let Some(type_) = self.type_.as_ref() {
+                Some(LocalAttributeFragmentType::SimpleTypeRef(
+                    type_.0 .0.clone(),
+                ))
+            } else if let Some(simple_type) = self.simple_type.as_ref() {
+                Some(LocalAttributeFragmentType::SimpleType(
+                    simple_type.to_complex_fragments(&mut compiler),
+                ))
+            } else {
+                None
+            };
+
+            compiler.push_fragment(LocalAttributeFragment::Local(LocalAttributeTypeFragment {
+                name: name.0.clone(),
+                type_,
+                use_,
+            }))
+        }
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).unwrap();
+
+        match fragment {
+            LocalAttributeFragment::Local(local) => {
+                let name = local.name.clone();
+                let type_ = local.type_.as_ref().unwrap();
+                let type_ = match type_ {
+                    LocalAttributeFragmentType::SimpleTypeRef(ref_) => {
+                        Some(xs::QName(ref_.clone()))
+                    }
+                    LocalAttributeFragmentType::SimpleType(_) => None,
+                };
+                let use_ = local.use_.map(|a| match a {
+                    AttributeUse::Required => xs::AttributeUseType::Required,
+                    AttributeUse::Optional => xs::AttributeUseType::Optional,
+                    AttributeUse::Prohibited => xs::AttributeUseType::Prohibited,
+                });
+                Ok(xs::LocalAttribute::builder()
+                    .name(xs::Name(name))
+                    .maybe_type_(type_.map(xs::Type))
+                    .maybe_use_(use_.map(xs::AttrUse))
+                    .build())
+            }
+            _ => todo!(),
+        }
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::AttributeGroupRefType {
+    type FragmentId = FragmentIdx<AttributeGroupRefFragment>;
+
+    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> Self::FragmentId {
+        let compiler = compiler.as_mut();
+
+        todo!()
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        todo!()
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::ComplexContent {
+    type FragmentId = FragmentIdx<ComplexContentFragment>;
+
     /// This method expects all references to already be defined.
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> FragmentId {
+    ) -> Self::FragmentId {
+        let mut compiler = compiler.as_mut();
+
+        let content_fragment = match &self.content {
+            xs::ComplexContentContent::Extension(extension) => {
+                let fragment_id = extension.to_complex_fragments(&mut compiler);
+
+                ComplexContentChildId::Extension(fragment_id)
+            }
+            xs::ComplexContentContent::Restriction(restriction) => {
+                let fragment_id = restriction.to_complex_fragments(&mut compiler);
+
+                ComplexContentChildId::Restriction(fragment_id)
+            }
+        };
+
+        compiler.push_fragment(ComplexContentFragment {
+            content_fragment,
+            mixed: self.mixed.as_ref().map(|a| a.0),
+        })
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let content = match &fragment.content_fragment {
+            ComplexContentChildId::Extension(fragment_id) => {
+                xs::ExtensionType::from_complex_fragments(compiler, fragment_id)?.into()
+            }
+            ComplexContentChildId::Restriction(fragment_id) => {
+                xs::ComplexRestrictionType::from_complex_fragments(compiler, fragment_id)?.into()
+            }
+        };
+
+        Ok(xs::ComplexContent {
+            annotation: None,
+            id: None,
+            mixed: fragment.mixed.map(|a| xs::Mixed(a)),
+            content,
+        })
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::ComplexTypeModel {
+    type FragmentId = ComplexTypeModelId;
+
+    /// This method expects all references to already be defined.
+    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
         match self {
-            xsd::schema::ComplexTypeModel::SimpleContent(_simple_content) => {
+            xs::ComplexTypeModel::SimpleContent(_simple_content) => {
                 todo!()
             }
-            xsd::schema::ComplexTypeModel::ComplexContent(complex_content) => {
-                match &complex_content.content {
-                    xsd::schema::ComplexContentContent::Extension(extension) => {
-                        extension.to_complex_fragments(compiler)
-                    }
-                    xsd::schema::ComplexContentContent::Restriction(restriction) => {
-                        restriction.to_complex_fragments(compiler)
-                    }
-                }
+            xs::ComplexTypeModel::ComplexContent(complex_content) => {
+                ComplexTypeModelId::ComplexContent(complex_content.to_complex_fragments(compiler))
+            }
+            xs::ComplexTypeModel::Other {
+                open_content,
+                type_def_particle,
+            } => {
+                //TODO: Review open content
+                let type_def_particle = type_def_particle.as_ref().unwrap();
+
+                let particle = type_def_particle.to_complex_fragments(compiler);
+
+                ComplexTypeModelId::Other { particle }
+            }
+        }
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        match fragment_id {
+            ComplexTypeModelId::SimpleContent(fragment_idx) => {
+                // xs::SimpleContent::from_complex_fragments(compiler, fragment_idx)
+                //     .map(xs::ComplexTypeModel::SimpleContent)
+                todo!()
+            }
+            ComplexTypeModelId::ComplexContent(fragment_idx) => {
+                xs::ComplexContent::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::ComplexTypeModel::ComplexContent)
+            }
+            ComplexTypeModelId::Other { particle } => {
+                let type_def_particle =
+                    xs::TypeDefParticle::from_complex_fragments(compiler, particle)?;
+                Ok(xs::ComplexTypeModel::Other {
+                    type_def_particle: Some(type_def_particle),
+                    open_content: None,
+                })
             }
         }
     }
 }
 
-impl ToComplexFragments for xsd::schema::TopLevelComplexType {
+impl ComplexFragmentEquivalent for xs::TopLevelComplexType {
+    type FragmentId = FragmentIdx<ComplexTypeRootFragment>;
+
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> FragmentId {
-        let compiler = compiler.as_mut();
+    ) -> Self::FragmentId {
+        let mut compiler = compiler.as_mut();
 
-        self.content.to_complex_fragments(compiler)
+        let content = self.content.to_complex_fragments(&mut compiler);
+
+        let fragment = ComplexTypeRootFragment {
+            name: Some(self.name.clone()),
+            content,
+        };
+
+        compiler.push_fragment(fragment)
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        let complex_type_root_fragment = compiler.get_fragment(fragment_id).unwrap();
+
+        Ok(Self {
+            id: None,
+            name: complex_type_root_fragment
+                .name
+                .clone()
+                .ok_or_else(|| todo!())?,
+            mixed: None,
+            abstract_: None,
+            final_: None,
+            block: None,
+            default_attributes_apply: None,
+            annotation: None,
+            content: xs::ComplexTypeModel::from_complex_fragments(
+                compiler,
+                &complex_type_root_fragment.content,
+            )?,
+        })
     }
 }
 
-impl ToComplexFragments for xsd::schema::LocalComplexType {
+impl ComplexFragmentEquivalent for xs::LocalComplexType {
+    type FragmentId = FragmentIdx<ComplexTypeRootFragment>;
+
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> FragmentId {
-        let compiler = compiler.as_mut();
+    ) -> Self::FragmentId {
+        let mut compiler = compiler.as_mut();
 
-        self.content.to_complex_fragments(compiler)
+        let content = self.content.to_complex_fragments(&mut compiler);
+
+        let fragment = ComplexTypeRootFragment {
+            name: None,
+            content,
+        };
+
+        compiler.push_fragment(fragment)
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        todo!()
     }
 }
 
-impl ToComplexFragments for xsd::schema::NamedGroupTypeContent {
-    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
-        &self,
-        mut compiler: T,
-    ) -> FragmentId {
-        let compiler = compiler.as_mut();
+// impl ComplexFragmentEquivalent for xs::NamedGroupTypeContent {
+//     type FragmentId = todo!();
 
-        match self {
-            xsd::schema::NamedGroupTypeContent::All(all_type) => {
-                all_type.to_complex_fragments(compiler)
-            }
-            xsd::schema::NamedGroupTypeContent::Choice(choice_type) => {
-                choice_type.to_complex_fragments(compiler)
-            }
-            xsd::schema::NamedGroupTypeContent::Sequence(sequence_type) => {
-                sequence_type.to_complex_fragments(compiler)
-            }
-        }
-    }
-}
+//     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+//         &self,
+//         mut compiler: T,
+//     ) -> Self::FragmentId {
+//         let compiler = compiler.as_mut();
+
+//         match self {
+//             xs::NamedGroupTypeContent::All(all_type) => all_type.to_complex_fragments(compiler),
+//             xs::NamedGroupTypeContent::Choice(choice_type) => {
+//                 choice_type.to_complex_fragments(compiler)
+//             }
+//             xs::NamedGroupTypeContent::Sequence(sequence_type) => {
+//                 sequence_type.to_complex_fragments(compiler)
+//             }
+//         }
+//     }
+// }
 
 pub static ANY_TYPE_EXPANDED_NAME: LazyLock<ExpandedName<'static>> = LazyLock::new(|| {
     ExpandedName::new(
@@ -523,11 +1520,6 @@ pub static ANY_TYPE_EXPANDED_NAME: LazyLock<ExpandedName<'static>> = LazyLock::n
 
 #[cfg(test)]
 mod tests {
-    use xsd::schema::{
-        Abstract, Base, ComplexContent, ComplexContentContent, ComplexRestrictionType,
-        ComplexTypeModel, ExtensionType, GroupTypeContent, LocalElement, MaxOccurs, QName, Ref,
-        SequenceType, TopLevelComplexType, Type,
-    };
 
     use super::*;
 
@@ -879,73 +1871,40 @@ mod tests {
         let mut fragment_compiler =
             ComplexTypeFragmentCompiler::new(namespace.clone(), simple_type_compiler);
 
-        let id = TopLevelComplexType {
-            id: None,
-            name: LocalName::new_dangerous("annotated"),
-            mixed: None,
-            abstract_: None,
-            final_: None,
-            block: None,
-            default_attributes_apply: None,
-            annotation: None,
-            content: ComplexTypeModel::ComplexContent(ComplexContent {
-                id: None,
-                mixed: None,
-                annotation: None,
-                content: ComplexContentContent::Restriction(Box::new(ComplexRestrictionType {
-                    id: None,
-                    base: Base(QName(ANY_TYPE_EXPANDED_NAME.clone())),
-                    annotation: None,
-                    simple_type: None,
-                    content: None,
-                    particle: Some(TypeDefParticle::Sequence(SequenceType {
-                        id: None,
-                        name: None,
-                        ref_: None,
-                        min_occurs: None,
-                        max_occurs: None,
-                        content: vec![GroupTypeContent::Element(Box::new(LocalElement {
-                            ref_: Some(Ref(QName(ExpandedName::new(
-                                LocalName::new_dangerous("annotation"),
-                                Some(XmlNamespace::XMLNS),
-                            )))),
-                            id: None,
-                            name: None,
-                            type_: None,
-                            min_occurs: Some(MinOccurs(0)),
-                            max_occurs: None,
-                            default: None,
-                            fixed: None,
-                            nillable: None,
-                            block: None,
-                            form: None,
-                            target_namespace: None,
-                            annotation: None,
-                            type_choice: None,
-                            alternatives: Vec::new(),
-                            identity_constraints: Vec::new(),
-                        }))],
-                    })),
-                })),
-            }),
-        }
-        .to_complex_fragments(&mut fragment_compiler);
+        let id = xs::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("annotated"))
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .particle(
+                                xs::SequenceType::builder()
+                                    .content(vec![xs::LocalElement::builder()
+                                        .ref_(xs::Ref(xs::QName(ExpandedName::new(
+                                            LocalName::new_dangerous("annotation"),
+                                            Some(XmlNamespace::XMLNS),
+                                        ))))
+                                        .min_occurs(xs::MinOccurs(0))
+                                        .build()
+                                        .into()])
+                                    .build()
+                                    .into(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build()
+            .to_complex_fragments(&mut fragment_compiler);
 
-        assert_eq!(id, FragmentId(namespace, FragmentIdx(2)));
-        assert_eq!(fragment_compiler.fragments.len(), 3);
-
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(0)],
-            ComplexTypeFragment::Element(_)
-        ));
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(1)],
-            ComplexTypeFragment::Sequence { .. }
-        ));
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(2)],
-            ComplexTypeFragment::ComplexContent(_)
-        ));
+        assert_eq!(id, FragmentIdx::new(0));
+        assert_eq!(fragment_compiler.complex_types.len(), 1);
+        assert_eq!(fragment_compiler.elements.len(), 1);
+        assert_eq!(fragment_compiler.sequences.len(), 1);
+        assert_eq!(fragment_compiler.complex_contents.len(), 1);
 
         println!("{:#?}", fragment_compiler);
     }
@@ -964,74 +1923,40 @@ mod tests {
             Some(fragment_compiler.namespace.clone()),
         );
 
-        let annotated = TopLevelComplexType {
-            id: None,
-            name: annotated_name,
-            mixed: None,
-            abstract_: None,
-            final_: None,
-            block: None,
-            default_attributes_apply: None,
-            annotation: None,
-            content: ComplexTypeModel::ComplexContent(ComplexContent {
-                id: None,
-                mixed: None,
-                annotation: None,
-                content: ComplexContentContent::Restriction(Box::new(ComplexRestrictionType {
-                    id: None,
-                    base: Base(QName(ANY_TYPE_EXPANDED_NAME.clone())),
-                    annotation: None,
-                    simple_type: None,
-                    content: None,
-                    particle: Some(TypeDefParticle::Sequence(SequenceType {
-                        id: None,
-                        name: None,
-                        ref_: None,
-                        min_occurs: None,
-                        max_occurs: None,
-                        content: vec![GroupTypeContent::Element(Box::new(LocalElement {
-                            ref_: Some(Ref(QName(ExpandedName::new(
-                                LocalName::new_dangerous("annotation"),
-                                Some(XmlNamespace::XMLNS),
-                            )))),
-                            id: None,
-                            name: None,
-                            type_: None,
-                            min_occurs: Some(MinOccurs(0)),
-                            max_occurs: None,
-                            default: None,
-                            fixed: None,
-                            nillable: None,
-                            block: None,
-                            form: None,
-                            target_namespace: None,
-                            annotation: None,
-                            type_choice: None,
-                            alternatives: Vec::new(),
-                            identity_constraints: Vec::new(),
-                        }))],
-                    })),
-                })),
-            }),
-        }
-        .to_complex_fragments(&mut fragment_compiler);
+        let annotated = xs::TopLevelComplexType::builder()
+            .name(annotated_name)
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .particle(
+                                xs::SequenceType::builder()
+                                    .content(vec![xs::LocalElement::builder()
+                                        .ref_(xs::Ref(xs::QName(ExpandedName::new(
+                                            LocalName::new_dangerous("annotation"),
+                                            Some(XmlNamespace::XMLNS),
+                                        ))))
+                                        .min_occurs(xs::MinOccurs(0))
+                                        .build()
+                                        .into()])
+                                    .build()
+                                    .into(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build()
+            .to_complex_fragments(&mut fragment_compiler);
 
-        assert_eq!(fragment_compiler.fragments.len(), 3);
-
-        assert_eq!(annotated, FragmentId(namespace.clone(), FragmentIdx(2)));
-
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(0)],
-            ComplexTypeFragment::Element(_)
-        ));
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(1)],
-            ComplexTypeFragment::Sequence { .. }
-        ));
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(2)],
-            ComplexTypeFragment::ComplexContent(_)
-        ));
+        assert_eq!(annotated, FragmentIdx::new(0));
+        assert_eq!(fragment_compiler.complex_types.len(), 1);
+        assert_eq!(fragment_compiler.elements.len(), 1);
+        assert_eq!(fragment_compiler.sequences.len(), 1);
+        assert_eq!(fragment_compiler.complex_contents.len(), 1);
 
         // ## "element"
         // ```xml
@@ -1050,144 +1975,106 @@ mod tests {
         //     </xs:complexContent>
         // </xs:complexType>
         // ```
-        let element_id = TopLevelComplexType {
-            id: None,
-            name: LocalName::new_dangerous("element"),
-            mixed: None,
-            abstract_: Some(Abstract(true)),
-            final_: None,
-            block: None,
-            default_attributes_apply: None,
-            annotation: None,
-            content: ComplexTypeModel::ComplexContent(ComplexContent {
-                id: None,
-                mixed: None,
-                annotation: None,
-                content: ComplexContentContent::Extension(Box::new(ExtensionType {
-                    id: None,
-                    base: Base(QName(annotated_expanded_name)),
-                    annotation: None,
-                    content: None,
-                    particle: Some(TypeDefParticle::Sequence(SequenceType {
-                        id: None,
-                        name: None,
-                        ref_: None,
-                        min_occurs: None,
-                        max_occurs: None,
-                        content: vec![
-                            GroupTypeContent::Choice(Box::new(ChoiceType {
-                                id: None,
-                                name: None,
-                                ref_: None,
-                                min_occurs: Some(MinOccurs(0)),
-                                max_occurs: None,
-                                content: vec![
-                                    GroupTypeContent::Element(Box::new(LocalElement {
-                                        id: None,
-                                        name: Some(xsd::schema::Name(LocalName::new_dangerous(
-                                            "simpleType",
-                                        ))),
-                                        ref_: None,
-                                        type_: Some(Type(QName(ExpandedName::new(
-                                            LocalName::new_dangerous("localSimpleType"),
-                                            Some(XmlNamespace::XMLNS),
-                                        )))),
-                                        min_occurs: Some(MinOccurs(0)),
-                                        max_occurs: None,
-                                        default: None,
-                                        fixed: None,
-                                        nillable: None,
-                                        block: None,
-                                        form: None,
-                                        target_namespace: None,
-                                        annotation: None,
-                                        type_choice: None,
-                                        alternatives: Vec::new(),
-                                        identity_constraints: Vec::new(),
-                                    })),
-                                    GroupTypeContent::Element(Box::new(LocalElement {
-                                        id: None,
-                                        name: Some(xsd::schema::Name(LocalName::new_dangerous(
-                                            "complexType",
-                                        ))),
-                                        ref_: None,
-                                        type_: Some(Type(QName(ExpandedName::new(
-                                            LocalName::new_dangerous("localComplexType"),
-                                            Some(XmlNamespace::XMLNS),
-                                        )))),
-                                        min_occurs: Some(MinOccurs(0)),
-                                        max_occurs: None,
-                                        default: None,
-                                        fixed: None,
-                                        nillable: None,
-                                        block: None,
-                                        form: None,
-                                        target_namespace: None,
-                                        annotation: None,
-                                        type_choice: None,
-                                        alternatives: Vec::new(),
-                                        identity_constraints: Vec::new(),
-                                    })),
-                                ],
-                            })),
-                            GroupTypeContent::Element(Box::new(LocalElement {
-                                id: None,
-                                name: Some(xsd::schema::Name(LocalName::new_dangerous(
-                                    "complexType",
-                                ))),
-                                ref_: None,
-                                type_: Some(Type(QName(ExpandedName::new(
-                                    LocalName::new_dangerous("altType"),
-                                    Some(XmlNamespace::XMLNS),
-                                )))),
-                                min_occurs: Some(MinOccurs(0)),
-                                max_occurs: Some(MaxOccurs(MaxOccursValue::Unbounded)),
-                                default: None,
-                                fixed: None,
-                                nillable: None,
-                                block: None,
-                                form: None,
-                                target_namespace: None,
-                                annotation: None,
-                                type_choice: None,
-                                alternatives: Vec::new(),
-                                identity_constraints: Vec::new(),
-                            })),
-                        ],
-                    })),
-                })),
-            }),
-        }
-        .to_complex_fragments(&mut fragment_compiler);
+        let element_id = xs::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("element"))
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ExtensionType::builder()
+                            .base(xs::Base(xs::QName(annotated_expanded_name)))
+                            .particle(
+                                xs::SequenceType::builder()
+                                    .content(vec![
+                                        xs::ChoiceType::builder()
+                                            .min_occurs(xs::MinOccurs(0))
+                                            .content(vec![
+                                                xs::LocalElement::builder()
+                                                    .name(xs::Name(LocalName::new_dangerous(
+                                                        "simpleType",
+                                                    )))
+                                                    .type_(xs::Type(xs::QName(ExpandedName::new(
+                                                        LocalName::new_dangerous("localSimpleType"),
+                                                        Some(XmlNamespace::XMLNS),
+                                                    ))))
+                                                    .min_occurs(xs::MinOccurs(0))
+                                                    .build()
+                                                    .into(),
+                                                xs::LocalElement::builder()
+                                                    .name(xs::Name(LocalName::new_dangerous(
+                                                        "complexType",
+                                                    )))
+                                                    .type_(xs::Type(xs::QName(ExpandedName::new(
+                                                        LocalName::new_dangerous(
+                                                            "localComplexType",
+                                                        ),
+                                                        Some(XmlNamespace::XMLNS),
+                                                    ))))
+                                                    .min_occurs(xs::MinOccurs(0))
+                                                    .build()
+                                                    .into(),
+                                            ])
+                                            .build()
+                                            .into(),
+                                        xs::LocalElement::builder()
+                                            .name(xs::Name(LocalName::new_dangerous("complexType")))
+                                            .type_(xs::Type(xs::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("altType"),
+                                                Some(XmlNamespace::XMLNS),
+                                            ))))
+                                            .min_occurs(xs::MinOccurs(0))
+                                            .max_occurs(xs::MaxOccurs(
+                                                xs::MaxOccursValue::Unbounded,
+                                            ))
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .build()
+                                    .into(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build()
+            .to_complex_fragments(&mut fragment_compiler);
 
-        assert_eq!(fragment_compiler.fragments.len(), 9);
+        assert_eq!(element_id, FragmentIdx::new(1));
+        assert_eq!(fragment_compiler.complex_types.len(), 2);
+        assert_eq!(fragment_compiler.elements.len(), 4);
+        assert_eq!(fragment_compiler.sequences.len(), 2);
+        assert_eq!(fragment_compiler.choices.len(), 1);
+        assert_eq!(fragment_compiler.complex_contents.len(), 2);
 
-        assert_eq!(element_id, FragmentId(namespace.clone(), FragmentIdx(8)));
+        // assert_eq!(fragment_compiler.fragments.len(), 9);
 
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(3)],
-            ComplexTypeFragment::Element(_)
-        ));
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(4)],
-            ComplexTypeFragment::Element(_)
-        ));
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(5)],
-            ComplexTypeFragment::Choice { .. }
-        ));
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(6)],
-            ComplexTypeFragment::Element(_)
-        ));
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(7)],
-            ComplexTypeFragment::Sequence { .. }
-        ));
-        assert!(matches!(
-            fragment_compiler.fragments[&FragmentIdx(8)],
-            ComplexTypeFragment::ComplexContent(_)
-        ));
+        // assert_eq!(element_id, FragmentId(namespace.clone(), FragmentIdx(8)));
+
+        // assert!(matches!(
+        //     fragment_compiler.fragments[&FragmentIdx(3)],
+        //     ComplexTypeFragment::Element(_)
+        // ));
+        // assert!(matches!(
+        //     fragment_compiler.fragments[&FragmentIdx(4)],
+        //     ComplexTypeFragment::Element(_)
+        // ));
+        // assert!(matches!(
+        //     fragment_compiler.fragments[&FragmentIdx(5)],
+        //     ComplexTypeFragment::Choice { .. }
+        // ));
+        // assert!(matches!(
+        //     fragment_compiler.fragments[&FragmentIdx(6)],
+        //     ComplexTypeFragment::Element(_)
+        // ));
+        // assert!(matches!(
+        //     fragment_compiler.fragments[&FragmentIdx(7)],
+        //     ComplexTypeFragment::Sequence { .. }
+        // ));
+        // assert!(matches!(
+        //     fragment_compiler.fragments[&FragmentIdx(8)],
+        //     ComplexTypeFragment::ComplexContent(_)
+        // ));
 
         println!("{:#?}", fragment_compiler);
     }

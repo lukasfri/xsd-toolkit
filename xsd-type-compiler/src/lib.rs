@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use complex::ToComplexFragments;
+use complex::ComplexFragmentEquivalent;
 use simple::ToSimpleFragments;
+use transformers::TransformChange;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::schema;
 pub mod transformers;
@@ -26,15 +27,15 @@ impl XmlnsContext {
             .insert(namespace.namespace.clone(), namespace);
     }
 
-    pub fn transform(
+    pub fn transform<T: transformers::XmlnsContextTransformer>(
         &mut self,
         namespace: &XmlNamespace<'static>,
-        transformer: impl transformers::XmlnsContextTransformer,
-    ) {
+        transformer: T,
+    ) -> Result<TransformChange, T::Error> {
         transformer.transform(transformers::Context {
             namespace,
             xmlns_context: self,
-        });
+        })
     }
 }
 
@@ -44,6 +45,7 @@ impl Default for XmlnsContext {
     }
 }
 
+#[derive(Debug)]
 pub struct CompiledNamespace {
     pub namespace: XmlNamespace<'static>,
     pub complex_type: complex::ComplexTypeFragmentCompiler,
@@ -55,7 +57,13 @@ pub struct CompiledNamespace {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ComplexTypeIdent {
     Named(ExpandedName<'static>),
-    Anonymous(complex::FragmentId),
+    Anonymous(complex::FragmentIdx<complex::ComplexTypeRootFragment>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum NamedOrAnonymous<T> {
+    Named(ExpandedName<'static>),
+    Anonymous(T),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -85,45 +93,93 @@ impl CompiledNamespace {
         }
     }
 
-    pub fn from_schema(schema: &xsd::XmlSchema) -> Self {
+    pub fn from_schema(schema: &xsd::XmlSchema) -> Result<Self, ()> {
         let mut this = Self::new(schema.underlying_schema.target_namespace.0.clone());
 
-        for element in schema.top_level_elements() {
-            this.add_top_level_element(element);
+        for simple_type in schema.top_level_simple_types() {
+            this.import_top_level_simple_type(simple_type)?;
         }
 
-        this
+        for complex_type in schema.top_level_complex_types() {
+            this.import_top_level_complex_type(complex_type)?;
+        }
+
+        for attribute in schema.top_level_attributes() {
+            this.import_top_level_attribute(attribute)?;
+        }
+
+        for element in schema.top_level_elements() {
+            this.import_top_level_element(element)?;
+        }
+
+        Ok(this)
     }
 
-    pub fn add_top_level_simple_type(
+    pub fn import_top_level_simple_type(
         &mut self,
         type_: &xsd::schema::TopLevelSimpleType,
-    ) -> ExpandedName<'_> {
+    ) -> Result<ExpandedName<'_>, ()> {
         let name = type_.name.clone();
+        if self.top_level_types.contains_key(&name) {
+            return Err(());
+        }
+
         let root_fragment = type_.content.to_simple_fragments(&mut self.complex_type);
         let type_ = TopLevelType::Simple(TopLevelSimpleType { root_fragment });
         self.top_level_types.insert(name.clone(), type_);
 
-        ExpandedName::new(name, Some(self.namespace.as_ref()))
+        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+
+        Ok(name)
     }
 
-    pub fn add_top_level_complex_type(
+    pub fn import_top_level_complex_type(
         &mut self,
         type_: &xsd::schema::TopLevelComplexType,
-    ) -> ExpandedName<'_> {
+    ) -> Result<ExpandedName<'_>, ()> {
         let name = type_.name.clone();
-        let root_fragment = type_.content.to_complex_fragments(&mut self.complex_type);
+        if self.top_level_types.contains_key(&name) {
+            return Err(());
+        }
+
+        let root_fragment = type_.to_complex_fragments(&mut self.complex_type);
+
         let type_ = TopLevelType::Complex(TopLevelComplexType { root_fragment });
         self.top_level_types.insert(name.clone(), type_);
 
-        ExpandedName::new(name, Some(self.namespace.as_ref()))
+        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+
+        Ok(name)
     }
 
-    pub fn add_top_level_element(
+    pub fn export_top_level_complex_type(
+        &self,
+        type_: &LocalName<'_>,
+    ) -> Result<Option<xsd::schema::TopLevelComplexType>, ()> {
+        let Some(TopLevelType::Complex(top_level_complex_type)) = self.top_level_types.get(type_)
+        else {
+            return Ok(None);
+        };
+
+        let fragment_id = &top_level_complex_type.root_fragment;
+
+        let top_level = xsd::schema::TopLevelComplexType::from_complex_fragments(
+            &self.complex_type,
+            fragment_id,
+        )
+        .unwrap();
+
+        Ok(Some(top_level))
+    }
+
+    pub fn import_top_level_element(
         &mut self,
         element: &xsd::schema::TopLevelElement,
-    ) -> ExpandedName<'_> {
+    ) -> Result<ExpandedName<'_>, ()> {
         let name = element.name.0.clone();
+        if self.top_level_elements.contains_key(&name) {
+            return Err(());
+        }
 
         let content_type = if let Some(type_) = element.type_.as_ref() {
             ComplexTypeIdent::Named(type_.0 .0.clone())
@@ -133,9 +189,7 @@ impl CompiledNamespace {
                 schema::ElementTypeContent::SimpleType(_) => todo!(),
                 schema::ElementTypeContent::ComplexType(local_complex_type) => {
                     ComplexTypeIdent::Anonymous(
-                        local_complex_type
-                            .content
-                            .to_complex_fragments(&mut self.complex_type),
+                        local_complex_type.to_complex_fragments(&mut self.complex_type),
                     )
                 }
             }
@@ -144,14 +198,19 @@ impl CompiledNamespace {
         self.top_level_elements
             .insert(name.clone(), TopLevelElement { content_type });
 
-        ExpandedName::new(name, Some(self.namespace.as_ref()))
+        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+
+        Ok(name)
     }
 
-    pub fn add_top_level_attribute(
+    pub fn import_top_level_attribute(
         &mut self,
         attribute: &xsd::schema::TopLevelAttribute,
-    ) -> ExpandedName<'_> {
+    ) -> Result<ExpandedName<'_>, ()> {
         let name = attribute.name.0.clone();
+        if self.top_level_attributes.contains_key(&name) {
+            return Err(());
+        }
 
         let content_type = if let Some(type_) = attribute.type_.as_ref() {
             SimpleTypeIdent::Named(type_.0 .0.clone())
@@ -165,7 +224,9 @@ impl CompiledNamespace {
         self.top_level_attributes
             .insert(name.clone(), TopLevelAttribute { content_type });
 
-        ExpandedName::new(name, Some(self.namespace.as_ref()))
+        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+
+        Ok(name)
     }
 }
 
@@ -176,7 +237,7 @@ pub struct TopLevelSimpleType {
 
 #[derive(Debug)]
 pub struct TopLevelComplexType {
-    pub root_fragment: complex::FragmentId,
+    pub root_fragment: complex::FragmentIdx<complex::ComplexTypeRootFragment>,
 }
 
 #[derive(Debug)]

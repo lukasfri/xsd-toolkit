@@ -1,24 +1,25 @@
 use crate::{
-    misc::{GeneratedFragment, TypeReference},
+    misc::TypeReference,
     simple as simple_gen,
-    types::{ItemOrder, Items, TypeChoice, TypeItem, TypeRecord},
-    NamedTypeClass, Result,
+    templates::{
+        self,
+        choice::Choice,
+        element_record::{ElementField, ElementFieldAttribute},
+        group_record::GroupRecord,
+        value_record::{ItemField, ItemFieldItem, ItemRecord},
+        FieldType, ItemOrder,
+    },
+    Result,
 };
 
 use std::collections::HashMap;
 
 use quote::format_ident;
 use syn::{parse_quote, Ident, Item};
-use xmlity::{ExpandedName, XmlNamespace};
+use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::schema::MaxOccursValue;
-use xsd_type_compiler::{
-    complex::{
-        self, AllTypeFragment, AttributeTypeFragment, ChoiceTypeFragment, ComplexContentFragment,
-        ComplexTypeFragment, ElementTypeFragment, GroupRefTypeFragment, LocalElementTypeFragment,
-        ReferenceElementTypeFragment, SequenceTypeFragment, SimpleContentFragment,
-        SimpleTypeTypeFragment, ANY_TYPE_EXPANDED_NAME,
-    },
-    ComplexTypeIdent,
+use xsd_type_compiler::complex::{
+    self as cx, ComplexTypeFragmentCompiler, FragmentAccess, FragmentIdx,
 };
 
 pub struct ComplexTypeFragmentGenerator<'a> {
@@ -37,184 +38,214 @@ impl ComplexTypeFragmentGenerator<'_> {
     }
 }
 
+pub struct FragmentResolveInfo {
+    pub possible_ident: String,
+}
+
+pub struct ResolveFragmentData<T> {
+    pub ident: Option<Ident>,
+    pub type_: T,
+}
+
 pub trait Context: crate::simple::Context {
-    fn get_complex_fragment(
+    fn resolve_fragment<F>(&self, fragment: &F) -> Result<ToTypeTemplateData<F::TypeTemplate>>
+    where
+        F: ToTypeTemplate;
+
+    fn resolve_fragment_id<F>(
         &self,
-        fragment_id: &complex::FragmentId,
-    ) -> Result<Option<GeneratedFragment>>;
+        fragment_id: &FragmentIdx<F>,
+    ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
+    where
+        F: ToTypeTemplate,
+        ComplexTypeFragmentCompiler: FragmentAccess<F>;
 
-    fn get_complex_type_ident(
+    fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<syn::Type>;
+
+    fn to_expanded_name(&self, name: LocalName<'static>) -> ExpandedName<'static>;
+}
+
+pub struct ToTypeTemplateData<T> {
+    pub ident: Option<Ident>,
+    pub template: T,
+}
+
+pub trait ToTypeTemplate {
+    type TypeTemplate;
+
+    fn to_type_template<C: Context>(
         &self,
-        fragment_id: &ComplexTypeIdent,
-    ) -> Result<Option<GeneratedFragment>> {
-        match fragment_id {
-            ComplexTypeIdent::Named(name) => {
-                self.get_named_type(name, NamedTypeClass::Type)
-                    .map(|type_| {
-                        type_.map(|type_| {
-                            let type_ = TypeReference::new_static(type_);
-
-                            GeneratedFragment {
-                                type_: crate::types::TypeRecord::Item(TypeItem::new(type_)),
-                            }
-                        })
-                    })
-            }
-            ComplexTypeIdent::Anonymous(fr) => self.get_complex_fragment(fr),
-        }
-    }
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>>;
 }
 
-pub trait ComplexTypeToRustType {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment>;
-}
+impl ToTypeTemplate for cx::ElementTypeContentId {
+    type TypeTemplate = templates::group_record::GroupRecord;
 
-impl ComplexTypeToRustType for ComplexTypeFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
-        use ComplexTypeFragment as F;
-        match self {
-            F::SimpleContent(simple_content) => simple_content.generate_complex_rust_types(context),
-            F::ComplexContent(complex_content) => {
-                complex_content.generate_complex_rust_types(context)
-            }
-            F::GroupRef(group_ref) => group_ref.generate_complex_rust_types(context),
-            F::All(all) => all.generate_complex_rust_types(context),
-            F::Choice(choice) => choice.generate_complex_rust_types(context),
-            F::Sequence(sequence) => sequence.generate_complex_rust_types(context),
-            F::Element(element_type_fragment) => {
-                element_type_fragment.generate_complex_rust_types(context)
-            }
-            F::Attribute(attribute) => attribute.generate_complex_rust_types(context),
-            F::SimpleType(simple_type) => simple_type.generate_complex_rust_types(context),
-        }
-    }
-}
-
-impl ComplexTypeToRustType for SimpleContentFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         todo!()
     }
 }
 
-impl ComplexTypeToRustType for ComplexContentFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
-        let restriction = match self {
-            ComplexContentFragment::Extension(_extension) => return Err(panic!("A")),
-            ComplexContentFragment::Restriction(restriction) => restriction,
-        };
+impl ToTypeTemplate for cx::LocalElementTypeFragment {
+    type TypeTemplate = templates::element_record::ElementRecord;
 
-        if restriction.base != ComplexTypeIdent::Named(ANY_TYPE_EXPANDED_NAME.clone()) {
-            return Err(panic!("A"));
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let name = context.to_expanded_name(self.name.clone());
+        match &self.type_ {
+            xsd_type_compiler::NamedOrAnonymous::Named(expanded_name) => {
+                let group_type = context.resolve_named_type(expanded_name)?;
+
+                let template = templates::element_record::ElementRecord {
+                    name,
+                    attribute_order: ItemOrder::None,
+                    children_order: ItemOrder::None,
+                    field_type: FieldType::Unnamed,
+                    fields: vec![(
+                        None,
+                        templates::element_record::ElementField::Group(
+                            templates::element_record::ElementFieldGroup { ty: group_type },
+                        ),
+                    )],
+                };
+
+                Ok(ToTypeTemplateData {
+                    ident: None,
+                    template,
+                })
+            }
+            xsd_type_compiler::NamedOrAnonymous::Anonymous(anonymous) => {
+                let sub_type = context.resolve_fragment(anonymous)?;
+
+                let template = sub_type.template.into_element_record(name);
+
+                Ok(ToTypeTemplateData {
+                    ident: None,
+                    template,
+                })
+            }
         }
-
-        let Some(content_fragment) = &restriction.content_fragment else {
-            return Err(panic!("B"));
-        };
-
-        let GeneratedFragment { type_ } = context
-            .get_complex_fragment(content_fragment)?
-            .ok_or_else(|| panic!("C"))?;
-
-        // let fields = item.into_fields(format_ident!("content"));
-
-        Ok(GeneratedFragment { type_ })
     }
 }
 
-impl ComplexTypeToRustType for GroupRefTypeFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
-        //TODO: Should have been resolved
-        Err(panic!("GroupRefTypeFragment"))
+impl ToTypeTemplate for cx::ReferenceElementTypeFragment {
+    type TypeTemplate = ItemFieldItem;
+
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let ident = todo!();
+
+        let ty = todo!();
+
+        let template = ItemFieldItem { ty };
+
+        Ok(ToTypeTemplateData { ident, template })
     }
 }
 
-impl ComplexTypeToRustType for AllTypeFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
-        let items = self
-            .fragments
-            .iter()
-            .map(|fragment| {
-                context
-                    .get_complex_fragment(fragment)?
-                    .ok_or_else(|| panic!("{fragment:?}"))
-            })
-            .collect::<Result<Vec<_>>>()?;
+impl ToTypeTemplate for cx::ElementTypeFragment {
+    type TypeTemplate = ItemField;
 
-        let items = items
-            .into_iter()
-            .enumerate()
-            .map(|(i, a)| (format_ident!("item{i}"), a.type_));
-
-        let type_ = TypeRecord::Items(Items {
-            order: ItemOrder::None,
-            items: items.collect(),
-        });
-
-        Ok(GeneratedFragment { type_ })
-    }
-}
-
-impl ComplexTypeToRustType for ChoiceTypeFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
-        let items = self
-            .fragments
-            .iter()
-            .map(|fragment| {
-                context
-                    .get_complex_fragment(fragment)?
-                    .ok_or_else(|| panic!("{fragment:?}"))
-            })
-            .collect::<Result<Vec<_>>>()?;
-
-        let variants = items
-            .into_iter()
-            .enumerate()
-            .map(|(i, fragment)| (format_ident!("Variant{}", i), fragment.type_))
-            .collect::<Vec<_>>();
-
-        let type_ = TypeRecord::Choice(TypeChoice { variants });
-
-        Ok(GeneratedFragment { type_ })
-    }
-}
-
-impl ComplexTypeToRustType for SequenceTypeFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
-        // Struct with strict order
-        let items = self
-            .fragments
-            .iter()
-            .map(|fragment| {
-                context
-                    .get_complex_fragment(fragment)?
-                    .ok_or_else(|| panic!("{fragment:?}"))
-            })
-            .collect::<Result<Vec<_>>>()?;
-
-        let items = items
-            .into_iter()
-            .enumerate()
-            .map(|(i, a)| (format_ident!("item{i}"), a.type_));
-
-        let type_ = TypeRecord::Items(Items {
-            order: ItemOrder::Strict,
-            items: items.collect(),
-        });
-
-        Ok(GeneratedFragment { type_ })
-    }
-}
-
-impl ComplexTypeToRustType for ElementTypeFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match self {
-            ElementTypeFragment::Local(local_element_type_fragment) => {
-                local_element_type_fragment.generate_complex_rust_types(context)
+            cx::ElementTypeFragment::Local(local) => {
+                let local = context.resolve_fragment(local)?;
+
+                let template = local
+                    .template
+                    .try_into_compact_item_field()
+                    .map(ItemField::Element)
+                    .unwrap_or_else(|element| {
+                        let ty = todo!();
+
+                        ItemField::Item(ItemFieldItem { ty })
+                    });
+
+                Ok(ToTypeTemplateData {
+                    ident: local.ident,
+                    template,
+                })
             }
-            ElementTypeFragment::Reference(reference_element_type_fragment) => {
-                reference_element_type_fragment.generate_complex_rust_types(context)
+            cx::ElementTypeFragment::Reference(reference) => {
+                let reference = context.resolve_fragment(reference)?;
+
+                let template = ItemField::Item(reference.template);
+
+                Ok(ToTypeTemplateData {
+                    ident: reference.ident,
+                    template,
+                })
             }
         }
+    }
+}
+
+impl ToTypeTemplate for cx::GroupTypeContentId {
+    type TypeTemplate = templates::value_record::ItemField;
+
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        match self {
+            cx::GroupTypeContentId::Element(fragment_idx) => {
+                let fragment: &cx::ElementTypeFragment = todo!();
+
+                // let template = context.resolve_fragment(fragment)?;
+                todo!()
+            }
+            cx::GroupTypeContentId::Group(fragment_idx) => todo!(),
+            cx::GroupTypeContentId::All(fragment_idx) => todo!(),
+            cx::GroupTypeContentId::Choice(fragment_idx) => todo!(),
+            cx::GroupTypeContentId::Sequence(fragment_idx) => todo!(),
+            cx::GroupTypeContentId::Any(fragment_idx) => todo!(),
+        }
+    }
+}
+
+impl ToTypeTemplate for cx::SequenceFragment {
+    type TypeTemplate = templates::value_record::ItemRecord;
+
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        // Struct with strict order
+        let fields = self
+            .fragments
+            .iter()
+            .enumerate()
+            .map(|(i, fragment_id)| {
+                let res = context.resolve_fragment::<_>(fragment_id)?;
+
+                Ok((
+                    Some(res.ident.unwrap_or_else(|| format_ident!("field_{}", i))),
+                    res.template,
+                ))
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let template = templates::value_record::ItemRecord {
+            children_order: ItemOrder::Strict,
+            field_type: FieldType::Named,
+            fields,
+        };
+
+        Ok(ToTypeTemplateData {
+            ident: None,
+            template,
+        })
     }
 }
 
@@ -236,404 +267,324 @@ fn min_max_occurs_type(
     }
 }
 
-impl ComplexTypeToRustType for LocalElementTypeFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
-        let generated_fragment = context.get_complex_type_ident(&self.type_)?.unwrap();
+impl ToTypeTemplate for cx::LocalAttributeFragment {
+    type TypeTemplate = templates::element_record::ElementFieldAttribute;
 
-        let name = ExpandedName::new(
-            self.name.clone(),
-            Some(context.namespace().clone().into_owned()),
-        );
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        match self {
+            cx::LocalAttributeFragment::Local(local) => {
+                let name = ExpandedName::new(local.name.clone(), None);
+                let ident = format_ident!("{}", local.name.to_string());
 
-        let mut element_record = match generated_fragment.type_ {
-            TypeRecord::Items(items) => todo!(),
-            TypeRecord::Element(element_record) => element_record,
-            TypeRecord::Choice(type_choice) => todo!(),
-            TypeRecord::Item(type_reference) => todo!(),
-        };
+                //TODO: handle attribute type
+                let ty = parse_quote!(String);
 
-        element_record.name = name;
+                let template = ElementFieldAttribute {
+                    name: Some(name),
+                    ty,
+                    deferred: false,
+                };
 
-        let min_occurs = self.min_occurs.as_ref().map(|a| a.0).unwrap_or(1);
-        let max_occurs = self.max_occurs.unwrap_or(MaxOccursValue::Bounded(1));
-
-        let (type_, struct_item, mut items) =
-            element_record.into_struct(&format_ident!("Todo123"), None);
-        items.push(Item::Struct(struct_item));
-
-        let type_ = min_max_occurs_type(min_occurs, max_occurs, type_);
-
-        Ok(GeneratedFragment {
-            type_: TypeRecord::Item(TypeItem { items, type_ }),
-        })
-    }
-}
-
-impl ComplexTypeToRustType for ReferenceElementTypeFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
-        let element_type = context
-            .get_named_type(&self.name, NamedTypeClass::Element)?
-            .ok_or_else(|| todo!("Element not found: {}", self.name.to_string()))?;
-
-        let min_occurs = self.min_occurs.as_ref().map(|a| a.0).unwrap_or(1);
-        let max_occurs = self.max_occurs.unwrap_or(MaxOccursValue::Bounded(1));
-
-        let type_ = min_max_occurs_type(
-            min_occurs,
-            max_occurs,
-            TypeReference::new_static(element_type),
-        );
-
-        Ok(GeneratedFragment {
-            type_: TypeRecord::Item(TypeItem::new(type_)),
-        })
-    }
-}
-
-impl ComplexTypeToRustType for AttributeTypeFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
-        todo!()
-    }
-}
-
-impl ComplexTypeToRustType for SimpleTypeTypeFragment {
-    fn generate_complex_rust_types<C: Context>(&self, context: &C) -> Result<GeneratedFragment> {
-        match &self.type_ {
-            xsd_type_compiler::SimpleTypeIdent::Named(expanded_name) => {
-                let type_ = context
-                    .get_named_type(expanded_name, crate::NamedTypeClass::Type)?
-                    .ok_or_else(|| todo!())?;
-                let type_ = TypeReference::new_static(type_);
-
-                Ok(GeneratedFragment {
-                    type_: TypeRecord::Item(TypeItem::new(type_)),
+                Ok(ToTypeTemplateData {
+                    ident: Some(ident),
+                    template,
                 })
             }
-            xsd_type_compiler::SimpleTypeIdent::Anonymous(fragment_id) => {
-                let a = context
-                    .get_simple_fragment(fragment_id)?
-                    .ok_or_else(|| todo!())?;
+            cx::LocalAttributeFragment::Reference(reference) => {
+                let ident = format_ident!("todo");
 
-                Ok(a)
+                let ty = context.resolve_named_type(&reference.name)?;
+
+                let template = ElementFieldAttribute {
+                    name: None,
+                    ty,
+                    deferred: true,
+                };
+
+                Ok(ToTypeTemplateData {
+                    ident: Some(ident),
+                    template,
+                })
             }
         }
     }
 }
 
+impl ToTypeTemplate for cx::AttributeDeclarationId {
+    type TypeTemplate = templates::element_record::ElementFieldAttribute;
+
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        match self {
+            cx::AttributeDeclarationId::Attribute(fragment_idx) => {
+                context.resolve_fragment_id(fragment_idx)
+            }
+            cx::AttributeDeclarationId::AttributeGroupRef(fragment_idx) => todo!(),
+        }
+    }
+}
+
+pub enum TypeDefParticleTemplate {
+    Record(ItemRecord),
+    Choice(Choice),
+}
+
+impl ToTypeTemplate for cx::TypeDefParticleId {
+    type TypeTemplate = TypeDefParticleTemplate;
+
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        match self {
+            cx::TypeDefParticleId::Group(fragment_idx) => todo!(),
+            cx::TypeDefParticleId::All(fragment_idx) => todo!(),
+            cx::TypeDefParticleId::Sequence(fragment_idx) => {
+                let sequence = context.resolve_fragment_id(fragment_idx)?;
+
+                Ok(ToTypeTemplateData {
+                    ident: None,
+                    template: TypeDefParticleTemplate::Record(sequence.template),
+                })
+            }
+            cx::TypeDefParticleId::Choice(fragment_idx) => todo!(),
+        }
+    }
+}
+
+impl ToTypeTemplate for cx::RestrictionFragment {
+    type TypeTemplate = templates::group_record::GroupRecord;
+
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let mut template = self
+            .content_fragment
+            .map(|a| {
+                context.resolve_fragment(&a).map(|a| match a.template {
+                    TypeDefParticleTemplate::Record(item_record) => item_record.into_group_record(),
+                    TypeDefParticleTemplate::Choice(choice) => todo!(),
+                })
+            })
+            .transpose()?
+            .unwrap_or_else(|| GroupRecord::new_empty(FieldType::Named));
+
+        let attributes = self
+            .attribute_declarations
+            .iter()
+            .enumerate()
+            .map(|(i, a)| {
+                context.resolve_fragment(a).map(|a| {
+                    (
+                        Some(a.ident.unwrap_or_else(|| format_ident!("attribute_{i}"))),
+                        ElementField::Attribute(a.template),
+                    )
+                })
+            });
+
+        template.fields = attributes
+            .chain(template.fields.into_iter().map(Ok))
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(ToTypeTemplateData {
+            ident: None,
+            template,
+        })
+    }
+}
+
+impl ToTypeTemplate for cx::ComplexContentFragment {
+    type TypeTemplate = templates::group_record::GroupRecord;
+
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        match &self.content_fragment {
+            cx::ComplexContentChildId::Extension(fragment_idx) => {
+                panic!("TODO: Should give error. Extension not supported")
+            }
+            cx::ComplexContentChildId::Restriction(fragment_idx) => {
+                context.resolve_fragment_id(fragment_idx)
+            }
+        }
+    }
+}
+
+impl ToTypeTemplate for cx::ComplexTypeModelId {
+    type TypeTemplate = templates::group_record::GroupRecord;
+
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        match self {
+            cx::ComplexTypeModelId::SimpleContent(fragment_idx) => todo!(),
+            cx::ComplexTypeModelId::ComplexContent(fragment_idx) => {
+                context.resolve_fragment_id(fragment_idx)
+            }
+            cx::ComplexTypeModelId::Other { particle } => todo!(),
+        }
+    }
+}
+
+impl ToTypeTemplate for cx::ComplexTypeRootFragment {
+    type TypeTemplate = templates::group_record::GroupRecord;
+
+    fn to_type_template<C: Context>(
+        &self,
+        context: &C,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let mut fragment = context.resolve_fragment(&self.content)?;
+
+        let name_ident = self
+            .name
+            .as_ref()
+            .map(ToString::to_string)
+            .map(|a| format_ident!("{a}"));
+
+        fragment.ident = name_ident.or(fragment.ident);
+
+        Ok(fragment)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use quote::format_ident;
-    use syn::parse_quote;
+    use pretty_assertions::assert_eq;
+
+    use syn::{parse_quote, Item};
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
-    use xsd::schema::{
-        Abstract, Base, ChoiceType, ComplexContent, ComplexContentContent, ComplexRestrictionType,
-        ComplexTypeModel, ExtensionType, GroupTypeContent, LocalElement, MaxOccurs, MaxOccursValue,
-        MinOccurs, QName, Ref, SequenceType, TopLevelComplexType, Type, TypeDefParticle,
-    };
-    use xsd_type_compiler::{
-        complex::{transformers::ExpandBasedFragments, ANY_TYPE_EXPANDED_NAME},
-        transformers::XmlnsContextTransformer,
-        CompiledNamespace, XmlnsContext,
-    };
+    use xsd::schema as xs;
+    use xsd_type_compiler::{complex::ANY_TYPE_EXPANDED_NAME, CompiledNamespace, XmlnsContext};
+
+    use crate::Generator;
 
     #[test]
-    fn convert_annotated_to_fragments() {
-        let namespace = XmlNamespace::new_dangerous("http://localhost");
+    fn empty_sequence_complex_type() {
+        let sequence = xs::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("SimpleSequence"))
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .particle(xs::SequenceType::builder().content(vec![]).build().into())
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build();
+
+        let namespace = XmlNamespace::new_dangerous("http://example.com");
+
         let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
 
-        let type_ = TopLevelComplexType {
-            id: None,
-            name: LocalName::new_dangerous("annotated"),
-            mixed: None,
-            abstract_: None,
-            final_: None,
-            block: None,
-            default_attributes_apply: None,
-            annotation: None,
-            content: ComplexTypeModel::ComplexContent(ComplexContent {
-                id: None,
-                mixed: None,
-                annotation: None,
-                content: ComplexContentContent::Restriction(Box::new(ComplexRestrictionType {
-                    id: None,
-                    base: Base(QName(ANY_TYPE_EXPANDED_NAME.clone())),
-                    annotation: None,
-                    simple_type: None,
-                    content: None,
-                    particle: Some(TypeDefParticle::Sequence(SequenceType {
-                        id: None,
-                        name: None,
-                        ref_: None,
-                        min_occurs: None,
-                        max_occurs: None,
-                        content: vec![GroupTypeContent::Element(Box::new(LocalElement {
-                            ref_: Some(Ref(QName(ExpandedName::new(
-                                LocalName::new_dangerous("annotation"),
-                                Some(XmlNamespace::XMLNS),
-                            )))),
-                            id: None,
-                            name: None,
-                            type_: None,
-                            min_occurs: Some(MinOccurs(0)),
-                            max_occurs: None,
-                            default: None,
-                            fixed: None,
-                            nillable: None,
-                            block: None,
-                            form: None,
-                            target_namespace: None,
-                            annotation: None,
-                            type_choice: None,
-                            alternatives: Vec::new(),
-                            identity_constraints: Vec::new(),
-                        }))],
-                    })),
-                })),
-            }),
-        };
-
-        let top_level_complex_type = compiled_namespace
-            .add_top_level_complex_type(&type_)
+        let sequence = compiled_namespace
+            .import_top_level_complex_type(&sequence)
+            .unwrap()
             .into_owned();
 
-        let context = XmlnsContext {
-            namespaces: map_macro::hash_map! {
-                namespace => compiled_namespace,
-            },
-        };
+        let mut context = XmlnsContext::new();
+        context.add_namespace(compiled_namespace);
 
-        let mut generator = crate::Generator::new(&context);
+        let generator = Generator::new(&context);
 
-        generator
-            .bound_namespaces
-            .insert(XmlNamespace::XMLNS, format_ident!("xmlns"));
+        let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
 
-        let (_type_, items) = generator
-            .generate_top_level_type(&top_level_complex_type)
-            .unwrap();
+        #[rustfmt::skip]
+        let expected_items: Vec<Item> = vec![
+            parse_quote!(
+                #[derive(::core::fmt::Debug, ::xmlity::SerializationGroup, ::xmlity::DeserializationGroup)]
+                #[xgroup(children_order = "strict")]
+                pub struct SimpleSequence;
+            )
+        ];
 
-        let file: syn::File = parse_quote! {
-            #(#items)*
+        assert_eq!(expected_items, actual_items);
 
-        };
-
-        let res = prettyplease::unparse(&file);
-
-        println!("{res}");
+        assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
     }
+
     #[test]
-    fn convert_element_to_fragments() {
-        let namespace = XmlNamespace::new_dangerous("http://localhost");
+    fn two_attribute_sequence_complex_type() {
+        let integer_expanded_name = ExpandedName::new(
+            LocalName::new_dangerous("integer"),
+            XmlNamespace::XMLNS.into(),
+        );
+        let string_expanded_name = ExpandedName::new(
+            LocalName::new_dangerous("string"),
+            XmlNamespace::XMLNS.into(),
+        );
+
+        let sequence = xs::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("SimpleSequence"))
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .particle(xs::SequenceType::builder().content(vec![]).build().into())
+                            .attributes(vec![
+                                xs::LocalAttribute::builder()
+                                    .name(xs::Name(LocalName::new_dangerous("a")))
+                                    .type_(xs::Type(xs::QName(integer_expanded_name.clone())))
+                                    .build()
+                                    .into(),
+                                xs::LocalAttribute::builder()
+                                    .name(xs::Name(LocalName::new_dangerous("b")))
+                                    .type_(xs::Type(xs::QName(string_expanded_name.clone())))
+                                    .build()
+                                    .into(),
+                            ])
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build();
+
+        let namespace = XmlNamespace::new_dangerous("http://example.com");
+
         let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
 
-        let annotated = TopLevelComplexType {
-            id: None,
-            name: LocalName::new_dangerous("annotated"),
-            mixed: None,
-            abstract_: None,
-            final_: None,
-            block: None,
-            default_attributes_apply: None,
-            annotation: None,
-            content: ComplexTypeModel::ComplexContent(ComplexContent {
-                id: None,
-                mixed: None,
-                annotation: None,
-                content: ComplexContentContent::Restriction(Box::new(ComplexRestrictionType {
-                    id: None,
-                    base: Base(QName(ANY_TYPE_EXPANDED_NAME.clone())),
-                    annotation: None,
-                    simple_type: None,
-                    content: None,
-                    particle: Some(TypeDefParticle::Sequence(SequenceType {
-                        id: None,
-                        name: None,
-                        ref_: None,
-                        min_occurs: None,
-                        max_occurs: None,
-                        content: vec![GroupTypeContent::Element(Box::new(LocalElement {
-                            ref_: Some(Ref(QName(ExpandedName::new(
-                                LocalName::new_dangerous("annotation"),
-                                Some(XmlNamespace::XMLNS),
-                            )))),
-                            id: None,
-                            name: None,
-                            type_: None,
-                            min_occurs: Some(MinOccurs(0)),
-                            max_occurs: None,
-                            default: None,
-                            fixed: None,
-                            nillable: None,
-                            block: None,
-                            form: None,
-                            target_namespace: None,
-                            annotation: None,
-                            type_choice: None,
-                            alternatives: Vec::new(),
-                            identity_constraints: Vec::new(),
-                        }))],
-                    })),
-                })),
-            }),
-        };
-
-        let annotated = compiled_namespace
-            .add_top_level_complex_type(&annotated)
+        let sequence = compiled_namespace
+            .import_top_level_complex_type(&sequence)
+            .unwrap()
             .into_owned();
 
-        // ## "element"
-        // ```xml
-        // <xs:complexType name="element" abstract="true">
-        //     <xs:complexContent>
-        //         <xs:extension base="xs:annotated">
-        //             <xs:sequence>
-        //                 <xs:choice minOccurs="0">
-        //                     <xs:element name="simpleType" type="xs:localSimpleType"/>
-        //                     <xs:element name="complexType" type="xs:localComplexType"/>
-        //                 </xs:choice>
-        //                 <xs:element name="alternative" type="xs:altType"
-        //                         minOccurs="0" maxOccurs="unbounded"/>
-        //             </xs:sequence>
-        //         </xs:extension>
-        //     </xs:complexContent>
-        // </xs:complexType>
-        // ```
-        let element = TopLevelComplexType {
-            id: None,
-            name: LocalName::new_dangerous("element"),
-            mixed: None,
-            abstract_: Some(Abstract(true)),
-            final_: None,
-            block: None,
-            default_attributes_apply: None,
-            annotation: None,
-            content: ComplexTypeModel::ComplexContent(ComplexContent {
-                id: None,
-                mixed: None,
-                annotation: None,
-                content: ComplexContentContent::Extension(Box::new(ExtensionType {
-                    id: None,
-                    base: Base(QName(annotated.clone())),
-                    annotation: None,
-                    content: None,
-                    particle: Some(TypeDefParticle::Sequence(SequenceType {
-                        id: None,
-                        name: None,
-                        ref_: None,
-                        min_occurs: None,
-                        max_occurs: None,
-                        content: vec![
-                            GroupTypeContent::Choice(Box::new(ChoiceType {
-                                id: None,
-                                name: None,
-                                ref_: None,
-                                min_occurs: Some(MinOccurs(0)),
-                                max_occurs: None,
-                                content: vec![
-                                    GroupTypeContent::Element(Box::new(LocalElement {
-                                        id: None,
-                                        name: Some(xsd::schema::Name(LocalName::new_dangerous(
-                                            "simpleType",
-                                        ))),
-                                        ref_: None,
-                                        type_: Some(Type(QName(ExpandedName::new(
-                                            LocalName::new_dangerous("localSimpleType"),
-                                            Some(XmlNamespace::XMLNS),
-                                        )))),
-                                        min_occurs: Some(MinOccurs(0)),
-                                        max_occurs: None,
-                                        default: None,
-                                        fixed: None,
-                                        nillable: None,
-                                        block: None,
-                                        form: None,
-                                        target_namespace: None,
-                                        annotation: None,
-                                        type_choice: None,
-                                        alternatives: Vec::new(),
-                                        identity_constraints: Vec::new(),
-                                    })),
-                                    GroupTypeContent::Element(Box::new(LocalElement {
-                                        id: None,
-                                        name: Some(xsd::schema::Name(LocalName::new_dangerous(
-                                            "complexType",
-                                        ))),
-                                        ref_: None,
-                                        type_: Some(Type(QName(ExpandedName::new(
-                                            LocalName::new_dangerous("localComplexType"),
-                                            Some(XmlNamespace::XMLNS),
-                                        )))),
-                                        min_occurs: Some(MinOccurs(0)),
-                                        max_occurs: None,
-                                        default: None,
-                                        fixed: None,
-                                        nillable: None,
-                                        block: None,
-                                        form: None,
-                                        target_namespace: None,
-                                        annotation: None,
-                                        type_choice: None,
-                                        alternatives: Vec::new(),
-                                        identity_constraints: Vec::new(),
-                                    })),
-                                ],
-                            })),
-                            GroupTypeContent::Element(Box::new(LocalElement {
-                                id: None,
-                                name: Some(xsd::schema::Name(LocalName::new_dangerous(
-                                    "complexType",
-                                ))),
-                                ref_: None,
-                                type_: Some(Type(QName(ExpandedName::new(
-                                    LocalName::new_dangerous("altType"),
-                                    Some(XmlNamespace::XMLNS),
-                                )))),
-                                min_occurs: Some(MinOccurs(0)),
-                                max_occurs: Some(MaxOccurs(MaxOccursValue::Unbounded)),
-                                default: None,
-                                fixed: None,
-                                nillable: None,
-                                block: None,
-                                form: None,
-                                target_namespace: None,
-                                annotation: None,
-                                type_choice: None,
-                                alternatives: Vec::new(),
-                                identity_constraints: Vec::new(),
-                            })),
-                        ],
-                    })),
-                })),
-            }),
-        };
+        let mut context = XmlnsContext::new();
+        context.add_namespace(compiled_namespace);
 
-        let _element = compiled_namespace
-            .add_top_level_complex_type(&element)
-            .into_owned();
+        let generator = Generator::new(&context);
 
-        let mut xmlns_context = XmlnsContext {
-            namespaces: map_macro::hash_map! {
-                namespace.clone() => compiled_namespace,
-            },
-        };
+        let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
 
-        xmlns_context.transform(&namespace, ExpandBasedFragments);
+        #[rustfmt::skip]
+        let expected_items: Vec<Item> = vec![
+            parse_quote!(
+                #[derive(::core::fmt::Debug, ::xmlity::SerializationGroup, ::xmlity::DeserializationGroup)]
+                #[xgroup(children_order = "strict")]
+                pub struct SimpleSequence {
+                    #[xattribute(name = "a")]
+                    pub a: String,
+                    #[xattribute(name = "b")]
+                    pub b: String,
+                }
+            )
+        ];
 
-        let mut generator = crate::Generator::new(&xmlns_context);
+        assert_eq!(expected_items, actual_items);
 
-        generator
-            .bound_namespaces
-            .insert(XmlNamespace::XMLNS, format_ident!("xmlns"));
-
-        let items = generator.generate_namespace(&namespace).unwrap();
-
-        let file: syn::File = parse_quote! {
-            #(#items)*
-
-        };
-
-        let res = prettyplease::unparse(&file);
-
-        println!("{res}");
+        assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
     }
 }

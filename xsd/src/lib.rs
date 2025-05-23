@@ -40,7 +40,7 @@ impl XmlSchema {
         })
     }
 
-    pub fn simple_types(&self) -> impl Iterator<Item = &schema::TopLevelSimpleType> {
+    pub fn top_level_simple_types(&self) -> impl Iterator<Item = &schema::TopLevelSimpleType> {
         self.redefineable().filter_map(|re| {
             if let schema::Redefineable::SimpleType(simple_type) = re {
                 Some(simple_type)
@@ -50,7 +50,7 @@ impl XmlSchema {
         })
     }
 
-    pub fn complex_types(&self) -> impl Iterator<Item = &schema::TopLevelComplexType> {
+    pub fn top_level_complex_types(&self) -> impl Iterator<Item = &schema::TopLevelComplexType> {
         self.redefineable().filter_map(|re| {
             if let schema::Redefineable::ComplexType(complex_type) = re {
                 Some(complex_type)

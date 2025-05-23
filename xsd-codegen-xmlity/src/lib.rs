@@ -1,18 +1,20 @@
 mod complex;
 pub mod misc;
 mod simple;
-mod types;
+pub mod templates;
 
 use std::collections::HashMap;
 
-use complex::ComplexTypeToRustType;
-use misc::{GeneratedFragment, TypeReference};
+use complex::{ResolveFragmentData, ToTypeTemplate, ToTypeTemplateData};
+use misc::TypeReference;
 use quote::format_ident;
 use simple::SimpleTypeToRustType;
-use syn::{parse_quote, Ident, Item};
-use types::TypeItem;
+use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, XmlNamespace};
-use xsd_type_compiler::CompiledNamespace;
+use xsd_type_compiler::{
+    complex::{ComplexTypeFragmentCompiler, FragmentAccess},
+    CompiledNamespace,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {}
@@ -33,13 +35,21 @@ enum NamedTypeClass {
 struct GeneratorContext<'a> {
     generator: &'a Generator<'a>,
     namespace: &'a XmlNamespace<'a>,
+    items: Vec<Item>,
+    mod_name: Option<Ident>,
 }
 
 impl<'a> GeneratorContext<'a> {
-    fn new(generator: &'a Generator<'a>, namespace: &'a XmlNamespace<'a>) -> Self {
+    fn new(
+        generator: &'a Generator<'a>,
+        namespace: &'a XmlNamespace<'a>,
+        mod_name: Option<Ident>,
+    ) -> Self {
         Self {
             generator,
             namespace,
+            items: Vec::new(),
+            mod_name,
         }
     }
 
@@ -49,6 +59,33 @@ impl<'a> GeneratorContext<'a> {
             .namespaces
             .get(self.namespace)
             .unwrap()
+    }
+
+    fn sub_context(&self, mod_name: Option<Ident>) -> Self {
+        Self {
+            generator: self.generator,
+            namespace: self.namespace,
+            items: Vec::new(),
+            mod_name,
+        }
+    }
+
+    fn finish(self) -> std::result::Result<ItemMod, Vec<Item>> {
+        let items = self.items;
+
+        if items.is_empty() {
+            return Err(items);
+        }
+
+        let Some(mod_name) = self.mod_name else {
+            return Err(items);
+        };
+
+        Ok(parse_quote! {
+            pub mod #mod_name {
+                #(#items)*
+            }
+        })
     }
 }
 
@@ -99,22 +136,57 @@ impl simple::Context for GeneratorContext<'_> {
 }
 
 impl complex::Context for GeneratorContext<'_> {
-    fn get_complex_fragment(
+    fn resolve_fragment<F>(&self, fragment: &F) -> Result<ToTypeTemplateData<F::TypeTemplate>>
+    where
+        F: ToTypeTemplate,
+    {
+        fragment.to_type_template(self)
+    }
+
+    fn resolve_fragment_id<F>(
         &self,
-        fragment_id: &xsd_type_compiler::complex::FragmentId,
-    ) -> Result<Option<misc::GeneratedFragment>> {
+        fragment_id: &xsd_type_compiler::complex::FragmentIdx<F>,
+    ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
+    where
+        F: ToTypeTemplate,
+        ComplexTypeFragmentCompiler: FragmentAccess<F>,
+    {
         let fragment = self
             .current_namespace()
             .complex_type
-            .fragments
-            .get(&fragment_id.1);
+            .get_fragment(fragment_id)
+            .unwrap();
 
-        let Some(fragment) = fragment else {
-            return Ok(None);
-        };
-
-        fragment.generate_complex_rust_types(self).map(Some)
+        fragment.to_type_template(self)
     }
+
+    fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<syn::Type> {
+        todo!()
+    }
+
+    fn to_expanded_name(&self, name: xmlity::LocalName<'static>) -> ExpandedName<'static> {
+        todo!()
+    }
+    // fn resolve_fragment<F>(
+    //     &self,
+    //     fragment_id: &xsd_type_compiler::complex::FragmentIdx<F>,
+    // ) -> Result<Option<misc::GeneratedFragment>>
+    // where
+    //     xsd_type_compiler::complex::ComplexTypeFragmentCompiler: FragmentAccess<F>,
+    // {
+    //     // let fragment = self
+    //     //     .current_namespace()
+    //     //     .complex_type
+    //     //     .fragments
+    //     //     .get(&fragment_id.1);
+
+    //     // let Some(fragment) = fragment else {
+    //     //     return Ok(None);
+    //     // };
+
+    //     // fragment.generate_complex_rust_types(self).map(Some)
+    //     todo!()
+    // }
 }
 
 impl<'a> Generator<'a> {
@@ -132,24 +204,24 @@ impl<'a> Generator<'a> {
 
         for local_name in compiled_namespace.top_level_types.keys() {
             let expanded_name = ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
-            let item = self.generate_top_level_type(&expanded_name)?;
-            items.push(item)
+            let (_, i) = self.generate_top_level_type(&expanded_name)?;
+            items.extend(i)
         }
 
         for local_name in compiled_namespace.top_level_attributes.keys() {
             let expanded_name = ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
-            let item = self.generate_top_level_type(&expanded_name)?;
-            items.push(item)
+            let (_, i) = self.generate_top_level_type(&expanded_name)?;
+            items.extend(i)
         }
 
         for local_name in compiled_namespace.top_level_elements.keys() {
             let expanded_name = ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
-            let item = self.generate_top_level_type(&expanded_name)?;
-            items.push(item)
+            let (_, i) = self.generate_top_level_type(&expanded_name)?;
+            items.extend(i)
         }
 
         //TODO
-        Ok(vec![])
+        Ok(items)
     }
 
     pub fn generate_top_level_type(
@@ -160,7 +232,8 @@ impl<'a> Generator<'a> {
             .context
             .namespaces
             .get(name.namespace().unwrap())
-            .unwrap_or_else(|| panic!("namespace not found: {}", name.namespace().unwrap())); // TODO: handle this error properly with a better error messa
+            .unwrap_or_else(|| panic!("namespace not found: {}", name.namespace().unwrap()));
+        // TODO: handle this error properly with a better error messa
 
         let top_level_type = compiled_namespace
             .top_level_types
@@ -175,12 +248,22 @@ impl<'a> Generator<'a> {
                     .get_fragment(&top_level_complex_type.root_fragment)
                     .unwrap();
 
-                let context = GeneratorContext::new(self, name.namespace().unwrap());
+                let local_name = name.local_name().to_string();
+                let module_name = format_ident!("{local_name}_items");
+                let context =
+                    GeneratorContext::new(self, name.namespace().unwrap(), Some(module_name));
 
-                let type_ = fragment.generate_complex_rust_types(&context)?;
-                let (type_, items) = type_
-                    .type_
-                    .into_type(&format_ident!("{}", name.local_name().to_string()), None);
+                let type_ = fragment.to_type_template(&context)?;
+                let struct_name = format_ident!("{local_name}");
+                let item = type_.template.into_struct(&struct_name);
+                let mut items = context
+                    .finish()
+                    .map(|i| vec![Item::Mod(i)])
+                    .unwrap_or_else(std::convert::identity);
+
+                items.push(Item::Struct(item));
+
+                let type_ = TypeReference::new_prefix(parse_quote!(#struct_name));
 
                 Ok((type_, items))
             }

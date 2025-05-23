@@ -1,4 +1,12 @@
-mod expand_based_fragments;
-pub use expand_based_fragments::ExpandBasedFragments;
+mod expand_restriction_fragments;
+pub use expand_restriction_fragments::ExpandRestrictionFragments;
+mod expand_extension_fragments;
+pub use expand_extension_fragments::ExpandExtensionFragments;
 mod flatten_nested_groups;
 pub use flatten_nested_groups::{FlattenNestedAll, FlattenNestedChoices, FlattenNestedSequences};
+mod expand_short_form_complex_types;
+pub use expand_short_form_complex_types::ExpandShortFormComplexTypes;
+mod expand_groups;
+pub use expand_groups::ExpandGroups;
+mod expand_attribute_groups;
+pub use expand_attribute_groups::ExpandAttributeGroups;

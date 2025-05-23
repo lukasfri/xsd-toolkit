@@ -4,8 +4,6 @@ use dyn_clone::DynClone;
 use syn::{Path, Type, TypePath};
 use xmlity::{LocalName, XmlNamespace};
 
-use crate::types::TypeRecord;
-
 trait TypeReferenceTrait: FnOnce(Option<&Path>) -> Type + DynClone {}
 
 dyn_clone::clone_trait_object!(TypeReferenceTrait);
@@ -65,5 +63,5 @@ impl GeneratedNamespaceTypes {
 
 #[derive(Debug)]
 pub struct GeneratedFragment {
-    pub type_: TypeRecord,
+    // pub type_: XmlityTypeModel,
 }
