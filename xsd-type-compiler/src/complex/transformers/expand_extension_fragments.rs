@@ -39,11 +39,11 @@ impl ExpandExtensionFragments {
         let attribute = ctx.get_complex_fragment_mut(attribute).unwrap();
 
         let base_attribute = match base_attribute {
-            LocalAttributeFragment::Local(local) => local,
+            LocalAttributeFragment::Declared(local) => local,
             _ => todo!(),
         };
         let attribute = match attribute {
-            LocalAttributeFragment::Local(local) => local,
+            LocalAttributeFragment::Declared(local) => local,
             _ => todo!(),
         };
 
@@ -68,7 +68,9 @@ impl ExpandExtensionFragments {
         ) -> ExpandedName<'static> {
             let fragment = ctx.get_complex_fragment(a).unwrap();
             match fragment {
-                LocalAttributeFragment::Local(local) => ExpandedName::new(local.name.clone(), None),
+                LocalAttributeFragment::Declared(local) => {
+                    ExpandedName::new(local.name.clone(), None)
+                }
                 LocalAttributeFragment::Reference(ref_) => ref_.name.clone(),
             }
         }

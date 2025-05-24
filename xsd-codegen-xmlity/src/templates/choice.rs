@@ -8,9 +8,9 @@ pub enum ChoiceVariantType {
 }
 
 impl ChoiceVariantType {
-    pub fn into_variant(&self, ident: &Ident) -> syn::Variant {
+    pub fn to_variant(&self, ident: &Ident) -> syn::Variant {
         match &self {
-            ChoiceVariantType::Element(element_record) => element_record.into_variant(ident),
+            ChoiceVariantType::Element(element_record) => element_record.to_variant(ident),
             ChoiceVariantType::Item(_) => todo!(),
         }
     }
@@ -22,10 +22,10 @@ pub struct Choice {
 
 impl Choice {
     pub fn variants(&self) -> impl Iterator<Item = syn::Variant> + '_ {
-        self.variants.iter().map(|(ident, v)| v.into_variant(ident))
+        self.variants.iter().map(|(ident, v)| v.to_variant(ident))
     }
 
-    pub fn into_enum(&self, ident: &Ident) -> syn::ItemEnum {
+    pub fn to_enum(&self, ident: &Ident) -> syn::ItemEnum {
         let variants = self.variants();
 
         let derive_attr: syn::Attribute =
@@ -62,7 +62,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_enum(&ident);
+        let actual_item = record.to_enum(&ident);
 
         let expected_item: ItemEnum = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
@@ -89,7 +89,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_enum(&ident);
+        let actual_item = record.to_enum(&ident);
 
         let expected_item: ItemEnum = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
@@ -126,7 +126,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_enum(&ident);
+        let actual_item = record.to_enum(&ident);
 
         let expected_item: ItemEnum = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]

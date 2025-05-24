@@ -114,7 +114,7 @@ impl ItemRecord {
         }
     }
 
-    pub fn into_struct(self, ident: &Ident) -> ItemStruct {
+    pub fn to_struct(&self, ident: &Ident) -> ItemStruct {
         let fields = self.fields(FieldMode::Struct).collect::<Vec<_>>();
 
         let derive_attr = super::derive_attribute([
@@ -151,7 +151,7 @@ impl ItemRecord {
         }
     }
 
-    pub fn into_variant(&self, ident: &Ident) -> syn::Variant {
+    pub fn to_variant(&self, ident: &Ident) -> syn::Variant {
         let fields = self.fields(FieldMode::Variant);
 
         let value_attr = self.value_attr();
@@ -210,7 +210,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_struct(&ident);
+        let actual_item = record.to_struct(&ident);
 
         let expected_item: ItemStruct = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
@@ -235,7 +235,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_struct(&ident);
+        let actual_item = record.to_struct(&ident);
 
         let expected_item: ItemStruct = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
@@ -262,7 +262,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_struct(&ident);
+        let actual_item = record.to_struct(&ident);
 
         let expected_item: ItemStruct = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]

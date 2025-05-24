@@ -62,14 +62,14 @@ impl<T> std::hash::Hash for FragmentIdx<T> {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TypeDefParticleId {
-    Group(FragmentIdx<GroupRefTypeFragment>),
+    Group(FragmentIdx<GroupRefFragment>),
     All(FragmentIdx<AllFragment>),
     Sequence(FragmentIdx<SequenceFragment>),
     Choice(FragmentIdx<ChoiceFragment>),
 }
 
-impl From<FragmentIdx<GroupRefTypeFragment>> for TypeDefParticleId {
-    fn from(value: FragmentIdx<GroupRefTypeFragment>) -> Self {
+impl From<FragmentIdx<GroupRefFragment>> for TypeDefParticleId {
+    fn from(value: FragmentIdx<GroupRefFragment>) -> Self {
         Self::Group(value)
     }
 }
@@ -128,28 +128,35 @@ pub enum AttributeUse {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct LocalAttributeTypeFragment {
+pub enum LocalAttributeFragmentType {
+    SimpleType(simple::FragmentId),
+    SimpleTypeRef(ExpandedName<'static>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DeclaredAttributeFragment {
     pub name: LocalName<'static>,
     pub type_: Option<LocalAttributeFragmentType>,
     pub use_: Option<AttributeUse>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ReferenceAttributeTypeFragment {
+pub struct ReferenceAttributeFragment {
     pub name: ExpandedName<'static>,
     pub use_: Option<AttributeUse>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LocalAttributeFragment {
-    Local(LocalAttributeTypeFragment),
-    Reference(ReferenceAttributeTypeFragment),
+    Declared(DeclaredAttributeFragment),
+    Reference(ReferenceAttributeFragment),
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum LocalAttributeFragmentType {
-    SimpleType(simple::FragmentId),
-    SimpleTypeRef(ExpandedName<'static>),
+pub struct TopLevelAttributeFragment {
+    pub name: LocalName<'static>,
+    pub type_: Option<LocalAttributeFragmentType>,
+    pub use_: Option<AttributeUse>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -171,7 +178,7 @@ pub enum ComplexContentChildId {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct LocalElementTypeFragment {
+pub struct DeclaredElementFragment {
     pub name: LocalName<'static>,
     pub type_: NamedOrAnonymous<ElementTypeContentId>,
     pub min_occurs: Option<xs::MinOccurs>,
@@ -179,20 +186,26 @@ pub struct LocalElementTypeFragment {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ReferenceElementTypeFragment {
+pub struct ReferenceElementFragment {
     pub name: ExpandedName<'static>,
     pub min_occurs: Option<xs::MinOccurs>,
     pub max_occurs: Option<xs::MaxOccursValue>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ElementTypeFragment {
-    Local(LocalElementTypeFragment),
-    Reference(ReferenceElementTypeFragment),
+pub enum LocalElementFragment {
+    Local(DeclaredElementFragment),
+    Reference(ReferenceElementFragment),
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct GroupRefTypeFragment {
+pub struct TopLevelElementFragment {
+    pub name: LocalName<'static>,
+    pub type_: NamedOrAnonymous<ElementTypeContentId>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct GroupRefFragment {
     pub ref_: ExpandedName<'static>,
 }
 
@@ -218,13 +231,7 @@ pub struct SequenceFragment {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct AttributeTypeFragment {
-    pub name: LocalName<'static>,
-    pub type_: SimpleTypeIdent,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct SimpleTypeTypeFragment {
+pub struct SimpleTypeFragment {
     pub type_: SimpleTypeIdent,
 }
 
@@ -298,14 +305,15 @@ pub struct ComplexTypeFragmentCompiler {
     pub restrictions: FragmentCollection<RestrictionFragment>,
     pub extensions: FragmentCollection<ExtensionFragment>,
     pub complex_contents: FragmentCollection<ComplexContentFragment>,
-    pub group_refs: FragmentCollection<GroupRefTypeFragment>,
+    pub group_refs: FragmentCollection<GroupRefFragment>,
     pub alls: FragmentCollection<AllFragment>,
     pub choices: FragmentCollection<ChoiceFragment>,
     pub sequences: FragmentCollection<SequenceFragment>,
-    pub elements: FragmentCollection<ElementTypeFragment>,
-    pub attributes: FragmentCollection<AttributeTypeFragment>,
+    pub elements: FragmentCollection<LocalElementFragment>,
+    pub top_level_elements: FragmentCollection<TopLevelElementFragment>,
     pub local_attributes: FragmentCollection<LocalAttributeFragment>,
-    pub simple_types: FragmentCollection<SimpleTypeTypeFragment>,
+    pub top_level_attributes: FragmentCollection<TopLevelAttributeFragment>,
+    pub simple_types: FragmentCollection<SimpleTypeFragment>,
 }
 
 pub trait FragmentAccess<F>: Sized {
@@ -367,11 +375,11 @@ impl HasFragmentCollection<ComplexContentFragment> for ComplexTypeFragmentCompil
     }
 }
 
-impl HasFragmentCollection<GroupRefTypeFragment> for ComplexTypeFragmentCompiler {
-    fn get_fragment_collection(&self) -> &FragmentCollection<GroupRefTypeFragment> {
+impl HasFragmentCollection<GroupRefFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<GroupRefFragment> {
         &self.group_refs
     }
-    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<GroupRefTypeFragment> {
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<GroupRefFragment> {
         &mut self.group_refs
     }
 }
@@ -403,21 +411,21 @@ impl HasFragmentCollection<SequenceFragment> for ComplexTypeFragmentCompiler {
     }
 }
 
-impl HasFragmentCollection<ElementTypeFragment> for ComplexTypeFragmentCompiler {
-    fn get_fragment_collection(&self) -> &FragmentCollection<ElementTypeFragment> {
+impl HasFragmentCollection<LocalElementFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<LocalElementFragment> {
         &self.elements
     }
-    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<ElementTypeFragment> {
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<LocalElementFragment> {
         &mut self.elements
     }
 }
 
-impl HasFragmentCollection<AttributeTypeFragment> for ComplexTypeFragmentCompiler {
-    fn get_fragment_collection(&self) -> &FragmentCollection<AttributeTypeFragment> {
-        &self.attributes
+impl HasFragmentCollection<TopLevelElementFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<TopLevelElementFragment> {
+        &self.top_level_elements
     }
-    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<AttributeTypeFragment> {
-        &mut self.attributes
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<TopLevelElementFragment> {
+        &mut self.top_level_elements
     }
 }
 
@@ -430,11 +438,22 @@ impl HasFragmentCollection<LocalAttributeFragment> for ComplexTypeFragmentCompil
     }
 }
 
-impl HasFragmentCollection<SimpleTypeTypeFragment> for ComplexTypeFragmentCompiler {
-    fn get_fragment_collection(&self) -> &FragmentCollection<SimpleTypeTypeFragment> {
+impl HasFragmentCollection<TopLevelAttributeFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<TopLevelAttributeFragment> {
+        &self.top_level_attributes
+    }
+    fn get_fragment_collection_mut(
+        &mut self,
+    ) -> &mut FragmentCollection<TopLevelAttributeFragment> {
+        &mut self.top_level_attributes
+    }
+}
+
+impl HasFragmentCollection<SimpleTypeFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<SimpleTypeFragment> {
         &self.simple_types
     }
-    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<SimpleTypeTypeFragment> {
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<SimpleTypeFragment> {
         &mut self.simple_types
     }
 }
@@ -479,8 +498,9 @@ impl ComplexTypeFragmentCompiler {
             choices: FragmentCollection::new(),
             sequences: FragmentCollection::new(),
             elements: FragmentCollection::new(),
-            attributes: FragmentCollection::new(),
+            top_level_elements: FragmentCollection::new(),
             local_attributes: FragmentCollection::new(),
+            top_level_attributes: FragmentCollection::new(),
             simple_types: FragmentCollection::new(),
         }
     }
@@ -600,7 +620,7 @@ impl ComplexFragmentEquivalent for xs::ElementTypeContent {
 }
 
 impl ComplexFragmentEquivalent for xs::LocalElement {
-    type FragmentId = FragmentIdx<ElementTypeFragment>;
+    type FragmentId = FragmentIdx<LocalElementFragment>;
 
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
@@ -612,13 +632,11 @@ impl ComplexFragmentEquivalent for xs::LocalElement {
         let min_occurs = self.min_occurs.clone();
 
         if let Some(ref_) = self.ref_.as_ref() {
-            compiler.push_fragment(ElementTypeFragment::Reference(
-                ReferenceElementTypeFragment {
-                    name: ref_.0 .0.clone(),
-                    max_occurs,
-                    min_occurs,
-                },
-            ))
+            compiler.push_fragment(LocalElementFragment::Reference(ReferenceElementFragment {
+                name: ref_.0 .0.clone(),
+                max_occurs,
+                min_occurs,
+            }))
         } else {
             let name = self
                 .name
@@ -639,7 +657,7 @@ impl ComplexFragmentEquivalent for xs::LocalElement {
                 NamedOrAnonymous::Anonymous(content_type)
             };
 
-            compiler.push_fragment(ElementTypeFragment::Local(LocalElementTypeFragment {
+            compiler.push_fragment(LocalElementFragment::Local(DeclaredElementFragment {
                 name,
                 type_,
                 max_occurs,
@@ -657,7 +675,7 @@ impl ComplexFragmentEquivalent for xs::LocalElement {
         let fragment = compiler.get_fragment(fragment_id).unwrap();
 
         match fragment {
-            ElementTypeFragment::Local(fragment) => Ok(xs::LocalElement::builder()
+            LocalElementFragment::Local(fragment) => Ok(xs::LocalElement::builder()
                 .name(xs::Name(fragment.name.clone()))
                 .maybe_type_(match &fragment.type_ {
                     NamedOrAnonymous::Named(expanded_name) => {
@@ -677,15 +695,71 @@ impl ComplexFragmentEquivalent for xs::LocalElement {
                 .alternatives(Vec::new())
                 .identity_constraints(Vec::new())
                 .build()),
-            ElementTypeFragment::Reference(fragment) => Ok(xs::LocalElement::builder()
+            LocalElementFragment::Reference(fragment) => Ok(xs::LocalElement::builder()
                 .ref_(xs::Ref(xs::QName(fragment.name.clone())))
                 .build()),
         }
     }
 }
 
+impl ComplexFragmentEquivalent for xs::TopLevelElement {
+    type FragmentId = FragmentIdx<TopLevelElementFragment>;
+
+    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> Self::FragmentId {
+        let mut compiler = compiler.as_mut();
+
+        let name = self.name.0.clone();
+
+        let type_ = if let Some(type_) = self.type_.as_ref() {
+            NamedOrAnonymous::Named(type_.0 .0.clone())
+        } else {
+            let type_choice = self
+                .type_choice
+                .as_ref()
+                .expect("If ref is none and type is none, type_choice should be Some");
+
+            let content_type = type_choice.to_complex_fragments(&mut compiler);
+
+            NamedOrAnonymous::Anonymous(content_type)
+        };
+
+        compiler.push_fragment(TopLevelElementFragment { name, type_ })
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).unwrap();
+
+        Ok(xs::TopLevelElement::builder()
+            .name(xs::Name(fragment.name.clone()))
+            .maybe_type_(match &fragment.type_ {
+                NamedOrAnonymous::Named(expanded_name) => {
+                    Some(xs::Type(xs::QName(expanded_name.clone())))
+                }
+                NamedOrAnonymous::Anonymous(_) => None,
+            })
+            .maybe_type_choice(
+                match &fragment.type_ {
+                    NamedOrAnonymous::Anonymous(content_type) => Some(
+                        xs::ElementTypeContent::from_complex_fragments(compiler, content_type),
+                    ),
+                    NamedOrAnonymous::Named(_) => None,
+                }
+                .transpose()?,
+            )
+            .build())
+    }
+}
+
 impl ComplexFragmentEquivalent for xs::GroupRef {
-    type FragmentId = FragmentIdx<GroupRefTypeFragment>;
+    type FragmentId = FragmentIdx<GroupRefFragment>;
 
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
@@ -693,7 +767,7 @@ impl ComplexFragmentEquivalent for xs::GroupRef {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(GroupRefTypeFragment {
+        compiler.push_fragment(GroupRefFragment {
             ref_: self.ref_.0 .0.clone(),
         })
     }
@@ -738,8 +812,8 @@ impl ComplexFragmentEquivalent for xs::Any {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GroupTypeContentId {
-    Element(FragmentIdx<ElementTypeFragment>),
-    Group(FragmentIdx<GroupRefTypeFragment>),
+    Element(FragmentIdx<LocalElementFragment>),
+    Group(FragmentIdx<GroupRefFragment>),
     All(FragmentIdx<AllFragment>),
     Choice(FragmentIdx<ChoiceFragment>),
     Sequence(FragmentIdx<SequenceFragment>),
@@ -757,13 +831,13 @@ impl From<TypeDefParticleId> for GroupTypeContentId {
     }
 }
 
-impl From<FragmentIdx<ElementTypeFragment>> for GroupTypeContentId {
-    fn from(value: FragmentIdx<ElementTypeFragment>) -> Self {
+impl From<FragmentIdx<LocalElementFragment>> for GroupTypeContentId {
+    fn from(value: FragmentIdx<LocalElementFragment>) -> Self {
         Self::Element(value)
     }
 }
-impl From<FragmentIdx<GroupRefTypeFragment>> for GroupTypeContentId {
-    fn from(value: FragmentIdx<GroupRefTypeFragment>) -> Self {
+impl From<FragmentIdx<GroupRefFragment>> for GroupTypeContentId {
+    fn from(value: FragmentIdx<GroupRefFragment>) -> Self {
         Self::Group(value)
     }
 }
@@ -983,7 +1057,7 @@ impl ComplexFragmentEquivalent for xs::TypeDefParticle {
             xs::TypeDefParticle::Group(group_ref) => {
                 let ref_ = group_ref.ref_.0 .0.clone();
 
-                compiler.push_fragment(GroupRefTypeFragment { ref_ }).into()
+                compiler.push_fragment(GroupRefFragment { ref_ }).into()
             }
             xs::TypeDefParticle::All(all) => all.to_complex_fragments(compiler).into(),
             xs::TypeDefParticle::Choice(choice) => choice.to_complex_fragments(compiler).into(),
@@ -1216,7 +1290,7 @@ impl ComplexFragmentEquivalent for xs::LocalAttribute {
 
         if let Some(ref ref_) = self.ref_ {
             compiler.push_fragment(LocalAttributeFragment::Reference(
-                ReferenceAttributeTypeFragment {
+                ReferenceAttributeFragment {
                     name: ref_.0 .0.clone(),
                     use_,
                 },
@@ -1239,11 +1313,13 @@ impl ComplexFragmentEquivalent for xs::LocalAttribute {
                 None
             };
 
-            compiler.push_fragment(LocalAttributeFragment::Local(LocalAttributeTypeFragment {
-                name: name.0.clone(),
-                type_,
-                use_,
-            }))
+            compiler.push_fragment(LocalAttributeFragment::Declared(
+                DeclaredAttributeFragment {
+                    name: name.0.clone(),
+                    type_,
+                    use_,
+                },
+            ))
         }
     }
 
@@ -1256,7 +1332,7 @@ impl ComplexFragmentEquivalent for xs::LocalAttribute {
         let fragment = compiler.get_fragment(fragment_id).unwrap();
 
         match fragment {
-            LocalAttributeFragment::Local(local) => {
+            LocalAttributeFragment::Declared(local) => {
                 let name = local.name.clone();
                 let type_ = local.type_.as_ref().unwrap();
                 let type_ = match type_ {
@@ -1278,6 +1354,65 @@ impl ComplexFragmentEquivalent for xs::LocalAttribute {
             }
             _ => todo!(),
         }
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::TopLevelAttribute {
+    type FragmentId = FragmentIdx<TopLevelAttributeFragment>;
+
+    fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> Self::FragmentId {
+        let mut compiler = compiler.as_mut();
+
+        let use_ = self.use_.as_ref().map(|a| match a.0 {
+            xs::AttributeUseType::Prohibited => AttributeUse::Prohibited,
+            xs::AttributeUseType::Optional => AttributeUse::Optional,
+            xs::AttributeUseType::Required => AttributeUse::Required,
+        });
+
+        let name = self.name.0.clone();
+
+        let type_ = if let Some(type_) = self.type_.as_ref() {
+            Some(LocalAttributeFragmentType::SimpleTypeRef(
+                type_.0 .0.clone(),
+            ))
+        } else if let Some(simple_type) = self.simple_type.as_ref() {
+            Some(LocalAttributeFragmentType::SimpleType(
+                simple_type.to_complex_fragments(&mut compiler),
+            ))
+        } else {
+            None
+        };
+
+        compiler.push_fragment(TopLevelAttributeFragment { name, type_, use_ })
+    }
+
+    fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
+        compiler: T,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).unwrap();
+
+        let name = fragment.name.clone();
+        let type_ = fragment.type_.as_ref().unwrap();
+        let type_ = match type_ {
+            LocalAttributeFragmentType::SimpleTypeRef(ref_) => Some(xs::QName(ref_.clone())),
+            LocalAttributeFragmentType::SimpleType(_) => None,
+        };
+        let use_ = fragment.use_.map(|a| match a {
+            AttributeUse::Required => xs::AttributeUseType::Required,
+            AttributeUse::Optional => xs::AttributeUseType::Optional,
+            AttributeUse::Prohibited => xs::AttributeUseType::Prohibited,
+        });
+        Ok(xs::TopLevelAttribute::builder()
+            .name(xs::Name(name))
+            .maybe_type_(type_.map(xs::Type))
+            .maybe_use_(use_.map(xs::AttrUse))
+            .build())
     }
 }
 

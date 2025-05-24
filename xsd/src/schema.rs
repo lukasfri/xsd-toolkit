@@ -1093,7 +1093,7 @@ impl LocalAttribute {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Builder)]
 #[xelement(name = "attribute", namespace_expr = NS_XSD)]
 pub struct TopLevelAttribute {
     #[xattribute(deferred = true, default)]

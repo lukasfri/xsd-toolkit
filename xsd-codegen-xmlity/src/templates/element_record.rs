@@ -31,12 +31,38 @@ impl ElementFieldAttribute {
             .map(ToString::to_string)
             .map(|ns| parse_quote! { namespace = #ns });
 
-        name_option.into_iter().chain(namespace_option)
+        let deferred_option: Option<syn::MetaNameValue> = if self.deferred {
+            Some(parse_quote! { deferred = true })
+        } else {
+            None
+        };
+
+        name_option
+            .into_iter()
+            .chain(namespace_option)
+            .chain(deferred_option)
     }
 
     fn attribute_attr(&self) -> syn::Attribute {
         let options = self.option_attributes();
         parse_quote!(#[xattribute(#(#options),*)])
+    }
+
+    pub fn to_struct(&self, ident: &Ident) -> ItemStruct {
+        let derive_attr = super::derive_attribute([
+            parse_quote!(::core::fmt::Debug),
+            parse_quote!(::xmlity::SerializeAttribute),
+            parse_quote!(::xmlity::Deserialize),
+        ]);
+        let element_attr = self.attribute_attr();
+
+        let ty = &self.ty;
+
+        parse_quote!(
+          #derive_attr
+          #element_attr
+          pub struct #ident(pub #ty);
+        )
     }
 }
 
@@ -187,7 +213,7 @@ impl ElementRecord {
         parse_quote!(#[xelement(#(#options),*)])
     }
 
-    pub fn into_struct(self, ident: &Ident) -> ItemStruct {
+    pub fn to_struct(&self, ident: &Ident) -> ItemStruct {
         let fields = self.fields(FieldMode::Struct).collect::<Vec<_>>();
 
         let derive_attr = super::derive_attribute([
@@ -224,7 +250,7 @@ impl ElementRecord {
         }
     }
 
-    pub fn into_variant(&self, ident: &Ident) -> syn::Variant {
+    pub fn to_variant(&self, ident: &Ident) -> syn::Variant {
         let fields = self.fields(FieldMode::Variant);
 
         let element_attr = self.element_attr();
@@ -302,7 +328,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_struct(&ident);
+        let actual_item = record.to_struct(&ident);
 
         let expected_item: ItemStruct = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
@@ -330,7 +356,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_struct(&ident);
+        let actual_item = record.to_struct(&ident);
 
         let expected_item: ItemStruct = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
@@ -360,7 +386,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_struct(&ident);
+        let actual_item = record.to_struct(&ident);
 
         let expected_item: ItemStruct = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]

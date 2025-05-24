@@ -1,3 +1,5 @@
+use pretty_assertions::assert_eq;
+use syn::parse_quote;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::schema as xs;
 use xsd_codegen_xmlity::Generator;
@@ -26,12 +28,13 @@ fn top_level_complex_type_sequence_test() {
                                 .content(vec![
                                     xs::LocalElement::builder()
                                         .name(xs::Name(LocalName::new_dangerous("number")))
-                                        .type_(xs::Type(xs::QName(integer_expanded_name)))
+                                        .type_(xs::Type(xs::QName(integer_expanded_name.clone())))
+                                        .min_occurs(xs::MinOccurs(0))
                                         .build()
                                         .into(),
                                     xs::LocalElement::builder()
                                         .name(xs::Name(LocalName::new_dangerous("name")))
-                                        .type_(xs::Type(xs::QName(string_expanded_name)))
+                                        .type_(xs::Type(xs::QName(string_expanded_name.clone())))
                                         .build()
                                         .into(),
                                 ])
@@ -47,6 +50,7 @@ fn top_level_complex_type_sequence_test() {
         .build();
 
     let namespace = XmlNamespace::new_dangerous("http://example.com");
+    let namespace_lit = namespace.as_str();
 
     let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
 
@@ -59,7 +63,10 @@ fn top_level_complex_type_sequence_test() {
 
     context.add_namespace(compiled_namespace);
 
-    let generator = Generator::new(&context);
+    let mut generator = Generator::new(&context);
+
+    generator.bind_type(integer_expanded_name, parse_quote!(i32));
+    generator.bind_type(string_expanded_name, parse_quote!(String));
 
     let (_, actual_code) = generator.generate_top_level_type(&product_type).unwrap();
 
@@ -70,9 +77,9 @@ fn top_level_complex_type_sequence_test() {
         )]
         #[xgroup(children_order = "strict")]
         pub struct ProductType {
-            #[xelement(name = "number")]
-            pub number: Option<String>,
-            #[xelement(name = "name")]
+            #[xelement(name = "number", namespace = #namespace_lit)]
+            pub number: Option<i32>,
+            #[xelement(name = "name", namespace = #namespace_lit)]
             pub name: String,
         }
     );

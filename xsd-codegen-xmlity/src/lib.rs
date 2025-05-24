@@ -5,10 +5,10 @@ pub mod templates;
 
 use std::collections::HashMap;
 
-use complex::{ResolveFragmentData, ToTypeTemplate, ToTypeTemplateData};
+use complex::{ToTypeTemplate, ToTypeTemplateData};
 use misc::TypeReference;
 use quote::format_ident;
-use simple::SimpleTypeToRustType;
+use simple::{Context, SimpleTypeToRustType};
 use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, XmlNamespace};
 use xsd_type_compiler::{
@@ -23,6 +23,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub struct Generator<'a> {
     pub context: &'a xsd_type_compiler::XmlnsContext,
     pub bound_namespaces: HashMap<XmlNamespace<'static>, Ident>,
+    pub bound_types: HashMap<ExpandedName<'static>, syn::Type>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -161,11 +162,15 @@ impl complex::Context for GeneratorContext<'_> {
     }
 
     fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<syn::Type> {
+        if let Some(bound_type) = self.generator.bound_types.get(name) {
+            return Ok(bound_type.clone());
+        }
+
         todo!()
     }
 
-    fn to_expanded_name(&self, name: xmlity::LocalName<'static>) -> ExpandedName<'static> {
-        todo!()
+    fn to_expanded_name(&self, local_name: xmlity::LocalName<'static>) -> ExpandedName<'static> {
+        ExpandedName::new(local_name, Some(self.namespace().clone().into_owned()))
     }
     // fn resolve_fragment<F>(
     //     &self,
@@ -194,7 +199,12 @@ impl<'a> Generator<'a> {
         Self {
             context,
             bound_namespaces: HashMap::new(),
+            bound_types: HashMap::new(),
         }
+    }
+
+    pub fn bind_type(&mut self, name: ExpandedName<'static>, ty: syn::Type) {
+        self.bound_types.insert(name, ty);
     }
 
     pub fn generate_namespace(&self, namespace: &xmlity::XmlNamespace<'_>) -> Result<Vec<Item>> {
@@ -235,17 +245,17 @@ impl<'a> Generator<'a> {
             .unwrap_or_else(|| panic!("namespace not found: {}", name.namespace().unwrap()));
         // TODO: handle this error properly with a better error messa
 
-        let top_level_type = compiled_namespace
+        let type_ = compiled_namespace
             .top_level_types
             .get(name.local_name())
             .unwrap(); // TODO: handle this error properly with a better error messa
 
-        match top_level_type {
-            xsd_type_compiler::TopLevelType::Simple(top_level_simple_type) => todo!(),
-            xsd_type_compiler::TopLevelType::Complex(top_level_complex_type) => {
+        match type_ {
+            xsd_type_compiler::TopLevelType::Simple(type_) => todo!(),
+            xsd_type_compiler::TopLevelType::Complex(type_) => {
                 let fragment = compiled_namespace
                     .complex_type
-                    .get_fragment(&top_level_complex_type.root_fragment)
+                    .get_fragment(&type_.root_fragment)
                     .unwrap();
 
                 let local_name = name.local_name().to_string();
@@ -255,7 +265,7 @@ impl<'a> Generator<'a> {
 
                 let type_ = fragment.to_type_template(&context)?;
                 let struct_name = format_ident!("{local_name}");
-                let item = type_.template.into_struct(&struct_name);
+                let item = type_.template.to_struct(&struct_name);
                 let mut items = context
                     .finish()
                     .map(|i| vec![Item::Mod(i)])
@@ -273,14 +283,80 @@ impl<'a> Generator<'a> {
     pub fn generate_top_level_attribute(
         &self,
         name: &xmlity::ExpandedName<'_>,
-    ) -> Result<misc::GeneratedFragment> {
-        Ok(todo!())
+    ) -> Result<(TypeReference<'static>, Vec<Item>)> {
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(name.namespace().unwrap())
+            .unwrap_or_else(|| panic!("namespace not found: {}", name.namespace().unwrap()));
+        // TODO: handle this error properly with a better error messa
+
+        let attribute = compiled_namespace
+            .top_level_attributes
+            .get(name.local_name())
+            .unwrap(); // TODO: handle this error properly with a better error messa
+
+        let fragment = compiled_namespace
+            .complex_type
+            .get_fragment(&attribute.root_fragment)
+            .unwrap();
+
+        let local_name = name.local_name().to_string();
+        let module_name = format_ident!("{local_name}_items");
+        let context = GeneratorContext::new(self, name.namespace().unwrap(), Some(module_name));
+
+        let type_ = fragment.to_type_template(&context)?;
+        let struct_name = format_ident!("{local_name}");
+        let item = type_.template.to_struct(&struct_name);
+        let mut items = context
+            .finish()
+            .map(|i| vec![Item::Mod(i)])
+            .unwrap_or_else(std::convert::identity);
+
+        items.push(Item::Struct(item));
+
+        let type_ = TypeReference::new_prefix(parse_quote!(#struct_name));
+
+        Ok((type_, items))
     }
 
     pub fn generate_top_level_element(
         &self,
         name: &xmlity::ExpandedName<'_>,
-    ) -> Result<misc::GeneratedFragment> {
-        Ok(todo!())
+    ) -> Result<(TypeReference<'static>, Vec<Item>)> {
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(name.namespace().unwrap())
+            .unwrap_or_else(|| panic!("namespace not found: {}", name.namespace().unwrap()));
+        // TODO: handle this error properly with a better error messa
+
+        let element = compiled_namespace
+            .top_level_elements
+            .get(name.local_name())
+            .unwrap(); // TODO: handle this error properly with a better error messa
+
+        let fragment = compiled_namespace
+            .complex_type
+            .get_fragment(&element.root_fragment)
+            .unwrap();
+
+        let local_name = name.local_name().to_string();
+        let module_name = format_ident!("{local_name}_items");
+        let context = GeneratorContext::new(self, name.namespace().unwrap(), Some(module_name));
+
+        let type_ = fragment.to_type_template(&context)?;
+        let struct_name = format_ident!("{local_name}");
+        let item = type_.template.to_struct(&struct_name);
+        let mut items = context
+            .finish()
+            .map(|i| vec![Item::Mod(i)])
+            .unwrap_or_else(std::convert::identity);
+
+        items.push(Item::Struct(item));
+
+        let type_ = TypeReference::new_prefix(parse_quote!(#struct_name));
+
+        Ok((type_, items))
     }
 }

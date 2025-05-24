@@ -61,7 +61,7 @@ impl GroupRecord {
         }
     }
 
-    pub fn into_struct(self, ident: &Ident) -> ItemStruct {
+    pub fn to_struct(&self, ident: &Ident) -> ItemStruct {
         let fields = self.fields(FieldMode::Struct).collect::<Vec<_>>();
 
         let derive_attr = super::derive_attribute([
@@ -129,7 +129,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_struct(&ident);
+        let actual_item = record.to_struct(&ident);
 
         #[rustfmt::skip]
         let expected_item: ItemStruct = parse_quote!(
@@ -156,7 +156,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_struct(&ident);
+        let actual_item = record.to_struct(&ident);
 
         #[rustfmt::skip]
         let expected_item: ItemStruct = parse_quote!(
@@ -185,7 +185,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.into_struct(&ident);
+        let actual_item = record.to_struct(&ident);
 
         #[rustfmt::skip]
         let expected_item: ItemStruct = parse_quote!(
