@@ -6,7 +6,7 @@ use crate::{
 use quote::format_ident;
 use xsd_type_compiler::complex::{self as cx};
 
-use super::{Context, ToTypeTemplate, ToTypeTemplateData, TypeDefParticleTemplate};
+use super::{groups::TypeDefParticleTemplate, Context, ToTypeTemplate, ToTypeTemplateData};
 
 impl ToTypeTemplate for cx::RestrictionFragment {
     type TypeTemplate = templates::group_record::GroupRecord;
@@ -20,7 +20,7 @@ impl ToTypeTemplate for cx::RestrictionFragment {
             .map(|a| {
                 context.resolve_fragment(&a).map(|a| match a.template {
                     TypeDefParticleTemplate::Record(item_record) => item_record.into_group_record(),
-                    TypeDefParticleTemplate::Choice(choice) => todo!(),
+                    TypeDefParticleTemplate::Choice(_choice) => todo!(),
                 })
             })
             .transpose()?
@@ -58,7 +58,7 @@ impl ToTypeTemplate for cx::ComplexContentFragment {
         context: &C,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match &self.content_fragment {
-            cx::ComplexContentChildId::Extension(fragment_idx) => {
+            cx::ComplexContentChildId::Extension(_fragment_idx) => {
                 panic!("TODO: Should give error. Extension not supported")
             }
             cx::ComplexContentChildId::Restriction(fragment_idx) => {
@@ -76,11 +76,11 @@ impl ToTypeTemplate for cx::ComplexTypeModelId {
         context: &C,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match self {
-            cx::ComplexTypeModelId::SimpleContent(fragment_idx) => todo!(),
+            cx::ComplexTypeModelId::SimpleContent(_fragment_idx) => todo!(),
             cx::ComplexTypeModelId::ComplexContent(fragment_idx) => {
                 context.resolve_fragment_id(fragment_idx)
             }
-            cx::ComplexTypeModelId::Other { particle } => todo!(),
+            cx::ComplexTypeModelId::Other { particle: _ } => todo!(),
         }
     }
 }
@@ -213,7 +213,6 @@ mod tests {
             .build();
 
         let namespace = XmlNamespace::new_dangerous("http://example.com");
-        let namespace_lit = namespace.as_str();
 
         let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
 
@@ -238,9 +237,9 @@ mod tests {
                 #[derive(::core::fmt::Debug, ::xmlity::SerializationGroup, ::xmlity::DeserializationGroup)]
                 #[xgroup(children_order = "strict")]
                 pub struct SimpleSequence {
-                    #[xelement(name = "a", namespace = #namespace_lit)]
+                    #[xelement(name = "a", namespace = "http://example.com")]
                     pub a: i32,
-                    #[xelement(name = "b", namespace = #namespace_lit)]
+                    #[xelement(name = "b", namespace = "http://example.com")]
                     pub b: String,
                 }
             )
@@ -274,11 +273,13 @@ mod tests {
                                 xs::LocalAttribute::builder()
                                     .name(xs::Name(LocalName::new_dangerous("a")))
                                     .type_(xs::Type(xs::QName(integer_expanded_name.clone())))
+                                    .use_(xs::AttrUse(xs::AttributeUseType::Required))
                                     .build()
                                     .into(),
                                 xs::LocalAttribute::builder()
                                     .name(xs::Name(LocalName::new_dangerous("b")))
                                     .type_(xs::Type(xs::QName(string_expanded_name.clone())))
+                                    .use_(xs::AttrUse(xs::AttributeUseType::Optional))
                                     .build()
                                     .into(),
                             ])
@@ -302,7 +303,10 @@ mod tests {
         let mut context = XmlnsContext::new();
         context.add_namespace(compiled_namespace);
 
-        let generator = Generator::new(&context);
+        let mut generator = Generator::new(&context);
+
+        generator.bind_type(string_expanded_name, parse_quote!(String));
+        generator.bind_type(integer_expanded_name, parse_quote!(i32));
 
         let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
 
@@ -313,9 +317,9 @@ mod tests {
                 #[xgroup(children_order = "strict")]
                 pub struct SimpleSequence {
                     #[xattribute(name = "a")]
-                    pub a: String,
-                    #[xattribute(name = "b")]
-                    pub b: String,
+                    pub a: i32,
+                    #[xattribute(name = "b", optional, default)]
+                    pub b: Option<String>,
                 }
             )
         ];

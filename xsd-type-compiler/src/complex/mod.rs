@@ -120,42 +120,41 @@ impl From<FragmentIdx<AttributeGroupRefFragment>> for AttributeDeclarationId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum AttributeUse {
     Required,
+    #[default]
     Optional,
     Prohibited,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum LocalAttributeFragmentType {
-    SimpleType(simple::FragmentId),
-    SimpleTypeRef(ExpandedName<'static>),
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct DeclaredAttributeFragment {
     pub name: LocalName<'static>,
-    pub type_: Option<LocalAttributeFragmentType>,
-    pub use_: Option<AttributeUse>,
+    pub type_: Option<NamedOrAnonymous<simple::FragmentId>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReferenceAttributeFragment {
     pub name: ExpandedName<'static>,
-    pub use_: Option<AttributeUse>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum LocalAttributeFragment {
+pub enum LocalAttributeFragmentTypeMode {
     Declared(DeclaredAttributeFragment),
     Reference(ReferenceAttributeFragment),
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct LocalAttributeFragment {
+    pub type_mode: LocalAttributeFragmentTypeMode,
+    pub use_: Option<AttributeUse>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct TopLevelAttributeFragment {
     pub name: LocalName<'static>,
-    pub type_: Option<LocalAttributeFragmentType>,
+    pub type_: Option<NamedOrAnonymous<simple::FragmentId>>,
     pub use_: Option<AttributeUse>,
 }
 
@@ -181,21 +180,24 @@ pub enum ComplexContentChildId {
 pub struct DeclaredElementFragment {
     pub name: LocalName<'static>,
     pub type_: NamedOrAnonymous<ElementTypeContentId>,
-    pub min_occurs: Option<xs::MinOccurs>,
-    pub max_occurs: Option<xs::MaxOccursValue>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReferenceElementFragment {
     pub name: ExpandedName<'static>,
-    pub min_occurs: Option<xs::MinOccurs>,
-    pub max_occurs: Option<xs::MaxOccursValue>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum LocalElementFragment {
+pub enum LocalElementFragmentType {
     Local(DeclaredElementFragment),
     Reference(ReferenceElementFragment),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LocalElementFragment {
+    pub min_occurs: Option<xs::MinOccurs>,
+    pub max_occurs: Option<xs::MaxOccursValue>,
+    pub type_: LocalElementFragmentType,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -631,12 +633,10 @@ impl ComplexFragmentEquivalent for xs::LocalElement {
         let max_occurs = self.max_occurs.as_ref().map(|a| a.0);
         let min_occurs = self.min_occurs.clone();
 
-        if let Some(ref_) = self.ref_.as_ref() {
-            compiler.push_fragment(LocalElementFragment::Reference(ReferenceElementFragment {
+        let type_ = if let Some(ref_) = self.ref_.as_ref() {
+            LocalElementFragmentType::Reference(ReferenceElementFragment {
                 name: ref_.0 .0.clone(),
-                max_occurs,
-                min_occurs,
-            }))
+            })
         } else {
             let name = self
                 .name
@@ -657,13 +657,14 @@ impl ComplexFragmentEquivalent for xs::LocalElement {
                 NamedOrAnonymous::Anonymous(content_type)
             };
 
-            compiler.push_fragment(LocalElementFragment::Local(DeclaredElementFragment {
-                name,
-                type_,
-                max_occurs,
-                min_occurs,
-            }))
-        }
+            LocalElementFragmentType::Local(DeclaredElementFragment { name, type_ })
+        };
+
+        compiler.push_fragment(LocalElementFragment {
+            type_,
+            max_occurs,
+            min_occurs,
+        })
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -674,8 +675,12 @@ impl ComplexFragmentEquivalent for xs::LocalElement {
 
         let fragment = compiler.get_fragment(fragment_id).unwrap();
 
-        match fragment {
-            LocalElementFragment::Local(fragment) => Ok(xs::LocalElement::builder()
+        let element_builder = xs::LocalElement::builder()
+            .maybe_min_occurs(fragment.min_occurs)
+            .maybe_max_occurs(fragment.max_occurs.map(xs::MaxOccurs));
+
+        match &fragment.type_ {
+            LocalElementFragmentType::Local(fragment) => Ok(element_builder
                 .name(xs::Name(fragment.name.clone()))
                 .maybe_type_(match &fragment.type_ {
                     NamedOrAnonymous::Named(expanded_name) => {
@@ -692,10 +697,8 @@ impl ComplexFragmentEquivalent for xs::LocalElement {
                     }
                     .transpose()?,
                 )
-                .alternatives(Vec::new())
-                .identity_constraints(Vec::new())
                 .build()),
-            LocalElementFragment::Reference(fragment) => Ok(xs::LocalElement::builder()
+            LocalElementFragmentType::Reference(fragment) => Ok(element_builder
                 .ref_(xs::Ref(xs::QName(fragment.name.clone())))
                 .build()),
         }
@@ -1288,13 +1291,10 @@ impl ComplexFragmentEquivalent for xs::LocalAttribute {
             xs::AttributeUseType::Required => AttributeUse::Required,
         });
 
-        if let Some(ref ref_) = self.ref_ {
-            compiler.push_fragment(LocalAttributeFragment::Reference(
-                ReferenceAttributeFragment {
-                    name: ref_.0 .0.clone(),
-                    use_,
-                },
-            ))
+        let type_mode = if let Some(ref ref_) = self.ref_ {
+            LocalAttributeFragmentTypeMode::Reference(ReferenceAttributeFragment {
+                name: ref_.0 .0.clone(),
+            })
         } else {
             let name = self
                 .name
@@ -1302,25 +1302,21 @@ impl ComplexFragmentEquivalent for xs::LocalAttribute {
                 .expect("name is required if not a reference");
 
             let type_ = if let Some(type_) = self.type_.as_ref() {
-                Some(LocalAttributeFragmentType::SimpleTypeRef(
-                    type_.0 .0.clone(),
-                ))
+                Some(NamedOrAnonymous::Named(type_.0 .0.clone()))
             } else if let Some(simple_type) = self.simple_type.as_ref() {
-                Some(LocalAttributeFragmentType::SimpleType(
+                Some(NamedOrAnonymous::Anonymous(
                     simple_type.to_complex_fragments(&mut compiler),
                 ))
             } else {
                 None
             };
 
-            compiler.push_fragment(LocalAttributeFragment::Declared(
-                DeclaredAttributeFragment {
-                    name: name.0.clone(),
-                    type_,
-                    use_,
-                },
-            ))
-        }
+            LocalAttributeFragmentTypeMode::Declared(DeclaredAttributeFragment {
+                name: name.0.clone(),
+                type_,
+            })
+        };
+        compiler.push_fragment(LocalAttributeFragment { type_mode, use_ })
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1331,17 +1327,15 @@ impl ComplexFragmentEquivalent for xs::LocalAttribute {
 
         let fragment = compiler.get_fragment(fragment_id).unwrap();
 
-        match fragment {
-            LocalAttributeFragment::Declared(local) => {
+        match &fragment.type_mode {
+            LocalAttributeFragmentTypeMode::Declared(local) => {
                 let name = local.name.clone();
                 let type_ = local.type_.as_ref().unwrap();
                 let type_ = match type_ {
-                    LocalAttributeFragmentType::SimpleTypeRef(ref_) => {
-                        Some(xs::QName(ref_.clone()))
-                    }
-                    LocalAttributeFragmentType::SimpleType(_) => None,
+                    NamedOrAnonymous::Named(ref_) => Some(xs::QName(ref_.clone())),
+                    NamedOrAnonymous::Anonymous(_) => None,
                 };
-                let use_ = local.use_.map(|a| match a {
+                let use_ = fragment.use_.map(|a| match a {
                     AttributeUse::Required => xs::AttributeUseType::Required,
                     AttributeUse::Optional => xs::AttributeUseType::Optional,
                     AttributeUse::Prohibited => xs::AttributeUseType::Prohibited,
@@ -1375,11 +1369,9 @@ impl ComplexFragmentEquivalent for xs::TopLevelAttribute {
         let name = self.name.0.clone();
 
         let type_ = if let Some(type_) = self.type_.as_ref() {
-            Some(LocalAttributeFragmentType::SimpleTypeRef(
-                type_.0 .0.clone(),
-            ))
+            Some(NamedOrAnonymous::Named(type_.0 .0.clone()))
         } else if let Some(simple_type) = self.simple_type.as_ref() {
-            Some(LocalAttributeFragmentType::SimpleType(
+            Some(NamedOrAnonymous::Anonymous(
                 simple_type.to_complex_fragments(&mut compiler),
             ))
         } else {
@@ -1400,8 +1392,8 @@ impl ComplexFragmentEquivalent for xs::TopLevelAttribute {
         let name = fragment.name.clone();
         let type_ = fragment.type_.as_ref().unwrap();
         let type_ = match type_ {
-            LocalAttributeFragmentType::SimpleTypeRef(ref_) => Some(xs::QName(ref_.clone())),
-            LocalAttributeFragmentType::SimpleType(_) => None,
+            NamedOrAnonymous::Named(ref_) => Some(xs::QName(ref_.clone())),
+            NamedOrAnonymous::Anonymous(_) => None,
         };
         let use_ = fragment.use_.map(|a| match a {
             AttributeUse::Required => xs::AttributeUseType::Required,

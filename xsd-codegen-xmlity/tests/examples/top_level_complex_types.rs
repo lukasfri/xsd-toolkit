@@ -50,7 +50,6 @@ fn top_level_complex_type_sequence_test() {
         .build();
 
     let namespace = XmlNamespace::new_dangerous("http://example.com");
-    let namespace_lit = namespace.as_str();
 
     let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
 
@@ -71,15 +70,14 @@ fn top_level_complex_type_sequence_test() {
     let (_, actual_code) = generator.generate_top_level_type(&product_type).unwrap();
 
     // Expected generated code
+    #[rustfmt::skip]
     let expected_code: syn::ItemStruct = syn::parse_quote!(
-        #[derive(
-            Debug, PartialEq, Eq, Clone, xmlity::SerializationGroup, xmlity::DeserializationGroup,
-        )]
+        #[derive(::core::fmt::Debug, ::xmlity::SerializationGroup, ::xmlity::DeserializationGroup)]
         #[xgroup(children_order = "strict")]
         pub struct ProductType {
-            #[xelement(name = "number", namespace = #namespace_lit)]
+            #[xelement(name = "number", namespace = "http://example.com", optional, default)]
             pub number: Option<i32>,
-            #[xelement(name = "name", namespace = #namespace_lit)]
+            #[xelement(name = "name", namespace = "http://example.com")]
             pub name: String,
         }
     );
@@ -127,17 +125,37 @@ fn top_level_complex_type_attributes_test() {
         )
         .build();
 
+    let namespace = XmlNamespace::new_dangerous("http://example.com");
+
+    let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
+
+    let product_type = compiled_namespace
+        .import_top_level_complex_type(&product_type)
+        .unwrap()
+        .into_owned();
+
+    let mut context = XmlnsContext::new();
+
+    context.add_namespace(compiled_namespace);
+
+    let mut generator = Generator::new(&context);
+
+    generator.bind_type(integer_expanded_name, parse_quote!(i32));
+    generator.bind_type(string_expanded_name, parse_quote!(String));
+
+    let (_, actual_code) = generator.generate_top_level_type(&product_type).unwrap();
+
     // Expected generated code
-    let code: syn::ItemStruct = syn::parse_quote!(
-        #[derive(
-            Debug, PartialEq, Eq, Clone, xmlity::SerializationGroup, xmlity::DeserializationGroup,
-        )]
-        #[xgroup(attribute_order = "none")]
+    #[rustfmt::skip]
+    let expected_code: syn::ItemStruct = syn::parse_quote!(
+        #[derive(::core::fmt::Debug, ::xmlity::SerializationGroup, ::xmlity::DeserializationGroup)]
         pub struct ProductType {
-            #[attribute(name = "number", optional)]
-            pub number: Option<String>,
-            #[attribute(name = "name")]
+            #[xattribute(name = "number", optional, default)]
+            pub number: Option<i32>,
+            #[xattribute(name = "name")]
             pub name: String,
         }
     );
+
+    assert_eq!(actual_code, vec![expected_code.into()]);
 }

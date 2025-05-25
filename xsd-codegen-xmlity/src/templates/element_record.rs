@@ -1,7 +1,7 @@
 use std::iter;
 
 use quote::quote;
-use syn::{parse_quote, Field, Ident, ItemStruct, Token};
+use syn::{parse_quote, Field, Ident, ItemStruct};
 use xmlity::ExpandedName;
 
 use super::{
@@ -14,25 +14,39 @@ pub struct ElementFieldAttribute {
     pub name: Option<ExpandedName<'static>>,
     pub ty: syn::Type,
     pub deferred: bool,
+    pub optional: bool,
+    pub default: bool,
 }
 
 impl ElementFieldAttribute {
-    pub fn option_attributes(&self) -> impl Iterator<Item = syn::MetaNameValue> {
-        let name_option: Option<syn::MetaNameValue> = self
+    pub fn option_attributes(&self) -> impl Iterator<Item = syn::Meta> {
+        let name_option: Option<syn::Meta> = self
             .name
             .as_ref()
             .map(|en| en.local_name().to_string())
             .map(|n| parse_quote! { name = #n });
 
-        let namespace_option: Option<syn::MetaNameValue> = self
+        let namespace_option: Option<syn::Meta> = self
             .name
             .as_ref()
             .and_then(|en| en.namespace())
             .map(ToString::to_string)
             .map(|ns| parse_quote! { namespace = #ns });
 
-        let deferred_option: Option<syn::MetaNameValue> = if self.deferred {
+        let deferred_option: Option<syn::Meta> = if self.deferred {
             Some(parse_quote! { deferred = true })
+        } else {
+            None
+        };
+
+        let optional_option: Option<syn::Meta> = if self.optional {
+            Some(parse_quote! { optional })
+        } else {
+            None
+        };
+
+        let default_option: Option<syn::Meta> = if self.default {
+            Some(parse_quote! { default })
         } else {
             None
         };
@@ -41,6 +55,8 @@ impl ElementFieldAttribute {
             .into_iter()
             .chain(namespace_option)
             .chain(deferred_option)
+            .chain(optional_option)
+            .chain(default_option)
     }
 
     fn attribute_attr(&self) -> syn::Attribute {
@@ -64,6 +80,19 @@ impl ElementFieldAttribute {
           pub struct #ident(pub #ty);
         )
     }
+
+    pub fn to_field(&self, ident: Option<&Ident>, mode: FieldMode) -> syn::Field {
+        let ident_prefix = ident.map(|ident| quote!(#ident: )).unwrap_or_default();
+
+        let vis = mode.to_vis();
+        let ty = &self.ty;
+        let attribute_attr = self.attribute_attr();
+
+        parse_quote!(
+            #attribute_attr
+            #vis #ident_prefix #ty
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -84,6 +113,18 @@ impl ElementFieldGroup {
         } else {
             parse_quote!(#[xgroup(#(#options),*)])
         }
+    }
+    pub fn to_field(&self, ident: Option<&Ident>, mode: FieldMode) -> syn::Field {
+        let ident_prefix = ident.map(|ident| quote!(#ident: )).unwrap_or_default();
+
+        let vis = mode.to_vis();
+        let ty = &self.ty;
+        let group_attr = self.group_attr();
+
+        parse_quote!(
+            #group_attr
+            #vis #ident_prefix #ty
+        )
     }
 }
 
@@ -116,46 +157,11 @@ impl ElementField {
             FieldType::Unnamed => assert!(ident.is_none()),
         }
 
-        let vis = match mode {
-            FieldMode::Struct => syn::Visibility::Public(<Token![pub]>::default()),
-            FieldMode::Variant => syn::Visibility::Inherited,
-        };
-        let ident_prefix = ident.map(|ident| quote!(#ident: )).unwrap_or_default();
-
         match self {
-            ElementField::Attribute(attribute) => {
-                let ty = &attribute.ty;
-                let attribute_attr = attribute.attribute_attr();
-
-                parse_quote!(
-                    #attribute_attr
-                    #vis #ident_prefix #ty
-                )
-            }
-            ElementField::Item(item) => {
-                let ty = &item.ty;
-                parse_quote!(
-                    #vis #ident_prefix #ty
-                )
-            }
-            ElementField::Element(element) => {
-                let ty = &element.ty;
-                let element_attr = element.element_attr();
-
-                parse_quote!(
-                    #element_attr
-                    #vis #ident_prefix #ty
-                )
-            }
-            ElementField::Group(group) => {
-                let ty = &group.ty;
-                let group_attr = group.group_attr();
-
-                parse_quote!(
-                    #group_attr
-                    #vis #ident_prefix #ty
-                )
-            }
+            ElementField::Attribute(attribute) => attribute.to_field(ident, mode),
+            ElementField::Item(item) => item.to_field(ident, mode),
+            ElementField::Element(element) => element.to_field(ident, mode),
+            ElementField::Group(group) => group.to_field(ident, mode),
         }
     }
 }
@@ -279,7 +285,11 @@ impl ElementRecord {
         }
     }
 
-    pub fn try_into_compact_item_field(self) -> Result<ItemFieldElement, Self> {
+    pub fn try_into_compact_item_field(
+        self,
+        optional: bool,
+        default: bool,
+    ) -> Result<ItemFieldElement, Self> {
         // Requirements:
 
         // #1: There must be only one or zero fields.
@@ -303,6 +313,8 @@ impl ElementRecord {
             name: self.name,
             ty,
             child_mode,
+            optional,
+            default,
         })
     }
 }
@@ -340,7 +352,7 @@ mod tests {
     }
 
     #[test]
-    fn generate_empty_element_with_single_child_named() {
+    fn generate_element_with_single_child_named() {
         let record = ElementRecord {
             name: ExpandedName::new(LocalName::new_dangerous("test"), None),
             attribute_order: ItemOrder::None,
@@ -370,7 +382,7 @@ mod tests {
     }
 
     #[test]
-    fn generate_empty_element_with_single_child_unnamed() {
+    fn generate_element_with_single_child_unnamed() {
         let record = ElementRecord {
             name: ExpandedName::new(LocalName::new_dangerous("test"), None),
             attribute_order: ItemOrder::None,
@@ -392,6 +404,41 @@ mod tests {
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
             #[xelement(name = "test")]
             pub struct Test(pub Child);
+        );
+
+        assert_eq!(expected_item, actual_item);
+    }
+
+    #[test]
+    fn generate_element_with_single_attribute_named() {
+        let record = ElementRecord {
+            name: ExpandedName::new(LocalName::new_dangerous("test"), None),
+            attribute_order: ItemOrder::None,
+            children_order: ItemOrder::None,
+            field_type: FieldType::Named,
+            fields: vec![(
+                Some(format_ident!("a")),
+                ElementField::Attribute(ElementFieldAttribute {
+                    name: Some(ExpandedName::new(LocalName::new_dangerous("a"), None)),
+                    ty: parse_quote!(::std::string::String),
+                    deferred: false,
+                    optional: false,
+                    default: false,
+                }),
+            )],
+        };
+
+        let ident = format_ident!("Test");
+
+        let actual_item = record.to_struct(&ident);
+
+        let expected_item: ItemStruct = parse_quote!(
+            #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+            #[xelement(name = "test")]
+            pub struct Test {
+                #[xattribute(name = "a")]
+                pub a: ::std::string::String,
+            }
         );
 
         assert_eq!(expected_item, actual_item);

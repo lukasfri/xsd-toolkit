@@ -10,6 +10,7 @@ use crate::complex::ComplexTypeModelId;
 use crate::complex::ComplexTypeRootFragment;
 use crate::complex::FragmentIdx;
 use crate::complex::LocalAttributeFragment;
+use crate::complex::LocalAttributeFragmentTypeMode;
 use crate::complex::RestrictionFragment;
 use crate::complex::ANY_TYPE_EXPANDED_NAME;
 use crate::transformers::Context;
@@ -34,20 +35,20 @@ impl ExpandRestrictionFragments {
         let base_attribute = ctx.get_complex_fragment(base_attribute).unwrap().clone();
         let attribute = ctx.get_complex_fragment_mut(attribute).unwrap();
 
-        let base_attribute = match base_attribute {
-            LocalAttributeFragment::Declared(local) => local,
+        let decl_base_attribute = match base_attribute.type_mode {
+            LocalAttributeFragmentTypeMode::Declared(local) => local,
             _ => todo!(),
         };
-        let attribute = match attribute {
-            LocalAttributeFragment::Declared(local) => local,
+        let decl_attribute = match &mut attribute.type_mode {
+            LocalAttributeFragmentTypeMode::Declared(local) => local,
             _ => todo!(),
         };
 
         if attribute.use_.is_none() {
             attribute.use_ = base_attribute.use_;
         }
-        if attribute.type_.is_none() {
-            attribute.type_ = base_attribute.type_;
+        if decl_attribute.type_.is_none() {
+            decl_attribute.type_ = decl_base_attribute.type_;
         }
 
         Ok(())
@@ -63,11 +64,11 @@ impl ExpandRestrictionFragments {
             a: &FragmentIdx<LocalAttributeFragment>,
         ) -> ExpandedName<'static> {
             let fragment = ctx.get_complex_fragment(a).unwrap();
-            match fragment {
-                LocalAttributeFragment::Declared(local) => {
+            match &fragment.type_mode {
+                LocalAttributeFragmentTypeMode::Declared(local) => {
                     ExpandedName::new(local.name.clone(), None)
                 }
-                LocalAttributeFragment::Reference(ref_) => ref_.name.clone(),
+                LocalAttributeFragmentTypeMode::Reference(ref_) => ref_.name.clone(),
             }
         }
 

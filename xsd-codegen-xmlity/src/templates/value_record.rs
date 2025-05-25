@@ -1,7 +1,7 @@
 use std::iter;
 
 use quote::quote;
-use syn::{parse_quote, Field, Ident, ItemStruct, Token};
+use syn::{parse_quote, Field, Ident, ItemStruct};
 use xmlity::ExpandedName;
 
 use super::{group_record::GroupRecord, FieldMode, FieldType, ItemOrder};
@@ -9,6 +9,19 @@ use super::{group_record::GroupRecord, FieldMode, FieldType, ItemOrder};
 #[derive(Debug)]
 pub struct ItemFieldItem {
     pub ty: syn::Type,
+}
+
+impl ItemFieldItem {
+    pub fn to_field(&self, ident: Option<&Ident>, mode: FieldMode) -> syn::Field {
+        let ident_prefix = ident.map(|ident| quote!(#ident: )).unwrap_or_default();
+
+        let vis = mode.to_vis();
+        let ty = &self.ty;
+
+        parse_quote!(
+            #vis #ident_prefix #ty
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -22,23 +35,53 @@ pub struct ItemFieldElement {
     pub name: ExpandedName<'static>,
     pub ty: syn::Type,
     pub child_mode: SingleChildMode,
+    pub optional: bool,
+    pub default: bool,
 }
 
 impl ItemFieldElement {
-    pub fn option_attributes(&self) -> impl Iterator<Item = syn::MetaNameValue> {
+    pub fn option_attributes(&self) -> impl Iterator<Item = syn::Meta> {
         let name = self.name.local_name().to_string();
-        let name_option: syn::MetaNameValue = parse_quote! { name = #name };
-        let namespace_option: Option<syn::MetaNameValue> =
+        let name_option: syn::Meta = parse_quote! { name = #name };
+        let namespace_option: Option<syn::Meta> =
             self.name.namespace().map(ToString::to_string).map(|ns| {
                 parse_quote! { namespace = #ns }
             });
 
-        iter::once(name_option).chain(namespace_option)
+        let optional_option: Option<syn::Meta> = if self.optional {
+            Some(parse_quote! { optional })
+        } else {
+            None
+        };
+
+        let default_option: Option<syn::Meta> = if self.default {
+            Some(parse_quote! { default })
+        } else {
+            None
+        };
+
+        iter::once(name_option)
+            .chain(namespace_option)
+            .chain(optional_option)
+            .chain(default_option)
     }
 
     pub fn element_attr(&self) -> syn::Attribute {
         let options = self.option_attributes();
         parse_quote!(#[xelement(#(#options),*)])
+    }
+
+    pub fn to_field(&self, ident: Option<&Ident>, mode: FieldMode) -> syn::Field {
+        let ident_prefix = ident.map(|ident| quote!(#ident: )).unwrap_or_default();
+
+        let vis = mode.to_vis();
+        let ty = &self.ty;
+        let element_attr = self.element_attr();
+
+        parse_quote!(
+            #element_attr
+            #vis #ident_prefix #ty
+        )
     }
 }
 
@@ -67,22 +110,9 @@ impl ItemRecord {
             FieldType::Unnamed => assert!(ident.is_none()),
         }
 
-        let vis = match mode {
-            FieldMode::Struct => syn::Visibility::Public(<Token![pub]>::default()),
-            FieldMode::Variant => syn::Visibility::Inherited,
-        };
-        let ident_prefix = ident.map(|ident| quote!(#ident: )).unwrap_or_default();
-
         match field {
-            ItemField::Item(item) => {
-                let ty = &item.ty;
-                parse_quote!(
-                  #vis #ident_prefix #ty
-                )
-            }
-            ItemField::Element(_element) => {
-                todo!()
-            }
+            ItemField::Item(item) => item.to_field(ident, mode),
+            ItemField::Element(element) => element.to_field(ident, mode),
         }
     }
 

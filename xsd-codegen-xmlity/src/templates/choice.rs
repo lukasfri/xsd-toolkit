@@ -118,6 +118,8 @@ mod tests {
                             name: Some(ExpandedName::new(LocalName::new_dangerous("for"), None)),
                             ty: parse_quote!(::std::string::String),
                             deferred: false,
+                            optional: false,
+                            default: false,
                         }),
                     )],
                 }),

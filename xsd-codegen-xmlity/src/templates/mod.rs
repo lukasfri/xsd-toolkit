@@ -1,6 +1,6 @@
 pub mod element_record;
 use proc_macro2::Span;
-use syn::LitStr;
+use syn::{LitStr, Token};
 
 pub mod choice;
 
@@ -32,6 +32,15 @@ pub enum FieldType {
 pub enum FieldMode {
     Struct,
     Variant,
+}
+
+impl FieldMode {
+    pub fn to_vis(&self) -> syn::Visibility {
+        match self {
+            FieldMode::Struct => syn::Visibility::Public(<Token![pub]>::default()),
+            FieldMode::Variant => syn::Visibility::Inherited,
+        }
+    }
 }
 
 fn derive_attribute(items: impl IntoIterator<Item = syn::Path>) -> syn::Attribute {

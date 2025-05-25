@@ -83,14 +83,19 @@ macro_rules! impl_to_string_serialize  {
 pub struct MinOccurs(pub usize);
 
 /// Represents the maximum occurrence of types or elements
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum MaxOccursValue {
     /// The occurrence is unbounded.
-    #[default]
     Unbounded,
 
     /// The occurrence is bound to the specified limit.
     Bounded(usize),
+}
+
+impl Default for MaxOccursValue {
+    fn default() -> Self {
+        Self::Bounded(1)
+    }
 }
 
 impl FromStr for MaxOccursValue {

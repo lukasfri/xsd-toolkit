@@ -1,19 +1,14 @@
-use crate::{
-    templates::{
-        self,
-        element_record::{ElementField, ElementFieldAttribute},
-        group_record::GroupRecord,
-        FieldType,
-    },
-    Result,
-};
+use crate::{templates::element_record::ElementFieldAttribute, Result};
 
 use quote::format_ident;
 use syn::parse_quote;
 use xmlity::ExpandedName;
-use xsd_type_compiler::complex::{self as cx};
+use xsd_type_compiler::{
+    complex::{self as cx, AttributeUse},
+    NamedOrAnonymous,
+};
 
-use super::{Context, ToTypeTemplate, ToTypeTemplateData, TypeDefParticleTemplate};
+use super::{Context, ToTypeTemplate, ToTypeTemplateData};
 
 impl ToTypeTemplate for cx::LocalAttributeFragment {
     type TypeTemplate = ElementFieldAttribute;
@@ -22,42 +17,55 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
         &self,
         context: &C,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        match self {
-            cx::LocalAttributeFragment::Declared(local) => {
+        let optional = match self.use_.unwrap_or_default() {
+            AttributeUse::Optional => true,
+            AttributeUse::Required => false,
+            AttributeUse::Prohibited => panic!("prohibited attributes are not supported"),
+        };
+
+        let (ident, template) = match &self.type_mode {
+            cx::LocalAttributeFragmentTypeMode::Declared(local) => {
                 let name = ExpandedName::new(local.name.clone(), None);
                 let ident = format_ident!("{}", local.name.to_string());
 
-                //TODO: handle attribute type
-                let ty = parse_quote!(String);
+                let ty: syn::Type = match local.type_.as_ref() {
+                    Some(NamedOrAnonymous::Named(name)) => context.resolve_named_type(name)?,
+                    Some(NamedOrAnonymous::Anonymous(_)) => todo!(),
+                    None => parse_quote!(()),
+                };
+
+                let ty = if optional {
+                    parse_quote!(Option<#ty>)
+                } else {
+                    ty
+                };
 
                 let template = ElementFieldAttribute {
                     name: Some(name),
                     ty,
                     deferred: false,
+                    optional,
+                    default: optional,
                 };
 
-                Ok(ToTypeTemplateData {
-                    ident: Some(ident),
-                    template,
-                })
+                (Some(ident), template)
             }
-            cx::LocalAttributeFragment::Reference(reference) => {
-                let ident = format_ident!("todo");
-
+            cx::LocalAttributeFragmentTypeMode::Reference(reference) => {
                 let ty = context.resolve_named_type(&reference.name)?;
 
                 let template = ElementFieldAttribute {
                     name: None,
                     ty,
                     deferred: true,
+                    optional,
+                    default: optional,
                 };
 
-                Ok(ToTypeTemplateData {
-                    ident: Some(ident),
-                    template,
-                })
+                (None, template)
             }
-        }
+        };
+
+        Ok(ToTypeTemplateData { ident, template })
     }
 }
 
@@ -72,7 +80,7 @@ impl ToTypeTemplate for cx::AttributeDeclarationId {
             cx::AttributeDeclarationId::Attribute(fragment_idx) => {
                 context.resolve_fragment_id(fragment_idx)
             }
-            cx::AttributeDeclarationId::AttributeGroupRef(fragment_idx) => todo!(),
+            cx::AttributeDeclarationId::AttributeGroupRef(_fragment_idx) => todo!(),
         }
     }
 }
@@ -90,13 +98,18 @@ impl ToTypeTemplate for cx::TopLevelAttributeFragment {
         );
         let ident = format_ident!("{}", self.name.to_string());
 
-        //TODO: handle attribute type
-        let ty = parse_quote!(String);
+        let ty: syn::Type = match self.type_.as_ref() {
+            Some(NamedOrAnonymous::Named(name)) => context.resolve_named_type(name)?,
+            Some(NamedOrAnonymous::Anonymous(_)) => todo!(),
+            None => parse_quote!(()),
+        };
 
         let template = ElementFieldAttribute {
             name: Some(name),
             ty,
             deferred: false,
+            default: false,
+            optional: false,
         };
 
         Ok(ToTypeTemplateData {
@@ -130,7 +143,6 @@ mod tests {
             .build();
 
         let namespace = XmlNamespace::new_dangerous("http://example.com");
-        let namespace_lit = namespace.as_str();
 
         let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
 
@@ -142,7 +154,9 @@ mod tests {
         let mut context = XmlnsContext::new();
         context.add_namespace(compiled_namespace);
 
-        let generator = Generator::new(&context);
+        let mut generator = Generator::new(&context);
+
+        generator.bind_type(string_expanded_name, parse_quote!(String));
 
         let (type_, actual_items) = generator.generate_top_level_attribute(&sequence).unwrap();
 
@@ -150,7 +164,7 @@ mod tests {
         let expected_items: Vec<Item> = vec![
             parse_quote!(
                 #[derive(::core::fmt::Debug, ::xmlity::SerializeAttribute, ::xmlity::Deserialize)]
-                #[xattribute(name = "SimpleAttribute", namespace = #namespace_lit)]
+                #[xattribute(name = "SimpleAttribute", namespace = "http://example.com")]
                 pub struct SimpleAttribute(pub String);
             )
         ];
