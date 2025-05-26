@@ -4,19 +4,26 @@ use quote::quote;
 use syn::{parse_quote, Field, Ident, ItemStruct};
 use xmlity::ExpandedName;
 
+use crate::misc::TypeReference;
+
 use super::{group_record::GroupRecord, FieldMode, FieldType, ItemOrder};
 
 #[derive(Debug)]
 pub struct ItemFieldItem {
-    pub ty: syn::Type,
+    pub ty: TypeReference<'static>,
 }
 
 impl ItemFieldItem {
-    pub fn to_field(&self, ident: Option<&Ident>, mode: FieldMode) -> syn::Field {
+    pub fn to_field(
+        &self,
+        ident: Option<&Ident>,
+        mode: FieldMode,
+        path: Option<&syn::Path>,
+    ) -> syn::Field {
         let ident_prefix = ident.map(|ident| quote!(#ident: )).unwrap_or_default();
 
         let vis = mode.to_vis();
-        let ty = &self.ty;
+        let ty = self.ty.to_type(path);
 
         parse_quote!(
             #vis #ident_prefix #ty
@@ -33,7 +40,7 @@ pub enum SingleChildMode {
 #[derive(Debug)]
 pub struct ItemFieldElement {
     pub name: ExpandedName<'static>,
-    pub ty: syn::Type,
+    pub ty: TypeReference<'static>,
     pub child_mode: SingleChildMode,
     pub optional: bool,
     pub default: bool,
@@ -71,11 +78,16 @@ impl ItemFieldElement {
         parse_quote!(#[xelement(#(#options),*)])
     }
 
-    pub fn to_field(&self, ident: Option<&Ident>, mode: FieldMode) -> syn::Field {
+    pub fn to_field(
+        &self,
+        ident: Option<&Ident>,
+        mode: FieldMode,
+        path: Option<&syn::Path>,
+    ) -> syn::Field {
         let ident_prefix = ident.map(|ident| quote!(#ident: )).unwrap_or_default();
 
         let vis = mode.to_vis();
-        let ty = &self.ty;
+        let ty = self.ty.to_type(path);
         let element_attr = self.element_attr();
 
         parse_quote!(
@@ -99,11 +111,26 @@ pub struct ItemRecord {
 }
 
 impl ItemRecord {
+    pub fn new_single_field(ident: Option<Ident>, field: ItemField) -> Self {
+        let field_type = if ident.is_some() {
+            FieldType::Named
+        } else {
+            FieldType::Unnamed
+        };
+
+        Self {
+            children_order: ItemOrder::None,
+            field_type,
+            fields: vec![(ident, field)],
+        }
+    }
+
     fn field<'a>(
         field_type: &FieldType,
         ident: Option<&'a Ident>,
         field: &'a ItemField,
         mode: FieldMode,
+        path: Option<&'a syn::Path>,
     ) -> Field {
         match field_type {
             FieldType::Named => assert!(ident.is_some()),
@@ -111,15 +138,19 @@ impl ItemRecord {
         }
 
         match field {
-            ItemField::Item(item) => item.to_field(ident, mode),
-            ItemField::Element(element) => element.to_field(ident, mode),
+            ItemField::Item(item) => item.to_field(ident, mode, path),
+            ItemField::Element(element) => element.to_field(ident, mode, path),
         }
     }
 
-    fn fields<'a>(&'a self, mode: FieldMode) -> impl Iterator<Item = Field> + use<'a> {
-        self.fields
-            .iter()
-            .map(move |(ident, field)| Self::field(&self.field_type, ident.as_ref(), field, mode))
+    fn fields<'a>(
+        &'a self,
+        mode: FieldMode,
+        path: Option<&'a syn::Path>,
+    ) -> impl Iterator<Item = Field> + use<'a> {
+        self.fields.iter().map(move |(ident, field)| {
+            Self::field(&self.field_type, ident.as_ref(), field, mode, path)
+        })
     }
 
     pub fn option_attributes(&self) -> impl Iterator<Item = syn::MetaNameValue> {
@@ -144,8 +175,8 @@ impl ItemRecord {
         }
     }
 
-    pub fn to_struct(&self, ident: &Ident) -> ItemStruct {
-        let fields = self.fields(FieldMode::Struct).collect::<Vec<_>>();
+    pub fn to_struct(&self, ident: &Ident, path: Option<&syn::Path>) -> ItemStruct {
+        let fields = self.fields(FieldMode::Struct, path).collect::<Vec<_>>();
 
         let derive_attr = super::derive_attribute([
             parse_quote!(::core::fmt::Debug),
@@ -181,8 +212,8 @@ impl ItemRecord {
         }
     }
 
-    pub fn to_variant(&self, ident: &Ident) -> syn::Variant {
-        let fields = self.fields(FieldMode::Variant);
+    pub fn to_variant(&self, ident: &Ident, path: Option<&syn::Path>) -> syn::Variant {
+        let fields = self.fields(FieldMode::Variant, path);
 
         let value_attr = self.value_attr();
 
@@ -196,14 +227,14 @@ impl ItemRecord {
             FieldType::Named => parse_quote!(
                 #value_attr
                 #ident {
-                  #(#fields),*
+                  #(#fields,)*
                 }
             ),
             FieldType::Unnamed => {
                 parse_quote!(
                   #value_attr
                   #ident (
-                    #(#fields,)*
+                    #(#fields),*
                   )
                 )
             }
@@ -240,7 +271,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.to_struct(&ident);
+        let actual_item = record.to_struct(&ident, None);
 
         let expected_item: ItemStruct = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
@@ -258,14 +289,14 @@ mod tests {
             fields: vec![(
                 Some(format_ident!("a")),
                 ItemField::Item(ItemFieldItem {
-                    ty: parse_quote!(Child),
+                    ty: TypeReference::new_prefix(parse_quote!(Child)),
                 }),
             )],
         };
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.to_struct(&ident);
+        let actual_item = record.to_struct(&ident, None);
 
         let expected_item: ItemStruct = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
@@ -285,14 +316,14 @@ mod tests {
             fields: vec![(
                 None,
                 ItemField::Item(ItemFieldItem {
-                    ty: parse_quote!(Child),
+                    ty: TypeReference::new_prefix(parse_quote!(Child)),
                 }),
             )],
         };
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.to_struct(&ident);
+        let actual_item = record.to_struct(&ident, None);
 
         let expected_item: ItemStruct = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]

@@ -1,4 +1,6 @@
-use crate::{templates::element_record::ElementFieldAttribute, Result};
+use crate::{
+    misc::TypeReference, templates::element_record::ElementFieldAttribute, Result, TypeType,
+};
 
 use quote::format_ident;
 use syn::parse_quote;
@@ -8,14 +10,15 @@ use xsd_type_compiler::{
     NamedOrAnonymous,
 };
 
-use super::{Context, ToTypeTemplate, ToTypeTemplateData};
+use super::{Context, Scope, ToTypeTemplate, ToTypeTemplateData};
 
 impl ToTypeTemplate for cx::LocalAttributeFragment {
     type TypeTemplate = ElementFieldAttribute;
 
-    fn to_type_template<C: Context>(
+    fn to_type_template<C: Context, S: Scope>(
         &self,
         context: &C,
+        _scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let optional = match self.use_.unwrap_or_default() {
             AttributeUse::Optional => true,
@@ -28,14 +31,18 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
                 let name = ExpandedName::new(local.name.clone(), None);
                 let ident = format_ident!("{}", local.name.to_string());
 
-                let ty: syn::Type = match local.type_.as_ref() {
-                    Some(NamedOrAnonymous::Named(name)) => context.resolve_named_type(name)?,
+                let ty = match local.type_.as_ref() {
+                    Some(NamedOrAnonymous::Named(name)) => {
+                        let (ty, ty_type) = context.resolve_named_type(name)?;
+                        assert_eq!(ty_type, TypeType::Simple);
+                        TypeReference::new_static(ty)
+                    }
                     Some(NamedOrAnonymous::Anonymous(_)) => todo!(),
-                    None => parse_quote!(()),
+                    None => TypeReference::new_static(parse_quote!(())),
                 };
 
                 let ty = if optional {
-                    parse_quote!(Option<#ty>)
+                    ty.wrap(|a| parse_quote!(Option<#a>))
                 } else {
                     ty
                 };
@@ -51,7 +58,8 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
                 (Some(ident), template)
             }
             cx::LocalAttributeFragmentTypeMode::Reference(reference) => {
-                let ty = context.resolve_named_type(&reference.name)?;
+                let attr = context.resolve_named_attribute(&reference.name)?;
+                let ty = TypeReference::new_static(attr);
 
                 let template = ElementFieldAttribute {
                     name: None,
@@ -72,13 +80,14 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
 impl ToTypeTemplate for cx::AttributeDeclarationId {
     type TypeTemplate = ElementFieldAttribute;
 
-    fn to_type_template<C: Context>(
+    fn to_type_template<C: Context, S: Scope>(
         &self,
         context: &C,
+        scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match self {
             cx::AttributeDeclarationId::Attribute(fragment_idx) => {
-                context.resolve_fragment_id(fragment_idx)
+                context.resolve_fragment_id(fragment_idx, scope)
             }
             cx::AttributeDeclarationId::AttributeGroupRef(_fragment_idx) => todo!(),
         }
@@ -88,9 +97,10 @@ impl ToTypeTemplate for cx::AttributeDeclarationId {
 impl ToTypeTemplate for cx::TopLevelAttributeFragment {
     type TypeTemplate = ElementFieldAttribute;
 
-    fn to_type_template<C: Context>(
+    fn to_type_template<C: Context, S: Scope>(
         &self,
         context: &C,
+        _scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let name = ExpandedName::new(
             self.name.clone(),
@@ -98,10 +108,15 @@ impl ToTypeTemplate for cx::TopLevelAttributeFragment {
         );
         let ident = format_ident!("{}", self.name.to_string());
 
-        let ty: syn::Type = match self.type_.as_ref() {
-            Some(NamedOrAnonymous::Named(name)) => context.resolve_named_type(name)?,
+        let ty = match self.type_.as_ref() {
+            Some(NamedOrAnonymous::Named(name)) => {
+                let (ty, ty_type) = context.resolve_named_type(name)?;
+                assert_eq!(ty_type, TypeType::Simple);
+
+                TypeReference::new_static(ty)
+            }
             Some(NamedOrAnonymous::Anonymous(_)) => todo!(),
-            None => parse_quote!(()),
+            None => TypeReference::new_static(parse_quote!(())),
         };
 
         let template = ElementFieldAttribute {
@@ -128,7 +143,7 @@ mod tests {
     use xsd::schema as xs;
     use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
-    use crate::Generator;
+    use crate::{Generator, TypeType};
 
     #[test]
     fn simple_attribute() {
@@ -156,7 +171,7 @@ mod tests {
 
         let mut generator = Generator::new(&context);
 
-        generator.bind_type(string_expanded_name, parse_quote!(String));
+        generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
 
         let (type_, actual_items) = generator.generate_top_level_attribute(&sequence).unwrap();
 

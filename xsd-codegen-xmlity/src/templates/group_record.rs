@@ -15,6 +15,21 @@ pub struct GroupRecord {
 }
 
 impl GroupRecord {
+    pub fn new_single_field(ident: Option<Ident>, field: ElementField) -> Self {
+        let field_type = if ident.is_some() {
+            FieldType::Named
+        } else {
+            FieldType::Unnamed
+        };
+
+        Self {
+            attribute_order: ItemOrder::None,
+            children_order: ItemOrder::None,
+            field_type,
+            fields: vec![(ident, field)],
+        }
+    }
+
     pub fn new_empty(field_type: FieldType) -> Self {
         Self {
             attribute_order: ItemOrder::None,
@@ -24,10 +39,14 @@ impl GroupRecord {
         }
     }
 
-    fn fields<'a>(&'a self, mode: FieldMode) -> impl Iterator<Item = Field> + use<'a> {
+    fn fields<'a>(
+        &'a self,
+        mode: FieldMode,
+        path: Option<&'a syn::Path>,
+    ) -> impl Iterator<Item = Field> + use<'a> {
         self.fields
             .iter()
-            .map(move |(ident, field)| field.to_field(&self.field_type, ident.as_ref(), mode))
+            .map(move |(ident, field)| field.to_field(&self.field_type, ident.as_ref(), mode, path))
     }
 
     pub fn option_attributes(&self) -> impl Iterator<Item = syn::MetaNameValue> {
@@ -61,8 +80,8 @@ impl GroupRecord {
         }
     }
 
-    pub fn to_struct(&self, ident: &Ident) -> ItemStruct {
-        let fields = self.fields(FieldMode::Struct).collect::<Vec<_>>();
+    pub fn to_struct(&self, ident: &Ident, path: Option<&syn::Path>) -> ItemStruct {
+        let fields = self.fields(FieldMode::Struct, path).collect::<Vec<_>>();
 
         let derive_attr = super::derive_attribute([
             parse_quote!(::core::fmt::Debug),
@@ -111,7 +130,7 @@ impl GroupRecord {
 
 #[cfg(test)]
 mod tests {
-    use crate::templates::value_record::ItemFieldItem;
+    use crate::{misc::TypeReference, templates::value_record::ItemFieldItem};
     use pretty_assertions::assert_eq;
 
     use super::*;
@@ -129,7 +148,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.to_struct(&ident);
+        let actual_item = record.to_struct(&ident, None);
 
         #[rustfmt::skip]
         let expected_item: ItemStruct = parse_quote!(
@@ -149,14 +168,14 @@ mod tests {
             fields: vec![(
                 Some(format_ident!("a")),
                 ElementField::Item(ItemFieldItem {
-                    ty: parse_quote!(Child),
+                    ty: TypeReference::new_static(parse_quote!(Child)),
                 }),
             )],
         };
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.to_struct(&ident);
+        let actual_item = record.to_struct(&ident, None);
 
         #[rustfmt::skip]
         let expected_item: ItemStruct = parse_quote!(
@@ -178,14 +197,14 @@ mod tests {
             fields: vec![(
                 None,
                 ElementField::Item(ItemFieldItem {
-                    ty: parse_quote!(Child),
+                    ty: TypeReference::new_static(parse_quote!(Child)),
                 }),
             )],
         };
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.to_struct(&ident);
+        let actual_item = record.to_struct(&ident, None);
 
         #[rustfmt::skip]
         let expected_item: ItemStruct = parse_quote!(

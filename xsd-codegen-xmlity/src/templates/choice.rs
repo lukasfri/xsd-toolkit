@@ -2,31 +2,38 @@ use syn::{parse_quote, Ident};
 
 use super::{element_record::ElementRecord, value_record::ItemRecord};
 
+#[derive(Debug)]
 pub enum ChoiceVariantType {
     Element(ElementRecord),
     Item(ItemRecord),
 }
 
 impl ChoiceVariantType {
-    pub fn to_variant(&self, ident: &Ident) -> syn::Variant {
+    pub fn to_variant(&self, ident: &Ident, path: Option<&syn::Path>) -> syn::Variant {
         match &self {
-            ChoiceVariantType::Element(element_record) => element_record.to_variant(ident),
-            ChoiceVariantType::Item(_) => todo!(),
+            ChoiceVariantType::Element(element_record) => element_record.to_variant(ident, path),
+            ChoiceVariantType::Item(item) => item.to_variant(ident, path),
         }
     }
 }
 
+#[derive(Debug)]
 pub struct Choice {
     pub variants: Vec<(Ident, ChoiceVariantType)>,
 }
 
 impl Choice {
-    pub fn variants(&self) -> impl Iterator<Item = syn::Variant> + '_ {
-        self.variants.iter().map(|(ident, v)| v.to_variant(ident))
+    pub fn variants<'a>(
+        &'a self,
+        path: Option<&'a syn::Path>,
+    ) -> impl Iterator<Item = syn::Variant> + use<'a> {
+        self.variants
+            .iter()
+            .map(move |(ident, v)| v.to_variant(ident, path))
     }
 
-    pub fn to_enum(&self, ident: &Ident) -> syn::ItemEnum {
-        let variants = self.variants();
+    pub fn to_enum(&self, ident: &Ident, path: Option<&syn::Path>) -> syn::ItemEnum {
+        let variants = self.variants(path);
 
         let derive_attr: syn::Attribute =
             parse_quote!(#[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]);
@@ -44,9 +51,12 @@ impl Choice {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use crate::templates::{
-        element_record::{ElementField, ElementFieldAttribute},
-        FieldType, ItemOrder,
+    use crate::{
+        misc::TypeReference,
+        templates::{
+            element_record::{ElementField, ElementFieldAttribute},
+            FieldType, ItemOrder,
+        },
     };
 
     use super::*;
@@ -62,7 +72,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.to_enum(&ident);
+        let actual_item = record.to_enum(&ident, None);
 
         let expected_item: ItemEnum = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
@@ -89,7 +99,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.to_enum(&ident);
+        let actual_item = record.to_enum(&ident, None);
 
         let expected_item: ItemEnum = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
@@ -116,7 +126,7 @@ mod tests {
                         Some(format_ident!("for_")),
                         ElementField::Attribute(ElementFieldAttribute {
                             name: Some(ExpandedName::new(LocalName::new_dangerous("for"), None)),
-                            ty: parse_quote!(::std::string::String),
+                            ty: TypeReference::new_static(parse_quote!(::std::string::String)),
                             deferred: false,
                             optional: false,
                             default: false,
@@ -128,7 +138,7 @@ mod tests {
 
         let ident = format_ident!("Test");
 
-        let actual_item = record.to_enum(&ident);
+        let actual_item = record.to_enum(&ident, None);
 
         let expected_item: ItemEnum = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]

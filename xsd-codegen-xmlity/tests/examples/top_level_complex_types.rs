@@ -2,7 +2,7 @@ use pretty_assertions::assert_eq;
 use syn::parse_quote;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::schema as xs;
-use xsd_codegen_xmlity::Generator;
+use xsd_codegen_xmlity::{Generator, TypeType};
 use xsd_type_compiler::{complex::ANY_TYPE_EXPANDED_NAME, CompiledNamespace, XmlnsContext};
 
 #[test]
@@ -64,8 +64,8 @@ fn top_level_complex_type_sequence_test() {
 
     let mut generator = Generator::new(&context);
 
-    generator.bind_type(integer_expanded_name, parse_quote!(i32));
-    generator.bind_type(string_expanded_name, parse_quote!(String));
+    generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
+    generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
 
     let (_, actual_code) = generator.generate_top_level_type(&product_type).unwrap();
 
@@ -140,8 +140,8 @@ fn top_level_complex_type_attributes_test() {
 
     let mut generator = Generator::new(&context);
 
-    generator.bind_type(integer_expanded_name, parse_quote!(i32));
-    generator.bind_type(string_expanded_name, parse_quote!(String));
+    generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
+    generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
 
     let (_, actual_code) = generator.generate_top_level_type(&product_type).unwrap();
 

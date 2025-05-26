@@ -311,6 +311,7 @@ pub struct ComplexTypeFragmentCompiler {
     pub alls: FragmentCollection<AllFragment>,
     pub choices: FragmentCollection<ChoiceFragment>,
     pub sequences: FragmentCollection<SequenceFragment>,
+    pub anys: FragmentCollection<AnyFragment>,
     pub elements: FragmentCollection<LocalElementFragment>,
     pub top_level_elements: FragmentCollection<TopLevelElementFragment>,
     pub local_attributes: FragmentCollection<LocalAttributeFragment>,
@@ -413,6 +414,15 @@ impl HasFragmentCollection<SequenceFragment> for ComplexTypeFragmentCompiler {
     }
 }
 
+impl HasFragmentCollection<AnyFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<AnyFragment> {
+        &self.anys
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<AnyFragment> {
+        &mut self.anys
+    }
+}
+
 impl HasFragmentCollection<LocalElementFragment> for ComplexTypeFragmentCompiler {
     fn get_fragment_collection(&self) -> &FragmentCollection<LocalElementFragment> {
         &self.elements
@@ -499,6 +509,7 @@ impl ComplexTypeFragmentCompiler {
             alls: FragmentCollection::new(),
             choices: FragmentCollection::new(),
             sequences: FragmentCollection::new(),
+            anys: FragmentCollection::new(),
             elements: FragmentCollection::new(),
             top_level_elements: FragmentCollection::new(),
             local_attributes: FragmentCollection::new(),
@@ -506,30 +517,6 @@ impl ComplexTypeFragmentCompiler {
             simple_types: FragmentCollection::new(),
         }
     }
-
-    // pub fn push_fragment(&mut self, fragment: ComplexTypeFragment) -> Self::FragmentId {
-    //     let fragment_id = self.generate_fragment_id();
-
-    //     self.fragments.insert(fragment_id.1, fragment);
-
-    //     fragment_id
-    // }
-
-    // pub fn get_fragment(&self, idx: &FragmentId) -> Option<&ComplexTypeFragment> {
-    //     if self.namespace != idx.0 {
-    //         return None;
-    //     }
-
-    //     self.fragments.get(&idx.1)
-    // }
-
-    // pub fn get_fragment_mut(&mut self, idx: &FragmentId) -> Option<&mut ComplexTypeFragment> {
-    //     if self.namespace != idx.0 {
-    //         return None;
-    //     }
-
-    //     self.fragments.get_mut(&idx.1)
-    // }
 }
 
 impl AsMut<SimpleTypeFragmentCompiler> for ComplexTypeFragmentCompiler {

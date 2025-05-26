@@ -17,6 +17,7 @@ prettyplease = "0.2.15"
 thiserror.workspace = true
 xsd-type-compiler = { path = "../xsd-type-compiler" }
 dyn-clone = "1.0.14"
+Inflector = "0.11.4"
 
 [dev-dependencies]
 pretty_assertions.workspace = true

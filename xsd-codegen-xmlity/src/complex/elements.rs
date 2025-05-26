@@ -1,31 +1,29 @@
 use crate::{
     misc::TypeReference,
     templates::{
-        self,
-        value_record::{ItemField, ItemFieldItem},
-        FieldType, ItemOrder,
+        self, element_record::ElementRecord, value_record::ItemFieldItem, FieldType, ItemOrder,
     },
-    Result,
+    Result, TypeType,
 };
 
 use quote::format_ident;
-use syn::parse_quote;
 use xsd::schema::MaxOccursValue;
 use xsd_type_compiler::complex::{self as cx};
 
-use super::{Context, ToTypeTemplate, ToTypeTemplateData};
+use super::{Context, Scope, ToTypeTemplate, ToTypeTemplateData};
 
 impl ToTypeTemplate for cx::ElementTypeContentId {
     type TypeTemplate = templates::group_record::GroupRecord;
 
-    fn to_type_template<C: Context>(
+    fn to_type_template<C: Context, S: Scope>(
         &self,
         context: &C,
+        scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match self {
             cx::ElementTypeContentId::SimpleType(_fragment_id) => todo!(),
             cx::ElementTypeContentId::ComplexType(fragment_idx) => {
-                context.resolve_fragment_id(fragment_idx)
+                context.resolve_fragment_id(fragment_idx, scope)
             }
         }
     }
@@ -34,28 +32,35 @@ impl ToTypeTemplate for cx::ElementTypeContentId {
 impl ToTypeTemplate for cx::DeclaredElementFragment {
     type TypeTemplate = templates::element_record::ElementRecord;
 
-    fn to_type_template<C: Context>(
+    fn to_type_template<C: Context, S: Scope>(
         &self,
         context: &C,
+        scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let name = context.to_expanded_name(self.name.clone());
         let ident = format_ident!("{}", self.name.to_string());
 
         match &self.type_ {
             xsd_type_compiler::NamedOrAnonymous::Named(expanded_name) => {
-                let group_type = context.resolve_named_type(expanded_name)?;
+                let (ty, ty_type) = context.resolve_named_type(expanded_name)?;
+
+                let ty = TypeReference::new_static(ty);
+
+                let field = match ty_type {
+                    TypeType::Simple => {
+                        templates::element_record::ElementField::Item(ItemFieldItem { ty })
+                    }
+                    TypeType::Complex => templates::element_record::ElementField::Group(
+                        templates::element_record::ElementFieldGroup { ty },
+                    ),
+                };
 
                 let template = templates::element_record::ElementRecord {
                     name,
                     attribute_order: ItemOrder::None,
                     children_order: ItemOrder::None,
                     field_type: FieldType::Unnamed,
-                    fields: vec![(
-                        None,
-                        templates::element_record::ElementField::Group(
-                            templates::element_record::ElementFieldGroup { ty: group_type },
-                        ),
-                    )],
+                    fields: vec![(None, field)],
                 };
 
                 Ok(ToTypeTemplateData {
@@ -64,7 +69,7 @@ impl ToTypeTemplate for cx::DeclaredElementFragment {
                 })
             }
             xsd_type_compiler::NamedOrAnonymous::Anonymous(anonymous) => {
-                let sub_type = context.resolve_fragment(anonymous)?;
+                let sub_type = context.resolve_fragment(anonymous, scope)?;
 
                 let template = sub_type.template.into_element_record(name);
 
@@ -80,76 +85,62 @@ impl ToTypeTemplate for cx::DeclaredElementFragment {
 impl ToTypeTemplate for cx::ReferenceElementFragment {
     type TypeTemplate = ItemFieldItem;
 
-    fn to_type_template<C: Context>(
+    fn to_type_template<C: Context, S: Scope>(
         &self,
         context: &C,
+        _scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let ident = todo!();
-
-        let ty = todo!();
+        let element = context.resolve_named_element(&self.name)?;
+        let ty = TypeReference::new_static(element);
 
         let template = ItemFieldItem { ty };
 
-        Ok(ToTypeTemplateData { ident, template })
+        Ok(ToTypeTemplateData {
+            ident: Some(format_ident!("{}", self.name.local_name().to_string())),
+            template,
+        })
     }
 }
 
-impl ToTypeTemplate for cx::LocalElementFragment {
-    type TypeTemplate = ItemField;
+pub enum LocalElementFragmentTemplate {
+    ElementRecord {
+        template: ElementRecord,
+        min_occurs: usize,
+        max_occurs: MaxOccursValue,
+    },
+    Item(ItemFieldItem),
+}
 
-    fn to_type_template<C: Context>(
+impl ToTypeTemplate for cx::LocalElementFragment {
+    type TypeTemplate = LocalElementFragmentTemplate;
+
+    fn to_type_template<C: Context, S: Scope>(
         &self,
         context: &C,
+        scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
+        let max_occurs = self.max_occurs.unwrap_or(MaxOccursValue::Bounded(1));
+
         match &self.type_ {
             cx::LocalElementFragmentType::Local(local) => {
-                let local = context.resolve_fragment(local)?;
-
-                // Try to render the element as a field, if it is not possible, render it as an item.
-                let field_or_item: std::result::Result<
-                    ItemField,
-                    templates::element_record::ElementRecord,
-                > = if self.max_occurs.unwrap_or_default() == MaxOccursValue::Bounded(1) {
-                    let optional = self.min_occurs.map(|a| a.0) == Some(0);
-
-                    local
-                        .template
-                        .try_into_compact_item_field(optional, optional)
-                        .map(|mut a| {
-                            if optional {
-                                let ty = a.ty;
-                                a.ty = parse_quote!(Option<#ty>);
-                            }
-                            a
-                        })
-                        .map(ItemField::Element)
-                } else {
-                    Err(local.template)
-                };
-
-                let template = field_or_item.unwrap_or_else(|element| {
-                    // If the element can not be rendered as a field, render it as an item.
-                    let ty = todo!();
-
-                    ItemField::Item(ItemFieldItem { ty })
-                });
+                let local = context.resolve_fragment(local, scope)?;
 
                 Ok(ToTypeTemplateData {
                     ident: local.ident,
-                    template,
+                    template: LocalElementFragmentTemplate::ElementRecord {
+                        template: local.template,
+                        min_occurs,
+                        max_occurs,
+                    },
                 })
             }
             cx::LocalElementFragmentType::Reference(reference) => {
-                let reference = context.resolve_fragment(reference)?;
+                let reference = context.resolve_fragment(reference, scope)?;
 
-                let ty = super::min_max_occurs_type(
-                    self.min_occurs.map(|a| a.0).unwrap_or(1),
-                    self.max_occurs.unwrap_or(MaxOccursValue::Bounded(1)),
-                    TypeReference::new_static(reference.template.ty),
-                )
-                .into_type(None);
+                let ty = super::min_max_occurs_type(min_occurs, max_occurs, reference.template.ty);
 
-                let template = ItemField::Item(ItemFieldItem { ty });
+                let template = LocalElementFragmentTemplate::Item(ItemFieldItem { ty });
 
                 Ok(ToTypeTemplateData {
                     ident: reference.ident,
@@ -163,27 +154,34 @@ impl ToTypeTemplate for cx::LocalElementFragment {
 impl ToTypeTemplate for cx::TopLevelElementFragment {
     type TypeTemplate = templates::element_record::ElementRecord;
 
-    fn to_type_template<C: Context>(
+    fn to_type_template<C: Context, S: Scope>(
         &self,
         context: &C,
+        scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let name = context.to_expanded_name(self.name.clone());
         let ident = format_ident!("{}", self.name.to_string());
         match &self.type_ {
             xsd_type_compiler::NamedOrAnonymous::Named(expanded_name) => {
-                let group_type = context.resolve_named_type(expanded_name)?;
+                let (ty, ty_type) = context.resolve_named_type(expanded_name)?;
+
+                let ty = TypeReference::new_static(ty);
+
+                let field = match ty_type {
+                    TypeType::Simple => {
+                        templates::element_record::ElementField::Item(ItemFieldItem { ty })
+                    }
+                    TypeType::Complex => templates::element_record::ElementField::Group(
+                        templates::element_record::ElementFieldGroup { ty },
+                    ),
+                };
 
                 let template = templates::element_record::ElementRecord {
                     name,
                     attribute_order: ItemOrder::None,
                     children_order: ItemOrder::None,
                     field_type: FieldType::Unnamed,
-                    fields: vec![(
-                        None,
-                        templates::element_record::ElementField::Group(
-                            templates::element_record::ElementFieldGroup { ty: group_type },
-                        ),
-                    )],
+                    fields: vec![(None, field)],
                 };
 
                 Ok(ToTypeTemplateData {
@@ -192,7 +190,7 @@ impl ToTypeTemplate for cx::TopLevelElementFragment {
                 })
             }
             xsd_type_compiler::NamedOrAnonymous::Anonymous(anonymous) => {
-                let sub_type = context.resolve_fragment(anonymous)?;
+                let sub_type = context.resolve_fragment(anonymous, scope)?;
 
                 let template = sub_type.template.into_element_record(name);
 
@@ -214,7 +212,7 @@ mod tests {
     use xsd::schema as xs;
     use xsd_type_compiler::{complex::ANY_TYPE_EXPANDED_NAME, CompiledNamespace, XmlnsContext};
 
-    use crate::Generator;
+    use crate::{Generator, TypeType};
 
     #[test]
     fn empty_sequence_element() {
@@ -337,8 +335,8 @@ mod tests {
 
         let mut generator = Generator::new(&context);
 
-        generator.bind_type(integer_expanded_name, parse_quote!(i32));
-        generator.bind_type(string_expanded_name, parse_quote!(String));
+        generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
+        generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
@@ -427,8 +425,8 @@ mod tests {
 
         let mut generator = Generator::new(&context);
 
-        generator.bind_type(string_expanded_name, parse_quote!(String));
-        generator.bind_type(integer_expanded_name, parse_quote!(i32));
+        generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
+        generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
@@ -473,29 +471,38 @@ mod tests {
                                     .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
                                     .particle(
                                         xs::SequenceType::builder()
-                                            .content(vec![xs::SequenceType::builder()
-                                                .content(vec![
-                                                    xs::LocalElement::builder()
-                                                        .name(xs::Name(LocalName::new_dangerous(
-                                                            "a",
-                                                        )))
-                                                        .type_(xs::Type(xs::QName(
-                                                            integer_expanded_name.clone(),
-                                                        )))
-                                                        .build()
-                                                        .into(),
-                                                    xs::LocalElement::builder()
-                                                        .name(xs::Name(LocalName::new_dangerous(
-                                                            "b",
-                                                        )))
-                                                        .type_(xs::Type(xs::QName(
-                                                            string_expanded_name.clone(),
-                                                        )))
-                                                        .build()
-                                                        .into(),
-                                                ])
-                                                .build()
-                                                .into()])
+                                            .content(vec![
+                                                xs::SequenceType::builder()
+                                                    .content(vec![
+                                                        xs::LocalElement::builder()
+                                                            .name(xs::Name(
+                                                                LocalName::new_dangerous("a"),
+                                                            ))
+                                                            .type_(xs::Type(xs::QName(
+                                                                integer_expanded_name.clone(),
+                                                            )))
+                                                            .build()
+                                                            .into(),
+                                                        xs::LocalElement::builder()
+                                                            .name(xs::Name(
+                                                                LocalName::new_dangerous("b"),
+                                                            ))
+                                                            .type_(xs::Type(xs::QName(
+                                                                string_expanded_name.clone(),
+                                                            )))
+                                                            .build()
+                                                            .into(),
+                                                    ])
+                                                    .build()
+                                                    .into(),
+                                                xs::LocalElement::builder()
+                                                    .name(xs::Name(LocalName::new_dangerous("c")))
+                                                    .type_(xs::Type(xs::QName(
+                                                        string_expanded_name.clone(),
+                                                    )))
+                                                    .build()
+                                                    .into(),
+                                            ])
                                             .build()
                                             .into(),
                                     )
@@ -524,29 +531,33 @@ mod tests {
 
         let mut generator = Generator::new(&context);
 
-        generator.bind_type(string_expanded_name, parse_quote!(String));
-        generator.bind_type(integer_expanded_name, parse_quote!(i32));
+        generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
+        generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
         #[rustfmt::skip]
         let expected_items: Vec<Item> = vec![
             parse_quote!(
-                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                #[xvalue(children_order = "strict")]
-                pub struct SimpleSequenceChild {
-                    #[xelement(name = "a", namespace = "http://example.com")]
-                    pub a: i32,
-                    #[xelement(name = "b", namespace = "http://example.com")]
-                    pub b: String,
+                pub mod SimpleSequence_items {
+                    #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+                    #[xvalue(children_order = "strict")]
+                    pub struct SimpleSequenceChild {
+                        #[xelement(name = "a", namespace = "http://example.com")]
+                        pub a: i32,
+                        #[xelement(name = "b", namespace = "http://example.com")]
+                        pub b: String,
+                    }
                 }
             ),
-
             parse_quote!(
                 #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
                 #[xelement(name = "SimpleSequence", namespace = "http://example.com", children_order = "strict")]
                 pub struct SimpleSequence {
-                    pub field_2: SimpleSequenceChild,
+                    pub field_0: SimpleSequence_items::SimpleSequenceChild,
+                    #[xelement(name = "c", namespace = "http://example.com")]
+                    pub c: String,
+
                 }
             )
         ];
@@ -640,8 +651,8 @@ mod tests {
 
         let mut generator = Generator::new(&context);
 
-        generator.bind_type(string_expanded_name, parse_quote!(String));
-        generator.bind_type(integer_expanded_name, parse_quote!(i32));
+        generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
+        generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 

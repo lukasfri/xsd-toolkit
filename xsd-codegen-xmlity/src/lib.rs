@@ -5,10 +5,10 @@ pub mod templates;
 
 use std::collections::HashMap;
 
-use complex::{ToTypeTemplate, ToTypeTemplateData};
+use complex::{Scope, ToTypeTemplate, ToTypeTemplateData};
 use misc::TypeReference;
 use quote::format_ident;
-use simple::{Context, SimpleTypeToRustType};
+use simple::Context;
 use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, XmlNamespace};
 use xsd_type_compiler::{
@@ -23,7 +23,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub struct Generator<'a> {
     pub context: &'a xsd_type_compiler::XmlnsContext,
     pub bound_namespaces: HashMap<XmlNamespace<'static>, Ident>,
-    pub bound_types: HashMap<ExpandedName<'static>, syn::Type>,
+    pub bound_types: HashMap<ExpandedName<'static>, (syn::Type, TypeType)>,
+    pub bound_elements: HashMap<ExpandedName<'static>, syn::Type>,
+    pub bound_attributes: HashMap<ExpandedName<'static>, syn::Type>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -33,24 +35,22 @@ enum NamedTypeClass {
     Attribute,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TypeType {
+    Simple,
+    Complex,
+}
+
 struct GeneratorContext<'a> {
     generator: &'a Generator<'a>,
     namespace: &'a XmlNamespace<'a>,
-    items: Vec<Item>,
-    mod_name: Option<Ident>,
 }
 
 impl<'a> GeneratorContext<'a> {
-    fn new(
-        generator: &'a Generator<'a>,
-        namespace: &'a XmlNamespace<'a>,
-        mod_name: Option<Ident>,
-    ) -> Self {
+    fn new(generator: &'a Generator<'a>, namespace: &'a XmlNamespace<'a>) -> Self {
         Self {
             generator,
             namespace,
-            items: Vec::new(),
-            mod_name,
         }
     }
 
@@ -60,33 +60,6 @@ impl<'a> GeneratorContext<'a> {
             .namespaces
             .get(self.namespace)
             .unwrap()
-    }
-
-    fn sub_context(&self, mod_name: Option<Ident>) -> Self {
-        Self {
-            generator: self.generator,
-            namespace: self.namespace,
-            items: Vec::new(),
-            mod_name,
-        }
-    }
-
-    fn finish(self) -> std::result::Result<ItemMod, Vec<Item>> {
-        let items = self.items;
-
-        if items.is_empty() {
-            return Err(items);
-        }
-
-        let Some(mod_name) = self.mod_name else {
-            return Err(items);
-        };
-
-        Ok(parse_quote! {
-            pub mod #mod_name {
-                #(#items)*
-            }
-        })
     }
 }
 
@@ -113,43 +86,26 @@ impl simple::Context for GeneratorContext<'_> {
         Ok(Some(parse_quote!(#namespace_ident::#local_name_ident)))
     }
 
-    fn get_simple_fragment(
-        &self,
-        fragment_id: &xsd_type_compiler::simple::FragmentId,
-    ) -> Result<Option<misc::GeneratedFragment>> {
-        let fragment = self
-            .current_namespace()
-            .complex_type
-            .simple_type_fragments
-            .fragments
-            .get(&fragment_id.1);
-
-        let Some(fragment) = fragment else {
-            return Ok(None);
-        };
-
-        fragment.generate_simple_rust_types(self).map(Some)
-    }
-
     fn namespace(&self) -> &XmlNamespace<'_> {
         self.namespace
     }
 }
 
 impl complex::Context for GeneratorContext<'_> {
-    fn resolve_fragment<F>(&self, fragment: &F) -> Result<ToTypeTemplateData<F::TypeTemplate>>
-    where
-        F: ToTypeTemplate,
-    {
-        fragment.to_type_template(self)
+    fn resolve_fragment<F: ToTypeTemplate, S: Scope>(
+        &self,
+        fragment: &F,
+        scope: &mut S,
+    ) -> Result<ToTypeTemplateData<F::TypeTemplate>> {
+        fragment.to_type_template(self, scope)
     }
 
-    fn resolve_fragment_id<F>(
+    fn resolve_fragment_id<F: ToTypeTemplate, S: Scope>(
         &self,
         fragment_id: &xsd_type_compiler::complex::FragmentIdx<F>,
+        scope: &mut S,
     ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
     where
-        F: ToTypeTemplate,
         ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         let fragment = self
@@ -158,40 +114,75 @@ impl complex::Context for GeneratorContext<'_> {
             .get_fragment(fragment_id)
             .unwrap();
 
-        fragment.to_type_template(self)
+        fragment.to_type_template(self, scope)
     }
 
-    fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<syn::Type> {
-        if let Some(bound_type) = self.generator.bound_types.get(name) {
+    fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<(syn::Type, TypeType)> {
+        if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
             return Ok(bound_type.clone());
         }
 
         todo!()
     }
 
+    fn resolve_named_element(&self, _name: &ExpandedName<'_>) -> Result<syn::Type> {
+        todo!()
+    }
+
+    fn resolve_named_attribute(&self, _name: &ExpandedName<'_>) -> Result<syn::Type> {
+        todo!()
+    }
+
     fn to_expanded_name(&self, local_name: xmlity::LocalName<'static>) -> ExpandedName<'static> {
         ExpandedName::new(local_name, Some(self.namespace().clone().into_owned()))
     }
-    // fn resolve_fragment<F>(
-    //     &self,
-    //     fragment_id: &xsd_type_compiler::complex::FragmentIdx<F>,
-    // ) -> Result<Option<misc::GeneratedFragment>>
-    // where
-    //     xsd_type_compiler::complex::ComplexTypeFragmentCompiler: FragmentAccess<F>,
-    // {
-    //     // let fragment = self
-    //     //     .current_namespace()
-    //     //     .complex_type
-    //     //     .fragments
-    //     //     .get(&fragment_id.1);
+}
 
-    //     // let Some(fragment) = fragment else {
-    //     //     return Ok(None);
-    //     // };
+struct GeneratorScope {
+    items: Vec<Item>,
+}
 
-    //     // fragment.generate_complex_rust_types(self).map(Some)
-    //     todo!()
-    // }
+impl complex::Scope for GeneratorScope {
+    fn add_item<I: Into<Item>>(&mut self, item: I) -> Result<TypeReference<'static>> {
+        let item: Item = item.into();
+
+        let ident = match &item {
+            Item::Struct(item) => &item.ident,
+            Item::Enum(item) => &item.ident,
+            Item::Mod(item) => &item.ident,
+            _ => panic!("Unsupported item type"),
+        };
+
+        let ref_ = TypeReference::new_prefix(parse_quote!(#ident));
+
+        self.items.push(item);
+
+        Ok(ref_)
+    }
+}
+
+impl GeneratorScope {
+    fn new() -> Self {
+        Self { items: Vec::new() }
+    }
+
+    fn finish(self) -> Vec<Item> {
+        self.items
+    }
+
+    fn finish_mod(self, mod_name: &Ident) -> Option<ItemMod> {
+        let items = self.finish();
+
+        if items.is_empty() {
+            return None;
+        }
+
+        Some(parse_quote!(
+            pub mod #mod_name {
+                #(#items)*
+            }
+        ))
+    }
 }
 
 impl<'a> Generator<'a> {
@@ -200,11 +191,21 @@ impl<'a> Generator<'a> {
             context,
             bound_namespaces: HashMap::new(),
             bound_types: HashMap::new(),
+            bound_elements: HashMap::new(),
+            bound_attributes: HashMap::new(),
         }
     }
 
-    pub fn bind_type(&mut self, name: ExpandedName<'static>, ty: syn::Type) {
-        self.bound_types.insert(name, ty);
+    pub fn bind_type(&mut self, name: ExpandedName<'static>, ty: syn::Type, type_type: TypeType) {
+        self.bound_types.insert(name, (ty, type_type));
+    }
+
+    pub fn bind_element(&mut self, name: ExpandedName<'static>, ty: syn::Type) {
+        self.bound_elements.insert(name, ty);
+    }
+
+    pub fn bind_attribute(&mut self, name: ExpandedName<'static>, ty: syn::Type) {
+        self.bound_attributes.insert(name, ty);
     }
 
     pub fn generate_namespace(&self, namespace: &xmlity::XmlNamespace<'_>) -> Result<Vec<Item>> {
@@ -260,16 +261,18 @@ impl<'a> Generator<'a> {
 
                 let local_name = name.local_name().to_string();
                 let module_name = format_ident!("{local_name}_items");
-                let context =
-                    GeneratorContext::new(self, name.namespace().unwrap(), Some(module_name));
+                let context = GeneratorContext::new(self, name.namespace().unwrap());
+                let mut scope = GeneratorScope::new();
 
-                let type_ = fragment.to_type_template(&context)?;
+                let type_ = fragment.to_type_template(&context, &mut scope)?;
                 let struct_name = format_ident!("{local_name}");
-                let item = type_.template.to_struct(&struct_name);
-                let mut items = context
-                    .finish()
+                let item = type_
+                    .template
+                    .to_struct(&struct_name, Some(&parse_quote!(#module_name)));
+                let mut items = scope
+                    .finish_mod(&module_name)
                     .map(|i| vec![Item::Mod(i)])
-                    .unwrap_or_else(std::convert::identity);
+                    .unwrap_or_default();
 
                 items.push(Item::Struct(item));
 
@@ -303,15 +306,18 @@ impl<'a> Generator<'a> {
 
         let local_name = name.local_name().to_string();
         let module_name = format_ident!("{local_name}_items");
-        let context = GeneratorContext::new(self, name.namespace().unwrap(), Some(module_name));
+        let context = GeneratorContext::new(self, name.namespace().unwrap());
+        let mut scope = GeneratorScope::new();
 
-        let type_ = fragment.to_type_template(&context)?;
+        let type_ = fragment.to_type_template(&context, &mut scope)?;
         let struct_name = format_ident!("{local_name}");
-        let item = type_.template.to_struct(&struct_name);
-        let mut items = context
-            .finish()
+        let item = type_
+            .template
+            .to_struct(&struct_name, Some(&parse_quote!(#module_name)));
+        let mut items = scope
+            .finish_mod(&module_name)
             .map(|i| vec![Item::Mod(i)])
-            .unwrap_or_else(std::convert::identity);
+            .unwrap_or_default();
 
         items.push(Item::Struct(item));
 
@@ -343,15 +349,18 @@ impl<'a> Generator<'a> {
 
         let local_name = name.local_name().to_string();
         let module_name = format_ident!("{local_name}_items");
-        let context = GeneratorContext::new(self, name.namespace().unwrap(), Some(module_name));
+        let context = GeneratorContext::new(self, name.namespace().unwrap());
+        let mut scope = GeneratorScope::new();
 
-        let type_ = fragment.to_type_template(&context)?;
+        let type_ = fragment.to_type_template(&context, &mut scope)?;
         let struct_name = format_ident!("{local_name}");
-        let item = type_.template.to_struct(&struct_name);
-        let mut items = context
-            .finish()
+        let item = type_
+            .template
+            .to_struct(&struct_name, Some(&parse_quote!(#module_name)));
+        let mut items = scope
+            .finish_mod(&module_name)
             .map(|i| vec![Item::Mod(i)])
-            .unwrap_or_else(std::convert::identity);
+            .unwrap_or_default();
 
         items.push(Item::Struct(item));
 
