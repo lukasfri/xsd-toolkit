@@ -180,10 +180,10 @@ mod tests {
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::schema::{self as xs, MaxOccurs, MaxOccursValue};
+    use xsd::schema_names as xsn;
 
     use crate::{
-        complex::{transformers::FlattenNestedSequences, ANY_TYPE_EXPANDED_NAME},
-        transformers::TransformChange,
+        complex::transformers::FlattenNestedSequences, transformers::TransformChange,
         CompiledNamespace, XmlnsContext,
     };
 
@@ -193,18 +193,12 @@ mod tests {
 
         let number = xs::LocalElement::new_ref_typed(
             LocalName::new_dangerous("number"),
-            ExpandedName::new(
-                LocalName::new_dangerous("integer"),
-                XmlNamespace::XMLNS.into(),
-            ),
+            ExpandedName::new(LocalName::new_dangerous("integer"), XmlNamespace::XS.into()),
         );
 
         let name = xs::LocalElement::new_ref_typed(
             LocalName::new_dangerous("name"),
-            ExpandedName::new(
-                LocalName::new_dangerous("string"),
-                XmlNamespace::XMLNS.into(),
-            ),
+            ExpandedName::new(LocalName::new_dangerous("string"), XmlNamespace::XS.into()),
         );
 
         let child_choice = xs::ChoiceType::builder()
@@ -212,18 +206,12 @@ mod tests {
             .content(vec![
                 xs::LocalElement::new_ref_typed(
                     LocalName::new_dangerous("size"),
-                    ExpandedName::new(
-                        LocalName::new_dangerous("integer"),
-                        XmlNamespace::XMLNS.into(),
-                    ),
+                    ExpandedName::new(LocalName::new_dangerous("integer"), XmlNamespace::XS.into()),
                 )
                 .into(),
                 xs::LocalElement::new_ref_typed(
                     LocalName::new_dangerous("color"),
-                    ExpandedName::new(
-                        LocalName::new_dangerous("string"),
-                        XmlNamespace::XMLNS.into(),
-                    ),
+                    ExpandedName::new(LocalName::new_dangerous("string"), XmlNamespace::XS.into()),
                 )
                 .into(),
             ])
@@ -251,7 +239,7 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .particle(xs::TypeDefParticle::Sequence(
                                 xs::SequenceType::builder()
                                     .content(vec![
@@ -294,7 +282,7 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .particle(
                                 xs::SequenceType::builder()
                                     .content(vec![

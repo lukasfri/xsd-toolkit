@@ -3,10 +3,9 @@ use crate::{
     templates::{
         self, element_record::ElementRecord, value_record::ItemFieldItem, FieldType, ItemOrder,
     },
-    Result, TypeType,
+    Result, ToIdentTypesExt, TypeType,
 };
 
-use quote::format_ident;
 use xsd::schema::MaxOccursValue;
 use xsd_type_compiler::complex::{self as cx};
 
@@ -29,6 +28,21 @@ impl ToTypeTemplate for cx::ElementTypeContentId {
     }
 }
 
+fn type_to_element_field(
+    ty: TypeReference<'static>,
+    ty_type: TypeType,
+    default: bool,
+) -> templates::element_record::ElementField {
+    match ty_type {
+        TypeType::Simple => {
+            templates::element_record::ElementField::Item(ItemFieldItem { ty, default })
+        }
+        TypeType::Complex => templates::element_record::ElementField::Group(
+            templates::element_record::ElementFieldGroup { ty },
+        ),
+    }
+}
+
 impl ToTypeTemplate for cx::DeclaredElementFragment {
     type TypeTemplate = templates::element_record::ElementRecord;
 
@@ -38,22 +52,13 @@ impl ToTypeTemplate for cx::DeclaredElementFragment {
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let name = context.to_expanded_name(self.name.clone());
-        let ident = format_ident!("{}", self.name.to_string());
+        let ident = self.name.to_item_ident();
 
         match &self.type_ {
             xsd_type_compiler::NamedOrAnonymous::Named(expanded_name) => {
                 let (ty, ty_type) = context.resolve_named_type(expanded_name)?;
 
-                let ty = TypeReference::new_static(ty);
-
-                let field = match ty_type {
-                    TypeType::Simple => {
-                        templates::element_record::ElementField::Item(ItemFieldItem { ty })
-                    }
-                    TypeType::Complex => templates::element_record::ElementField::Group(
-                        templates::element_record::ElementFieldGroup { ty },
-                    ),
-                };
+                let field = type_to_element_field(ty, ty_type, false);
 
                 let template = templates::element_record::ElementRecord {
                     name,
@@ -90,13 +95,12 @@ impl ToTypeTemplate for cx::ReferenceElementFragment {
         context: &C,
         _scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let element = context.resolve_named_element(&self.name)?;
-        let ty = TypeReference::new_static(element);
+        let ty = context.resolve_named_element(&self.name)?;
 
-        let template = ItemFieldItem { ty };
+        let template = ItemFieldItem { ty, default: false };
 
         Ok(ToTypeTemplateData {
-            ident: Some(format_ident!("{}", self.name.local_name().to_string())),
+            ident: Some(self.name.local_name().to_item_ident()),
             template,
         })
     }
@@ -138,9 +142,13 @@ impl ToTypeTemplate for cx::LocalElementFragment {
             cx::LocalElementFragmentType::Reference(reference) => {
                 let reference = context.resolve_fragment(reference, scope)?;
 
-                let ty = super::min_max_occurs_type(min_occurs, max_occurs, reference.template.ty);
+                let (ty, optional) =
+                    super::min_max_occurs_type(min_occurs, max_occurs, reference.template.ty);
 
-                let template = LocalElementFragmentTemplate::Item(ItemFieldItem { ty });
+                let template = LocalElementFragmentTemplate::Item(ItemFieldItem {
+                    ty,
+                    default: optional,
+                });
 
                 Ok(ToTypeTemplateData {
                     ident: reference.ident,
@@ -160,21 +168,12 @@ impl ToTypeTemplate for cx::TopLevelElementFragment {
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let name = context.to_expanded_name(self.name.clone());
-        let ident = format_ident!("{}", self.name.to_string());
+        let ident = self.name.to_item_ident();
         match &self.type_ {
             xsd_type_compiler::NamedOrAnonymous::Named(expanded_name) => {
                 let (ty, ty_type) = context.resolve_named_type(expanded_name)?;
 
-                let ty = TypeReference::new_static(ty);
-
-                let field = match ty_type {
-                    TypeType::Simple => {
-                        templates::element_record::ElementField::Item(ItemFieldItem { ty })
-                    }
-                    TypeType::Complex => templates::element_record::ElementField::Group(
-                        templates::element_record::ElementFieldGroup { ty },
-                    ),
-                };
+                let field = type_to_element_field(ty, ty_type, false);
 
                 let template = templates::element_record::ElementRecord {
                     name,
@@ -210,21 +209,23 @@ mod tests {
     use syn::{parse_quote, Item};
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::schema as xs;
-    use xsd_type_compiler::{complex::ANY_TYPE_EXPANDED_NAME, CompiledNamespace, XmlnsContext};
+    use xsd::schema_names as xsn;
+    use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
+    use crate::BoundType;
     use crate::{Generator, TypeType};
 
     #[test]
     fn empty_sequence_element() {
-        let sequence = xs::TopLevelElement::builder()
-            .name(xs::Name(LocalName::new_dangerous("SimpleSequence")))
-            .type_choice(
+        let sequence = xs::types::TopLevelElement::builder()
+            .name(LocalName::new_dangerous("SimpleSequence"))
+            .child_1(
                 xs::LocalComplexType::builder()
                     .content(
                         xs::ComplexContent::builder()
                             .content(
                                 xs::ComplexRestrictionType::builder()
-                                    .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                                    .base(xs::QName(xsn::ANY_TYPE.clone()))
                                     .particle(
                                         xs::SequenceType::builder().content(vec![]).build().into(),
                                     )
@@ -237,7 +238,8 @@ mod tests {
                     .build()
                     .into(),
             )
-            .build();
+            .build()
+            .into();
 
         let namespace = XmlNamespace::new_dangerous("http://example.com");
 
@@ -271,55 +273,44 @@ mod tests {
 
     #[test]
     fn two_child_sequence_element() {
-        let integer_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("integer"),
-            XmlNamespace::XMLNS.into(),
+        let sequence = xs::TopLevelElement(
+            xs::types::TopLevelElement::builder()
+                .name(LocalName::new_dangerous("SimpleSequence"))
+                .child_1(
+                    xs::LocalComplexType::builder()
+                        .content(
+                            xs::ComplexContent::builder()
+                                .content(
+                                    xs::ComplexRestrictionType::builder()
+                                        .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                        .particle(
+                                            xs::SequenceType::builder()
+                                                .content(vec![
+                                                    xs::LocalElement::builder()
+                                                        .name(LocalName::new_dangerous("a"))
+                                                        .type_(xs::QName(xsn::INTEGER.clone()))
+                                                        .build()
+                                                        .into(),
+                                                    xs::LocalElement::builder()
+                                                        .name(LocalName::new_dangerous("b"))
+                                                        .type_(xs::QName(xsn::STRING.clone()))
+                                                        .build()
+                                                        .into(),
+                                                ])
+                                                .build()
+                                                .into(),
+                                        )
+                                        .build()
+                                        .into(),
+                                )
+                                .build()
+                                .into(),
+                        )
+                        .build()
+                        .into(),
+                )
+                .build(),
         );
-        let string_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("string"),
-            XmlNamespace::XMLNS.into(),
-        );
-
-        let sequence = xs::TopLevelElement::builder()
-            .name(xs::Name(LocalName::new_dangerous("SimpleSequence")))
-            .type_choice(
-                xs::LocalComplexType::builder()
-                    .content(
-                        xs::ComplexContent::builder()
-                            .content(
-                                xs::ComplexRestrictionType::builder()
-                                    .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
-                                    .particle(
-                                        xs::SequenceType::builder()
-                                            .content(vec![
-                                                xs::LocalElement::builder()
-                                                    .name(xs::Name(LocalName::new_dangerous("a")))
-                                                    .type_(xs::Type(xs::QName(
-                                                        integer_expanded_name.clone(),
-                                                    )))
-                                                    .build()
-                                                    .into(),
-                                                xs::LocalElement::builder()
-                                                    .name(xs::Name(LocalName::new_dangerous("b")))
-                                                    .type_(xs::Type(xs::QName(
-                                                        string_expanded_name.clone(),
-                                                    )))
-                                                    .build()
-                                                    .into(),
-                                            ])
-                                            .build()
-                                            .into(),
-                                    )
-                                    .build()
-                                    .into(),
-                            )
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
-            )
-            .build();
 
         let namespace = XmlNamespace::new_dangerous("http://example.com");
 
@@ -335,8 +326,7 @@ mod tests {
 
         let mut generator = Generator::new(&context);
 
-        generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
-        generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
+        generator.bind_types(crate::binds::StdXsdTypes);
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
@@ -361,55 +351,47 @@ mod tests {
 
     #[test]
     fn two_attribute_sequence_element() {
-        let integer_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("integer"),
-            XmlNamespace::XMLNS.into(),
+        let sequence = xs::TopLevelElement(
+            xs::types::TopLevelElement::builder()
+                .name(LocalName::new_dangerous("SimpleSequence"))
+                .child_1(
+                    xs::LocalComplexType::builder()
+                        .content(
+                            xs::ComplexContent::builder()
+                                .content(
+                                    xs::ComplexRestrictionType::builder()
+                                        .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                        .particle(
+                                            xs::SequenceType::builder()
+                                                .content(vec![])
+                                                .build()
+                                                .into(),
+                                        )
+                                        .attributes(vec![
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("a"))
+                                                .type_(xs::QName(xsn::INTEGER.clone()))
+                                                .use_(xs::AttributeUseType::Required)
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("b"))
+                                                .type_(xs::QName(xsn::STRING.clone()))
+                                                .use_(xs::AttributeUseType::Required)
+                                                .build()
+                                                .into(),
+                                        ])
+                                        .build()
+                                        .into(),
+                                )
+                                .build()
+                                .into(),
+                        )
+                        .build()
+                        .into(),
+                )
+                .build(),
         );
-        let string_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("string"),
-            XmlNamespace::XMLNS.into(),
-        );
-
-        let sequence = xs::TopLevelElement::builder()
-            .name(xs::Name(LocalName::new_dangerous("SimpleSequence")))
-            .type_choice(
-                xs::LocalComplexType::builder()
-                    .content(
-                        xs::ComplexContent::builder()
-                            .content(
-                                xs::ComplexRestrictionType::builder()
-                                    .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
-                                    .particle(
-                                        xs::SequenceType::builder().content(vec![]).build().into(),
-                                    )
-                                    .attributes(vec![
-                                        xs::LocalAttribute::builder()
-                                            .name(xs::Name(LocalName::new_dangerous("a")))
-                                            .type_(xs::Type(xs::QName(
-                                                integer_expanded_name.clone(),
-                                            )))
-                                            .use_(xs::AttrUse(xs::AttributeUseType::Required))
-                                            .build()
-                                            .into(),
-                                        xs::LocalAttribute::builder()
-                                            .name(xs::Name(LocalName::new_dangerous("b")))
-                                            .type_(xs::Type(xs::QName(
-                                                string_expanded_name.clone(),
-                                            )))
-                                            .use_(xs::AttrUse(xs::AttributeUseType::Required))
-                                            .build()
-                                            .into(),
-                                    ])
-                                    .build()
-                                    .into(),
-                            )
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
-            )
-            .build();
 
         let namespace = XmlNamespace::new_dangerous("http://example.com");
 
@@ -425,8 +407,7 @@ mod tests {
 
         let mut generator = Generator::new(&context);
 
-        generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
-        generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
+        generator.bind_types(crate::binds::StdXsdTypes);
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
@@ -451,55 +432,36 @@ mod tests {
 
     #[test]
     fn two_sequence_deep_element() {
-        let integer_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("integer"),
-            XmlNamespace::XMLNS.into(),
-        );
-        let string_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("string"),
-            XmlNamespace::XMLNS.into(),
-        );
-
-        let sequence = xs::TopLevelElement::builder()
-            .name(xs::Name(LocalName::new_dangerous("SimpleSequence")))
-            .type_choice(
+        let sequence = xs::types::TopLevelElement::builder()
+            .name(LocalName::new_dangerous("SimpleSequence"))
+            .child_1(
                 xs::LocalComplexType::builder()
                     .content(
                         xs::ComplexContent::builder()
                             .content(
                                 xs::ComplexRestrictionType::builder()
-                                    .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                                    .base(xs::QName(xsn::ANY_TYPE.clone()))
                                     .particle(
                                         xs::SequenceType::builder()
                                             .content(vec![
                                                 xs::SequenceType::builder()
                                                     .content(vec![
                                                         xs::LocalElement::builder()
-                                                            .name(xs::Name(
-                                                                LocalName::new_dangerous("a"),
-                                                            ))
-                                                            .type_(xs::Type(xs::QName(
-                                                                integer_expanded_name.clone(),
-                                                            )))
+                                                            .name(LocalName::new_dangerous("a"))
+                                                            .type_(xs::QName(xsn::INTEGER.clone()))
                                                             .build()
                                                             .into(),
                                                         xs::LocalElement::builder()
-                                                            .name(xs::Name(
-                                                                LocalName::new_dangerous("b"),
-                                                            ))
-                                                            .type_(xs::Type(xs::QName(
-                                                                string_expanded_name.clone(),
-                                                            )))
+                                                            .name(LocalName::new_dangerous("b"))
+                                                            .type_(xs::QName(xsn::STRING.clone()))
                                                             .build()
                                                             .into(),
                                                     ])
                                                     .build()
                                                     .into(),
                                                 xs::LocalElement::builder()
-                                                    .name(xs::Name(LocalName::new_dangerous("c")))
-                                                    .type_(xs::Type(xs::QName(
-                                                        string_expanded_name.clone(),
-                                                    )))
+                                                    .name(LocalName::new_dangerous("c"))
+                                                    .type_(xs::QName(xsn::STRING.clone()))
                                                     .build()
                                                     .into(),
                                             ])
@@ -515,7 +477,8 @@ mod tests {
                     .build()
                     .into(),
             )
-            .build();
+            .build()
+            .into();
 
         let namespace = XmlNamespace::new_dangerous("http://example.com");
 
@@ -531,18 +494,17 @@ mod tests {
 
         let mut generator = Generator::new(&context);
 
-        generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
-        generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
+        generator.bind_types(crate::binds::StdXsdTypes);
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
         #[rustfmt::skip]
         let expected_items: Vec<Item> = vec![
             parse_quote!(
-                pub mod SimpleSequence_items {
+                pub mod simple_sequence_items {
                     #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
                     #[xvalue(children_order = "strict")]
-                    pub struct SimpleSequenceChild {
+                    pub struct Child0 {
                         #[xelement(name = "a", namespace = "http://example.com")]
                         pub a: i32,
                         #[xelement(name = "b", namespace = "http://example.com")]
@@ -554,7 +516,7 @@ mod tests {
                 #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
                 #[xelement(name = "SimpleSequence", namespace = "http://example.com", children_order = "strict")]
                 pub struct SimpleSequence {
-                    pub field_0: SimpleSequence_items::SimpleSequenceChild,
+                    pub child_0: simple_sequence_items::Child0,
                     #[xelement(name = "c", namespace = "http://example.com")]
                     pub c: String,
 
@@ -569,39 +531,26 @@ mod tests {
 
     #[test]
     fn two_attribute_two_children_sequence_element() {
-        let integer_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("integer"),
-            XmlNamespace::XMLNS.into(),
-        );
-        let string_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("string"),
-            XmlNamespace::XMLNS.into(),
-        );
-
-        let sequence = xs::TopLevelElement::builder()
-            .name(xs::Name(LocalName::new_dangerous("SimpleSequence")))
-            .type_choice(
+        let sequence = xs::types::TopLevelElement::builder()
+            .name(LocalName::new_dangerous("SimpleSequence"))
+            .child_1(
                 xs::LocalComplexType::builder()
                     .content(
                         xs::ComplexContent::builder()
                             .content(
                                 xs::ComplexRestrictionType::builder()
-                                    .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                                    .base(xs::QName(xsn::ANY_TYPE.clone()))
                                     .particle(
                                         xs::SequenceType::builder()
                                             .content(vec![
                                                 xs::LocalElement::builder()
-                                                    .name(xs::Name(LocalName::new_dangerous("a")))
-                                                    .type_(xs::Type(xs::QName(
-                                                        integer_expanded_name.clone(),
-                                                    )))
+                                                    .name(LocalName::new_dangerous("a"))
+                                                    .type_(xs::QName(xsn::INTEGER.clone()))
                                                     .build()
                                                     .into(),
                                                 xs::LocalElement::builder()
-                                                    .name(xs::Name(LocalName::new_dangerous("b")))
-                                                    .type_(xs::Type(xs::QName(
-                                                        string_expanded_name.clone(),
-                                                    )))
+                                                    .name(LocalName::new_dangerous("b"))
+                                                    .type_(xs::QName(xsn::STRING.clone()))
                                                     .build()
                                                     .into(),
                                             ])
@@ -610,19 +559,15 @@ mod tests {
                                     )
                                     .attributes(vec![
                                         xs::LocalAttribute::builder()
-                                            .name(xs::Name(LocalName::new_dangerous("c")))
-                                            .type_(xs::Type(xs::QName(
-                                                integer_expanded_name.clone(),
-                                            )))
-                                            .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                            .name(LocalName::new_dangerous("c"))
+                                            .type_(xs::QName(xsn::INTEGER.clone()))
+                                            .use_(xs::AttributeUseType::Required)
                                             .build()
                                             .into(),
                                         xs::LocalAttribute::builder()
-                                            .name(xs::Name(LocalName::new_dangerous("d")))
-                                            .type_(xs::Type(xs::QName(
-                                                string_expanded_name.clone(),
-                                            )))
-                                            .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                            .name(LocalName::new_dangerous("d"))
+                                            .type_(xs::QName(xsn::STRING.clone()))
+                                            .use_(xs::AttributeUseType::Required)
                                             .build()
                                             .into(),
                                     ])
@@ -635,7 +580,8 @@ mod tests {
                     .build()
                     .into(),
             )
-            .build();
+            .build()
+            .into();
 
         let namespace = XmlNamespace::new_dangerous("http://example.com");
 
@@ -651,8 +597,7 @@ mod tests {
 
         let mut generator = Generator::new(&context);
 
-        generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
-        generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
+        generator.bind_types(crate::binds::StdXsdTypes);
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
@@ -670,6 +615,256 @@ mod tests {
                     pub a: i32,
                     #[xelement(name = "b", namespace = "http://example.com")]
                     pub b: String,
+                }
+            )
+        ];
+
+        assert_eq!(expected_items, actual_items);
+
+        assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
+    }
+
+    #[test]
+    fn complex_reference_type_local_element() {
+        let child_type_expanded_name = ExpandedName::new(
+            LocalName::new_dangerous("childType"),
+            XmlNamespace::XS.into(),
+        );
+
+        let sequence = xs::types::TopLevelElement::builder()
+            .name(LocalName::new_dangerous("SimpleSequence"))
+            .child_1(
+                xs::LocalComplexType::builder()
+                    .content(
+                        xs::ComplexContent::builder()
+                            .content(
+                                xs::ComplexRestrictionType::builder()
+                                    .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                    .particle(
+                                        xs::SequenceType::builder()
+                                            .content(vec![xs::LocalElement::builder()
+                                                .name(LocalName::new_dangerous("a"))
+                                                .type_(xs::QName(child_type_expanded_name.clone()))
+                                                .build()
+                                                .into()])
+                                            .build()
+                                            .into(),
+                                    )
+                                    .build()
+                                    .into(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build()
+            .into();
+
+        let namespace = XmlNamespace::new_dangerous("http://example.com");
+
+        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
+
+        let sequence = compiled_namespace
+            .import_top_level_element(&sequence)
+            .unwrap()
+            .into_owned();
+
+        let mut context = XmlnsContext::new();
+        context.add_namespace(compiled_namespace);
+
+        let mut generator = Generator::new(&context);
+
+        generator.bind_type(
+            child_type_expanded_name,
+            BoundType {
+                ty: parse_quote!(types::ChildType),
+                type_type: TypeType::Complex,
+                serialize_with: None,
+                deserialize_with: None,
+            },
+        );
+
+        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+
+        #[rustfmt::skip]
+        let expected_items: Vec<Item> = vec![
+            parse_quote!(
+                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+                #[xelement(name = "SimpleSequence", namespace = "http://example.com", children_order = "strict")]
+                pub struct SimpleSequence {
+                    #[xelement(name = "a", namespace = "http://example.com", group)]
+                    pub a: types::ChildType,
+                }
+            )
+        ];
+
+        assert_eq!(expected_items, actual_items);
+
+        assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
+    }
+
+    #[test]
+    fn simple_reference_type_top_level_element() {
+        let sequence = xs::types::TopLevelElement::builder()
+            .name(LocalName::new_dangerous("SimpleSequence"))
+            .type_(xs::QName(xsn::STRING.clone()))
+            .build()
+            .into();
+
+        let namespace = XmlNamespace::new_dangerous("http://example.com");
+
+        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
+
+        let sequence = compiled_namespace
+            .import_top_level_element(&sequence)
+            .unwrap()
+            .into_owned();
+
+        let mut context = XmlnsContext::new();
+        context.add_namespace(compiled_namespace);
+
+        let mut generator = Generator::new(&context);
+
+        generator.bind_types(crate::binds::StdXsdTypes);
+
+        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+
+        #[rustfmt::skip]
+        let expected_items: Vec<Item> = vec![
+            parse_quote!(
+                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+                #[xelement(name = "SimpleSequence", namespace = "http://example.com")]
+                pub struct SimpleSequence(pub String);
+            )
+        ];
+
+        assert_eq!(expected_items, actual_items);
+
+        assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
+    }
+
+    #[test]
+    fn complex_reference_type_top_level_element() {
+        let child_type_expanded_name = ExpandedName::new(
+            LocalName::new_dangerous("childType"),
+            XmlNamespace::XS.into(),
+        );
+
+        let sequence = xs::types::TopLevelElement::builder()
+            .name(LocalName::new_dangerous("SimpleSequence"))
+            .type_(xs::QName(child_type_expanded_name.clone()))
+            .build()
+            .into();
+
+        let namespace = XmlNamespace::new_dangerous("http://example.com");
+
+        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
+
+        let sequence = compiled_namespace
+            .import_top_level_element(&sequence)
+            .unwrap()
+            .into_owned();
+
+        let mut context = XmlnsContext::new();
+        context.add_namespace(compiled_namespace);
+
+        let mut generator = Generator::new(&context);
+
+        generator.bind_type(
+            child_type_expanded_name,
+            BoundType {
+                ty: parse_quote!(types::ChildType),
+                type_type: TypeType::Complex,
+                serialize_with: None,
+                deserialize_with: None,
+            },
+        );
+
+        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+
+        #[rustfmt::skip]
+        let expected_items: Vec<Item> = vec![
+            parse_quote!(
+                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+                #[xelement(name = "SimpleSequence", namespace = "http://example.com")]
+                pub struct SimpleSequence(#[xgroup] pub types::ChildType);
+            )
+        ];
+
+        assert_eq!(expected_items, actual_items);
+
+        assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
+    }
+
+    #[test]
+    fn element_ref_element() {
+        let child_element_expanded_name = ExpandedName::new(
+            LocalName::new_dangerous("ChildElement"),
+            XmlNamespace::XS.into(),
+        );
+
+        let sequence = xs::types::TopLevelElement::builder()
+            .name(LocalName::new_dangerous("SimpleSequence"))
+            .child_1(
+                xs::LocalComplexType::builder()
+                    .content(
+                        xs::ComplexContent::builder()
+                            .content(
+                                xs::ComplexRestrictionType::builder()
+                                    .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                    .particle(
+                                        xs::SequenceType::builder()
+                                            .content(vec![xs::LocalElement::builder()
+                                                .ref_(xs::QName(
+                                                    child_element_expanded_name.clone(),
+                                                ))
+                                                .build()
+                                                .into()])
+                                            .build()
+                                            .into(),
+                                    )
+                                    .build()
+                                    .into(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build()
+            .into();
+
+        let namespace = XmlNamespace::new_dangerous("http://example.com");
+
+        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
+
+        let sequence = compiled_namespace
+            .import_top_level_element(&sequence)
+            .unwrap()
+            .into_owned();
+
+        let mut context = XmlnsContext::new();
+        context.add_namespace(compiled_namespace);
+
+        let mut generator = Generator::new(&context);
+
+        generator.bind_element(
+            child_element_expanded_name,
+            parse_quote!(types::ChildElement),
+        );
+
+        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+
+        #[rustfmt::skip]
+        let expected_items: Vec<Item> = vec![
+            parse_quote!(
+                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+                #[xelement(name = "SimpleSequence", namespace = "http://example.com", children_order = "strict")]
+                pub struct SimpleSequence {
+                    pub child_element: types::ChildElement,
                 }
             )
         ];

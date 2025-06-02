@@ -3,10 +3,11 @@ use std::collections::VecDeque;
 use crate::{
     complex::{
         ComplexContentChildId, ComplexTypeModelId, ComplexTypeRootFragment, FragmentAccess,
-        FragmentIdx, RestrictionFragment, ANY_TYPE_EXPANDED_NAME,
+        FragmentIdx, RestrictionFragment,
     },
     transformers::{Context, TransformChange, XmlnsContextTransformer},
 };
+use xsd::schema_names as xsn;
 
 /// This transformer expands the short form of complex types (particles as a direct descendent of `complexType`) into the `complexContent` form.
 ///
@@ -57,7 +58,7 @@ impl ExpandShortFormComplexTypes {
         let compiler = &mut ctx.current_namespace_mut().complex_type;
 
         let complex_content = compiler.push_fragment(RestrictionFragment {
-            base: ANY_TYPE_EXPANDED_NAME.clone(),
+            base: xsn::ANY_TYPE.clone(),
             content_fragment,
             attribute_declarations: VecDeque::new(),
         });
@@ -92,17 +93,14 @@ mod tests {
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::schema::{
-        Base, ComplexContent, ComplexRestrictionType, ComplexTypeModel, LocalElement, Name, QName,
-        SequenceType, TopLevelComplexType, Type, TypeDefParticle,
+        ComplexContent, ComplexRestrictionType, ComplexTypeModel, LocalElement, QName,
+        SequenceType, TopLevelComplexType, TypeDefParticle,
     };
+    use xsd::schema_names as xsn;
 
     use crate::{
-        complex::{
-            transformers::expand_short_form_complex_types::ExpandShortFormComplexTypes,
-            ANY_TYPE_EXPANDED_NAME,
-        },
-        transformers::TransformChange,
-        CompiledNamespace, XmlnsContext,
+        complex::transformers::expand_short_form_complex_types::ExpandShortFormComplexTypes,
+        transformers::TransformChange, CompiledNamespace, XmlnsContext,
     };
 
     #[test]
@@ -116,19 +114,19 @@ mod tests {
         let sequence = SequenceType::builder()
             .content(vec![
                 LocalElement::builder()
-                    .name(Name(LocalName::new_dangerous("size")))
-                    .type_(Type(QName(ExpandedName::new(
+                    .name(LocalName::new_dangerous("size"))
+                    .type_(QName(ExpandedName::new(
                         LocalName::new_dangerous("nonNegativeInteger"),
-                        Some(XmlNamespace::XMLNS),
-                    ))))
+                        Some(XmlNamespace::XS),
+                    )))
                     .build()
                     .into(),
                 LocalElement::builder()
-                    .name(Name(LocalName::new_dangerous("unit")))
-                    .type_(Type(QName(ExpandedName::new(
+                    .name(LocalName::new_dangerous("unit"))
+                    .type_(QName(ExpandedName::new(
                         LocalName::new_dangerous("NMTOKEN"),
-                        Some(XmlNamespace::XMLNS),
-                    ))))
+                        Some(XmlNamespace::XS),
+                    )))
                     .build()
                     .into(),
             ])
@@ -164,7 +162,7 @@ mod tests {
                 ComplexContent::builder()
                     .content(
                         ComplexRestrictionType::builder()
-                            .base(Base(QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(QName(xsn::ANY_TYPE.clone()))
                             .particle(sequence.into())
                             .build()
                             .into(),

@@ -1,5 +1,6 @@
 pub mod builtin;
 pub mod schema;
+pub mod schema_names;
 
 pub struct XmlSchema {
     pub underlying_schema: schema::Schema,

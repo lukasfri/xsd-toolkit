@@ -4,11 +4,9 @@ use complex::ComplexFragmentEquivalent;
 use simple::ToSimpleFragments;
 use transformers::TransformChange;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd::schema;
 pub mod transformers;
 
 pub mod complex;
-mod misc;
 pub mod simple;
 
 pub struct XmlnsContext {
@@ -195,7 +193,7 @@ impl CompiledNamespace {
         //     }
         // };
 
-        let name = element.name.0.clone();
+        let name = element.0.name.clone();
         if self.top_level_elements.contains_key(&name) {
             return Err(());
         }

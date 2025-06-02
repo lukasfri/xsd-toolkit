@@ -1,8 +1,9 @@
 use crate::{
-    misc::TypeReference, templates::element_record::ElementFieldAttribute, Result, TypeType,
+    misc::TypeReference, templates::element_record::ElementFieldAttribute, Result, ToIdentTypesExt,
+    TypeType,
 };
 
-use quote::format_ident;
+use quote::ToTokens;
 use syn::parse_quote;
 use xmlity::ExpandedName;
 use xsd_type_compiler::{
@@ -29,15 +30,24 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
         let (ident, template) = match &self.type_mode {
             cx::LocalAttributeFragmentTypeMode::Declared(local) => {
                 let name = ExpandedName::new(local.name.clone(), None);
-                let ident = format_ident!("{}", local.name.to_string());
+                let ident = local.name.to_item_ident();
 
                 let ty = match local.type_.as_ref() {
                     Some(NamedOrAnonymous::Named(name)) => {
                         let (ty, ty_type) = context.resolve_named_type(name)?;
-                        assert_eq!(ty_type, TypeType::Simple);
-                        TypeReference::new_static(ty)
+                        assert_eq!(
+                            ty_type,
+                            TypeType::Simple,
+                            "{} is not a simple type, but is used as an attribute value",
+                            ty.to_type(None).to_token_stream()
+                        );
+
+                        ty
                     }
-                    Some(NamedOrAnonymous::Anonymous(_)) => todo!(),
+                    Some(NamedOrAnonymous::Anonymous(_)) => {
+                        //TODO
+                        TypeReference::new_static(parse_quote!(String))
+                    }
                     None => TypeReference::new_static(parse_quote!(())),
                 };
 
@@ -58,8 +68,7 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
                 (Some(ident), template)
             }
             cx::LocalAttributeFragmentTypeMode::Reference(reference) => {
-                let attr = context.resolve_named_attribute(&reference.name)?;
-                let ty = TypeReference::new_static(attr);
+                let ty = context.resolve_named_attribute(&reference.name)?;
 
                 let template = ElementFieldAttribute {
                     name: None,
@@ -106,14 +115,14 @@ impl ToTypeTemplate for cx::TopLevelAttributeFragment {
             self.name.clone(),
             Some(context.namespace().clone().into_owned()),
         );
-        let ident = format_ident!("{}", self.name.to_string());
+        let ident = self.name.to_item_ident();
 
         let ty = match self.type_.as_ref() {
             Some(NamedOrAnonymous::Named(name)) => {
                 let (ty, ty_type) = context.resolve_named_type(name)?;
                 assert_eq!(ty_type, TypeType::Simple);
 
-                TypeReference::new_static(ty)
+                ty
             }
             Some(NamedOrAnonymous::Anonymous(_)) => todo!(),
             None => TypeReference::new_static(parse_quote!(())),
@@ -143,18 +152,16 @@ mod tests {
     use xsd::schema as xs;
     use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
-    use crate::{Generator, TypeType};
+    use crate::Generator;
 
     #[test]
     fn simple_attribute() {
-        let string_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("string"),
-            XmlNamespace::XMLNS.into(),
-        );
-
         let attribute = xs::TopLevelAttribute::builder()
-            .name(xs::Name(LocalName::new_dangerous("SimpleAttribute")))
-            .type_(xs::Type(xs::QName(string_expanded_name.clone())))
+            .name(xs::NameAttr(LocalName::new_dangerous("SimpleAttribute")))
+            .type_(xs::Type(xs::QName(ExpandedName::new(
+                LocalName::new_dangerous("string"),
+                XmlNamespace::XS.into(),
+            ))))
             .build();
 
         let namespace = XmlNamespace::new_dangerous("http://example.com");
@@ -171,7 +178,7 @@ mod tests {
 
         let mut generator = Generator::new(&context);
 
-        generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
+        generator.bind_types(crate::binds::StdXsdTypes);
 
         let (type_, actual_items) = generator.generate_top_level_attribute(&sequence).unwrap();
 

@@ -7,7 +7,7 @@ use crate::{
         value_record::{ItemField, ItemFieldItem, ItemRecord},
         FieldType, ItemOrder,
     },
-    GeneratorScope, Result,
+    GeneratorScope, Result, ToIdentTypesExt,
 };
 
 use quote::format_ident;
@@ -33,8 +33,13 @@ impl ToTypeTemplate for cx::AllFragment {
             .iter()
             .enumerate()
             .map(|(i, fragment_id)| {
-                let res = context.resolve_fragment(fragment_id, scope)?;
-                let ident = res.ident.unwrap_or_else(|| format_ident!("field_{}", i));
+                let res = context
+                    .sub_context(format_ident!("Child{i}"))
+                    .resolve_fragment(fragment_id, scope)?;
+                let ident = res
+                    .ident
+                    .map(|a| a.to_field_ident())
+                    .unwrap_or_else(|| format_ident!("child_{}", i));
                 let item = res.template.to_item(context, scope, &ident, None)?;
 
                 Ok((Some(ident), item))
@@ -68,8 +73,13 @@ impl ToTypeTemplate for cx::SequenceFragment {
             .iter()
             .enumerate()
             .map(|(i, fragment_id)| {
-                let res = context.resolve_fragment(fragment_id, scope)?;
-                let ident = res.ident.unwrap_or_else(|| format_ident!("field_{}", i));
+                let res = context
+                    .sub_context(format_ident!("Child{i}"))
+                    .resolve_fragment(fragment_id, scope)?;
+                let ident = res
+                    .ident
+                    .map(|a| a.to_field_ident())
+                    .unwrap_or_else(|| format_ident!("child_{}", i));
                 let item = res.template.to_item(context, scope, &ident, None)?;
 
                 Ok((Some(ident), item))
@@ -90,23 +100,36 @@ impl ToTypeTemplate for cx::SequenceFragment {
 }
 
 impl ToTypeTemplate for cx::ChoiceFragment {
-    type TypeTemplate = templates::choice::Choice;
+    type TypeTemplate = ItemFieldItem;
 
     fn to_type_template<C: Context, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let ident = context.suggested_ident();
+
+        let mod_name = format_ident!("{}_items", ident.to_path_ident());
+
+        let mut sub_scope = GeneratorScope::new();
+
         // Struct with strict order
         let variants = self
             .fragments
             .iter()
             .enumerate()
             .map(|(i, fragment_id)| {
-                let res = context.resolve_fragment(fragment_id, scope)?;
-                let ident = res.ident.unwrap_or_else(|| format_ident!("field_{}", i));
+                let res = context
+                    .sub_context(format_ident!("Variant{i}"))
+                    .resolve_fragment(fragment_id, &mut sub_scope)?;
+                let ident = res
+                    .ident
+                    .map(|a| a.to_variant_ident())
+                    .unwrap_or_else(|| format_ident!("Variant{}", i));
 
-                let variant = res.template.to_variant(context, scope, &ident, None)?;
+                let variant = res
+                    .template
+                    .to_variant(context, &mut sub_scope, &ident, None)?;
 
                 Ok((ident, variant))
             })
@@ -114,9 +137,26 @@ impl ToTypeTemplate for cx::ChoiceFragment {
 
         let template = templates::choice::Choice { variants };
 
+        let _mod_ref = sub_scope
+            .finish_mod(&mod_name)
+            .map(|a| scope.add_item(a))
+            .transpose()?;
+
+        let item = template.to_enum(ident, Some(&parse_quote!(#mod_name)));
+
+        let ty = scope.add_item(item)?;
+
+        let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
+        let max_occurs = self.max_occurs.unwrap_or(MaxOccursValue::Bounded(1));
+
+        let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
+
         Ok(ToTypeTemplateData {
             ident: None,
-            template,
+            template: ItemFieldItem {
+                ty,
+                default: optional,
+            },
         })
     }
 }
@@ -126,10 +166,27 @@ impl ToTypeTemplate for cx::AnyFragment {
 
     fn to_type_template<C: Context, S: Scope>(
         &self,
-        context: &C,
-        scope: &mut S,
+        _context: &C,
+        _scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         todo!()
+    }
+}
+
+impl ToTypeTemplate for cx::GroupRefFragment {
+    type TypeTemplate = TypeReference<'static>;
+
+    fn to_type_template<C: Context, S: Scope>(
+        &self,
+        context: &C,
+        _scope: &mut S,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let ty = context.resolve_named_group(&self.ref_)?;
+
+        Ok(ToTypeTemplateData {
+            ident: Some(self.ref_.local_name().to_item_ident()),
+            template: ty,
+        })
     }
 }
 
@@ -147,15 +204,12 @@ pub enum GroupTypeContentTemplate {
 impl GroupTypeContentTemplate {
     fn to_variant<C: Context, S: Scope>(
         self,
-        context: &C,
+        _context: &C,
         scope: &mut S,
         ident: &syn::Ident,
         path: Option<&syn::Path>,
     ) -> Result<choice::ChoiceVariantType> {
         match self {
-            // GroupTypeContentTemplate::Record(item_record) => {
-            //     Ok(ChoiceVariantType::Item(item_record))
-            // }
             GroupTypeContentTemplate::ElementRecord {
                 record,
                 min_occurs,
@@ -166,11 +220,15 @@ impl GroupTypeContentTemplate {
                 } else {
                     let ty = scope.add_item(record.to_struct(ident, path))?;
 
-                    let ty = super::min_max_occurs_type(min_occurs, max_occurs, ty);
+                    let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
 
                     Ok(ChoiceVariantType::Item(ItemRecord::new_single_field(
                         None,
-                        ItemField::Item(ItemFieldItem { ty }),
+                        ItemField::Item(ItemFieldItem {
+                            ty,
+
+                            default: optional,
+                        }),
                     )))
                 }
             }
@@ -188,22 +246,21 @@ impl GroupTypeContentTemplate {
         path: Option<&syn::Path>,
     ) -> Result<ItemField> {
         match self {
-            // GroupTypeContentTemplate::Record(record) => scope
-            //     .add_item(record.to_struct(ident, path))
-            //     .map(|ty| ItemField::Item(ItemFieldItem { ty })),
             GroupTypeContentTemplate::ElementRecord {
                 record,
                 min_occurs,
                 max_occurs,
             } => {
                 let optional = min_occurs == 0;
-                let res = record.try_into_compact_item_field(optional, optional);
+                let res = record.try_into_compact_item_field(optional);
 
                 let record = match res {
                     Ok(mut field_element) => {
                         field_element.ty = field_element
                             .ty
                             .wrap_if(optional, |ty| parse_quote! { Option<#ty> });
+                        field_element.optional = optional;
+                        field_element.default = optional;
 
                         return Ok(ItemField::Element(field_element));
                     }
@@ -212,11 +269,15 @@ impl GroupTypeContentTemplate {
 
                 let ty = scope.add_item(record.to_struct(ident, path))?;
 
-                let ty = super::min_max_occurs_type(min_occurs, max_occurs, ty);
+                let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
 
-                Ok(ItemField::Item(ItemFieldItem { ty }))
+                Ok(ItemField::Item(ItemFieldItem {
+                    ty,
+
+                    default: optional,
+                }))
             }
-            GroupTypeContentTemplate::Item(item) => return Ok(ItemField::Item(item)),
+            GroupTypeContentTemplate::Item(item) => Ok(ItemField::Item(item)),
         }
     }
 }
@@ -253,30 +314,51 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
                     ident: res.ident,
                     template: res.template.into(),
                 }),
-            cx::GroupTypeContentId::Group(fragment_idx) => todo!(),
-            cx::GroupTypeContentId::All(fragment_idx) => todo!(),
-            cx::GroupTypeContentId::Choice(fragment_idx) => {
+            cx::GroupTypeContentId::Group(fragment_idx) => context
+                .resolve_fragment_id(fragment_idx, scope)
+                .map(|res| ToTypeTemplateData {
+                    ident: res.ident,
+                    template: GroupTypeContentTemplate::Item(ItemFieldItem {
+                        ty: res.template,
+                        default: false,
+                    }),
+                }),
+            cx::GroupTypeContentId::All(fragment_idx) => {
                 let mut sub_scope = GeneratorScope::new();
                 let record = context.resolve_fragment_id(fragment_idx, &mut sub_scope)?;
 
                 let ident = record
                     .ident
-                    .unwrap_or_else(|| format_ident!("SimpleSequenceChild"));
+                    .as_ref()
+                    .unwrap_or_else(|| context.suggested_ident());
 
-                let mod_name = format_ident!("{}_items", ident);
+                let mod_name = format_ident!("{}_items", ident.to_path_ident());
 
-                let mod_ref = sub_scope
+                let _mod_ref = sub_scope
                     .finish_mod(&mod_name)
                     .map(|a| scope.add_item(a))
                     .transpose()?;
 
                 let mod_path = parse_quote!(#mod_name);
 
-                let item = record.template.to_enum(&ident, Some(&mod_path));
+                let item = record.template.to_struct(ident, Some(&mod_path));
 
                 let item = scope.add_item(item)?;
 
-                let template = GroupTypeContentTemplate::Item(ItemFieldItem { ty: item });
+                let template = GroupTypeContentTemplate::Item(ItemFieldItem {
+                    ty: item,
+                    default: false,
+                });
+
+                Ok(ToTypeTemplateData {
+                    ident: None,
+                    template,
+                })
+            }
+            cx::GroupTypeContentId::Choice(fragment_idx) => {
+                let record = context.resolve_fragment_id(fragment_idx, scope)?;
+
+                let template = GroupTypeContentTemplate::Item(record.template);
 
                 Ok(ToTypeTemplateData {
                     ident: None,
@@ -289,22 +371,23 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
 
                 let ident = record
                     .ident
-                    .unwrap_or_else(|| format_ident!("SimpleSequenceChild"));
+                    .as_ref()
+                    .unwrap_or_else(|| context.suggested_ident());
 
-                let mod_name = format_ident!("{}_items", ident);
+                let mod_name = format_ident!("{}_items", ident.to_path_ident());
 
-                let mod_ref = sub_scope
+                let _mod_ref = sub_scope
                     .finish_mod(&mod_name)
                     .map(|a| scope.add_item(a))
                     .transpose()?;
 
                 let mod_path = parse_quote!(#mod_name);
 
-                let item = record.template.to_struct(&ident, Some(&mod_path));
+                let item = record.template.to_struct(ident, Some(&mod_path));
 
-                let item = scope.add_item(item)?;
+                let ty = scope.add_item(item)?;
 
-                let template = GroupTypeContentTemplate::Item(ItemFieldItem { ty: item });
+                let template = GroupTypeContentTemplate::Item(ItemFieldItem { ty, default: false });
 
                 Ok(ToTypeTemplateData {
                     ident: None,
@@ -319,7 +402,7 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
 
                 Ok(ToTypeTemplateData {
                     ident: any.ident,
-                    template: GroupTypeContentTemplate::Item(ItemFieldItem { ty }),
+                    template: GroupTypeContentTemplate::Item(ItemFieldItem { ty, default: false }),
                 })
             }
         }
@@ -345,7 +428,7 @@ impl ToTypeTemplate for cx::TypeDefParticleId {
                 let all = context.resolve_fragment_id(fragment_idx, scope)?;
 
                 Ok(ToTypeTemplateData {
-                    ident: None,
+                    ident: all.ident,
                     template: TypeDefParticleTemplate::Record(all.template),
                 })
             }
@@ -353,7 +436,7 @@ impl ToTypeTemplate for cx::TypeDefParticleId {
                 let sequence = context.resolve_fragment_id(fragment_idx, scope)?;
 
                 Ok(ToTypeTemplateData {
-                    ident: None,
+                    ident: sequence.ident,
                     template: TypeDefParticleTemplate::Record(sequence.template),
                 })
             }
@@ -362,16 +445,13 @@ impl ToTypeTemplate for cx::TypeDefParticleId {
 
                 let ident = choice
                     .ident
-                    .unwrap_or_else(|| format_ident!("SimpleSequenceChild"));
+                    .as_ref()
+                    .unwrap_or_else(|| context.suggested_ident());
 
-                let choice = choice.template.to_enum(&ident, None);
-
-                let ty = scope.add_item(choice)?;
-
-                let template = TypeDefParticleTemplate::Item(ItemFieldItem { ty });
+                let template = TypeDefParticleTemplate::Item(choice.template);
 
                 Ok(ToTypeTemplateData {
-                    ident: None,
+                    ident: Some(ident.clone()),
                     template,
                 })
             }
@@ -384,30 +464,22 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use syn::{parse_quote, Item};
-    use xmlity::{ExpandedName, LocalName, XmlNamespace};
+    use xmlity::{LocalName, XmlNamespace};
     use xsd::schema as xs;
-    use xsd_type_compiler::{complex::ANY_TYPE_EXPANDED_NAME, CompiledNamespace, XmlnsContext};
+    use xsd::schema_names as xsn;
+    use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
-    use crate::{Generator, TypeType};
+    use crate::Generator;
 
     #[test]
     fn three_choice_sequence_deep_element() {
-        let integer_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("integer"),
-            XmlNamespace::XMLNS.into(),
-        );
-        let string_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("string"),
-            XmlNamespace::XMLNS.into(),
-        );
-
         let sequence = xs::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .content(
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .particle(
                                 xs::SequenceType::builder()
                                     .content(vec![
@@ -415,31 +487,23 @@ mod tests {
                                             .content(vec![
                                                 xs::SequenceType::builder()
                                                     .content(vec![xs::LocalElement::builder()
-                                                        .name(xs::Name(LocalName::new_dangerous(
-                                                            "a",
-                                                        )))
-                                                        .type_(xs::Type(xs::QName(
-                                                            integer_expanded_name.clone(),
-                                                        )))
+                                                        .name(LocalName::new_dangerous("a"))
+                                                        .type_(xs::QName(xsn::INTEGER.clone()))
                                                         .build()
                                                         .into()])
                                                     .build()
                                                     .into(),
                                                 xs::LocalElement::builder()
-                                                    .name(xs::Name(LocalName::new_dangerous("b")))
-                                                    .type_(xs::Type(xs::QName(
-                                                        string_expanded_name.clone(),
-                                                    )))
+                                                    .name(LocalName::new_dangerous("b"))
+                                                    .type_(xs::QName(xsn::STRING.clone()))
                                                     .build()
                                                     .into(),
                                             ])
                                             .build()
                                             .into(),
                                         xs::LocalElement::builder()
-                                            .name(xs::Name(LocalName::new_dangerous("c")))
-                                            .type_(xs::Type(xs::QName(
-                                                string_expanded_name.clone(),
-                                            )))
+                                            .name(LocalName::new_dangerous("c"))
+                                            .type_(xs::QName(xsn::STRING.clone()))
                                             .build()
                                             .into(),
                                     ])
@@ -468,38 +532,28 @@ mod tests {
 
         let mut generator = Generator::new(&context);
 
-        generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
-        generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
+        generator.bind_types(crate::binds::StdXsdTypes);
 
         let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
-
-        // let print_code = actual_items
-        //     .iter()
-        //     .map(|item| item.to_token_stream())
-        //     .collect::<proc_macro2::TokenStream>();
-        // println!(
-        //     "{}",
-        //     prettyplease::unparse(&syn::parse2(print_code).unwrap())
-        // );
 
         #[rustfmt::skip]
         let expected_items: Vec<Item> = vec![
             parse_quote!(
-                pub mod SimpleSequence_items {
-                    pub mod SimpleSequenceChild_items {
+                pub mod simple_sequence_items {
+                    pub mod child_0_items {
                         #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
                         #[xvalue(children_order = "strict")]
-                        pub struct SimpleSequenceChild {
+                        pub struct Variant0 {
                             #[xelement(name = "a", namespace = "http://example.com")]
                             pub a: i32,
                         }
                     }
 
                     #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                    pub enum SimpleSequenceChild {
-                        field_0(SimpleSequenceChild_items::SimpleSequenceChild),
+                    pub enum Child0 {
+                        Variant0(child_0_items::Variant0),
                         #[xelement(name = "b", namespace = "http://example.com")]
-                        b(String),
+                        B(String),
                     }
                 }
             ),
@@ -507,7 +561,7 @@ mod tests {
                 #[derive(::core::fmt::Debug, ::xmlity::SerializationGroup, ::xmlity::DeserializationGroup)]
                 #[xgroup(children_order = "strict")]
                 pub struct SimpleSequence {
-                    pub field_0: SimpleSequence_items::SimpleSequenceChild,
+                    pub child_0: simple_sequence_items::Child0,
                     #[xelement(name = "c", namespace = "http://example.com")]
                     pub c: String,
                 }

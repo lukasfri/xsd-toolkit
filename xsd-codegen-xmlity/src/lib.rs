@@ -1,3 +1,4 @@
+pub mod binds;
 mod complex;
 pub mod misc;
 mod simple;
@@ -6,11 +7,11 @@ pub mod templates;
 use std::collections::HashMap;
 
 use complex::{Scope, ToTypeTemplate, ToTypeTemplateData};
+use inflector::Inflector;
 use misc::TypeReference;
 use quote::format_ident;
-use simple::Context;
 use syn::{parse_quote, Ident, Item, ItemMod};
-use xmlity::{ExpandedName, XmlNamespace};
+use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_type_compiler::{
     complex::{ComplexTypeFragmentCompiler, FragmentAccess},
     CompiledNamespace,
@@ -22,17 +23,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 pub struct Generator<'a> {
     pub context: &'a xsd_type_compiler::XmlnsContext,
-    pub bound_namespaces: HashMap<XmlNamespace<'static>, Ident>,
-    pub bound_types: HashMap<ExpandedName<'static>, (syn::Type, TypeType)>,
+    pub bound_namespaces: HashMap<XmlNamespace<'static>, syn::Path>,
+    pub bound_types: HashMap<ExpandedName<'static>, BoundType>,
     pub bound_elements: HashMap<ExpandedName<'static>, syn::Type>,
     pub bound_attributes: HashMap<ExpandedName<'static>, syn::Type>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum NamedTypeClass {
-    Type,
-    Element,
-    Attribute,
+    pub bound_groups: HashMap<ExpandedName<'static>, syn::Type>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -41,20 +36,92 @@ pub enum TypeType {
     Complex,
 }
 
+pub trait ToIdentTypesExt {
+    fn to_item_ident(&self) -> Ident;
+    fn to_field_ident(&self) -> Ident;
+    fn to_variant_ident(&self) -> Ident;
+    fn to_path_ident(&self) -> Ident;
+}
+
+impl ToIdentTypesExt for LocalName<'_> {
+    fn to_item_ident(&self) -> Ident {
+        format_ident!(
+            "{}",
+            misc::unkeywordify(self.to_string().to_pascal_case().as_str())
+        )
+    }
+    fn to_field_ident(&self) -> Ident {
+        format_ident!(
+            "{}",
+            misc::unkeywordify(self.to_string().to_snake_case().as_str())
+        )
+    }
+
+    fn to_variant_ident(&self) -> Ident {
+        format_ident!(
+            "{}",
+            misc::unkeywordify(self.to_string().to_pascal_case().as_str())
+        )
+    }
+
+    fn to_path_ident(&self) -> Ident {
+        format_ident!(
+            "{}",
+            misc::unkeywordify(self.to_string().to_snake_case().as_str())
+        )
+    }
+}
+
+impl ToIdentTypesExt for Ident {
+    fn to_item_ident(&self) -> Ident {
+        format_ident!(
+            "{}",
+            misc::unkeywordify(self.to_string().to_pascal_case().as_str())
+        )
+    }
+
+    fn to_field_ident(&self) -> Ident {
+        format_ident!(
+            "{}",
+            misc::unkeywordify(self.to_string().to_snake_case().as_str())
+        )
+    }
+
+    fn to_variant_ident(&self) -> Ident {
+        format_ident!(
+            "{}",
+            misc::unkeywordify(self.to_string().to_pascal_case().as_str())
+        )
+    }
+
+    fn to_path_ident(&self) -> Ident {
+        format_ident!(
+            "{}",
+            misc::unkeywordify(self.to_string().to_snake_case().as_str())
+        )
+    }
+}
+
 struct GeneratorContext<'a> {
     generator: &'a Generator<'a>,
     namespace: &'a XmlNamespace<'a>,
+    suggested_ident: Ident,
 }
 
 impl<'a> GeneratorContext<'a> {
-    fn new(generator: &'a Generator<'a>, namespace: &'a XmlNamespace<'a>) -> Self {
+    pub fn new(
+        generator: &'a Generator<'a>,
+        namespace: &'a XmlNamespace<'a>,
+        suggested_ident: Ident,
+    ) -> Self {
         Self {
             generator,
             namespace,
+            suggested_ident,
         }
     }
 
-    fn current_namespace(&self) -> &CompiledNamespace {
+    pub fn current_namespace(&self) -> &CompiledNamespace {
         self.generator
             .context
             .namespaces
@@ -63,35 +130,21 @@ impl<'a> GeneratorContext<'a> {
     }
 }
 
-impl simple::Context for GeneratorContext<'_> {
-    fn get_named_type(
-        &self,
-        expanded_name: &ExpandedName<'_>,
-        class: NamedTypeClass,
-    ) -> Result<Option<syn::Type>> {
-        let namespace_ident = self
-            .generator
-            .bound_namespaces
-            .get(expanded_name.namespace().unwrap());
-
-        let Some(namespace_ident) = namespace_ident else {
-            return Ok(None);
-        };
-
-        let local_name_ident = Ident::new(
-            &expanded_name.local_name().to_string(),
-            proc_macro2::Span::call_site(),
-        );
-
-        Ok(Some(parse_quote!(#namespace_ident::#local_name_ident)))
-    }
+impl<'c> complex::Context for GeneratorContext<'c> {
+    type SubContext = GeneratorContext<'c>;
 
     fn namespace(&self) -> &XmlNamespace<'_> {
         self.namespace
     }
-}
 
-impl complex::Context for GeneratorContext<'_> {
+    fn sub_context(&self, suggested_ident: Ident) -> Self::SubContext {
+        Self::new(self.generator, self.namespace, suggested_ident)
+    }
+
+    fn suggested_ident(&self) -> &Ident {
+        &self.suggested_ident
+    }
+
     fn resolve_fragment<F: ToTypeTemplate, S: Scope>(
         &self,
         fragment: &F,
@@ -117,27 +170,91 @@ impl complex::Context for GeneratorContext<'_> {
         fragment.to_type_template(self, scope)
     }
 
-    fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<(syn::Type, TypeType)> {
-        if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
-            return Ok(bound_type.clone());
+    fn resolve_named_type(
+        &self,
+        name: &ExpandedName<'_>,
+    ) -> Result<(TypeReference<'static>, TypeType)> {
+        if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()).cloned() {
+            let ty = TypeReference::new_static(bound_type.ty);
+
+            return Ok((ty, bound_type.type_type));
         }
 
-        todo!()
+        let namespace_crate = self
+            .generator
+            .bound_namespaces
+            .get(name.namespace().unwrap())
+            .unwrap();
+
+        let name = name.local_name().to_item_ident();
+        let ty: syn::Type = parse_quote!(#namespace_crate::#name);
+
+        Ok((TypeReference::new_static(ty), TypeType::Complex))
     }
 
-    fn resolve_named_element(&self, _name: &ExpandedName<'_>) -> Result<syn::Type> {
-        todo!()
+    fn resolve_named_element(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
+        if let Some(ty) = self.generator.bound_elements.get(&name.as_ref()).cloned() {
+            let ty = TypeReference::new_static(ty);
+
+            return Ok(ty);
+        }
+
+        let namespace_crate = self
+            .generator
+            .bound_namespaces
+            .get(name.namespace().unwrap())
+            .unwrap();
+
+        let name = name.local_name().to_item_ident();
+        let ty: syn::Type = parse_quote!(#namespace_crate::#name);
+
+        Ok(TypeReference::new_static(ty))
     }
 
-    fn resolve_named_attribute(&self, _name: &ExpandedName<'_>) -> Result<syn::Type> {
-        todo!()
+    fn resolve_named_attribute(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
+        if let Some(ty) = self.generator.bound_attributes.get(&name.as_ref()).cloned() {
+            let ty = TypeReference::new_static(ty);
+
+            return Ok(ty);
+        }
+
+        let namespace_crate = self
+            .generator
+            .bound_namespaces
+            .get(name.namespace().unwrap())
+            .unwrap();
+
+        let name = name.local_name().to_item_ident();
+        let ty: syn::Type = parse_quote!(#namespace_crate::#name);
+
+        Ok(TypeReference::new_static(ty))
     }
 
     fn to_expanded_name(&self, local_name: xmlity::LocalName<'static>) -> ExpandedName<'static> {
         ExpandedName::new(local_name, Some(self.namespace().clone().into_owned()))
     }
+
+    fn resolve_named_group(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
+        if let Some(ty) = self.generator.bound_groups.get(&name.as_ref()).cloned() {
+            let ty = TypeReference::new_static(ty);
+
+            return Ok(ty);
+        }
+
+        let namespace_crate = self
+            .generator
+            .bound_namespaces
+            .get(name.namespace().unwrap())
+            .unwrap();
+
+        let name = name.local_name().to_item_ident();
+        let ty: syn::Type = parse_quote!(#namespace_crate::#name);
+
+        Ok(TypeReference::new_static(ty))
+    }
 }
 
+#[derive(Debug)]
 struct GeneratorScope {
     items: Vec<Item>,
 }
@@ -185,6 +302,14 @@ impl GeneratorScope {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct BoundType {
+    pub ty: syn::Type,
+    pub type_type: TypeType,
+    pub serialize_with: Option<syn::Path>,
+    pub deserialize_with: Option<syn::Path>,
+}
+
 impl<'a> Generator<'a> {
     pub fn new(context: &'a xsd_type_compiler::XmlnsContext) -> Self {
         Self {
@@ -193,11 +318,25 @@ impl<'a> Generator<'a> {
             bound_types: HashMap::new(),
             bound_elements: HashMap::new(),
             bound_attributes: HashMap::new(),
+            bound_groups: HashMap::new(),
         }
     }
 
-    pub fn bind_type(&mut self, name: ExpandedName<'static>, ty: syn::Type, type_type: TypeType) {
-        self.bound_types.insert(name, (ty, type_type));
+    pub fn bind_namespace(&mut self, namespace: XmlNamespace<'static>, path: syn::Path) {
+        self.bound_namespaces.insert(namespace, path);
+    }
+
+    pub fn bind_type(&mut self, name: ExpandedName<'static>, bound_type: BoundType) {
+        self.bound_types.insert(name, bound_type);
+    }
+
+    pub fn bind_types<T: IntoIterator<Item = (ExpandedName<'static>, BoundType)>>(
+        &mut self,
+        types: T,
+    ) {
+        for (name, bound_type) in types {
+            self.bind_type(name, bound_type);
+        }
     }
 
     pub fn bind_element(&mut self, name: ExpandedName<'static>, ty: syn::Type) {
@@ -252,23 +391,23 @@ impl<'a> Generator<'a> {
             .unwrap(); // TODO: handle this error properly with a better error messa
 
         match type_ {
-            xsd_type_compiler::TopLevelType::Simple(type_) => todo!(),
+            xsd_type_compiler::TopLevelType::Simple(_type_) => todo!(),
             xsd_type_compiler::TopLevelType::Complex(type_) => {
                 let fragment = compiled_namespace
                     .complex_type
                     .get_fragment(&type_.root_fragment)
                     .unwrap();
 
-                let local_name = name.local_name().to_string();
-                let module_name = format_ident!("{local_name}_items");
-                let context = GeneratorContext::new(self, name.namespace().unwrap());
+                let item_name = name.local_name().to_item_ident();
+                let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
+                let context =
+                    GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
                 let mut scope = GeneratorScope::new();
 
                 let type_ = fragment.to_type_template(&context, &mut scope)?;
-                let struct_name = format_ident!("{local_name}");
                 let item = type_
                     .template
-                    .to_struct(&struct_name, Some(&parse_quote!(#module_name)));
+                    .to_struct(&item_name, Some(&parse_quote!(#module_name)));
                 let mut items = scope
                     .finish_mod(&module_name)
                     .map(|i| vec![Item::Mod(i)])
@@ -276,7 +415,7 @@ impl<'a> Generator<'a> {
 
                 items.push(Item::Struct(item));
 
-                let type_ = TypeReference::new_prefix(parse_quote!(#struct_name));
+                let type_ = TypeReference::new_prefix(parse_quote!(#item_name));
 
                 Ok((type_, items))
             }
@@ -304,16 +443,15 @@ impl<'a> Generator<'a> {
             .get_fragment(&attribute.root_fragment)
             .unwrap();
 
-        let local_name = name.local_name().to_string();
-        let module_name = format_ident!("{local_name}_items");
-        let context = GeneratorContext::new(self, name.namespace().unwrap());
+        let item_name = name.local_name().to_item_ident();
+        let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
+        let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
         let mut scope = GeneratorScope::new();
 
         let type_ = fragment.to_type_template(&context, &mut scope)?;
-        let struct_name = format_ident!("{local_name}");
         let item = type_
             .template
-            .to_struct(&struct_name, Some(&parse_quote!(#module_name)));
+            .to_struct(&item_name, Some(&parse_quote!(#module_name)));
         let mut items = scope
             .finish_mod(&module_name)
             .map(|i| vec![Item::Mod(i)])
@@ -321,7 +459,7 @@ impl<'a> Generator<'a> {
 
         items.push(Item::Struct(item));
 
-        let type_ = TypeReference::new_prefix(parse_quote!(#struct_name));
+        let type_ = TypeReference::new_prefix(parse_quote!(#item_name));
 
         Ok((type_, items))
     }
@@ -347,16 +485,15 @@ impl<'a> Generator<'a> {
             .get_fragment(&element.root_fragment)
             .unwrap();
 
-        let local_name = name.local_name().to_string();
-        let module_name = format_ident!("{local_name}_items");
-        let context = GeneratorContext::new(self, name.namespace().unwrap());
+        let item_name = name.local_name().to_item_ident();
+        let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
+        let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
         let mut scope = GeneratorScope::new();
 
         let type_ = fragment.to_type_template(&context, &mut scope)?;
-        let struct_name = format_ident!("{local_name}");
         let item = type_
             .template
-            .to_struct(&struct_name, Some(&parse_quote!(#module_name)));
+            .to_struct(&item_name, Some(&parse_quote!(#module_name)));
         let mut items = scope
             .finish_mod(&module_name)
             .map(|i| vec![Item::Mod(i)])
@@ -364,7 +501,7 @@ impl<'a> Generator<'a> {
 
         items.push(Item::Struct(item));
 
-        let type_ = TypeReference::new_prefix(parse_quote!(#struct_name));
+        let type_ = TypeReference::new_prefix(parse_quote!(#item_name));
 
         Ok((type_, items))
     }

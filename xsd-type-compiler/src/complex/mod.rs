@@ -7,7 +7,6 @@ pub mod transformers;
 use std::{
     collections::{BTreeMap, VecDeque},
     marker::PhantomData,
-    sync::LazyLock,
 };
 
 use crate::{
@@ -273,7 +272,7 @@ impl<T> FragmentCollection<T> {
         fragment_id
     }
 
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.fragments.len()
     }
 }
@@ -316,6 +315,7 @@ pub struct ComplexTypeFragmentCompiler {
     pub top_level_elements: FragmentCollection<TopLevelElementFragment>,
     pub local_attributes: FragmentCollection<LocalAttributeFragment>,
     pub top_level_attributes: FragmentCollection<TopLevelAttributeFragment>,
+    pub attribute_group_refs: FragmentCollection<AttributeGroupRefFragment>,
     pub simple_types: FragmentCollection<SimpleTypeFragment>,
 }
 
@@ -461,6 +461,17 @@ impl HasFragmentCollection<TopLevelAttributeFragment> for ComplexTypeFragmentCom
     }
 }
 
+impl HasFragmentCollection<AttributeGroupRefFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<AttributeGroupRefFragment> {
+        &self.attribute_group_refs
+    }
+    fn get_fragment_collection_mut(
+        &mut self,
+    ) -> &mut FragmentCollection<AttributeGroupRefFragment> {
+        &mut self.attribute_group_refs
+    }
+}
+
 impl HasFragmentCollection<SimpleTypeFragment> for ComplexTypeFragmentCompiler {
     fn get_fragment_collection(&self) -> &FragmentCollection<SimpleTypeFragment> {
         &self.simple_types
@@ -514,6 +525,7 @@ impl ComplexTypeFragmentCompiler {
             top_level_elements: FragmentCollection::new(),
             local_attributes: FragmentCollection::new(),
             top_level_attributes: FragmentCollection::new(),
+            attribute_group_refs: FragmentCollection::new(),
             simple_types: FragmentCollection::new(),
         }
     }
@@ -566,7 +578,7 @@ pub enum ElementTypeContentId {
     ComplexType(FragmentIdx<ComplexTypeRootFragment>),
 }
 
-impl ComplexFragmentEquivalent for xs::ElementTypeContent {
+impl ComplexFragmentEquivalent for xs::types::top_level_element_items::Child1 {
     type FragmentId = ElementTypeContentId;
 
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
@@ -576,12 +588,12 @@ impl ComplexFragmentEquivalent for xs::ElementTypeContent {
         let mut compiler = compiler.as_mut();
 
         match self {
-            xs::ElementTypeContent::SimpleType(local_simple_type) => {
+            xs::types::top_level_element_items::Child1::SimpleType(local_simple_type) => {
                 let simple_type_fragment = local_simple_type.to_simple_fragments(&mut compiler);
 
                 ElementTypeContentId::SimpleType(simple_type_fragment)
             }
-            xs::ElementTypeContent::ComplexType(local_complex_type) => {
+            xs::types::top_level_element_items::Child1::ComplexType(local_complex_type) => {
                 let complex_type_fragment = local_complex_type.to_complex_fragments(compiler);
 
                 ElementTypeContentId::ComplexType(complex_type_fragment)
@@ -598,11 +610,11 @@ impl ComplexFragmentEquivalent for xs::ElementTypeContent {
         match fragment_id {
             ElementTypeContentId::SimpleType(fragment_id) => {
                 xs::LocalSimpleType::from_complex_fragments(compiler, fragment_id)
-                    .map(xs::ElementTypeContent::from)
+                    .map(xs::types::top_level_element_items::Child1::SimpleType)
             }
             ElementTypeContentId::ComplexType(fragment_idx) => {
                 xs::LocalComplexType::from_complex_fragments(compiler, fragment_idx)
-                    .map(xs::ElementTypeContent::from)
+                    .map(xs::types::top_level_element_items::Child1::ComplexType)
             }
         }
     }
@@ -622,17 +634,16 @@ impl ComplexFragmentEquivalent for xs::LocalElement {
 
         let type_ = if let Some(ref_) = self.ref_.as_ref() {
             LocalElementFragmentType::Reference(ReferenceElementFragment {
-                name: ref_.0 .0.clone(),
+                name: ref_.0.clone(),
             })
         } else {
             let name = self
                 .name
-                .as_ref()
-                .map(|a| a.0.clone())
+                .clone()
                 .expect("If ref is none, type_choice should be Some");
 
             let type_ = if let Some(type_) = self.type_.as_ref() {
-                NamedOrAnonymous::Named(type_.0 .0.clone())
+                NamedOrAnonymous::Named(type_.0.clone())
             } else {
                 let type_choice = self
                     .type_choice
@@ -668,17 +679,20 @@ impl ComplexFragmentEquivalent for xs::LocalElement {
 
         match &fragment.type_ {
             LocalElementFragmentType::Local(fragment) => Ok(element_builder
-                .name(xs::Name(fragment.name.clone()))
+                .name(fragment.name.clone())
                 .maybe_type_(match &fragment.type_ {
                     NamedOrAnonymous::Named(expanded_name) => {
-                        Some(xs::Type(xs::QName(expanded_name.clone())))
+                        Some(xs::QName(expanded_name.clone()))
                     }
                     NamedOrAnonymous::Anonymous(_) => None,
                 })
                 .maybe_type_choice(
                     match &fragment.type_ {
                         NamedOrAnonymous::Anonymous(content_type) => Some(
-                            xs::ElementTypeContent::from_complex_fragments(compiler, content_type),
+                            xs::types::top_level_element_items::Child1::from_complex_fragments(
+                                compiler,
+                                content_type,
+                            ),
                         ),
                         NamedOrAnonymous::Named(_) => None,
                     }
@@ -686,7 +700,7 @@ impl ComplexFragmentEquivalent for xs::LocalElement {
                 )
                 .build()),
             LocalElementFragmentType::Reference(fragment) => Ok(element_builder
-                .ref_(xs::Ref(xs::QName(fragment.name.clone())))
+                .ref_(xs::QName(fragment.name.clone()))
                 .build()),
         }
     }
@@ -701,13 +715,14 @@ impl ComplexFragmentEquivalent for xs::TopLevelElement {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let name = self.name.0.clone();
+        let name = self.0.name.clone();
 
-        let type_ = if let Some(type_) = self.type_.as_ref() {
-            NamedOrAnonymous::Named(type_.0 .0.clone())
+        let type_ = if let Some(type_) = self.0.type_.as_ref() {
+            NamedOrAnonymous::Named(type_.0.clone())
         } else {
             let type_choice = self
-                .type_choice
+                .0
+                .child_1
                 .as_ref()
                 .expect("If ref is none and type is none, type_choice should be Some");
 
@@ -727,24 +742,29 @@ impl ComplexFragmentEquivalent for xs::TopLevelElement {
 
         let fragment = compiler.get_fragment(fragment_id).unwrap();
 
-        Ok(xs::TopLevelElement::builder()
-            .name(xs::Name(fragment.name.clone()))
-            .maybe_type_(match &fragment.type_ {
-                NamedOrAnonymous::Named(expanded_name) => {
-                    Some(xs::Type(xs::QName(expanded_name.clone())))
-                }
-                NamedOrAnonymous::Anonymous(_) => None,
-            })
-            .maybe_type_choice(
-                match &fragment.type_ {
-                    NamedOrAnonymous::Anonymous(content_type) => Some(
-                        xs::ElementTypeContent::from_complex_fragments(compiler, content_type),
-                    ),
-                    NamedOrAnonymous::Named(_) => None,
-                }
-                .transpose()?,
-            )
-            .build())
+        Ok(xs::TopLevelElement(
+            xs::types::TopLevelElement::builder()
+                .name(fragment.name.clone())
+                .maybe_type_(match &fragment.type_ {
+                    NamedOrAnonymous::Named(expanded_name) => {
+                        Some(xs::QName(expanded_name.clone()))
+                    }
+                    NamedOrAnonymous::Anonymous(_) => None,
+                })
+                .maybe_child_1(
+                    match &fragment.type_ {
+                        NamedOrAnonymous::Anonymous(content_type) => Some(
+                            xs::types::top_level_element_items::Child1::from_complex_fragments(
+                                compiler,
+                                content_type,
+                            ),
+                        ),
+                        NamedOrAnonymous::Named(_) => None,
+                    }
+                    .transpose()?,
+                )
+                .build(),
+        ))
     }
 }
 
@@ -758,7 +778,7 @@ impl ComplexFragmentEquivalent for xs::GroupRef {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(GroupRefFragment {
-            ref_: self.ref_.0 .0.clone(),
+            ref_: self.ref_.0.clone(),
         })
     }
 
@@ -772,7 +792,7 @@ impl ComplexFragmentEquivalent for xs::GroupRef {
 
         Ok(xs::GroupRef {
             id: None,
-            ref_: xs::Ref(xs::QName(fragment.ref_.clone())),
+            ref_: xs::QName(fragment.ref_.clone()),
             annotation: None,
         })
     }
@@ -937,9 +957,9 @@ impl ComplexFragmentEquivalent for xs::AllType {
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
         compiler: T,
-        fragment_id: &Self::FragmentId,
+        _fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
+        let _compiler = compiler.as_ref();
 
         todo!()
     }
@@ -1045,7 +1065,7 @@ impl ComplexFragmentEquivalent for xs::TypeDefParticle {
 
         match self {
             xs::TypeDefParticle::Group(group_ref) => {
-                let ref_ = group_ref.ref_.0 .0.clone();
+                let ref_ = group_ref.ref_.0.clone();
 
                 compiler.push_fragment(GroupRefFragment { ref_ }).into()
             }
@@ -1092,7 +1112,7 @@ impl ComplexFragmentEquivalent for xs::ExtensionType {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let base = self.base.0 .0.clone();
+        let base = self.base.0.clone();
 
         let content_fragment = self
             .particle
@@ -1135,7 +1155,7 @@ impl ComplexFragmentEquivalent for xs::ExtensionType {
             .collect::<Result<_, _>>()?;
 
         Ok(Self {
-            base: xs::Base(xs::QName(extension.base.clone())),
+            base: xs::QName(extension.base.clone()),
             particle,
             id: None,
             annotation: None,
@@ -1154,7 +1174,7 @@ impl ComplexFragmentEquivalent for xs::ComplexRestrictionType {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let base = self.base.0 .0.clone();
+        let base = self.base.0.clone();
 
         let content_fragment = self
             .particle
@@ -1197,12 +1217,13 @@ impl ComplexFragmentEquivalent for xs::ComplexRestrictionType {
 
         Ok(xs::ComplexRestrictionType {
             annotation: None,
-            base: xs::Base(xs::QName(fragment.base.clone())),
+            base: xs::QName(fragment.base.clone()),
             id: None,
             simple_type: None,
             open_content: None,
             particle,
             attributes,
+            any_attributes: Vec::new(),
         })
     }
 }
@@ -1250,15 +1271,19 @@ impl ComplexFragmentEquivalent for xs::LocalSimpleType {
 
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
-        compiler: T,
+        mut compiler: T,
     ) -> Self::FragmentId {
-        todo!()
+        let compiler = compiler.as_mut();
+
+        self.to_simple_fragments(&mut compiler.simple_type_fragments)
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
         compiler: T,
-        fragment_id: &Self::FragmentId,
+        _fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
+        let _compiler = compiler.as_ref();
+
         todo!()
     }
 }
@@ -1272,7 +1297,7 @@ impl ComplexFragmentEquivalent for xs::LocalAttribute {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let use_ = self.use_.as_ref().map(|a| match a.0 {
+        let use_ = self.use_.as_ref().map(|a| match a {
             xs::AttributeUseType::Prohibited => AttributeUse::Prohibited,
             xs::AttributeUseType::Optional => AttributeUse::Optional,
             xs::AttributeUseType::Required => AttributeUse::Required,
@@ -1280,7 +1305,7 @@ impl ComplexFragmentEquivalent for xs::LocalAttribute {
 
         let type_mode = if let Some(ref ref_) = self.ref_ {
             LocalAttributeFragmentTypeMode::Reference(ReferenceAttributeFragment {
-                name: ref_.0 .0.clone(),
+                name: ref_.0.clone(),
             })
         } else {
             let name = self
@@ -1289,17 +1314,15 @@ impl ComplexFragmentEquivalent for xs::LocalAttribute {
                 .expect("name is required if not a reference");
 
             let type_ = if let Some(type_) = self.type_.as_ref() {
-                Some(NamedOrAnonymous::Named(type_.0 .0.clone()))
-            } else if let Some(simple_type) = self.simple_type.as_ref() {
-                Some(NamedOrAnonymous::Anonymous(
-                    simple_type.to_complex_fragments(&mut compiler),
-                ))
+                Some(NamedOrAnonymous::Named(type_.0.clone()))
             } else {
-                None
+                self.simple_type.as_ref().map(|simple_type| {
+                    NamedOrAnonymous::Anonymous(simple_type.to_complex_fragments(&mut compiler))
+                })
             };
 
             LocalAttributeFragmentTypeMode::Declared(DeclaredAttributeFragment {
-                name: name.0.clone(),
+                name: name.clone(),
                 type_,
             })
         };
@@ -1328,9 +1351,9 @@ impl ComplexFragmentEquivalent for xs::LocalAttribute {
                     AttributeUse::Prohibited => xs::AttributeUseType::Prohibited,
                 });
                 Ok(xs::LocalAttribute::builder()
-                    .name(xs::Name(name))
-                    .maybe_type_(type_.map(xs::Type))
-                    .maybe_use_(use_.map(xs::AttrUse))
+                    .name(name)
+                    .maybe_type_(type_)
+                    .maybe_use_(use_)
                     .build())
             }
             _ => todo!(),
@@ -1388,7 +1411,7 @@ impl ComplexFragmentEquivalent for xs::TopLevelAttribute {
             AttributeUse::Prohibited => xs::AttributeUseType::Prohibited,
         });
         Ok(xs::TopLevelAttribute::builder()
-            .name(xs::Name(name))
+            .name(xs::NameAttr(name))
             .maybe_type_(type_.map(xs::Type))
             .maybe_use_(use_.map(xs::AttrUse))
             .build())
@@ -1404,16 +1427,20 @@ impl ComplexFragmentEquivalent for xs::AttributeGroupRefType {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
-        todo!()
+        //TODO
+
+        compiler.push_fragment(AttributeGroupRefFragment {})
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
         compiler: T,
-        fragment_id: &Self::FragmentId,
+        _fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
+        let _compiler = compiler.as_ref();
 
-        todo!()
+        //TODO
+
+        Ok(xs::AttributeGroupRefType::builder().build())
     }
 }
 
@@ -1442,7 +1469,7 @@ impl ComplexFragmentEquivalent for xs::ComplexContent {
 
         compiler.push_fragment(ComplexContentFragment {
             content_fragment,
-            mixed: self.mixed.as_ref().map(|a| a.0),
+            mixed: self.mixed,
         })
     }
 
@@ -1465,7 +1492,7 @@ impl ComplexFragmentEquivalent for xs::ComplexContent {
         Ok(xs::ComplexContent {
             annotation: None,
             id: None,
-            mixed: fragment.mixed.map(|a| xs::Mixed(a)),
+            mixed: fragment.mixed,
             content,
         })
     }
@@ -1489,8 +1516,7 @@ impl ComplexFragmentEquivalent for xs::ComplexTypeModel {
                 ComplexTypeModelId::ComplexContent(complex_content.to_complex_fragments(compiler))
             }
             xs::ComplexTypeModel::Other {
-                open_content,
-                type_def_particle,
+                type_def_particle, ..
             } => {
                 //TODO: Review open content
                 let type_def_particle = type_def_particle.as_ref().unwrap();
@@ -1509,7 +1535,7 @@ impl ComplexFragmentEquivalent for xs::ComplexTypeModel {
         let compiler = compiler.as_ref();
 
         match fragment_id {
-            ComplexTypeModelId::SimpleContent(fragment_idx) => {
+            ComplexTypeModelId::SimpleContent(_fragment_idx) => {
                 // xs::SimpleContent::from_complex_fragments(compiler, fragment_idx)
                 //     .map(xs::ComplexTypeModel::SimpleContent)
                 todo!()
@@ -1598,384 +1624,18 @@ impl ComplexFragmentEquivalent for xs::LocalComplexType {
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
         compiler: T,
-        fragment_id: &Self::FragmentId,
+        _fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
+        let _compiler = compiler.as_ref();
+
         todo!()
     }
 }
 
-// impl ComplexFragmentEquivalent for xs::NamedGroupTypeContent {
-//     type FragmentId = todo!();
-
-//     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
-//         &self,
-//         mut compiler: T,
-//     ) -> Self::FragmentId {
-//         let compiler = compiler.as_mut();
-
-//         match self {
-//             xs::NamedGroupTypeContent::All(all_type) => all_type.to_complex_fragments(compiler),
-//             xs::NamedGroupTypeContent::Choice(choice_type) => {
-//                 choice_type.to_complex_fragments(compiler)
-//             }
-//             xs::NamedGroupTypeContent::Sequence(sequence_type) => {
-//                 sequence_type.to_complex_fragments(compiler)
-//             }
-//         }
-//     }
-// }
-
-pub static ANY_TYPE_EXPANDED_NAME: LazyLock<ExpandedName<'static>> = LazyLock::new(|| {
-    ExpandedName::new(
-        LocalName::new("anyType").unwrap(),
-        Some(XmlNamespace::XMLNS),
-    )
-});
-
 #[cfg(test)]
 mod tests {
-
     use super::*;
-
-    /// <xs:element name="complexContent" id="complexContent">
-    ///     <xs:annotation>
-    ///       <xs:documentation
-    ///            source="../structures/structures.html#element-complexContent"/>
-    ///     </xs:annotation>
-    ///     <xs:complexType>
-    ///       <xs:complexContent>
-    ///         <xs:extension base="xs:annotated">
-    ///           <xs:choice>
-    ///             <xs:element name="restriction" type="xs:complexRestrictionType"/>
-    ///             <xs:element name="extension" type="xs:extensionType"/>
-    ///           </xs:choice>
-    ///           <xs:attribute name="mixed" type="xs:boolean">
-    ///             <xs:annotation>
-    ///               <xs:documentation>
-    ///        Overrides any setting on complexType parent.</xs:documentation>
-    ///             </xs:annotation>
-    ///           </xs:attribute>
-    ///         </xs:extension>
-    ///       </xs:complexContent>
-    ///     </xs:complexType>
-    ///   </xs:element>
-    ///
-    /// This should become a top level element with a reference to an anonymous complex type
-    struct _Todo;
-
-    /// <xs:complexType>
-    ///   <xs:complexContent>
-    ///     <xs:extension base="xs:annotated">
-    ///       <xs:choice>
-    ///         <xs:element name="restriction" type="xs:complexRestrictionType"/>
-    ///         <xs:element name="extension" type="xs:extensionType"/>
-    ///       </xs:choice>
-    ///       <xs:attribute name="mixed" type="xs:boolean">
-    ///         <xs:annotation>
-    ///           <xs:documentation>
-    ///             Overrides any setting on complexType parent.
-    ///           </xs:documentation>
-    ///         </xs:annotation>
-    ///       </xs:attribute>
-    ///     </xs:extension>
-    ///   </xs:complexContent>
-    /// </xs:complexType>
-    struct _Todo2;
-
-    // //Flatten nested choices
-    // #[test]
-    // fn flatten_nested_choices() {
-    //     let mut fragments = ComplexTypeFragmentCollection::new(
-    //         XmlNamespace::new_dangerous("http://localhost"),
-    //         SimpleTypeFragmentCollection {},
-    //     );
-
-    //     let element1 = ComplexTypeFragment::Element(ElementTypeFragment::Reference {
-    //         name: ExpandedName::new(
-    //             LocalName::new("element1").unwrap(),
-    //             Some(XmlNamespace::XMLNS),
-    //         ),
-    //         min_occurs: Some(MinOccurs(1)),
-    //         max_occurs: None,
-    //     });
-    //     let element1 = fragments.push_fragment(element1);
-
-    //     let element2 = ComplexTypeFragment::Element(ElementTypeFragment::Reference {
-    //         name: ExpandedName::new(
-    //             LocalName::new("element2").unwrap(),
-    //             Some(XmlNamespace::XMLNS),
-    //         ),
-    //         min_occurs: Some(MinOccurs(1)),
-    //         max_occurs: None,
-    //     });
-    //     let element2 = fragments.push_fragment(element2);
-
-    //     let choice1 = ComplexTypeFragment::Choice {
-    //         fragments: vec_deque![element1.clone()],
-    //     };
-    //     let choice1 = fragments.push_fragment(choice1);
-
-    //     let choice2 = ComplexTypeFragment::Choice {
-    //         fragments: vec_deque![choice1, element2.clone()],
-    //     };
-    //     let choice2 = fragments.push_fragment(choice2);
-
-    //     FlattenNestedChoices.transform(&mut fragments);
-
-    //     let expected = ComplexTypeFragment::Choice {
-    //         fragments: vec_deque![element1, element2],
-    //     };
-
-    //     let actual = fragments.get_fragment(&choice2).unwrap();
-
-    //     assert_eq!(*actual, expected);
-    // }
-
-    // // Flatten nested sequences
-    // // This can only be done if the sequence does not by itself have a minOccurs or maxOccurs that would affect how the fragments are nested
-    // #[test]
-    // fn flatten_nested_sequences() {
-    //     let mut fragments = ComplexTypeFragmentCollection::new(
-    //         XmlNamespace::new_dangerous("http://localhost"),
-    //         SimpleTypeFragmentCollection {},
-    //     );
-
-    //     let element1 = ComplexTypeFragment::Element(ElementTypeFragment::Reference {
-    //         name: ExpandedName::new(
-    //             LocalName::new("element1").unwrap(),
-    //             Some(XmlNamespace::XMLNS),
-    //         ),
-    //         min_occurs: Some(MinOccurs(1)),
-    //         max_occurs: None,
-    //     });
-    //     let element1 = fragments.push_fragment(element1);
-    //     let element2 = ComplexTypeFragment::Element(ElementTypeFragment::Reference {
-    //         name: ExpandedName::new(
-    //             LocalName::new("element2").unwrap(),
-    //             Some(XmlNamespace::XMLNS),
-    //         ),
-    //         min_occurs: Some(MinOccurs(1)),
-    //         max_occurs: None,
-    //     });
-    //     let element2 = fragments.push_fragment(element2);
-    //     let sequence1 = ComplexTypeFragment::Sequence {
-    //         fragments: vec_deque![element1.clone()],
-    //     };
-    //     let sequence1 = fragments.push_fragment(sequence1);
-    //     let sequence2 = ComplexTypeFragment::Sequence {
-    //         fragments: vec_deque![sequence1, element2.clone()],
-    //     };
-    //     let sequence2 = fragments.push_fragment(sequence2);
-
-    //     FlattenNestedSequences.transform(&mut fragments);
-
-    //     let actual = fragments.get_fragment(&sequence2).unwrap();
-    //     let expected = ComplexTypeFragment::Sequence {
-    //         fragments: vec_deque![element1, element2],
-    //     };
-
-    //     assert_eq!(*actual, expected);
-    // }
-
-    // // Expand extensions
-    // #[test]
-    // fn expand_extensions() {
-    //     let mut fragments = ComplexTypeFragmentCollection::new(
-    //         XmlNamespace::new_dangerous("http://localhost"),
-    //         SimpleTypeFragmentCollection {},
-    //     );
-
-    //     let element1 = ComplexTypeFragment::Element(ElementTypeFragment::Reference {
-    //         name: ExpandedName::new(
-    //             LocalName::new("element1").unwrap(),
-    //             Some(XmlNamespace::XMLNS),
-    //         ),
-    //         min_occurs: Some(MinOccurs(1)),
-    //         max_occurs: None,
-    //     });
-
-    //     let element1 = fragments.push_fragment(element1);
-
-    //     let element2 = ComplexTypeFragment::Element(ElementTypeFragment::Reference {
-    //         name: ExpandedName::new(
-    //             LocalName::new("element2").unwrap(),
-    //             Some(XmlNamespace::XMLNS),
-    //         ),
-    //         min_occurs: Some(MinOccurs(1)),
-    //         max_occurs: None,
-    //     });
-
-    //     let element2 = fragments.push_fragment(element2);
-
-    //     let base = ComplexTypeFragment::ComplexContent(ComplexContentFragment::Restriction {
-    //         base: TypeIdent(TypeIdent::External(any_type_expanded_name())),
-    //         content_fragment: vec_deque![element1.clone()],
-    //     });
-
-    //     let base_type_ident = TypeIdent(TypeIdent::Local(LocalTypeIdent::Named(
-    //         LocalName::new("base").unwrap(),
-    //     )));
-    //     let base = fragments.push_fragment(base);
-    //     fragments
-    //         .fragment_names
-    //         .insert(base_type_ident.clone(), base);
-
-    //     let derivative = ComplexTypeFragment::ComplexContent(ComplexContentFragment::Extension {
-    //         base: base_type_ident,
-    //         content_fragment: vec_deque![element2.clone()],
-    //     });
-
-    //     let derivative = fragments.push_fragment(derivative);
-
-    //     ExpandExtensions.transform(&mut fragments);
-
-    //     let expected = ComplexTypeFragment::ComplexContent(ComplexContentFragment::Restriction {
-    //         base: TypeIdent(TypeIdent::External(any_type_expanded_name())),
-    //         content_fragment: vec_deque![element1, element2],
-    //     });
-
-    //     let actual = fragments.get_fragment(&derivative).unwrap();
-
-    //     assert_eq!(*actual, expected);
-    // }
-
-    /// # Chain of extensions and restrictions test
-    ///
-    /// PS: This is not a direct copy from XMLSchema. "annotated" is not a restriction of "anyType" but an extension of "openAttrs",
-    /// however for this example we've deleted all attributes and changed the base to "anyType" to make it a restriction.
-    /// Groups ("identityConstraint") have also been removed.
-    ///
-    /// ## "annotated"
-    /// ```xml
-    /// <xs:complexType name="annotated">
-    ///     <xs:complexContent>
-    ///         <xs:restriction base="xs:anyType">
-    ///             <xs:sequence>
-    ///                 <xs:element ref="xs:annotation" minOccurs="0"/>
-    ///             </xs:sequence>
-    ///         </xs:restriction>
-    ///     </xs:complexContent>
-    /// </xs:complexType>
-    /// ```
-    ///
-    /// ## "element"
-    /// ```xml
-    /// <xs:complexType name="element" abstract="true">
-    ///     <xs:complexContent>
-    ///         <xs:extension base="xs:annotated">
-    ///             <xs:sequence>
-    ///                 <xs:choice minOccurs="0">
-    ///                     <xs:element name="simpleType" type="xs:localSimpleType"/>
-    ///                     <xs:element name="complexType" type="xs:localComplexType"/>
-    ///                 </xs:choice>
-    ///                 <xs:element name="alternative" type="xs:altType"
-    ///                         minOccurs="0" maxOccurs="unbounded"/>
-    ///             </xs:sequence>
-    ///         </xs:extension>
-    ///     </xs:complexContent>
-    /// </xs:complexType>
-    /// ```
-    ///
-    /// ## "topLevelElement"
-    /// ```xml
-    /// <xs:complexType name="topLevelElement">
-    ///     <xs:complexContent>
-    ///         <xs:restriction base="xs:element">
-    ///             <xs:sequence>
-    ///                 <xs:element ref="xs:annotation" minOccurs="0"/>
-    ///                 <xs:choice minOccurs="0">
-    ///                     <xs:element name="simpleType" type="xs:localSimpleType"/>
-    ///                     <xs:element name="complexType" type="xs:localComplexType"/>
-    ///                 </xs:choice>
-    ///                 <xs:element name="alternative" type="xs:altType"
-    ///                     minOccurs="0" maxOccurs="unbounded"/>
-    ///             </xs:sequence>
-    ///         </xs:restriction>
-    ///     </xs:complexContent>
-    /// </xs:complexType>
-    /// ```
-    // #[test]
-    // fn test_expand_extensions_restrictions() {
-    //     let mut fragments = ComplexTypeFragmentCollection::new(
-    //         XmlNamespace::new_dangerous("http://localhost"),
-    //         SimpleTypeFragmentCollection {},
-    //     );
-
-    //     let annotation_element_name = ExpandedName::new(
-    //         LocalName::new("annotation").unwrap(),
-    //         Some(XmlNamespace::XMLNS),
-    //     );
-    //     let annotation_element = ComplexTypeFragment::Element(ElementTypeFragment::Reference {
-    //         name: annotation_element_name.clone(),
-    //         min_occurs: Some(MinOccurs(0)),
-    //         max_occurs: None,
-    //     });
-
-    //     let annotation_element = fragments.push_fragment(annotation_element);
-
-    //     let annotated_name =
-    //         TypeIdent(LocalTypeIdent::Named(LocalName::new("annotated").unwrap()).into());
-    //     let annotated = ComplexTypeFragment::ComplexContent(ComplexContentFragment::Restriction {
-    //         base: TypeIdent(TypeIdent::External(any_type_expanded_name())),
-    //         content_fragment: vec_deque![annotation_element,],
-    //     });
-
-    //     let annotated = fragments.push_fragment(annotated);
-    //     fragments.fragment_names.insert(annotated_name, annotated);
-
-    //     let simple_type_element_type_name =
-    //         TypeIdent(TypeIdent::External(ExpandedName::new(
-    //             LocalName::new("localSimpleType").unwrap(),
-    //             Some(XmlNamespace::XMLNS),
-    //         )));
-    //     let simple_type_element_type =
-    //         ComplexTypeFragment::ComplexContent(ComplexContentFragment::Restriction {
-    //             base: TypeIdent(TypeIdent::External(any_type_expanded_name())),
-    //             content_fragment: vec_deque![],
-    //         });
-
-    //     let simple_type_element_type = fragments.push_fragment(simple_type_element_type);
-    //     fragments
-    //         .fragment_names
-    //         .insert(simple_type_element_type_name, simple_type_element_type);
-
-    //     let simple_type_element_type_name =
-    //         TypeIdent(TypeIdent::External(ExpandedName::new(
-    //             LocalName::new("localComplexType").unwrap(),
-    //             Some(XmlNamespace::XMLNS),
-    //         )));
-    //     let simple_type_element_type =
-    //         ComplexTypeFragment::ComplexContent(ComplexContentFragment::Restriction {
-    //             base: TypeIdent(TypeIdent::External(any_type_expanded_name())),
-    //             content_fragment: vec_deque![],
-    //         });
-
-    //     let simple_type_element_type = fragments.push_fragment(simple_type_element_type);
-    //     fragments
-    //         .fragment_names
-    //         .insert(simple_type_element_type_name, simple_type_element_type);
-
-    //     let simple_type_element_type_name =
-    //         TypeIdent(TypeIdent::External(ExpandedName::new(
-    //             LocalName::new("altType").unwrap(),
-    //             Some(XmlNamespace::XMLNS),
-    //         )));
-    //     let simple_type_element_type =
-    //         ComplexTypeFragment::ComplexContent(ComplexContentFragment::Restriction {
-    //             base: TypeIdent(TypeIdent::External(any_type_expanded_name())),
-    //             content_fragment: vec_deque![],
-    //         });
-
-    //     let simple_type_element_type = fragments.push_fragment(simple_type_element_type);
-    //     fragments
-    //         .fragment_names
-    //         .insert(simple_type_element_type_name, simple_type_element_type);
-
-    //     let element = ComplexTypeFragment::ComplexContent(ComplexContentFragment::Extension {
-    //         base: TypeIdent(TypeIdent::External(annotation_element_name)),
-    //         content_fragment: vec_deque![],
-    //     });
-    // }
+    use xsd::schema_names as xsn;
 
     #[test]
     fn convert_annotated_to_fragments() {
@@ -1991,14 +1651,14 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .particle(
                                 xs::SequenceType::builder()
                                     .content(vec![xs::LocalElement::builder()
-                                        .ref_(xs::Ref(xs::QName(ExpandedName::new(
+                                        .ref_(xs::QName(ExpandedName::new(
                                             LocalName::new_dangerous("annotation"),
-                                            Some(XmlNamespace::XMLNS),
-                                        ))))
+                                            Some(XmlNamespace::XS),
+                                        )))
                                         .min_occurs(xs::MinOccurs(0))
                                         .build()
                                         .into()])
@@ -2043,14 +1703,14 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .particle(
                                 xs::SequenceType::builder()
                                     .content(vec![xs::LocalElement::builder()
-                                        .ref_(xs::Ref(xs::QName(ExpandedName::new(
+                                        .ref_(xs::QName(ExpandedName::new(
                                             LocalName::new_dangerous("annotation"),
-                                            Some(XmlNamespace::XMLNS),
-                                        ))))
+                                            Some(XmlNamespace::XS),
+                                        )))
                                         .min_occurs(xs::MinOccurs(0))
                                         .build()
                                         .into()])
@@ -2095,7 +1755,7 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ExtensionType::builder()
-                            .base(xs::Base(xs::QName(annotated_expanded_name)))
+                            .base(xs::QName(annotated_expanded_name))
                             .particle(
                                 xs::SequenceType::builder()
                                     .content(vec![
@@ -2103,26 +1763,22 @@ mod tests {
                                             .min_occurs(xs::MinOccurs(0))
                                             .content(vec![
                                                 xs::LocalElement::builder()
-                                                    .name(xs::Name(LocalName::new_dangerous(
-                                                        "simpleType",
-                                                    )))
-                                                    .type_(xs::Type(xs::QName(ExpandedName::new(
+                                                    .name(LocalName::new_dangerous("simpleType"))
+                                                    .type_(xs::QName(ExpandedName::new(
                                                         LocalName::new_dangerous("localSimpleType"),
-                                                        Some(XmlNamespace::XMLNS),
-                                                    ))))
+                                                        Some(XmlNamespace::XS),
+                                                    )))
                                                     .min_occurs(xs::MinOccurs(0))
                                                     .build()
                                                     .into(),
                                                 xs::LocalElement::builder()
-                                                    .name(xs::Name(LocalName::new_dangerous(
-                                                        "complexType",
-                                                    )))
-                                                    .type_(xs::Type(xs::QName(ExpandedName::new(
+                                                    .name(LocalName::new_dangerous("complexType"))
+                                                    .type_(xs::QName(ExpandedName::new(
                                                         LocalName::new_dangerous(
                                                             "localComplexType",
                                                         ),
-                                                        Some(XmlNamespace::XMLNS),
-                                                    ))))
+                                                        Some(XmlNamespace::XS),
+                                                    )))
                                                     .min_occurs(xs::MinOccurs(0))
                                                     .build()
                                                     .into(),
@@ -2130,11 +1786,11 @@ mod tests {
                                             .build()
                                             .into(),
                                         xs::LocalElement::builder()
-                                            .name(xs::Name(LocalName::new_dangerous("complexType")))
-                                            .type_(xs::Type(xs::QName(ExpandedName::new(
+                                            .name(LocalName::new_dangerous("complexType"))
+                                            .type_(xs::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("altType"),
-                                                Some(XmlNamespace::XMLNS),
-                                            ))))
+                                                Some(XmlNamespace::XS),
+                                            )))
                                             .min_occurs(xs::MinOccurs(0))
                                             .max_occurs(xs::MaxOccurs(
                                                 xs::MaxOccursValue::Unbounded,

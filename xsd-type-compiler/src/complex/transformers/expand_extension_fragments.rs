@@ -16,11 +16,11 @@ use crate::complex::LocalAttributeFragment;
 use crate::complex::LocalAttributeFragmentTypeMode;
 use crate::complex::RestrictionFragment;
 use crate::complex::SequenceFragment;
-use crate::complex::ANY_TYPE_EXPANDED_NAME;
 use crate::transformers::Context;
 use crate::transformers::TransformChange;
 use crate::transformers::XmlnsContextTransformer;
 use crate::TopLevelType;
+use xsd::schema_names as xsn;
 
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
 #[non_exhaustive]
@@ -155,7 +155,7 @@ impl ExpandExtensionFragments {
 
         let base = child_fragment.base.clone();
 
-        if &base == ANY_TYPE_EXPANDED_NAME.deref() {
+        if &base == xsn::ANY_TYPE.deref() {
             return Ok(TransformChange::Unchanged);
         }
 
@@ -198,7 +198,7 @@ impl ExpandExtensionFragments {
                         .get_complex_fragment::<RestrictionFragment>(&fragment_idx)
                         .unwrap();
 
-                    if &base_restriction_fragment.base != ANY_TYPE_EXPANDED_NAME.deref() {
+                    if &base_restriction_fragment.base != xsn::ANY_TYPE.deref() {
                         todo!("Error - cannot expand complex content of restriction type.")
                     }
 
@@ -278,10 +278,10 @@ mod tests {
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::schema::{self as xs, MaxOccurs, MaxOccursValue};
+    use xsd::schema_names as xsn;
 
     use crate::{
-        complex::{transformers::ExpandExtensionFragments, ANY_TYPE_EXPANDED_NAME},
-        transformers::TransformChange,
+        complex::transformers::ExpandExtensionFragments, transformers::TransformChange,
         CompiledNamespace, XmlnsContext,
     };
 
@@ -293,18 +293,12 @@ mod tests {
             .content(vec![
                 xs::LocalElement::new_ref_typed(
                     LocalName::new_dangerous("number"),
-                    ExpandedName::new(
-                        LocalName::new_dangerous("integer"),
-                        XmlNamespace::XMLNS.into(),
-                    ),
+                    ExpandedName::new(LocalName::new_dangerous("integer"), XmlNamespace::XS.into()),
                 )
                 .into(),
                 xs::LocalElement::new_ref_typed(
                     LocalName::new_dangerous("name"),
-                    ExpandedName::new(
-                        LocalName::new_dangerous("string"),
-                        XmlNamespace::XMLNS.into(),
-                    ),
+                    ExpandedName::new(LocalName::new_dangerous("string"), XmlNamespace::XS.into()),
                 )
                 .into(),
             ])
@@ -328,7 +322,7 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .particle(parent_seq.clone().into())
                             .build()
                             .into(),
@@ -343,18 +337,12 @@ mod tests {
             .content(vec![
                 xs::LocalElement::new_ref_typed(
                     LocalName::new_dangerous("size"),
-                    ExpandedName::new(
-                        LocalName::new_dangerous("integer"),
-                        XmlNamespace::XMLNS.into(),
-                    ),
+                    ExpandedName::new(LocalName::new_dangerous("integer"), XmlNamespace::XS.into()),
                 )
                 .into(),
                 xs::LocalElement::new_ref_typed(
                     LocalName::new_dangerous("color"),
-                    ExpandedName::new(
-                        LocalName::new_dangerous("string"),
-                        XmlNamespace::XMLNS.into(),
-                    ),
+                    ExpandedName::new(LocalName::new_dangerous("string"), XmlNamespace::XS.into()),
                 )
                 .into(),
             ])
@@ -376,10 +364,10 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ExtensionType::builder()
-                            .base(xs::Base(xs::QName(ExpandedName::new(
+                            .base(xs::QName(ExpandedName::new(
                                 LocalName::new_dangerous("ProductType"),
                                 Some(test_namespace.clone()),
-                            ))))
+                            )))
                             .particle(child_choice.clone().into())
                             .build()
                             .into(),
@@ -412,7 +400,7 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .particle(xs::TypeDefParticle::Sequence(
                                 xs::SequenceType::builder()
                                     .content(vec![parent_seq.into(), child_choice.into()])
@@ -464,15 +452,6 @@ mod tests {
     fn basic_attribute_only_expand_extension() {
         let test_namespace = XmlNamespace::new_dangerous("http://localhost");
 
-        let integer_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("integer"),
-            XmlNamespace::XMLNS.into(),
-        );
-        let string_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("string"),
-            XmlNamespace::XMLNS.into(),
-        );
-
         // <xs:complexType name="ProductType">
         //   <xs:complexContent>
         //     <xs:restriction base="xs:anyType">
@@ -487,18 +466,18 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .attributes(vec![
                                 xs::LocalAttribute::builder()
-                                    .name(xs::Name(LocalName::new_dangerous("number")))
-                                    .type_(xs::Type(xs::QName(integer_expanded_name.clone())))
-                                    .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                    .name(LocalName::new_dangerous("number"))
+                                    .type_(xs::QName(xsn::INTEGER.clone()))
+                                    .use_(xs::AttributeUseType::Required)
                                     .build()
                                     .into(),
                                 xs::LocalAttribute::builder()
-                                    .name(xs::Name(LocalName::new_dangerous("name")))
-                                    .type_(xs::Type(xs::QName(string_expanded_name.clone())))
-                                    .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                    .name(LocalName::new_dangerous("name"))
+                                    .type_(xs::QName(xsn::STRING.clone()))
+                                    .use_(xs::AttributeUseType::Required)
                                     .build()
                                     .into(),
                             ])
@@ -524,21 +503,21 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ExtensionType::builder()
-                            .base(xs::Base(xs::QName(ExpandedName::new(
+                            .base(xs::QName(ExpandedName::new(
                                 LocalName::new_dangerous("ProductType"),
                                 Some(test_namespace.clone()),
-                            ))))
+                            )))
                             .attributes(vec![
                                 xs::LocalAttribute::builder()
-                                    .name(xs::Name(LocalName::new_dangerous("number")))
-                                    .type_(xs::Type(xs::QName(integer_expanded_name.clone())))
-                                    .use_(xs::AttrUse(xs::AttributeUseType::Optional))
+                                    .name(LocalName::new_dangerous("number"))
+                                    .type_(xs::QName(xsn::INTEGER.clone()))
+                                    .use_(xs::AttributeUseType::Optional)
                                     .build()
                                     .into(),
                                 xs::LocalAttribute::builder()
-                                    .name(xs::Name(LocalName::new_dangerous("color")))
-                                    .type_(xs::Type(xs::QName(string_expanded_name.clone())))
-                                    .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                    .name(LocalName::new_dangerous("color"))
+                                    .type_(xs::QName(xsn::STRING.clone()))
+                                    .use_(xs::AttributeUseType::Required)
                                     .build()
                                     .into(),
                             ])
@@ -564,24 +543,24 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .attributes(vec![
                                 xs::LocalAttribute::builder()
-                                    .name(xs::Name(LocalName::new_dangerous("number")))
-                                    .type_(xs::Type(xs::QName(integer_expanded_name.clone())))
-                                    .use_(xs::AttrUse(xs::AttributeUseType::Optional))
+                                    .name(LocalName::new_dangerous("number"))
+                                    .type_(xs::QName(xsn::INTEGER.clone()))
+                                    .use_(xs::AttributeUseType::Optional)
                                     .build()
                                     .into(),
                                 xs::LocalAttribute::builder()
-                                    .name(xs::Name(LocalName::new_dangerous("name")))
-                                    .type_(xs::Type(xs::QName(string_expanded_name.clone())))
-                                    .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                    .name(LocalName::new_dangerous("name"))
+                                    .type_(xs::QName(xsn::STRING.clone()))
+                                    .use_(xs::AttributeUseType::Required)
                                     .build()
                                     .into(),
                                 xs::LocalAttribute::builder()
-                                    .name(xs::Name(LocalName::new_dangerous("color")))
-                                    .type_(xs::Type(xs::QName(string_expanded_name.clone())))
-                                    .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                    .name(LocalName::new_dangerous("color"))
+                                    .type_(xs::QName(xsn::STRING.clone()))
+                                    .use_(xs::AttributeUseType::Required)
                                     .build()
                                     .into(),
                             ])

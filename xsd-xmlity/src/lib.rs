@@ -135,7 +135,7 @@ impl From<schema::QName> for ExpandedName<'static> {
         let local_name = LocalName::new(localname).unwrap().into_owned();
 
         if value.0.starts_with("xs:") {
-            Self::new(local_name, Some(XmlNamespace::XMLNS))
+            Self::new(local_name, Some(XmlNamespace::XS))
         } else if value.0.starts_with("xml:") {
             Self::new(local_name, Some(XmlNamespace::XML))
         } else {

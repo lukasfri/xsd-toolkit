@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["xsd", "xsd-codegen-xmlity", "xsd-type-compiler"]
+members = ["xsd", "xsd-codegen-xmlity", "xsd-type-compiler", "xmlity-build"]
 
 [workspace.package]
 version = "0.0.0"
@@ -14,7 +14,7 @@ license = "MIT OR Apache-2.0"
 thiserror = "^2.0.4"
 pretty_assertions = "^1.4.1"
 rstest = "^0.25.0"
-xmlity = { version = "0.0.4", features = [
+xmlity = { version = "0.0.5", features = [
   "derive",
-], git = "https://github.com/lukasfri/xmlity.git", branch = "main" }
-xmlity-quick-xml = { version = "0.0.4", git = "https://github.com/lukasfri/xmlity.git", branch = "main" }
+], git = "https://github.com/lukasfri/xmlity.git", rev = "c2d2e7d63eaa1f45b250d4cff6508f7faa568543" }
+xmlity-quick-xml = { version = "0.0.5", git = "https://github.com/lukasfri/xmlity.git", rev = "c2d2e7d63eaa1f45b250d4cff6508f7faa568543" }

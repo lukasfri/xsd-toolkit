@@ -10,3 +10,5 @@ mod expand_groups;
 pub use expand_groups::ExpandGroups;
 mod expand_attribute_groups;
 pub use expand_attribute_groups::ExpandAttributeGroups;
+mod remove_prohibited_attributes;
+pub use remove_prohibited_attributes::RemoveProhibitedAttributes;

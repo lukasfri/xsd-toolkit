@@ -74,7 +74,7 @@ impl GroupRecord {
     fn group_attr(&self) -> Option<syn::Attribute> {
         let options = self.option_attributes().collect::<Vec<_>>();
         if options.is_empty() {
-            return None;
+            None
         } else {
             Some(parse_quote!(#[xgroup(#(#options),*)]))
         }
@@ -169,6 +169,7 @@ mod tests {
                 Some(format_ident!("a")),
                 ElementField::Item(ItemFieldItem {
                     ty: TypeReference::new_static(parse_quote!(Child)),
+                    default: false,
                 }),
             )],
         };
@@ -198,6 +199,7 @@ mod tests {
                 None,
                 ElementField::Item(ItemFieldItem {
                     ty: TypeReference::new_static(parse_quote!(Child)),
+                    default: false,
                 }),
             )],
         };

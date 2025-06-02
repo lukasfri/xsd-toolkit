@@ -11,9 +11,30 @@ use super::{group_record::GroupRecord, FieldMode, FieldType, ItemOrder};
 #[derive(Debug)]
 pub struct ItemFieldItem {
     pub ty: TypeReference<'static>,
+    pub default: bool,
 }
 
 impl ItemFieldItem {
+    pub fn option_attributes(&self) -> impl Iterator<Item = syn::Meta> {
+        let default_option: Option<syn::Meta> = if self.default {
+            Some(parse_quote! { default })
+        } else {
+            None
+        };
+
+        default_option.into_iter()
+    }
+
+    pub fn value_attr(&self) -> Option<syn::Attribute> {
+        let options = self.option_attributes().collect::<Vec<_>>();
+
+        if options.is_empty() {
+            None
+        } else {
+            Some(parse_quote!(#[xvalue(#(#options),*)]))
+        }
+    }
+
     pub fn to_field(
         &self,
         ident: Option<&Ident>,
@@ -24,14 +45,16 @@ impl ItemFieldItem {
 
         let vis = mode.to_vis();
         let ty = self.ty.to_type(path);
+        let value_attr = self.value_attr();
 
         parse_quote!(
+            #value_attr
             #vis #ident_prefix #ty
         )
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SingleChildMode {
     Item,
     Group,
@@ -55,6 +78,12 @@ impl ItemFieldElement {
                 parse_quote! { namespace = #ns }
             });
 
+        let group_option: Option<syn::Meta> = if self.child_mode == SingleChildMode::Group {
+            Some(parse_quote! { group })
+        } else {
+            None
+        };
+
         let optional_option: Option<syn::Meta> = if self.optional {
             Some(parse_quote! { optional })
         } else {
@@ -69,6 +98,7 @@ impl ItemFieldElement {
 
         iter::once(name_option)
             .chain(namespace_option)
+            .chain(group_option)
             .chain(optional_option)
             .chain(default_option)
     }
@@ -290,6 +320,7 @@ mod tests {
                 Some(format_ident!("a")),
                 ItemField::Item(ItemFieldItem {
                     ty: TypeReference::new_prefix(parse_quote!(Child)),
+                    default: false,
                 }),
             )],
         };
@@ -317,6 +348,7 @@ mod tests {
                 None,
                 ItemField::Item(ItemFieldItem {
                     ty: TypeReference::new_prefix(parse_quote!(Child)),
+                    default: false,
                 }),
             )],
         };

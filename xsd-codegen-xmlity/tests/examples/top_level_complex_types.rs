@@ -1,40 +1,31 @@
 use pretty_assertions::assert_eq;
-use syn::parse_quote;
-use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xmlity::{LocalName, XmlNamespace};
 use xsd::schema as xs;
-use xsd_codegen_xmlity::{Generator, TypeType};
-use xsd_type_compiler::{complex::ANY_TYPE_EXPANDED_NAME, CompiledNamespace, XmlnsContext};
+use xsd::schema_names as xsn;
+use xsd_codegen_xmlity::Generator;
+use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
 #[test]
 fn top_level_complex_type_sequence_test() {
-    let integer_expanded_name = ExpandedName::new(
-        LocalName::new_dangerous("integer"),
-        XmlNamespace::XMLNS.into(),
-    );
-    let string_expanded_name = ExpandedName::new(
-        LocalName::new_dangerous("string"),
-        XmlNamespace::XMLNS.into(),
-    );
-
     let product_type = xs::TopLevelComplexType::builder()
         .name(LocalName::new_dangerous("ProductType"))
         .content(
             xs::ComplexContent::builder()
                 .content(
                     xs::ComplexRestrictionType::builder()
-                        .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                        .base(xs::QName(xsn::ANY_TYPE.clone()))
                         .particle(
                             xs::SequenceType::builder()
                                 .content(vec![
                                     xs::LocalElement::builder()
-                                        .name(xs::Name(LocalName::new_dangerous("number")))
-                                        .type_(xs::Type(xs::QName(integer_expanded_name.clone())))
+                                        .name(LocalName::new_dangerous("number"))
+                                        .type_(xs::QName(xsn::INTEGER.clone()))
                                         .min_occurs(xs::MinOccurs(0))
                                         .build()
                                         .into(),
                                     xs::LocalElement::builder()
-                                        .name(xs::Name(LocalName::new_dangerous("name")))
-                                        .type_(xs::Type(xs::QName(string_expanded_name.clone())))
+                                        .name(LocalName::new_dangerous("name"))
+                                        .type_(xs::QName(xsn::STRING.clone()))
                                         .build()
                                         .into(),
                                 ])
@@ -64,8 +55,7 @@ fn top_level_complex_type_sequence_test() {
 
     let mut generator = Generator::new(&context);
 
-    generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
-    generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
+    generator.bind_types(xsd_codegen_xmlity::binds::StdXsdTypes);
 
     let (_, actual_code) = generator.generate_top_level_type(&product_type).unwrap();
 
@@ -87,33 +77,24 @@ fn top_level_complex_type_sequence_test() {
 
 #[test]
 fn top_level_complex_type_attributes_test() {
-    let integer_expanded_name = ExpandedName::new(
-        LocalName::new_dangerous("integer"),
-        XmlNamespace::XMLNS.into(),
-    );
-    let string_expanded_name = ExpandedName::new(
-        LocalName::new_dangerous("string"),
-        XmlNamespace::XMLNS.into(),
-    );
-
     let product_type = xs::TopLevelComplexType::builder()
         .name(LocalName::new_dangerous("ProductType"))
         .content(
             xs::ComplexContent::builder()
                 .content(
                     xs::ComplexRestrictionType::builder()
-                        .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                        .base(xs::QName(xsn::ANY_TYPE.clone()))
                         .attributes(vec![
                             xs::LocalAttribute::builder()
-                                .name(xs::Name(LocalName::new_dangerous("number")))
-                                .type_(xs::Type(xs::QName(integer_expanded_name.clone())))
-                                .use_(xs::AttrUse(xs::AttributeUseType::Optional))
+                                .name(LocalName::new_dangerous("number"))
+                                .type_(xs::QName(xsn::INTEGER.clone()))
+                                .use_(xs::AttributeUseType::Optional)
                                 .build()
                                 .into(),
                             xs::LocalAttribute::builder()
-                                .name(xs::Name(LocalName::new_dangerous("name")))
-                                .type_(xs::Type(xs::QName(string_expanded_name.clone())))
-                                .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                .name(LocalName::new_dangerous("name"))
+                                .type_(xs::QName(xsn::STRING.clone()))
+                                .use_(xs::AttributeUseType::Required)
                                 .build()
                                 .into(),
                         ])
@@ -140,8 +121,7 @@ fn top_level_complex_type_attributes_test() {
 
     let mut generator = Generator::new(&context);
 
-    generator.bind_type(integer_expanded_name, parse_quote!(i32), TypeType::Simple);
-    generator.bind_type(string_expanded_name, parse_quote!(String), TypeType::Simple);
+    generator.bind_types(xsd_codegen_xmlity::binds::StdXsdTypes);
 
     let (_, actual_code) = generator.generate_top_level_type(&product_type).unwrap();
 

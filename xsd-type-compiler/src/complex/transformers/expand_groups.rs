@@ -90,16 +90,20 @@ impl HasTypeDefParticle for ComplexTypeRootFragment {
 pub struct ExpandGroups {}
 
 impl ExpandGroups {
+    pub fn new() -> Self {
+        Self {}
+    }
+
     pub fn expand_group_content<'a>(
-        ctx: &mut Context<'_>,
-        group_contents: GroupTypeContentId,
+        _context: &mut Context<'_>,
+        _group_contents: GroupTypeContentId,
     ) -> GroupTypeContentId {
         todo!()
     }
 
     pub fn expand_type_def_particle<'a>(
-        ctx: &mut Context<'_>,
-        group_contents: TypeDefParticleId,
+        _context: &mut Context<'_>,
+        _group_contents: TypeDefParticleId,
     ) -> TypeDefParticleId {
         todo!()
     }
@@ -204,27 +208,4 @@ impl XmlnsContextTransformer for ExpandGroups {
 
         Ok(changed)
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use pretty_assertions::assert_eq;
-
-    use xmlity::{ExpandedName, LocalName, XmlNamespace};
-    use xsd::schema::{
-        Base, ComplexContent, ComplexRestrictionType, ComplexTypeModel, LocalElement, Name, QName,
-        SequenceType, TopLevelComplexType, Type, TypeDefParticle,
-    };
-
-    use crate::{
-        complex::{
-            transformers::expand_short_form_complex_types::ExpandShortFormComplexTypes,
-            ANY_TYPE_EXPANDED_NAME,
-        },
-        transformers::{Context, XmlnsContextTransformer},
-        CompiledNamespace, XmlnsContext,
-    };
-
-    #[test]
-    fn specification_1() {}
 }

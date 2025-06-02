@@ -126,14 +126,14 @@ impl ToSimpleFragments for xsd::schema::LocalSimpleType {
     }
 }
 
-impl ToSimpleFragments for xsd::schema::LocalRestriction {
+impl ToSimpleFragments for xsd::schema::SimpleRestrictionType {
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
     ) -> FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let base = self.base.0 .0.clone();
+        let base = self.base.0.clone();
 
         let content_fragment = self
             .simple_type
@@ -162,6 +162,7 @@ impl ToSimpleFragments for xsd::schema::Facet {
             F::MinInclusive(_min_inclusive) => todo!(),
             F::MaxExclusive(_max_exclusive) => todo!(),
             F::MaxInclusive(_max_inclusive) => todo!(),
+            F::MinLength(_min_length) => todo!(),
             F::Enumeration(enumeration) => enumeration.to_simple_fragments(compiler),
         }
     }
@@ -175,7 +176,7 @@ impl ToSimpleFragments for xsd::schema::Enumeration {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(SimpleTypeFragment::Facet(Facet::Enumeration {
-            value: self.value.0.clone(),
+            value: self.value.clone(),
         }))
     }
 }
@@ -231,8 +232,7 @@ impl ToSimpleFragments for xsd::schema::SimpleDerivation {
 mod tests {
     use xmlity::{ExpandedName, LocalName};
     use xsd::schema::{
-        Base, Facet as XsdFacet, LocalRestriction, QName, SimpleDerivation, TopLevelSimpleType,
-        ValueAttr,
+        Facet as XsdFacet, QName, SimpleDerivation, SimpleRestrictionType, TopLevelSimpleType,
     };
 
     use super::*;
@@ -258,22 +258,22 @@ mod tests {
             name: LocalName::new_dangerous("annotated"),
             final_: None,
             annotation: None,
-            content: SimpleDerivation::Restriction(Box::new(LocalRestriction {
+            content: SimpleDerivation::Restriction(Box::new(SimpleRestrictionType {
                 id: None,
-                base: Base(QName(ExpandedName::new(
+                base: QName(ExpandedName::new(
                     LocalName::new_dangerous("NMTOKEN"),
-                    Some(XmlNamespace::XMLNS),
-                ))),
+                    Some(XmlNamespace::XS),
+                )),
                 annotation: None,
                 simple_type: None,
                 facets: vec![
                     XsdFacet::Enumeration(Box::new(xsd::schema::Enumeration {
                         fixed: None,
-                        value: ValueAttr("qualified".to_string()),
+                        value: "qualified".to_string(),
                     })),
                     XsdFacet::Enumeration(Box::new(xsd::schema::Enumeration {
                         fixed: None,
-                        value: ValueAttr("unqualified".to_string()),
+                        value: "unqualified".to_string(),
                     })),
                 ],
             })),

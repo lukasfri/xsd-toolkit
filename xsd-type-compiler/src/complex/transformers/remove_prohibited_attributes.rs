@@ -2,8 +2,8 @@ use std::collections::VecDeque;
 
 use crate::{
     complex::{
-        AttributeDeclarationId, ComplexTypeFragmentCompiler, ExtensionFragment, FragmentAccess,
-        FragmentIdx, RestrictionFragment,
+        AttributeDeclarationId, AttributeUse, ComplexTypeFragmentCompiler, ExtensionFragment,
+        FragmentAccess, FragmentIdx, RestrictionFragment,
     },
     transformers::{Context, TransformChange, XmlnsContextTransformer},
 };
@@ -34,9 +34,9 @@ impl HasAttributeDeclarations for RestrictionFragment {
 }
 
 #[non_exhaustive]
-pub struct ExpandAttributeGroups {}
+pub struct RemoveProhibitedAttributes {}
 
-impl ExpandAttributeGroups {
+impl RemoveProhibitedAttributes {
     pub fn new() -> Self {
         Self {}
     }
@@ -52,30 +52,33 @@ impl ExpandAttributeGroups {
 
         let fragment = context.get_complex_fragment(fragment_id).unwrap();
 
-        let unexpanded_fragments = fragment.attribute_declarations().clone();
+        let unfiltered_fragments = fragment.attribute_declarations().clone();
 
-        let (attributes, attribute_groups) = unexpanded_fragments
-            .iter()
-            .map(|a| match a {
-                AttributeDeclarationId::Attribute(fragment_idx) => (Some(*fragment_idx), None),
-                AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
-                    (None, Some(*fragment_idx))
+        let filtered_fragments = unfiltered_fragments
+            .into_iter()
+            .filter_map(|a| match a {
+                AttributeDeclarationId::Attribute(fragment_idx) => {
+                    let fragment = context
+                        .get_complex_fragment::<crate::complex::LocalAttributeFragment>(
+                            &fragment_idx,
+                        )
+                        .unwrap();
+
+                    if fragment.use_ != Some(AttributeUse::Prohibited) {
+                        Some(a)
+                    } else {
+                        change |= TransformChange::Changed;
+                        None
+                    }
                 }
+                a => Some(a),
             })
-            .unzip::<_, _, Vec<_>, Vec<_>>();
-
-        let attributes: Vec<_> = attributes.into_iter().flatten().collect();
-
-        for _attribute_group in attribute_groups.into_iter().flatten() {
-            change |= TransformChange::Changed;
-
-            // todo!()
-            //TODO
-        }
+            .collect::<Vec<_>>();
 
         let fragment = context.get_complex_fragment_mut(fragment_id).unwrap();
 
-        *fragment.attribute_declarations_mut() = attributes.into_iter().map(Into::into).collect();
+        *fragment.attribute_declarations_mut() =
+            filtered_fragments.into_iter().map(Into::into).collect();
 
         Ok(change)
     }
@@ -96,7 +99,7 @@ impl ExpandAttributeGroups {
     }
 }
 
-impl XmlnsContextTransformer for ExpandAttributeGroups {
+impl XmlnsContextTransformer for RemoveProhibitedAttributes {
     type Error = ();
 
     fn transform(self, mut context: Context<'_>) -> Result<TransformChange, Self::Error> {

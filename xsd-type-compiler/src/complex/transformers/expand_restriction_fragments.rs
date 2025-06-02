@@ -12,11 +12,11 @@ use crate::complex::FragmentIdx;
 use crate::complex::LocalAttributeFragment;
 use crate::complex::LocalAttributeFragmentTypeMode;
 use crate::complex::RestrictionFragment;
-use crate::complex::ANY_TYPE_EXPANDED_NAME;
 use crate::transformers::Context;
 use crate::transformers::TransformChange;
 use crate::transformers::XmlnsContextTransformer;
 use crate::TopLevelType;
+use xsd::schema_names as xsn;
 
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
 #[non_exhaustive]
@@ -75,14 +75,14 @@ impl ExpandRestrictionFragments {
         let resolved_base_attributes = base_attributes
             .clone()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (a.clone(), resolve_attr_name(&ctx, a)),
+                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(&ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
             .collect::<HashMap<_, _>>();
         let resolved_child_attributes = child_attributes
             .clone()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (a.clone(), resolve_attr_name(&ctx, a)),
+                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(&ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
             .collect::<HashMap<_, _>>();
@@ -141,7 +141,7 @@ impl ExpandRestrictionFragments {
 
         let base = child_fragment.base.clone();
 
-        if &base == ANY_TYPE_EXPANDED_NAME.deref() {
+        if &base == xsn::ANY_TYPE.deref() {
             return Ok(TransformChange::Unchanged);
         }
 
@@ -214,10 +214,10 @@ mod tests {
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::schema::{self as xs};
+    use xsd::schema_names as xsn;
 
     use crate::{
-        complex::{transformers::ExpandRestrictionFragments, ANY_TYPE_EXPANDED_NAME},
-        transformers::TransformChange,
+        complex::transformers::ExpandRestrictionFragments, transformers::TransformChange,
         CompiledNamespace, XmlnsContext,
     };
 
@@ -243,7 +243,7 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .particle(
                                 xs::SequenceType::builder()
                                     .content(vec![
@@ -251,7 +251,7 @@ mod tests {
                                             LocalName::new_dangerous("number"),
                                             ExpandedName::new(
                                                 LocalName::new_dangerous("integer"),
-                                                XmlNamespace::XMLNS.into(),
+                                                XmlNamespace::XS.into(),
                                             ),
                                         )
                                         .into(),
@@ -259,7 +259,7 @@ mod tests {
                                             LocalName::new_dangerous("name"),
                                             ExpandedName::new(
                                                 LocalName::new_dangerous("string"),
-                                                XmlNamespace::XMLNS.into(),
+                                                XmlNamespace::XS.into(),
                                             ),
                                         )
                                         .into(),
@@ -292,17 +292,17 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ExpandedName::new(
+                            .base(xs::QName(ExpandedName::new(
                                 LocalName::new_dangerous("ProductType"),
                                 Some(test_namespace.clone()),
-                            ))))
+                            )))
                             .particle(
                                 xs::SequenceType::builder()
                                     .content(vec![xs::LocalElement::new_ref_typed(
                                         LocalName::new_dangerous("number"),
                                         ExpandedName::new(
                                             LocalName::new_dangerous("integer"),
-                                            XmlNamespace::XMLNS.into(),
+                                            XmlNamespace::XS.into(),
                                         ),
                                     )
                                     .into()])
@@ -334,14 +334,14 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .particle(
                                 xs::SequenceType::builder()
                                     .content(vec![xs::LocalElement::new_ref_typed(
                                         LocalName::new_dangerous("number"),
                                         ExpandedName::new(
                                             LocalName::new_dangerous("integer"),
-                                            XmlNamespace::XMLNS.into(),
+                                            XmlNamespace::XS.into(),
                                         ),
                                     )
                                     .into()])
@@ -395,15 +395,6 @@ mod tests {
     fn basic_attribute_only_expand_restriction() {
         let test_namespace = XmlNamespace::new_dangerous("http://localhost");
 
-        let integer_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("integer"),
-            XmlNamespace::XMLNS.into(),
-        );
-        let string_expanded_name = ExpandedName::new(
-            LocalName::new_dangerous("string"),
-            XmlNamespace::XMLNS.into(),
-        );
-
         // ```xml
         // <xs:complexType name="ProductType">
         //   <xs:complexContent>
@@ -420,18 +411,18 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .attributes(vec![
                                 xs::LocalAttribute::builder()
-                                    .name(xs::Name(LocalName::new_dangerous("number")))
-                                    .type_(xs::Type(xs::QName(integer_expanded_name.clone())))
-                                    .use_(xs::AttrUse(xs::AttributeUseType::Optional))
+                                    .name(LocalName::new_dangerous("number"))
+                                    .type_(xs::QName(xsn::INTEGER.clone()))
+                                    .use_(xs::AttributeUseType::Optional)
                                     .build()
                                     .into(),
                                 xs::LocalAttribute::builder()
-                                    .name(xs::Name(LocalName::new_dangerous("name")))
-                                    .type_(xs::Type(xs::QName(string_expanded_name.clone())))
-                                    .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                    .name(LocalName::new_dangerous("name"))
+                                    .type_(xs::QName(xsn::STRING.clone()))
+                                    .use_(xs::AttributeUseType::Required)
                                     .build()
                                     .into(),
                             ])
@@ -458,14 +449,14 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ExpandedName::new(
+                            .base(xs::QName(ExpandedName::new(
                                 LocalName::new_dangerous("ProductType"),
                                 Some(test_namespace.clone()),
-                            ))))
+                            )))
                             .attributes(vec![xs::LocalAttribute::builder()
-                                .name(xs::Name(LocalName::new_dangerous("number")))
-                                .type_(xs::Type(xs::QName(integer_expanded_name.clone())))
-                                .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                .name(LocalName::new_dangerous("number"))
+                                .type_(xs::QName(xsn::INTEGER.clone()))
+                                .use_(xs::AttributeUseType::Required)
                                 .build()
                                 .into()])
                             .build()
@@ -492,18 +483,18 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::Base(xs::QName(ANY_TYPE_EXPANDED_NAME.clone())))
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .attributes(vec![
                                 xs::LocalAttribute::builder()
-                                    .name(xs::Name(LocalName::new_dangerous("number")))
-                                    .type_(xs::Type(xs::QName(integer_expanded_name.clone())))
-                                    .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                    .name(LocalName::new_dangerous("number"))
+                                    .type_(xs::QName(xsn::INTEGER.clone()))
+                                    .use_(xs::AttributeUseType::Required)
                                     .build()
                                     .into(),
                                 xs::LocalAttribute::builder()
-                                    .name(xs::Name(LocalName::new_dangerous("name")))
-                                    .type_(xs::Type(xs::QName(string_expanded_name.clone())))
-                                    .use_(xs::AttrUse(xs::AttributeUseType::Required))
+                                    .name(LocalName::new_dangerous("name"))
+                                    .type_(xs::QName(xsn::STRING.clone()))
+                                    .use_(xs::AttributeUseType::Required)
                                     .build()
                                     .into(),
                             ])

@@ -37,6 +37,6 @@ impl XmlnsContextTransformer for FlattenNestedUnions {
             *fragments = new_fragments;
         }
 
-        Ok(todo!())
+        todo!()
     }
 }

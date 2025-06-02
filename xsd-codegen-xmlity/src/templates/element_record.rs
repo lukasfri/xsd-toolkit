@@ -116,7 +116,7 @@ impl ElementFieldGroup {
         let options = self.option_attributes().collect::<Vec<_>>();
 
         if options.is_empty() {
-            return parse_quote!(#[xgroup]);
+            parse_quote!(#[xgroup])
         } else {
             parse_quote!(#[xgroup(#(#options),*)])
         }
@@ -302,11 +302,7 @@ impl ElementRecord {
         }
     }
 
-    pub fn try_into_compact_item_field(
-        self,
-        optional: bool,
-        default: bool,
-    ) -> Result<ItemFieldElement, Self> {
+    pub fn try_into_compact_item_field(self, optional: bool) -> Result<ItemFieldElement, Self> {
         // Requirements:
 
         // #1: There must be only one or zero fields.
@@ -331,7 +327,7 @@ impl ElementRecord {
             ty,
             child_mode,
             optional,
-            default,
+            default: false,
         })
     }
 }
@@ -379,6 +375,7 @@ mod tests {
                 Some(format_ident!("a")),
                 ElementField::Item(ItemFieldItem {
                     ty: TypeReference::new_static(parse_quote!(Child)),
+                    default: false,
                 }),
             )],
         };
@@ -409,6 +406,7 @@ mod tests {
                 None,
                 ElementField::Item(ItemFieldItem {
                     ty: TypeReference::new_static(parse_quote!(Child)),
+                    default: false,
                 }),
             )],
         };
