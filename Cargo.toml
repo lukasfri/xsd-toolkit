@@ -14,7 +14,7 @@ license = "MIT OR Apache-2.0"
 thiserror = "^2.0.4"
 pretty_assertions = "^1.4.1"
 rstest = "^0.25.0"
-xmlity = { version = "0.0.5", features = [
+xmlity = { version = "0.0.6", features = [
   "derive",
-], git = "https://github.com/lukasfri/xmlity.git", rev = "c2d2e7d63eaa1f45b250d4cff6508f7faa568543" }
-xmlity-quick-xml = { version = "0.0.5", git = "https://github.com/lukasfri/xmlity.git", rev = "c2d2e7d63eaa1f45b250d4cff6508f7faa568543" }
+], git = "https://github.com/lukasfri/xmlity.git", rev = "6e3da0c1b321839950d7c48af0d20986bc566ccb" }
+xmlity-quick-xml = { version = "0.0.6", git = "https://github.com/lukasfri/xmlity.git", rev = "6e3da0c1b321839950d7c48af0d20986bc566ccb" }

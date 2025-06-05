@@ -1,6 +1,7 @@
 pub mod transformers;
 
 use std::collections::{BTreeMap, VecDeque};
+use xsd::schema as xs;
 
 use xmlity::XmlNamespace;
 
@@ -36,6 +37,11 @@ pub enum SimpleTypeFragment {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Facet {
+    MinExclusive { value: String },
+    MinInclusive { value: String },
+    MaxExclusive { value: String },
+    MaxInclusive { value: String },
+    MinLength { value: String },
     Enumeration { value: String },
 }
 
@@ -104,7 +110,7 @@ pub trait ToSimpleFragments {
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(&self, compiler: T) -> FragmentId;
 }
 
-impl ToSimpleFragments for xsd::schema::TopLevelSimpleType {
+impl ToSimpleFragments for xs::TopLevelSimpleType {
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
@@ -115,7 +121,7 @@ impl ToSimpleFragments for xsd::schema::TopLevelSimpleType {
     }
 }
 
-impl ToSimpleFragments for xsd::schema::LocalSimpleType {
+impl ToSimpleFragments for xs::LocalSimpleType {
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
@@ -126,7 +132,7 @@ impl ToSimpleFragments for xsd::schema::LocalSimpleType {
     }
 }
 
-impl ToSimpleFragments for xsd::schema::SimpleRestrictionType {
+impl ToSimpleFragments for xs::SimpleRestrictionType {
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
@@ -154,21 +160,86 @@ impl ToSimpleFragments for xsd::schema::SimpleRestrictionType {
     }
 }
 
-impl ToSimpleFragments for xsd::schema::Facet {
+impl ToSimpleFragments for xs::Facet {
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(&self, compiler: T) -> FragmentId {
-        use xsd::schema::Facet as F;
+        use xs::Facet as F;
         match self {
-            F::MinExclusive(_min_exclusive) => todo!(),
-            F::MinInclusive(_min_inclusive) => todo!(),
-            F::MaxExclusive(_max_exclusive) => todo!(),
-            F::MaxInclusive(_max_inclusive) => todo!(),
-            F::MinLength(_min_length) => todo!(),
+            F::MinExclusive(min_exclusive) => min_exclusive.to_simple_fragments(compiler),
+            F::MinInclusive(min_inclusive) => min_inclusive.to_simple_fragments(compiler),
+            F::MaxExclusive(max_exclusive) => max_exclusive.to_simple_fragments(compiler),
+            F::MaxInclusive(max_inclusive) => max_inclusive.to_simple_fragments(compiler),
+            F::MinLength(min_length) => min_length.to_simple_fragments(compiler),
             F::Enumeration(enumeration) => enumeration.to_simple_fragments(compiler),
         }
     }
 }
 
-impl ToSimpleFragments for xsd::schema::Enumeration {
+impl ToSimpleFragments for xs::MinExclusive {
+    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> FragmentId {
+        let compiler = compiler.as_mut();
+
+        compiler.push_fragment(SimpleTypeFragment::Facet(Facet::MinExclusive {
+            value: self.facet_type.value.clone(),
+        }))
+    }
+}
+
+impl ToSimpleFragments for xs::MinInclusive {
+    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> FragmentId {
+        let compiler = compiler.as_mut();
+
+        compiler.push_fragment(SimpleTypeFragment::Facet(Facet::MinInclusive {
+            value: self.facet_type.value.clone(),
+        }))
+    }
+}
+
+impl ToSimpleFragments for xs::MaxExclusive {
+    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> FragmentId {
+        let compiler = compiler.as_mut();
+
+        compiler.push_fragment(SimpleTypeFragment::Facet(Facet::MaxExclusive {
+            value: self.facet_type.value.clone(),
+        }))
+    }
+}
+
+impl ToSimpleFragments for xs::MaxInclusive {
+    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> FragmentId {
+        let compiler = compiler.as_mut();
+
+        compiler.push_fragment(SimpleTypeFragment::Facet(Facet::MaxInclusive {
+            value: self.facet_type.value.clone(),
+        }))
+    }
+}
+
+impl ToSimpleFragments for xs::MinLength {
+    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+        &self,
+        mut compiler: T,
+    ) -> FragmentId {
+        let compiler = compiler.as_mut();
+
+        compiler.push_fragment(SimpleTypeFragment::Facet(Facet::MinLength {
+            value: self.0.value.clone(),
+        }))
+    }
+}
+
+impl ToSimpleFragments for xs::Enumeration {
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
@@ -181,7 +252,7 @@ impl ToSimpleFragments for xsd::schema::Enumeration {
     }
 }
 
-impl ToSimpleFragments for xsd::schema::List {
+impl ToSimpleFragments for xs::List {
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
@@ -200,7 +271,7 @@ impl ToSimpleFragments for xsd::schema::List {
     }
 }
 
-impl ToSimpleFragments for xsd::schema::Union {
+impl ToSimpleFragments for xs::Union {
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
@@ -217,9 +288,9 @@ impl ToSimpleFragments for xsd::schema::Union {
     }
 }
 
-impl ToSimpleFragments for xsd::schema::SimpleDerivation {
+impl ToSimpleFragments for xs::SimpleDerivation {
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(&self, compiler: T) -> FragmentId {
-        use xsd::schema::SimpleDerivation as S;
+        use xs::SimpleDerivation as S;
         match self {
             S::Restriction(local_restriction) => local_restriction.to_simple_fragments(compiler),
             S::List(list) => list.to_simple_fragments(compiler),
@@ -231,7 +302,7 @@ impl ToSimpleFragments for xsd::schema::SimpleDerivation {
 #[cfg(test)]
 mod tests {
     use xmlity::{ExpandedName, LocalName};
-    use xsd::schema::{
+    use xs::{
         Facet as XsdFacet, QName, SimpleDerivation, SimpleRestrictionType, TopLevelSimpleType,
     };
 
@@ -267,11 +338,11 @@ mod tests {
                 annotation: None,
                 simple_type: None,
                 facets: vec![
-                    XsdFacet::Enumeration(Box::new(xsd::schema::Enumeration {
+                    XsdFacet::Enumeration(Box::new(xs::Enumeration {
                         fixed: None,
                         value: "qualified".to_string(),
                     })),
-                    XsdFacet::Enumeration(Box::new(xsd::schema::Enumeration {
+                    XsdFacet::Enumeration(Box::new(xs::Enumeration {
                         fixed: None,
                         value: "unqualified".to_string(),
                     })),

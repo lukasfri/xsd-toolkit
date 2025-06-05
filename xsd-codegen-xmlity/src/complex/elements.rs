@@ -1,7 +1,11 @@
 use crate::{
     misc::TypeReference,
     templates::{
-        self, element_record::ElementRecord, value_record::ItemFieldItem, FieldType, ItemOrder,
+        self,
+        element_record::{ElementFieldType, ElementRecord},
+        group_record::GroupRecord,
+        value_record::ItemFieldItem,
+        ItemOrder,
     },
     Result, ToIdentTypesExt, TypeType,
 };
@@ -12,7 +16,7 @@ use xsd_type_compiler::complex::{self as cx};
 use super::{Context, Scope, ToTypeTemplate, ToTypeTemplateData};
 
 impl ToTypeTemplate for cx::ElementTypeContentId {
-    type TypeTemplate = templates::group_record::GroupRecord;
+    type TypeTemplate = GroupRecord;
 
     fn to_type_template<C: Context, S: Scope>(
         &self,
@@ -56,17 +60,14 @@ impl ToTypeTemplate for cx::DeclaredElementFragment {
 
         match &self.type_ {
             xsd_type_compiler::NamedOrAnonymous::Named(expanded_name) => {
-                let (ty, ty_type) = context.resolve_named_type(expanded_name)?;
+                let mut bound_type = context.resolve_named_type(expanded_name)?;
 
-                let field = type_to_element_field(ty, ty_type, false);
+                bound_type.ty = bound_type.ty.wrap(TypeReference::box_wrapper);
 
-                let template = templates::element_record::ElementRecord {
-                    name,
-                    attribute_order: ItemOrder::None,
-                    children_order: ItemOrder::None,
-                    field_type: FieldType::Unnamed,
-                    fields: vec![(None, field)],
-                };
+                let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false);
+
+                let template =
+                    templates::element_record::ElementRecord::new_single_field(name, None, field);
 
                 Ok(ToTypeTemplateData {
                     ident: Some(ident),
@@ -95,7 +96,9 @@ impl ToTypeTemplate for cx::ReferenceElementFragment {
         context: &C,
         _scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let ty = context.resolve_named_element(&self.name)?;
+        let ty = context
+            .resolve_named_element(&self.name)?
+            .wrap(TypeReference::box_wrapper);
 
         let template = ItemFieldItem { ty, default: false };
 
@@ -169,36 +172,36 @@ impl ToTypeTemplate for cx::TopLevelElementFragment {
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let name = context.to_expanded_name(self.name.clone());
         let ident = self.name.to_item_ident();
-        match &self.type_ {
-            xsd_type_compiler::NamedOrAnonymous::Named(expanded_name) => {
-                let (ty, ty_type) = context.resolve_named_type(expanded_name)?;
 
-                let field = type_to_element_field(ty, ty_type, false);
+        let type_ = self.type_.as_ref();
 
-                let template = templates::element_record::ElementRecord {
+        let template = match type_ {
+            Some(xsd_type_compiler::NamedOrAnonymous::Named(expanded_name)) => {
+                let mut bound_type = context.resolve_named_type(expanded_name)?;
+
+                bound_type.ty = bound_type.ty.wrap(TypeReference::box_wrapper);
+
+                let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false);
+
+                templates::element_record::ElementRecord {
                     name,
                     attribute_order: ItemOrder::None,
                     children_order: ItemOrder::None,
-                    field_type: FieldType::Unnamed,
-                    fields: vec![(None, field)],
-                };
-
-                Ok(ToTypeTemplateData {
-                    ident: Some(ident),
-                    template,
-                })
+                    fields: ElementFieldType::Unnamed(vec![field]),
+                }
             }
-            xsd_type_compiler::NamedOrAnonymous::Anonymous(anonymous) => {
+            Some(xsd_type_compiler::NamedOrAnonymous::Anonymous(anonymous)) => {
                 let sub_type = context.resolve_fragment(anonymous, scope)?;
 
-                let template = sub_type.template.into_element_record(name);
-
-                Ok(ToTypeTemplateData {
-                    ident: Some(ident),
-                    template,
-                })
+                sub_type.template.into_element_record(name)
             }
-        }
+            None => ElementRecord::new_empty(name),
+        };
+
+        Ok(ToTypeTemplateData {
+            ident: Some(ident),
+            template,
+        })
     }
 }
 
@@ -212,6 +215,7 @@ mod tests {
     use xsd::schema_names as xsn;
     use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
+    use crate::misc::TypeReference;
     use crate::BoundType;
     use crate::{Generator, TypeType};
 
@@ -679,8 +683,8 @@ mod tests {
         generator.bind_type(
             child_type_expanded_name,
             BoundType {
-                ty: parse_quote!(types::ChildType),
-                type_type: TypeType::Complex,
+                ty: TypeReference::new_static(parse_quote!(types::ChildType)),
+                ty_type: TypeType::Complex,
                 serialize_with: None,
                 deserialize_with: None,
             },
@@ -775,8 +779,8 @@ mod tests {
         generator.bind_type(
             child_type_expanded_name,
             BoundType {
-                ty: parse_quote!(types::ChildType),
-                type_type: TypeType::Complex,
+                ty: TypeReference::new_static(parse_quote!(types::ChildType)),
+                ty_type: TypeType::Complex,
                 serialize_with: None,
                 deserialize_with: None,
             },
@@ -853,7 +857,7 @@ mod tests {
 
         generator.bind_element(
             child_element_expanded_name,
-            parse_quote!(types::ChildElement),
+            TypeReference::new_static(parse_quote!(types::ChildElement)),
         );
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();

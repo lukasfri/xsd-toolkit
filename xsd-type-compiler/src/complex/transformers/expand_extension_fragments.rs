@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::collections::VecDeque;
 use std::ops::Deref;
 
@@ -82,14 +82,14 @@ impl ExpandExtensionFragments {
                 AttributeDeclarationId::Attribute(a) => (a.clone(), resolve_attr_name(&ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
         let resolved_child_attributes = child_attributes
             .clone()
             .map(|a| match a {
                 AttributeDeclarationId::Attribute(a) => (a.clone(), resolve_attr_name(&ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
 
         let mut new_attribute_declarations = VecDeque::new();
 
@@ -172,72 +172,79 @@ impl ExpandExtensionFragments {
             .get_complex_fragment::<ComplexTypeRootFragment>(&base_fragment.root_fragment)
             .unwrap();
 
-        let ComplexTypeModelId::ComplexContent(base_complex_content_id) =
-            base_root_fragment.content
-        else {
-            todo!("Error - cannot expand complex content of simple type.")
-        };
-
-        let base_content_fragment = ctx.get_complex_fragment(&base_complex_content_id).unwrap();
-
-        // Checks if base content is either a restriction of xs:anyType or an extension. If it is a non-anyType restriction, we cannot expand it since it could create a type that is not a valid derivative of the base's base type.
         let (base_content_content_fragment_id, base_content_base, base_attributes) =
-            match base_content_fragment.content_fragment {
-                ComplexContentChildId::Extension(fragment_idx) => {
-                    let base_extension_fragment = ctx
-                        .get_complex_fragment::<ExtensionFragment>(&fragment_idx)
-                        .unwrap();
-                    (
-                        base_extension_fragment.content_fragment.clone(),
-                        base_extension_fragment.base.clone(),
-                        base_extension_fragment.attribute_declarations.clone(),
-                    )
+            match base_root_fragment.content {
+                ComplexTypeModelId::Other { particle, .. } => {
+                    (particle, xsn::ANY_TYPE.clone(), VecDeque::new())
                 }
-                ComplexContentChildId::Restriction(fragment_idx) => {
-                    let base_restriction_fragment = ctx
-                        .get_complex_fragment::<RestrictionFragment>(&fragment_idx)
-                        .unwrap();
+                ComplexTypeModelId::SimpleContent(_) => {
+                    //TODO
+                    return Ok(TransformChange::Unchanged);
+                }
+                ComplexTypeModelId::ComplexContent(base_complex_content_id) => {
+                    let base_content_fragment =
+                        ctx.get_complex_fragment(&base_complex_content_id).unwrap();
 
-                    if &base_restriction_fragment.base != xsn::ANY_TYPE.deref() {
-                        todo!("Error - cannot expand complex content of restriction type.")
+                    // Checks if base content is either a restriction of xs:anyType or an extension. If it is a non-anyType restriction, we cannot expand it since it could create a type that is not a valid derivative of the base's base type.
+
+                    match base_content_fragment.content_fragment {
+                        ComplexContentChildId::Extension(fragment_idx) => {
+                            let base_extension_fragment = ctx
+                                .get_complex_fragment::<ExtensionFragment>(&fragment_idx)
+                                .unwrap();
+                            (
+                                base_extension_fragment.content_fragment.clone(),
+                                base_extension_fragment.base.clone(),
+                                base_extension_fragment.attribute_declarations.clone(),
+                            )
+                        }
+                        ComplexContentChildId::Restriction(fragment_idx) => {
+                            let base_restriction_fragment = ctx
+                                .get_complex_fragment::<RestrictionFragment>(&fragment_idx)
+                                .unwrap();
+
+                            if &base_restriction_fragment.base != xsn::ANY_TYPE.deref() {
+                                todo!("Error - cannot expand complex content of restriction type.")
+                            }
+
+                            (
+                                base_restriction_fragment.content_fragment.clone(),
+                                base_restriction_fragment.base.clone(),
+                                base_restriction_fragment.attribute_declarations.clone(),
+                            )
+                        }
                     }
-
-                    (
-                        base_restriction_fragment.content_fragment.clone(),
-                        base_restriction_fragment.base.clone(),
-                        base_restriction_fragment.attribute_declarations.clone(),
-                    )
                 }
             };
 
         let child_attributes = child_fragment.attribute_declarations.clone();
 
-        let new_content_fragment =
-            child_fragment
-                .content_fragment
-                .map(|child_content_content_fragment_id| {
-                    let Some(base_content_content_fragment_id) = base_content_content_fragment_id
-                    else {
-                        return child_content_content_fragment_id;
-                    };
+        let new_content_fragment = child_fragment
+            .content_fragment
+            .map(|child_content_content_fragment_id| {
+                let Some(base_content_content_fragment_id) = base_content_content_fragment_id
+                else {
+                    return child_content_content_fragment_id;
+                };
 
-                    let new_content_fragment = SequenceFragment {
-                        max_occurs: None,
-                        min_occurs: None,
-                        fragments: {
-                            let mut fragments = VecDeque::with_capacity(2);
-                            fragments.push_back(base_content_content_fragment_id.into());
-                            fragments.push_back(child_content_content_fragment_id.into());
-                            fragments
-                        },
-                    };
+                let new_content_fragment = SequenceFragment {
+                    max_occurs: None,
+                    min_occurs: None,
+                    fragments: {
+                        let mut fragments = VecDeque::with_capacity(2);
+                        fragments.push_back(base_content_content_fragment_id.into());
+                        fragments.push_back(child_content_content_fragment_id.into());
+                        fragments
+                    },
+                };
 
-                    let compiler = &mut ctx.current_namespace_mut().complex_type;
+                let compiler = &mut ctx.current_namespace_mut().complex_type;
 
-                    let new_content_fragment = compiler.push_fragment(new_content_fragment);
+                let new_content_fragment = compiler.push_fragment(new_content_fragment);
 
-                    new_content_fragment.into()
-                });
+                new_content_fragment.into()
+            })
+            .or(base_content_content_fragment_id);
 
         let new_attribute_declarations =
             Self::expand_expanded_attributes(ctx, child_attributes.iter(), base_attributes.iter())?;
@@ -604,5 +611,569 @@ mod tests {
             .unwrap();
 
         assert_eq!(expected_flattened_shirt_type, actual_flattened_shirt_type);
+    }
+
+    #[test]
+    fn expand_extension_type_element_no_fragment() {
+        // <xs:complexType name="Block">
+        //     <xs:choice minOccurs="0" maxOccurs="unbounded">
+        //     <xs:group ref="block"/>
+        //     <xs:element ref="form"/>
+        //     <xs:group ref="misc"/>
+        //     </xs:choice>
+        // </xs:complexType>
+        let block = xs::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("Block"))
+            .content(xs::ComplexTypeModel::ComplexContent(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .particle(xs::TypeDefParticle::Choice(
+                                xs::ChoiceType::builder()
+                                    .min_occurs(xs::MinOccurs(0))
+                                    .max_occurs(MaxOccurs(MaxOccursValue::Unbounded))
+                                    .content(vec![
+                                        xs::GroupRef::builder()
+                                            .ref_(xs::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("block"),
+                                                Some(XmlNamespace::XHTML),
+                                            )))
+                                            .build()
+                                            .into(),
+                                        xs::LocalElement::builder()
+                                            .ref_(xs::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("form"),
+                                                Some(XmlNamespace::XHTML),
+                                            )))
+                                            .build()
+                                            .into(),
+                                        xs::GroupRef::builder()
+                                            .ref_(xs::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("misc"),
+                                                Some(XmlNamespace::XHTML),
+                                            )))
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .build(),
+                            ))
+                            .build()
+                            .into(),
+                    )
+                    .build(),
+            ))
+            .build();
+
+        // <xs:element name="noscript">
+        //     <xs:annotation>
+        //     <xs:documentation>
+        //     alternate content container for non script-based rendering
+        //     </xs:documentation>
+        //     </xs:annotation>
+        //     <xs:complexType>
+        //     <xs:complexContent>
+        //         <xs:extension base="Block">
+        //         <xs:attributeGroup ref="attrs"/>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        //     </xs:complexType>
+        // </xs:element>
+        let noscript = xs::TopLevelElement(
+            xs::types::TopLevelElement::builder()
+                .name(LocalName::new_dangerous("noscript"))
+                .child_1(
+                    xs::LocalComplexType::builder()
+                        .content(
+                            xs::ComplexContent::builder()
+                                .content(
+                                    xs::ExtensionType::builder()
+                                        .base(xs::QName(ExpandedName::new(
+                                            LocalName::new_dangerous("Block"),
+                                            Some(XmlNamespace::XHTML),
+                                        )))
+                                        .attributes(vec![
+                                        // xs::AttributeGroupRefType::builder()
+                                        // .ref_(xs::QName(ExpandedName::new(
+                                        //     LocalName::new_dangerous("attrs"),
+                                        //     Some(XmlNamespace::XHTML),
+                                        // )))
+                                        // .build()
+                                        // .into()
+                                        ])
+                                        .build()
+                                        .into(),
+                                )
+                                .build()
+                                .into(),
+                        )
+                        .build()
+                        .into(),
+                )
+                .build(),
+        );
+
+        let expected_flattened_noscript = xs::TopLevelElement(
+            xs::types::TopLevelElement::builder()
+                .name(LocalName::new_dangerous("noscript"))
+                .child_1(
+                    xs::LocalComplexType::builder()
+                        .content(
+                            xs::ComplexContent::builder()
+                                .content(
+                                    xs::ComplexRestrictionType::builder()
+                                        .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                        .particle(xs::TypeDefParticle::Choice(
+                                            xs::ChoiceType::builder()
+                                                .min_occurs(xs::MinOccurs(0))
+                                                .max_occurs(MaxOccurs(MaxOccursValue::Unbounded))
+                                                .content(vec![
+                                                    xs::GroupRef::builder()
+                                                        .ref_(xs::QName(ExpandedName::new(
+                                                            LocalName::new_dangerous("block"),
+                                                            Some(XmlNamespace::XHTML),
+                                                        )))
+                                                        .build()
+                                                        .into(),
+                                                    xs::LocalElement::builder()
+                                                        .ref_(xs::QName(ExpandedName::new(
+                                                            LocalName::new_dangerous("form"),
+                                                            Some(XmlNamespace::XHTML),
+                                                        )))
+                                                        .build()
+                                                        .into(),
+                                                    xs::GroupRef::builder()
+                                                        .ref_(xs::QName(ExpandedName::new(
+                                                            LocalName::new_dangerous("misc"),
+                                                            Some(XmlNamespace::XHTML),
+                                                        )))
+                                                        .build()
+                                                        .into(),
+                                                ])
+                                                .build(),
+                                        ))
+                                        .attributes(vec![
+                                            // xs::AttributeGroupRefType::builder()
+                                            // .ref_(xs::QName(ExpandedName::new(
+                                            //     LocalName::new_dangerous("attrs"),
+                                            //     Some(XmlNamespace::XHTML),
+                                            // )))
+                                            // .build()
+                                            // .into()
+                                        ])
+                                        .build()
+                                        .into(),
+                                )
+                                .build()
+                                .into(),
+                        )
+                        .build()
+                        .into(),
+                )
+                .build(),
+        );
+
+        let mut xmlns_context = XmlnsContext::new();
+
+        let mut compiled_namespace = CompiledNamespace::new(XmlNamespace::XHTML);
+
+        compiled_namespace
+            .import_top_level_complex_type(&block)
+            .unwrap();
+        compiled_namespace
+            .import_top_level_element(&noscript)
+            .unwrap();
+
+        xmlns_context.add_namespace(compiled_namespace);
+
+        let transform_changed = xmlns_context
+            .transform(&XmlNamespace::XHTML, ExpandExtensionFragments::new())
+            .unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Changed);
+
+        let transform_changed = xmlns_context
+            .transform(&XmlNamespace::XHTML, ExpandExtensionFragments::new())
+            .unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Unchanged);
+
+        let compiled_namespace = xmlns_context.namespaces.get(&XmlNamespace::XHTML).unwrap();
+
+        let actual_flattened_noscript = compiled_namespace
+            .export_top_level_element(&LocalName::new_dangerous("noscript"))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(expected_flattened_noscript, actual_flattened_noscript);
+    }
+
+    #[test]
+    fn expand_xhtml_a() {
+        // <xs:complexType name="a.content" mixed="true">
+        //     <xs:annotation>
+        //     <xs:documentation>
+        //     a elements use "Inline" excluding a
+        //     </xs:documentation>
+        //     </xs:annotation>
+        //     <xs:choice minOccurs="0" maxOccurs="unbounded">
+        //     <xs:group ref="special"/>
+        //     <xs:group ref="fontstyle"/>
+        //     <xs:group ref="phrase"/>
+        //     <xs:group ref="inline.forms"/>
+        //     <xs:group ref="misc.inline"/>
+        //     </xs:choice>
+        // </xs:complexType>
+        let a_content = xs::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("a.content"))
+            .mixed(true)
+            .content(xs::ComplexTypeModel::ComplexContent(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .particle(xs::TypeDefParticle::Choice(
+                                xs::ChoiceType::builder()
+                                    .min_occurs(xs::MinOccurs(0))
+                                    .max_occurs(MaxOccurs(MaxOccursValue::Unbounded))
+                                    .content(vec![
+                                        xs::GroupRef::builder()
+                                            .ref_(xs::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("special"),
+                                                Some(XmlNamespace::XHTML),
+                                            )))
+                                            .build()
+                                            .into(),
+                                        xs::GroupRef::builder()
+                                            .ref_(xs::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("fontstyle"),
+                                                Some(XmlNamespace::XHTML),
+                                            )))
+                                            .build()
+                                            .into(),
+                                        xs::GroupRef::builder()
+                                            .ref_(xs::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("phrase"),
+                                                Some(XmlNamespace::XHTML),
+                                            )))
+                                            .build()
+                                            .into(),
+                                        xs::GroupRef::builder()
+                                            .ref_(xs::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("inline.forms"),
+                                                Some(XmlNamespace::XHTML),
+                                            )))
+                                            .build()
+                                            .into(),
+                                        xs::GroupRef::builder()
+                                            .ref_(xs::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("misc.inline"),
+                                                Some(XmlNamespace::XHTML),
+                                            )))
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .build(),
+                            ))
+                            .build()
+                            .into(),
+                    )
+                    .build(),
+            ))
+            .build();
+
+        // <xs:element name="a">
+        //     <xs:annotation>
+        //         <xs:documentation>
+        //         content is "Inline" except that anchors shouldn't be nested
+        //         </xs:documentation>
+        //     </xs:annotation>
+        //     <xs:complexType mixed="true">
+        //         <xs:complexContent>
+        //         <xs:extension base="a.content">
+        //             <xs:attributeGroup ref="attrs"/>
+        //             <xs:attributeGroup ref="focus"/>
+        //             <xs:attribute name="charset" type="Charset"/>
+        //             <xs:attribute name="type" type="ContentType"/>
+        //             <xs:attribute name="name" type="xs:NMTOKEN"/>
+        //             <xs:attribute name="href" type="URI"/>
+        //             <xs:attribute name="hreflang" type="LanguageCode"/>
+        //             <xs:attribute name="rel" type="LinkTypes"/>
+        //             <xs:attribute name="rev" type="LinkTypes"/>
+        //             <xs:attribute name="shape" default="rect" type="Shape"/>
+        //             <xs:attribute name="coords" type="Coords"/>
+        //         </xs:extension>
+        //         </xs:complexContent>
+        //     </xs:complexType>
+        // </xs:element>
+        let a = xs::TopLevelElement(
+            xs::types::TopLevelElement::builder()
+                .name(LocalName::new_dangerous("a"))
+                .child_1(
+                    xs::LocalComplexType::builder()
+                        .mixed(true)
+                        .content(
+                            xs::ComplexContent::builder()
+                                .content(
+                                    xs::ExtensionType::builder()
+                                        .base(xs::QName(ExpandedName::new(
+                                            LocalName::new_dangerous("a.content"),
+                                            Some(XmlNamespace::XHTML),
+                                        )))
+                                        .attributes(vec![
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("charset"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("Charset"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("type"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("ContentType"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("name"))
+                                                .type_(xs::QName(xsn::NMTOKEN.clone()))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("href"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("URI"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("hreflang"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("LanguageCode"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("rel"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("LinkTypes"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("rev"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("LinkTypes"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("shape"))
+                                                .default("rect".to_string())
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("Shape"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("coords"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("Coords"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                        ])
+                                        .build()
+                                        .into(),
+                                )
+                                .build()
+                                .into(),
+                        )
+                        .build()
+                        .into(),
+                )
+                .build(),
+        );
+
+        let expected_flattened_a = xs::TopLevelElement(
+            xs::types::TopLevelElement::builder()
+                .name(LocalName::new_dangerous("a"))
+                .child_1(
+                    xs::LocalComplexType::builder()
+                        .mixed(true)
+                        .content(
+                            xs::ComplexContent::builder()
+                                .content(
+                                    xs::ComplexRestrictionType::builder()
+                                        .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                        .particle(xs::TypeDefParticle::Choice(
+                                            xs::ChoiceType::builder()
+                                                .min_occurs(xs::MinOccurs(0))
+                                                .max_occurs(MaxOccurs(MaxOccursValue::Unbounded))
+                                                .content(vec![
+                                                    xs::GroupRef::builder()
+                                                        .ref_(xs::QName(ExpandedName::new(
+                                                            LocalName::new_dangerous("special"),
+                                                            Some(XmlNamespace::XHTML),
+                                                        )))
+                                                        .build()
+                                                        .into(),
+                                                    xs::GroupRef::builder()
+                                                        .ref_(xs::QName(ExpandedName::new(
+                                                            LocalName::new_dangerous("fontstyle"),
+                                                            Some(XmlNamespace::XHTML),
+                                                        )))
+                                                        .build()
+                                                        .into(),
+                                                    xs::GroupRef::builder()
+                                                        .ref_(xs::QName(ExpandedName::new(
+                                                            LocalName::new_dangerous("phrase"),
+                                                            Some(XmlNamespace::XHTML),
+                                                        )))
+                                                        .build()
+                                                        .into(),
+                                                    xs::GroupRef::builder()
+                                                        .ref_(xs::QName(ExpandedName::new(
+                                                            LocalName::new_dangerous(
+                                                                "inline.forms",
+                                                            ),
+                                                            Some(XmlNamespace::XHTML),
+                                                        )))
+                                                        .build()
+                                                        .into(),
+                                                    xs::GroupRef::builder()
+                                                        .ref_(xs::QName(ExpandedName::new(
+                                                            LocalName::new_dangerous("misc.inline"),
+                                                            Some(XmlNamespace::XHTML),
+                                                        )))
+                                                        .build()
+                                                        .into(),
+                                                ])
+                                                .build(),
+                                        ))
+                                        .attributes(vec![
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("charset"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("Charset"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("type"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("ContentType"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("name"))
+                                                .type_(xs::QName(xsn::NMTOKEN.clone()))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("href"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("URI"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("hreflang"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("LanguageCode"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("rel"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("LinkTypes"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("rev"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("LinkTypes"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("shape"))
+                                                .default("rect".to_string())
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("Shape"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                            xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("coords"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("Coords"),
+                                                    Some(XmlNamespace::XHTML),
+                                                )))
+                                                .build()
+                                                .into(),
+                                        ])
+                                        .build()
+                                        .into(),
+                                )
+                                .build()
+                                .into(),
+                        )
+                        .build()
+                        .into(),
+                )
+                .build(),
+        );
+
+        let mut xmlns_context = XmlnsContext::new();
+
+        let mut compiled_namespace = CompiledNamespace::new(XmlNamespace::XHTML);
+
+        compiled_namespace
+            .import_top_level_complex_type(&a_content)
+            .unwrap();
+        compiled_namespace.import_top_level_element(&a).unwrap();
+
+        xmlns_context.add_namespace(compiled_namespace);
+
+        let transform_changed = xmlns_context
+            .transform(&XmlNamespace::XHTML, ExpandExtensionFragments::new())
+            .unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Changed);
+
+        let transform_changed = xmlns_context
+            .transform(&XmlNamespace::XHTML, ExpandExtensionFragments::new())
+            .unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Unchanged);
+
+        let compiled_namespace = xmlns_context.namespaces.get(&XmlNamespace::XHTML).unwrap();
+
+        let actual_flattened_a = compiled_namespace
+            .export_top_level_element(&LocalName::new_dangerous("a"))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(expected_flattened_a, actual_flattened_a);
     }
 }

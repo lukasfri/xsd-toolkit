@@ -11,6 +11,10 @@ impl XmlSchema {
         Self { underlying_schema }
     }
 
+    pub fn schema_tops(&self) -> impl Iterator<Item = &schema::SchemaTop> {
+        self.underlying_schema.schema_top.iter()
+    }
+
     pub fn top_level_elements(&self) -> impl Iterator<Item = &schema::TopLevelElement> {
         self.underlying_schema.schema_top.iter().filter_map(|top| {
             if let schema::SchemaTop::Element(element) = top {

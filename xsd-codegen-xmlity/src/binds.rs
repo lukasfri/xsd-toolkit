@@ -15,8 +15,8 @@ macro_rules! xs_name {
 macro_rules! xs_bind {
     ($local_name:expr, $($tt:tt)*) => {
         (xs_name!($local_name), BoundType {
-          ty: parse_quote!($($tt)*),
-          type_type:
+          ty: crate::TypeReference::new_static(parse_quote!($($tt)*)),
+          ty_type:
           TypeType::Simple,
           serialize_with: None,
           deserialize_with: None,
@@ -152,7 +152,7 @@ impl IntoIterator for UrlStdXsdTypes {
     fn into_iter(self) -> Self::IntoIter {
         [
             xs_bind!("anyURI", String),
-            xs_bind!("QName", types::SpecialQName),
+            xs_bind!("QName", String),
             xs_bind!("NOTATION", String),
         ]
         .into_iter()

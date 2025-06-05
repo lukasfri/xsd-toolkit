@@ -1,5 +1,10 @@
 use crate::{
-    templates::{self, element_record::ElementField, group_record::GroupRecord, FieldType},
+    complex::dedup_field_idents,
+    templates::{
+        self,
+        element_record::{ElementField, ElementFieldType},
+        group_record::GroupRecord,
+    },
     Result, ToIdentTypesExt,
 };
 
@@ -26,13 +31,18 @@ impl ToTypeTemplate for cx::RestrictionFragment {
                         TypeDefParticleTemplate::Record(item_record) => {
                             item_record.into_group_record()
                         }
-                        TypeDefParticleTemplate::Item(item) => {
-                            GroupRecord::new_single_field(None, ElementField::Item(item))
-                        }
+                        TypeDefParticleTemplate::Item(item) => GroupRecord::new_single_field(
+                            Some(
+                                a.ident
+                                    .unwrap_or_else(|| format_ident!("particle"))
+                                    .to_field_ident(),
+                            ),
+                            ElementField::Item(item),
+                        ),
                     })
             })
             .transpose()?
-            .unwrap_or_else(|| GroupRecord::new_empty(FieldType::Named));
+            .unwrap_or_else(|| GroupRecord::new_empty());
 
         let attributes = self
             .attribute_declarations
@@ -44,19 +54,22 @@ impl ToTypeTemplate for cx::RestrictionFragment {
                     .resolve_fragment(a, scope)
                     .map(|a| {
                         (
-                            Some(
-                                a.ident
-                                    .map(|a| a.to_field_ident())
-                                    .unwrap_or_else(|| format_ident!("attribute_{i}")),
-                            ),
+                            a.ident
+                                .map(|a| a.to_field_ident())
+                                .unwrap_or_else(|| format_ident!("attribute_{i}")),
                             ElementField::Attribute(a.template),
                         )
                     })
-            });
-
-        template.fields = attributes
-            .chain(template.fields.into_iter().map(Ok))
+            })
             .collect::<Result<Vec<_>>>()?;
+
+        let attributes = dedup_field_idents(attributes);
+
+        template
+            .fields
+            .prefix_fields(ElementFieldType::Named(attributes));
+
+        template.force_empty_if_empty();
 
         Ok(ToTypeTemplateData {
             ident: None,
@@ -75,7 +88,10 @@ impl ToTypeTemplate for cx::ComplexContentFragment {
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match &self.content_fragment {
             cx::ComplexContentChildId::Extension(_fragment_idx) => {
-                panic!("TODO: Should give error. Extension not supported")
+                panic!(
+                    "TODO: Should give error. Extension not supported. Ident: {}",
+                    context.suggested_ident()
+                )
             }
             cx::ComplexContentChildId::Restriction(fragment_idx) => {
                 context.resolve_fragment_id(fragment_idx, scope)
@@ -85,7 +101,7 @@ impl ToTypeTemplate for cx::ComplexContentFragment {
 }
 
 impl ToTypeTemplate for cx::ComplexTypeModelId {
-    type TypeTemplate = templates::group_record::GroupRecord;
+    type TypeTemplate = GroupRecord;
 
     fn to_type_template<C: Context, S: Scope>(
         &self,
@@ -97,13 +113,56 @@ impl ToTypeTemplate for cx::ComplexTypeModelId {
             cx::ComplexTypeModelId::ComplexContent(fragment_idx) => {
                 context.resolve_fragment_id(fragment_idx, scope)
             }
-            cx::ComplexTypeModelId::Other { particle: _ } => todo!(),
+            cx::ComplexTypeModelId::Other {
+                particle,
+                attributes,
+            } => {
+                let (ident, mut template) = particle
+                    .as_ref()
+                    .map(|particle| {
+                        context.resolve_fragment(particle, scope).map(|a| {
+                            (
+                                a.ident,
+                                a.template
+                                    .into_group_record(Some(format_ident!("particle"))),
+                            )
+                        })
+                    })
+                    .unwrap_or_else(|| Ok((None, GroupRecord::new_empty())))?;
+
+                let attributes = attributes
+                    .iter()
+                    .enumerate()
+                    .map(|(i, a)| {
+                        context
+                            .sub_context(format_ident!("Attribute{i}"))
+                            .resolve_fragment(a, scope)
+                            .map(|a| (i, a))
+                    })
+                    .collect::<Result<Vec<_>>>()?
+                    .into_iter()
+                    .map(|(i, a)| {
+                        (
+                            a.ident
+                                .unwrap_or_else(|| format_ident!("attr_{}", i))
+                                .to_field_ident(),
+                            ElementField::Attribute(a.template),
+                        )
+                    })
+                    .collect();
+
+                template
+                    .fields
+                    .prefix_fields(ElementFieldType::Named(attributes));
+
+                Ok(ToTypeTemplateData { ident, template })
+            }
         }
     }
 }
 
 impl ToTypeTemplate for cx::ComplexTypeRootFragment {
-    type TypeTemplate = templates::group_record::GroupRecord;
+    type TypeTemplate = GroupRecord;
 
     fn to_type_template<C: Context, S: Scope>(
         &self,
@@ -181,7 +240,7 @@ mod tests {
 
         assert_eq!(expected_items, actual_items);
 
-        assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
+        assert_eq!(type_.ty.into_type(None), parse_quote!(SimpleSequence));
     }
 
     #[test]
@@ -252,7 +311,7 @@ mod tests {
 
         assert_eq!(expected_items, actual_items);
 
-        assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
+        assert_eq!(type_.ty.into_type(None), parse_quote!(SimpleSequence));
     }
 
     #[test]
@@ -321,7 +380,7 @@ mod tests {
 
         assert_eq!(expected_items, actual_items);
 
-        assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
+        assert_eq!(type_.ty.into_type(None), parse_quote!(SimpleSequence));
     }
 
     #[test]
@@ -414,7 +473,7 @@ mod tests {
 
         assert_eq!(expected_items, actual_items);
 
-        assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
+        assert_eq!(type_.ty.into_type(None), parse_quote!(SimpleSequence));
     }
 
     #[test]
@@ -518,6 +577,6 @@ mod tests {
 
         assert_eq!(expected_items, actual_items);
 
-        assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
+        assert_eq!(type_.ty.into_type(None), parse_quote!(SimpleSequence));
     }
 }

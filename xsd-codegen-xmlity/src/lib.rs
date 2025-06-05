@@ -4,7 +4,7 @@ pub mod misc;
 mod simple;
 pub mod templates;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use complex::{Scope, ToTypeTemplate, ToTypeTemplateData};
 use inflector::Inflector;
@@ -14,7 +14,7 @@ use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_type_compiler::{
     complex::{ComplexTypeFragmentCompiler, FragmentAccess},
-    CompiledNamespace,
+    CompiledNamespace, TopLevelType,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -23,11 +23,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 pub struct Generator<'a> {
     pub context: &'a xsd_type_compiler::XmlnsContext,
-    pub bound_namespaces: HashMap<XmlNamespace<'static>, syn::Path>,
-    pub bound_types: HashMap<ExpandedName<'static>, BoundType>,
-    pub bound_elements: HashMap<ExpandedName<'static>, syn::Type>,
-    pub bound_attributes: HashMap<ExpandedName<'static>, syn::Type>,
-    pub bound_groups: HashMap<ExpandedName<'static>, syn::Type>,
+    pub bound_namespaces: BTreeMap<XmlNamespace<'static>, syn::Path>,
+    pub bound_types: BTreeMap<ExpandedName<'static>, BoundType>,
+    pub bound_elements: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
+    pub bound_attributes: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
+    pub bound_groups: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -170,32 +170,39 @@ impl<'c> complex::Context for GeneratorContext<'c> {
         fragment.to_type_template(self, scope)
     }
 
-    fn resolve_named_type(
-        &self,
-        name: &ExpandedName<'_>,
-    ) -> Result<(TypeReference<'static>, TypeType)> {
-        if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()).cloned() {
-            let ty = TypeReference::new_static(bound_type.ty);
-
-            return Ok((ty, bound_type.type_type));
+    fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<BoundType> {
+        if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
+            return Ok(bound_type.clone());
         }
+
+        let type_mod_ident = format_ident!("types");
 
         let namespace_crate = self
             .generator
             .bound_namespaces
             .get(name.namespace().unwrap())
-            .unwrap();
+            .unwrap_or_else(|| {
+                panic!(
+                    "unbound namespace: {}",
+                    name.namespace()
+                        .map(|a| a.to_string())
+                        .unwrap_or("Unknown namespace.".to_string())
+                )
+            });
 
         let name = name.local_name().to_item_ident();
-        let ty: syn::Type = parse_quote!(#namespace_crate::#name);
+        let ty: syn::Type = parse_quote!(#namespace_crate::#type_mod_ident::#name);
 
-        Ok((TypeReference::new_static(ty), TypeType::Complex))
+        Ok(BoundType {
+            ty: TypeReference::new_static(ty),
+            ty_type: TypeType::Complex,
+            serialize_with: None,
+            deserialize_with: None,
+        })
     }
 
     fn resolve_named_element(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
         if let Some(ty) = self.generator.bound_elements.get(&name.as_ref()).cloned() {
-            let ty = TypeReference::new_static(ty);
-
             return Ok(ty);
         }
 
@@ -203,7 +210,14 @@ impl<'c> complex::Context for GeneratorContext<'c> {
             .generator
             .bound_namespaces
             .get(name.namespace().unwrap())
-            .unwrap();
+            .unwrap_or_else(|| {
+                panic!(
+                    "unbound namespace: {}",
+                    name.namespace()
+                        .map(|a| a.to_string())
+                        .unwrap_or("Unknown namespace.".to_string())
+                )
+            });
 
         let name = name.local_name().to_item_ident();
         let ty: syn::Type = parse_quote!(#namespace_crate::#name);
@@ -213,19 +227,27 @@ impl<'c> complex::Context for GeneratorContext<'c> {
 
     fn resolve_named_attribute(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
         if let Some(ty) = self.generator.bound_attributes.get(&name.as_ref()).cloned() {
-            let ty = TypeReference::new_static(ty);
-
             return Ok(ty);
         }
+
+        let attribute_mod_ident = format_ident!("attributes");
 
         let namespace_crate = self
             .generator
             .bound_namespaces
             .get(name.namespace().unwrap())
-            .unwrap();
+            .unwrap_or_else(|| {
+                panic!(
+                    "unbound namespace: {} for attribute {}",
+                    name.namespace()
+                        .map(|a| a.to_string())
+                        .unwrap_or("Unknown namespace.".to_string()),
+                    name.local_name()
+                )
+            });
 
         let name = name.local_name().to_item_ident();
-        let ty: syn::Type = parse_quote!(#namespace_crate::#name);
+        let ty: syn::Type = parse_quote!(#namespace_crate::#attribute_mod_ident::#name);
 
         Ok(TypeReference::new_static(ty))
     }
@@ -236,19 +258,27 @@ impl<'c> complex::Context for GeneratorContext<'c> {
 
     fn resolve_named_group(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
         if let Some(ty) = self.generator.bound_groups.get(&name.as_ref()).cloned() {
-            let ty = TypeReference::new_static(ty);
-
             return Ok(ty);
         }
+
+        let group_mod_ident = format_ident!("groups");
 
         let namespace_crate = self
             .generator
             .bound_namespaces
             .get(name.namespace().unwrap())
-            .unwrap();
+            .unwrap_or_else(|| {
+                panic!(
+                    "unbound namespace: {} for group {}",
+                    name.namespace()
+                        .map(|a| a.to_string())
+                        .unwrap_or("Unknown namespace.".to_string()),
+                    name.local_name()
+                )
+            });
 
         let name = name.local_name().to_item_ident();
-        let ty: syn::Type = parse_quote!(#namespace_crate::#name);
+        let ty: syn::Type = parse_quote!(#namespace_crate::#group_mod_ident::#name);
 
         Ok(TypeReference::new_static(ty))
     }
@@ -270,7 +300,7 @@ impl complex::Scope for GeneratorScope {
             _ => panic!("Unsupported item type"),
         };
 
-        let ref_ = TypeReference::new_prefix(parse_quote!(#ident));
+        let ref_ = TypeReference::new_prefixed_type(parse_quote!(#ident));
 
         self.items.push(item);
 
@@ -304,8 +334,8 @@ impl GeneratorScope {
 
 #[derive(Debug, Clone)]
 pub struct BoundType {
-    pub ty: syn::Type,
-    pub type_type: TypeType,
+    pub ty: TypeReference<'static>,
+    pub ty_type: TypeType,
     pub serialize_with: Option<syn::Path>,
     pub deserialize_with: Option<syn::Path>,
 }
@@ -314,11 +344,11 @@ impl<'a> Generator<'a> {
     pub fn new(context: &'a xsd_type_compiler::XmlnsContext) -> Self {
         Self {
             context,
-            bound_namespaces: HashMap::new(),
-            bound_types: HashMap::new(),
-            bound_elements: HashMap::new(),
-            bound_attributes: HashMap::new(),
-            bound_groups: HashMap::new(),
+            bound_namespaces: BTreeMap::new(),
+            bound_types: BTreeMap::new(),
+            bound_elements: BTreeMap::new(),
+            bound_attributes: BTreeMap::new(),
+            bound_groups: BTreeMap::new(),
         }
     }
 
@@ -339,34 +369,166 @@ impl<'a> Generator<'a> {
         }
     }
 
-    pub fn bind_element(&mut self, name: ExpandedName<'static>, ty: syn::Type) {
+    pub fn bind_element(&mut self, name: ExpandedName<'static>, ty: TypeReference<'static>) {
         self.bound_elements.insert(name, ty);
     }
 
-    pub fn bind_attribute(&mut self, name: ExpandedName<'static>, ty: syn::Type) {
+    pub fn bind_attribute(&mut self, name: ExpandedName<'static>, ty: TypeReference<'static>) {
         self.bound_attributes.insert(name, ty);
     }
 
-    pub fn generate_namespace(&self, namespace: &xmlity::XmlNamespace<'_>) -> Result<Vec<Item>> {
+    pub fn bind_group(&mut self, name: ExpandedName<'static>, ty: TypeReference<'static>) {
+        self.bound_groups.insert(name, ty);
+    }
+
+    pub fn generate_namespace(
+        &mut self,
+        namespace: &xmlity::XmlNamespace<'_>,
+    ) -> Result<Vec<Item>> {
         let mut items = Vec::new();
 
-        let compiled_namespace = self.context.namespaces.get(namespace).unwrap(); // TODO: handle this error properly with a better error messa
+        let compiled_namespace = self.context.namespaces.get(namespace).unwrap(); // TODO: handle this error properly with a better error message
 
-        for local_name in compiled_namespace.top_level_types.keys() {
-            let expanded_name = ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
-            let (_, i) = self.generate_top_level_type(&expanded_name)?;
-            items.extend(i)
-        }
+        let types_module_name = format_ident!("types");
 
-        for local_name in compiled_namespace.top_level_attributes.keys() {
-            let expanded_name = ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
-            let (_, i) = self.generate_top_level_type(&expanded_name)?;
-            items.extend(i)
-        }
+        let simple_types = compiled_namespace
+            .top_level_types
+            .iter()
+            .filter(|(_key, type_)| matches!(type_, TopLevelType::Simple(_)))
+            .map(|(key, _)| key)
+            .map(|local_name| {
+                let expanded_name =
+                    ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
+                let (mut bound_type, i) = self.generate_top_level_type(&expanded_name)?;
+
+                let bound_namespace = self.bound_namespaces.get(namespace).unwrap();
+
+                let path: syn::Path = parse_quote!(#bound_namespace::#types_module_name);
+
+                bound_type.ty = TypeReference::new_static(bound_type.ty.into_type(Some(&path)));
+
+                self.bind_type(expanded_name.into_owned(), bound_type);
+
+                Ok(i)
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let complex_types = compiled_namespace
+            .top_level_types
+            .iter()
+            .filter(|(_key, type_)| matches!(type_, TopLevelType::Complex(_)))
+            .map(|(key, _)| key)
+            .map(|local_name| {
+                let expanded_name =
+                    ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
+                let (mut bound_type, i) = self.generate_top_level_type(&expanded_name)?;
+
+                let bound_namespace = self.bound_namespaces.get(namespace).unwrap();
+
+                let path: syn::Path = parse_quote!(#bound_namespace::#types_module_name);
+
+                bound_type.ty = TypeReference::new_static(bound_type.ty.into_type(Some(&path)));
+
+                self.bind_type(expanded_name.into_owned(), bound_type);
+
+                Ok(i)
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        // First we resolve simple types
+        let type_items = simple_types
+            .into_iter()
+            .chain(complex_types)
+            .flatten()
+            .collect::<Vec<_>>();
+
+        let item_mod = parse_quote!(
+            pub mod #types_module_name {
+                #(#type_items)*
+            }
+        );
+
+        items.push(Item::Mod(item_mod));
+
+        let attributes_module_name = format_ident!("attributes");
+
+        let attributes_items = compiled_namespace
+            .top_level_attributes
+            .keys()
+            .into_iter()
+            .map(|local_name| {
+                let expanded_name =
+                    ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
+                let (mut bound_type, i) = self.generate_top_level_attribute(&expanded_name)?;
+
+                let bound_namespace = self.bound_namespaces.get(namespace).unwrap();
+
+                let path: syn::Path = parse_quote!(#bound_namespace::#attributes_module_name);
+
+                bound_type = TypeReference::new_static(bound_type.into_type(Some(&path)));
+
+                self.bind_attribute(expanded_name.into_owned(), bound_type);
+
+                Ok(i)
+            })
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+
+        let attributes_mod = parse_quote!(
+            pub mod #attributes_module_name {
+                #(#attributes_items)*
+            }
+        );
+
+        items.push(Item::Mod(attributes_mod));
+
+        let groups_module_name = format_ident!("groups");
+
+        let group_items = compiled_namespace
+            .top_level_groups
+            .keys()
+            .into_iter()
+            .map(|local_name| {
+                let expanded_name =
+                    ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
+                let (mut bound_type, i) = self.generate_top_level_group(&expanded_name)?;
+
+                let bound_namespace = self.bound_namespaces.get(namespace).unwrap();
+
+                let path: syn::Path = parse_quote!(#bound_namespace::#groups_module_name);
+
+                bound_type = TypeReference::new_static(bound_type.into_type(Some(&path)));
+
+                self.bind_group(expanded_name.into_owned(), bound_type);
+
+                Ok(i)
+            })
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+
+        let groups_mod = parse_quote!(
+            pub mod #groups_module_name {
+                #(#group_items)*
+            }
+        );
+
+        items.push(Item::Mod(groups_mod));
 
         for local_name in compiled_namespace.top_level_elements.keys() {
             let expanded_name = ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
-            let (_, i) = self.generate_top_level_type(&expanded_name)?;
+            let (mut bound_type, i) = self.generate_top_level_element(&expanded_name)?;
+
+            let bound_namespace = self.bound_namespaces.get(namespace).unwrap();
+
+            let path: syn::Path = parse_quote!(#bound_namespace);
+
+            bound_type = TypeReference::new_static(bound_type.into_type(Some(&path)));
+
+            self.bind_element(expanded_name.into_owned(), bound_type);
             items.extend(i)
         }
 
@@ -377,21 +539,38 @@ impl<'a> Generator<'a> {
     pub fn generate_top_level_type(
         &self,
         name: &xmlity::ExpandedName<'_>,
-    ) -> Result<(TypeReference<'static>, Vec<Item>)> {
+    ) -> Result<(BoundType, Vec<Item>)> {
         let compiled_namespace = self
             .context
             .namespaces
             .get(name.namespace().unwrap())
             .unwrap_or_else(|| panic!("namespace not found: {}", name.namespace().unwrap()));
-        // TODO: handle this error properly with a better error messa
+        // TODO: handle this error properly with a better error message
 
         let type_ = compiled_namespace
             .top_level_types
             .get(name.local_name())
-            .unwrap(); // TODO: handle this error properly with a better error messa
+            .unwrap_or_else(|| {
+                panic!(
+                    "type not found: {} in namespace: {}",
+                    name.local_name(),
+                    name.namespace().unwrap()
+                )
+            }); // TODO: handle this error properly with a better error message
 
         match type_ {
-            xsd_type_compiler::TopLevelType::Simple(_type_) => todo!(),
+            xsd_type_compiler::TopLevelType::Simple(_type_) => {
+                let ty = TypeReference::new_static(parse_quote!(String));
+
+                let bound_type = BoundType {
+                    ty,
+                    ty_type: TypeType::Simple,
+                    serialize_with: None,
+                    deserialize_with: None,
+                };
+
+                Ok((bound_type, Vec::new()))
+            }
             xsd_type_compiler::TopLevelType::Complex(type_) => {
                 let fragment = compiled_namespace
                     .complex_type
@@ -415,9 +594,16 @@ impl<'a> Generator<'a> {
 
                 items.push(Item::Struct(item));
 
-                let type_ = TypeReference::new_prefix(parse_quote!(#item_name));
+                let ty = TypeReference::new_prefixed_type(parse_quote!(#item_name));
 
-                Ok((type_, items))
+                let bound_type = BoundType {
+                    ty,
+                    ty_type: TypeType::Complex,
+                    serialize_with: None,
+                    deserialize_with: None,
+                };
+
+                Ok((bound_type, items))
             }
         }
     }
@@ -459,7 +645,7 @@ impl<'a> Generator<'a> {
 
         items.push(Item::Struct(item));
 
-        let type_ = TypeReference::new_prefix(parse_quote!(#item_name));
+        let type_ = TypeReference::new_prefixed_type(parse_quote!(#item_name));
 
         Ok((type_, items))
     }
@@ -501,7 +687,49 @@ impl<'a> Generator<'a> {
 
         items.push(Item::Struct(item));
 
-        let type_ = TypeReference::new_prefix(parse_quote!(#item_name));
+        let type_ = TypeReference::new_prefixed_type(parse_quote!(#item_name));
+
+        Ok((type_, items))
+    }
+
+    pub fn generate_top_level_group(
+        &self,
+        name: &xmlity::ExpandedName<'_>,
+    ) -> Result<(TypeReference<'static>, Vec<Item>)> {
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(name.namespace().unwrap())
+            .unwrap_or_else(|| panic!("namespace not found: {}", name.namespace().unwrap()));
+        // TODO: handle this error properly with a better error messa
+
+        let group = compiled_namespace
+            .top_level_groups
+            .get(name.local_name())
+            .unwrap(); // TODO: handle this error properly with a better error messa
+
+        let fragment = compiled_namespace
+            .complex_type
+            .get_fragment(&group.root_fragment)
+            .unwrap();
+
+        let item_name = name.local_name().to_item_ident();
+        let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
+        let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
+        let mut scope = GeneratorScope::new();
+
+        let type_ = fragment.to_type_template(&context, &mut scope)?;
+        let item = type_
+            .template
+            .to_struct(&item_name, Some(&parse_quote!(#module_name)));
+        let mut items = scope
+            .finish_mod(&module_name)
+            .map(|i| vec![Item::Mod(i)])
+            .unwrap_or_default();
+
+        items.push(Item::Struct(item));
+
+        let type_ = TypeReference::new_prefixed_type(parse_quote!(#item_name));
 
         Ok((type_, items))
     }

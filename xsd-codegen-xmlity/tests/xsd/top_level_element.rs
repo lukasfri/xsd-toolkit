@@ -2,7 +2,7 @@ use quote::ToTokens;
 use syn::parse_quote;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::schema as xs;
-use xsd_codegen_xmlity::{BoundType, Generator, TypeType};
+use xsd_codegen_xmlity::{misc::TypeReference, BoundType, Generator, TypeType};
 use xsd_type_compiler::{
     complex::transformers::{
         ExpandAttributeGroups, ExpandExtensionFragments, ExpandRestrictionFragments,
@@ -198,8 +198,8 @@ fn temp_generate_types() {
             Some(XmlNamespace::XS),
         ),
         BoundType {
-            ty: parse_quote!(crate::xmlns::DerivationSet),
-            type_type: TypeType::Simple,
+            ty: TypeReference::new_static(parse_quote!(crate::xmlns::DerivationSet)),
+            ty_type: TypeType::Simple,
             serialize_with: None,
             deserialize_with: None,
         },
@@ -208,8 +208,8 @@ fn temp_generate_types() {
     generator.bind_type(
         ExpandedName::new(LocalName::new_dangerous("blockSet"), Some(XmlNamespace::XS)),
         BoundType {
-            ty: parse_quote!(crate::xmlns::BlockSet),
-            type_type: TypeType::Simple,
+            ty: TypeReference::new_static(parse_quote!(crate::xmlns::BlockSet)),
+            ty_type: TypeType::Simple,
             serialize_with: None,
             deserialize_with: None,
         },
@@ -221,8 +221,8 @@ fn temp_generate_types() {
             Some(XmlNamespace::XS),
         ),
         BoundType {
-            ty: parse_quote!(crate::xmlns::FormChoice),
-            type_type: TypeType::Simple,
+            ty: TypeReference::new_static(parse_quote!(crate::xmlns::FormChoice)),
+            ty_type: TypeType::Simple,
             serialize_with: None,
             deserialize_with: None,
         },

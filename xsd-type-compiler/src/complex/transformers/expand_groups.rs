@@ -73,14 +73,14 @@ impl HasTypeDefParticle for RestrictionFragment {
 impl HasTypeDefParticle for ComplexTypeRootFragment {
     fn type_def_particle(&self) -> Option<&TypeDefParticleId> {
         match &self.content {
-            ComplexTypeModelId::Other { particle } => Some(particle),
+            ComplexTypeModelId::Other { particle, .. } => particle.as_ref(),
             _ => None,
         }
     }
 
     fn type_def_particle_mut(&mut self) -> Option<&mut TypeDefParticleId> {
         match &mut self.content {
-            ComplexTypeModelId::Other { particle } => Some(particle),
+            ComplexTypeModelId::Other { particle, .. } => particle.as_mut(),
             _ => None,
         }
     }

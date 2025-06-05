@@ -3,12 +3,36 @@ pub mod complex_type;
 pub mod elements;
 pub mod groups;
 
-use crate::{misc::TypeReference, Result, TypeType};
+use crate::{misc::TypeReference, BoundType, Result};
 
-use syn::{parse_quote, Ident};
+use quote::format_ident;
+use syn::Ident;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::schema::MaxOccursValue;
 use xsd_type_compiler::complex::{ComplexTypeFragmentCompiler, FragmentAccess, FragmentIdx};
+
+fn dedup_field_idents<T>(
+    fields: impl IntoIterator<Item = (syn::Ident, T)>,
+) -> Vec<(syn::Ident, T)> {
+    //This function in case of multiple fields having the same ident (ex. "field") should name them field_0, field_1, etc. Order must be preserved.
+    let mut seen_idents = std::collections::HashSet::new();
+    let mut deduped_fields = Vec::new();
+
+    for (ident, value) in fields {
+        let mut new_ident = ident.clone();
+        let mut counter = 0;
+
+        while seen_idents.contains(&new_ident) {
+            new_ident = format_ident!("{}_{}", ident, counter.to_string());
+            counter += 1;
+        }
+
+        seen_idents.insert(new_ident.clone());
+        deduped_fields.push((new_ident, value));
+    }
+
+    deduped_fields
+}
 
 pub trait Context {
     type SubContext: Context;
@@ -33,16 +57,13 @@ pub trait Context {
     where
         ComplexTypeFragmentCompiler: FragmentAccess<F>;
 
-    fn resolve_named_type(
-        &self,
-        name: &ExpandedName<'_>,
-    ) -> Result<(TypeReference<'static>, TypeType)>;
-
-    fn resolve_named_group(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>>;
+    fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<BoundType>;
 
     fn resolve_named_element(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>>;
 
     fn resolve_named_attribute(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>>;
+
+    fn resolve_named_group(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>>;
 
     fn to_expanded_name(&self, name: LocalName<'static>) -> ExpandedName<'static>;
 }
@@ -73,7 +94,7 @@ fn min_max_occurs_type(
 ) -> (TypeReference<'_>, bool) {
     match (min_occurs, max_occurs) {
         (1, MaxOccursValue::Bounded(1)) => (type_, false),
-        (0, MaxOccursValue::Bounded(1)) => (type_.wrap(|ty| parse_quote!(Option<#ty>)), true),
-        (_, _) => (type_.wrap(|ty| parse_quote!(Vec<#ty>)), true),
+        (0, MaxOccursValue::Bounded(1)) => (type_.wrap(TypeReference::option_wrapper), true),
+        (_, _) => (type_.wrap(TypeReference::vec_wrapper), true),
     }
 }

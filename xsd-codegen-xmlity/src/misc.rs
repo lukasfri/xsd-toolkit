@@ -29,7 +29,7 @@ impl<'a> TypeReference<'a> {
         Self(Box::new(f))
     }
 
-    pub fn new_prefix(type_: TypePath) -> Self {
+    pub fn new_prefixed_type(type_: TypePath) -> Self {
         Self::new(move |path| {
             if let Some(path) = path {
                 syn::parse_quote! { #path::#type_ }
@@ -37,6 +37,16 @@ impl<'a> TypeReference<'a> {
                 syn::parse_quote! { #type_ }
             }
         })
+    }
+
+    pub fn prefix(self, prefix: Path) -> Self {
+        TypeReference(Box::new(move |path: Option<&Path>| {
+            if let Some(path) = path {
+                self.to_type(Some(&syn::parse_quote! { #path::#prefix }))
+            } else {
+                self.to_type(Some(&prefix))
+            }
+        }))
     }
 
     pub fn new_static(type_: Type) -> Self {
@@ -56,6 +66,18 @@ impl<'a> TypeReference<'a> {
         F: FnOnce(Type) -> Type + Clone + 'static,
     {
         Self::new(move |path| wrapper(self.to_type(path)))
+    }
+
+    pub fn option_wrapper(ty: Type) -> Type {
+        syn::parse_quote! { ::core::option::Option<#ty> }
+    }
+
+    pub fn vec_wrapper(ty: Type) -> Type {
+        syn::parse_quote! { ::std::vec::Vec<#ty> }
+    }
+
+    pub fn box_wrapper(ty: Type) -> Type {
+        syn::parse_quote! { ::std::boxed::Box<#ty> }
     }
 
     pub fn wrap_if<F>(self, condition: bool, wrapper: F) -> Self

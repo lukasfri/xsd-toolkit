@@ -749,6 +749,7 @@ fn xsd_any_type() -> xs::TopLevelComplexType {
                     .build()
                     .into(),
             ),
+            attributes: Vec::new(),
         })
         .build()
 }

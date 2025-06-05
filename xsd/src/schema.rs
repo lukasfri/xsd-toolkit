@@ -63,18 +63,35 @@ impl<'de> xmlity::de::Visitor<'de> for QNameVisitor {
         V: xmlity::de::XmlText<'de>,
     {
         let mut qname_parts = value.as_str().split(":");
-        let prefix = Prefix::new(qname_parts.next().unwrap()).unwrap();
-        let local_name = LocalName::new(qname_parts.next().unwrap())
-            .unwrap()
-            .into_owned();
+        let first_part = qname_parts.next().expect("Always has at least one part.");
+        let last_part = qname_parts.next();
 
-        let namespace = value
-            .namespace_context()
-            .resolve_prefix(prefix)
-            .unwrap()
-            .into_owned();
+        let expanded_name = match last_part {
+            Some(last_part) => {
+                let prefix = Prefix::new(first_part).unwrap();
+                let local_name = LocalName::new(last_part).unwrap().into_owned();
 
-        Ok(QName(ExpandedName::new(local_name, Some(namespace))))
+                let namespace = value
+                    .namespace_context()
+                    .resolve_prefix(prefix)
+                    .unwrap()
+                    .into_owned();
+
+                ExpandedName::new(local_name, Some(namespace))
+            }
+            None => {
+                let local_name = LocalName::new(first_part).unwrap().into_owned();
+
+                let default_namespace = value
+                    .namespace_context()
+                    .default_namespace()
+                    .map(XmlNamespace::into_owned);
+
+                return Ok(QName(ExpandedName::new(local_name, default_namespace)));
+            }
+        };
+
+        Ok(QName(expanded_name))
     }
 }
 
@@ -220,7 +237,7 @@ pub struct XPathDefaultNamespace(pub XpathDefaultNamespaceType);
 )]
 pub struct Schema {
     #[xattribute(name = "targetNamespace")]
-    pub target_namespace: TargetNamespace,
+    pub target_namespace: XmlNamespace<'static>,
     #[xattribute(deferred = true, default)]
     pub version: Option<Version>,
     #[xattribute(deferred = true, default)]
@@ -748,6 +765,8 @@ pub enum ComplexTypeModel {
         open_content: Option<OpenContent>,
         #[xvalue(default)]
         type_def_particle: Option<TypeDefParticle>,
+        #[xvalue(default)]
+        attributes: Vec<AttributeDeclaration>,
         // #[xvalue(default)]
         // attr_decls: AttrDecls,
         // #[xvalue(default)]
@@ -826,6 +845,10 @@ pub struct GroupRef {
     pub id: Option<Id>,
     #[xattribute(name = "ref")]
     pub ref_: QName,
+    #[xattribute(deferred = true, default)]
+    pub min_occurs: Option<MinOccurs>,
+    #[xattribute(deferred = true, default)]
+    pub max_occurs: Option<MaxOccurs>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
 }

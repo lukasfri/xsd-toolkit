@@ -54,8 +54,8 @@ mod tests {
     use crate::{
         misc::TypeReference,
         templates::{
-            element_record::{ElementField, ElementFieldAttribute},
-            FieldType, ItemOrder,
+            element_record::{ElementField, ElementFieldAttribute, ElementFieldType},
+            ItemOrder,
         },
     };
 
@@ -91,8 +91,7 @@ mod tests {
                     name: ExpandedName::new(LocalName::new_dangerous("a"), None),
                     attribute_order: ItemOrder::None,
                     children_order: ItemOrder::None,
-                    field_type: FieldType::Named,
-                    fields: vec![],
+                    fields: ElementFieldType::Empty,
                 }),
             )],
         };
@@ -121,9 +120,8 @@ mod tests {
                     name: ExpandedName::new(LocalName::new_dangerous("a"), None),
                     attribute_order: ItemOrder::None,
                     children_order: ItemOrder::None,
-                    field_type: FieldType::Named,
-                    fields: vec![(
-                        Some(format_ident!("for_")),
+                    fields: ElementFieldType::Named(vec![(
+                        format_ident!("for_"),
                         ElementField::Attribute(ElementFieldAttribute {
                             name: Some(ExpandedName::new(LocalName::new_dangerous("for"), None)),
                             ty: TypeReference::new_static(parse_quote!(::std::string::String)),
@@ -131,7 +129,7 @@ mod tests {
                             optional: false,
                             default: false,
                         }),
-                    )],
+                    )]),
                 }),
             )],
         };

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::collections::VecDeque;
 use std::ops::Deref;
 
@@ -78,14 +78,14 @@ impl ExpandRestrictionFragments {
                 AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(&ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
         let resolved_child_attributes = child_attributes
             .clone()
             .map(|a| match a {
                 AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(&ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
 
         let mut new_attribute_declarations = VecDeque::new();
 

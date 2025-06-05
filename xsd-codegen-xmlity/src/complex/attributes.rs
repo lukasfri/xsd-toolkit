@@ -34,15 +34,15 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
 
                 let ty = match local.type_.as_ref() {
                     Some(NamedOrAnonymous::Named(name)) => {
-                        let (ty, ty_type) = context.resolve_named_type(name)?;
+                        let bound_type = context.resolve_named_type(name)?;
                         assert_eq!(
-                            ty_type,
+                            bound_type.ty_type,
                             TypeType::Simple,
                             "{} is not a simple type, but is used as an attribute value",
-                            ty.to_type(None).to_token_stream()
+                            bound_type.ty.to_type(None).to_token_stream()
                         );
 
-                        ty
+                        bound_type.ty.clone()
                     }
                     Some(NamedOrAnonymous::Anonymous(_)) => {
                         //TODO
@@ -51,11 +51,7 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
                     None => TypeReference::new_static(parse_quote!(())),
                 };
 
-                let ty = if optional {
-                    ty.wrap(|a| parse_quote!(Option<#a>))
-                } else {
-                    ty
-                };
+                let ty = ty.wrap_if(optional, |a| parse_quote!(::core::option::Option<#a>));
 
                 let template = ElementFieldAttribute {
                     name: Some(name),
@@ -69,6 +65,8 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
             }
             cx::LocalAttributeFragmentTypeMode::Reference(reference) => {
                 let ty = context.resolve_named_attribute(&reference.name)?;
+
+                let ty = ty.wrap_if(optional, |a| parse_quote!(::core::option::Option<#a>));
 
                 let template = ElementFieldAttribute {
                     name: None,
@@ -119,10 +117,16 @@ impl ToTypeTemplate for cx::TopLevelAttributeFragment {
 
         let ty = match self.type_.as_ref() {
             Some(NamedOrAnonymous::Named(name)) => {
-                let (ty, ty_type) = context.resolve_named_type(name)?;
-                assert_eq!(ty_type, TypeType::Simple);
+                let bound_type = context.resolve_named_type(name)?;
 
-                ty
+                assert_eq!(
+                    bound_type.ty_type,
+                    TypeType::Simple,
+                    "{} is not a simple type, but is used as an attribute value",
+                    bound_type.ty.to_type(None).to_token_stream()
+                );
+
+                bound_type.ty.clone()
             }
             Some(NamedOrAnonymous::Anonymous(_)) => todo!(),
             None => TypeReference::new_static(parse_quote!(())),

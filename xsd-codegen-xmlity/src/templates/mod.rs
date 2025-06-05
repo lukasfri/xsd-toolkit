@@ -14,9 +14,16 @@ pub enum ItemOrder {
 }
 
 impl ItemOrder {
-    pub fn to_order_value(&self) -> syn::LitStr {
+    pub fn to_group_value(&self) -> syn::LitStr {
         match self {
             ItemOrder::Strict => LitStr::new("strict", Span::call_site()),
+            ItemOrder::None => LitStr::new("none", Span::call_site()),
+        }
+    }
+
+    pub fn to_item_value(&self) -> syn::LitStr {
+        match self {
+            ItemOrder::Strict => LitStr::new("loose", Span::call_site()),
             ItemOrder::None => LitStr::new("none", Span::call_site()),
         }
     }

@@ -4,9 +4,15 @@ use quote::quote;
 use syn::{parse_quote, Field, Ident, ItemStruct};
 use xmlity::ExpandedName;
 
-use crate::misc::TypeReference;
+use crate::{
+    misc::TypeReference,
+    templates::{
+        element_record::{self, ElementField},
+        value_record,
+    },
+};
 
-use super::{group_record::GroupRecord, FieldMode, FieldType, ItemOrder};
+use super::{group_record::GroupRecord, FieldMode, ItemOrder};
 
 #[derive(Debug)]
 pub struct ItemFieldItem {
@@ -51,6 +57,14 @@ impl ItemFieldItem {
             #value_attr
             #vis #ident_prefix #ty
         )
+    }
+
+    pub fn into_group_record(self, ident: Option<Ident>) -> GroupRecord {
+        GroupRecord::new_single_field(ident, ElementField::Item(self))
+    }
+
+    pub fn into_item_record(self, ident: Option<Ident>) -> ItemRecord {
+        ItemRecord::new_single_field(ident, ItemField::Item(self))
     }
 }
 
@@ -133,43 +147,108 @@ pub enum ItemField {
     Element(ItemFieldElement),
 }
 
+impl ItemField {
+    fn to_field<'a>(
+        &self,
+        ident: Option<&'a Ident>,
+        mode: FieldMode,
+        path: Option<&'a syn::Path>,
+    ) -> Field {
+        match self {
+            ItemField::Item(item) => item.to_field(ident, mode, path),
+            ItemField::Element(element) => element.to_field(ident, mode, path),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ItemFieldType {
+    Named(Vec<(Ident, ItemField)>),
+    Unnamed(Vec<ItemField>),
+    Empty,
+}
+
+impl ItemFieldType {
+    pub fn len(&self) -> usize {
+        match self {
+            Self::Named(items) => items.len(),
+            Self::Unnamed(items) => items.len(),
+            Self::Empty => 0,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn first(&self) -> Option<&ItemField> {
+        match self {
+            Self::Named(items) => items.first().map(|(_, field)| field),
+            Self::Unnamed(items) => items.first(),
+            Self::Empty => None,
+        }
+    }
+
+    pub fn to_element_fields(self) -> element_record::ElementFieldType {
+        match self {
+            Self::Named(items) => element_record::ElementFieldType::Named(
+                items
+                    .into_iter()
+                    .map(|(ident, field)| (ident, field.into()))
+                    .collect(),
+            ),
+            Self::Unnamed(items) => element_record::ElementFieldType::Unnamed(
+                items.into_iter().map(|field| field.into()).collect(),
+            ),
+            Self::Empty => element_record::ElementFieldType::Empty,
+        }
+    }
+
+    pub fn to_item_fields(self) -> value_record::ItemFieldType {
+        match self {
+            Self::Named(items) => value_record::ItemFieldType::Named(
+                items
+                    .into_iter()
+                    .map(|(ident, field)| (ident, field.into()))
+                    .collect(),
+            ),
+            Self::Unnamed(items) => value_record::ItemFieldType::Unnamed(
+                items.into_iter().map(|field| field.into()).collect(),
+            ),
+            Self::Empty => value_record::ItemFieldType::Empty,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ItemRecord {
     pub children_order: ItemOrder,
-    pub field_type: FieldType,
-    pub fields: Vec<(Option<Ident>, ItemField)>,
+    pub fields: ItemFieldType,
 }
 
 impl ItemRecord {
+    pub fn new_empty() -> Self {
+        Self {
+            children_order: ItemOrder::None,
+            fields: ItemFieldType::Empty,
+        }
+    }
+
     pub fn new_single_field(ident: Option<Ident>, field: ItemField) -> Self {
-        let field_type = if ident.is_some() {
-            FieldType::Named
-        } else {
-            FieldType::Unnamed
+        let fields = match ident {
+            Some(ident) => ItemFieldType::Named(vec![(ident, field)]),
+            None => ItemFieldType::Unnamed(vec![field]),
         };
 
         Self {
             children_order: ItemOrder::None,
-            field_type,
-            fields: vec![(ident, field)],
+            fields,
         }
     }
 
-    fn field<'a>(
-        field_type: &FieldType,
-        ident: Option<&'a Ident>,
-        field: &'a ItemField,
-        mode: FieldMode,
-        path: Option<&'a syn::Path>,
-    ) -> Field {
-        match field_type {
-            FieldType::Named => assert!(ident.is_some()),
-            FieldType::Unnamed => assert!(ident.is_none()),
-        }
-
-        match field {
-            ItemField::Item(item) => item.to_field(ident, mode, path),
-            ItemField::Element(element) => element.to_field(ident, mode, path),
+    pub fn force_empty_if_empty(&mut self) {
+        if self.fields.is_empty() {
+            self.fields = ItemFieldType::Empty;
         }
     }
 
@@ -178,18 +257,32 @@ impl ItemRecord {
         mode: FieldMode,
         path: Option<&'a syn::Path>,
     ) -> impl Iterator<Item = Field> + use<'a> {
-        self.fields.iter().map(move |(ident, field)| {
-            Self::field(&self.field_type, ident.as_ref(), field, mode, path)
-        })
+        // self.fields.iter().map(move |(ident, field)| {
+        //     Self::field(&self.field_type, ident.as_ref(), field, mode, path)
+        // })
+
+        match &self.fields {
+            ItemFieldType::Named(items) => items
+                .iter()
+                .map(move |(ident, field)| field.to_field(Some(ident), mode, path))
+                .collect::<Vec<_>>()
+                .into_iter(),
+            ItemFieldType::Unnamed(items) => items
+                .iter()
+                .map(move |field| field.to_field(None, mode, path))
+                .collect::<Vec<_>>()
+                .into_iter(),
+            ItemFieldType::Empty => vec![].into_iter(),
+        }
     }
 
     pub fn option_attributes(&self) -> impl Iterator<Item = syn::MetaNameValue> {
         let children_order_attr = match self.children_order {
             ItemOrder::None => None,
             order => {
-                let order = order.to_order_value();
+                let order = order.to_item_value();
 
-                Some(parse_quote! { children_order = #order })
+                Some(parse_quote! { order = #order })
             }
         };
 
@@ -215,22 +308,22 @@ impl ItemRecord {
         ]);
         let value_attr = self.value_attr();
 
-        match self.field_type {
-            _ if self.fields.is_empty() => {
+        match &self.fields {
+            ItemFieldType::Empty => {
                 parse_quote!(
                   #derive_attr
                   #value_attr
                   pub struct #ident;
                 )
             }
-            FieldType::Named => parse_quote!(
+            ItemFieldType::Named(_) => parse_quote!(
               #derive_attr
               #value_attr
               pub struct #ident {
                 #(#fields,)*
               }
             ),
-            FieldType::Unnamed => {
+            ItemFieldType::Unnamed(_) => {
                 parse_quote!(
                   #derive_attr
                   #value_attr
@@ -247,20 +340,20 @@ impl ItemRecord {
 
         let value_attr = self.value_attr();
 
-        match self.field_type {
-            _ if self.fields.is_empty() => {
+        match &self.fields {
+            ItemFieldType::Empty => {
                 parse_quote!(
                     #value_attr
                     #ident
                 )
             }
-            FieldType::Named => parse_quote!(
+            ItemFieldType::Named(_) => parse_quote!(
                 #value_attr
                 #ident {
                   #(#fields,)*
                 }
             ),
-            FieldType::Unnamed => {
+            ItemFieldType::Unnamed(_) => {
                 parse_quote!(
                   #value_attr
                   #ident (
@@ -275,12 +368,14 @@ impl ItemRecord {
         GroupRecord {
             attribute_order: ItemOrder::None,
             children_order: self.children_order,
-            field_type: self.field_type,
-            fields: self
-                .fields
-                .into_iter()
-                .map(|(ident, field)| (ident, field.into()))
-                .collect(),
+            fields: self.fields.to_element_fields(),
+        }
+    }
+
+    pub fn into_item_record(self) -> ItemRecord {
+        ItemRecord {
+            children_order: self.children_order,
+            fields: self.fields.to_item_fields(),
         }
     }
 }
@@ -293,11 +388,7 @@ mod tests {
 
     #[test]
     fn generate_empty_element() {
-        let record = ItemRecord {
-            children_order: ItemOrder::None,
-            field_type: FieldType::Named,
-            fields: Vec::new(),
-        };
+        let record = ItemRecord::new_empty();
 
         let ident = format_ident!("Test");
 
@@ -313,17 +404,13 @@ mod tests {
 
     #[test]
     fn generate_empty_element_with_single_child_named() {
-        let record = ItemRecord {
-            children_order: ItemOrder::None,
-            field_type: FieldType::Named,
-            fields: vec![(
-                Some(format_ident!("a")),
-                ItemField::Item(ItemFieldItem {
-                    ty: TypeReference::new_prefix(parse_quote!(Child)),
-                    default: false,
-                }),
-            )],
-        };
+        let record = ItemRecord::new_single_field(
+            Some(format_ident!("a")),
+            ItemField::Item(ItemFieldItem {
+                ty: TypeReference::new_prefixed_type(parse_quote!(Child)),
+                default: false,
+            }),
+        );
 
         let ident = format_ident!("Test");
 
@@ -341,17 +428,13 @@ mod tests {
 
     #[test]
     fn generate_empty_element_with_single_child_unnamed() {
-        let record = ItemRecord {
-            children_order: ItemOrder::None,
-            field_type: FieldType::Unnamed,
-            fields: vec![(
-                None,
-                ItemField::Item(ItemFieldItem {
-                    ty: TypeReference::new_prefix(parse_quote!(Child)),
-                    default: false,
-                }),
-            )],
-        };
+        let record = ItemRecord::new_single_field(
+            None,
+            ItemField::Item(ItemFieldItem {
+                ty: TypeReference::new_prefixed_type(parse_quote!(Child)),
+                default: false,
+            }),
+        );
 
         let ident = format_ident!("Test");
 

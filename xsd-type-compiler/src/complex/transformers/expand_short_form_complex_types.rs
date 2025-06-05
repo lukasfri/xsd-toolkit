@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use crate::{
     complex::{
         ComplexContentChildId, ComplexTypeModelId, ComplexTypeRootFragment, FragmentAccess,
@@ -50,17 +48,22 @@ impl ExpandShortFormComplexTypes {
             .get_complex_fragment::<ComplexTypeRootFragment>(&fragment_id)
             .unwrap();
 
-        let ComplexTypeModelId::Other { particle } = &root_fragment.content else {
+        let ComplexTypeModelId::Other {
+            particle,
+            attributes,
+        } = &root_fragment.content
+        else {
             return Ok(TransformChange::Unchanged);
         };
-        let content_fragment = Some(particle.clone());
+        let content_fragment = particle.clone();
+        let attributes = attributes.clone();
 
         let compiler = &mut ctx.current_namespace_mut().complex_type;
 
         let complex_content = compiler.push_fragment(RestrictionFragment {
             base: xsn::ANY_TYPE.clone(),
             content_fragment,
-            attribute_declarations: VecDeque::new(),
+            attribute_declarations: attributes,
         });
 
         let complex_content = compiler.push_fragment(crate::complex::ComplexContentFragment {
@@ -143,6 +146,7 @@ mod tests {
             .content(ComplexTypeModel::Other {
                 open_content: None,
                 type_def_particle: Some(TypeDefParticle::Sequence(sequence.clone())),
+                attributes: Vec::new(),
             })
             .build();
 

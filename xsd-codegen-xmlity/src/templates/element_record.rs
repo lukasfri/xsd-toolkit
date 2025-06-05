@@ -180,23 +180,108 @@ impl ElementField {
 }
 
 #[derive(Debug)]
+pub enum ElementFieldType {
+    Named(Vec<(Ident, ElementField)>),
+    Unnamed(Vec<ElementField>),
+    Empty,
+}
+
+impl ElementFieldType {
+    pub fn len(&self) -> usize {
+        match self {
+            Self::Named(items) => items.len(),
+            Self::Unnamed(items) => items.len(),
+            Self::Empty => 0,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn first(&self) -> Option<&ElementField> {
+        match self {
+            Self::Named(items) => items.first().map(|(_, field)| field),
+            Self::Unnamed(items) => items.first(),
+            Self::Empty => None,
+        }
+    }
+
+    pub fn prefix_fields(&mut self, new: Self) {
+        match self {
+            Self::Named(items) => match new {
+                Self::Named(new_items) => {
+                    items.splice(0..0, new_items);
+                }
+                Self::Unnamed(_) => panic!("cannot prefix named fields with unnamed fields"),
+                Self::Empty => (),
+            },
+            Self::Unnamed(items) => match new {
+                Self::Named(_) => panic!("cannot prefix unnamed fields with named fields"),
+                Self::Unnamed(new_items) => {
+                    items.splice(0..0, new_items);
+                }
+                Self::Empty => (),
+            },
+            Self::Empty => *self = new,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct ElementRecord {
     pub name: ExpandedName<'static>,
     pub attribute_order: ItemOrder,
     pub children_order: ItemOrder,
-    pub field_type: FieldType,
-    pub fields: Vec<(Option<Ident>, ElementField)>,
+    pub fields: ElementFieldType,
 }
 
 impl ElementRecord {
+    pub fn new_empty(name: ExpandedName<'static>) -> Self {
+        Self {
+            name,
+            attribute_order: ItemOrder::None,
+            children_order: ItemOrder::None,
+            fields: ElementFieldType::Empty,
+        }
+    }
+
+    pub fn new_single_field(
+        name: ExpandedName<'static>,
+        field_ident: Option<syn::Ident>,
+        field: ElementField,
+    ) -> Self {
+        Self {
+            name,
+            attribute_order: ItemOrder::None,
+            children_order: ItemOrder::None,
+            fields: match field_ident {
+                Some(ident) => ElementFieldType::Named(vec![(ident, field)]),
+                None => ElementFieldType::Unnamed(vec![field]),
+            },
+        }
+    }
+
     fn fields<'a>(
         &'a self,
         mode: FieldMode,
         path: Option<&'a syn::Path>,
     ) -> impl Iterator<Item = Field> + use<'a> {
-        self.fields
-            .iter()
-            .map(move |(ident, field)| field.to_field(&self.field_type, ident.as_ref(), mode, path))
+        match &self.fields {
+            ElementFieldType::Named(items) => items
+                .iter()
+                .map(move |(ident, field)| {
+                    field.to_field(&FieldType::Named, Some(ident), mode, path)
+                })
+                .collect::<Vec<_>>()
+                .into_iter(),
+            ElementFieldType::Unnamed(items) => items
+                .iter()
+                .map(move |field| field.to_field(&FieldType::Unnamed, None, mode, path))
+                .collect::<Vec<_>>()
+                .into_iter(),
+            ElementFieldType::Empty => vec![].into_iter(),
+        }
     }
 
     pub fn option_attributes(&self) -> impl Iterator<Item = syn::MetaNameValue> {
@@ -210,7 +295,7 @@ impl ElementRecord {
         let attribute_order_attr = match self.attribute_order {
             ItemOrder::None => None,
             order => {
-                let order = order.to_order_value();
+                let order = order.to_item_value();
 
                 Some(parse_quote! { attribute_order = #order })
             }
@@ -219,7 +304,7 @@ impl ElementRecord {
         let children_order_attr = match self.children_order {
             ItemOrder::None => None,
             order => {
-                let order = order.to_order_value();
+                let order = order.to_item_value();
 
                 Some(parse_quote! { children_order = #order })
             }
@@ -246,22 +331,22 @@ impl ElementRecord {
         ]);
         let element_attr = self.element_attr();
 
-        match self.field_type {
-            _ if self.fields.is_empty() => {
+        match &self.fields {
+            ElementFieldType::Empty => {
                 parse_quote!(
                   #derive_attr
                   #element_attr
                   pub struct #ident;
                 )
             }
-            FieldType::Named => parse_quote!(
+            ElementFieldType::Named(_) => parse_quote!(
               #derive_attr
               #element_attr
               pub struct #ident {
                 #(#fields,)*
               }
             ),
-            FieldType::Unnamed => {
+            ElementFieldType::Unnamed(_) => {
                 parse_quote!(
                   #derive_attr
                   #element_attr
@@ -278,20 +363,20 @@ impl ElementRecord {
 
         let element_attr = self.element_attr();
 
-        match self.field_type {
-            _ if self.fields.is_empty() => {
+        match &self.fields {
+            ElementFieldType::Empty => {
                 parse_quote!(
                     #element_attr
                     #ident
                 )
             }
-            FieldType::Named => parse_quote!(
+            ElementFieldType::Named(_) => parse_quote!(
                 #element_attr
                 #ident {
                   #(#fields,)*
                 }
             ),
-            FieldType::Unnamed => {
+            ElementFieldType::Unnamed(_) => {
                 parse_quote!(
                   #element_attr
                   #ident (
@@ -312,7 +397,7 @@ impl ElementRecord {
 
         // #2: The field must be a simple child or a group.
         let child = self.fields.first();
-        let (ty, child_mode) = match child.map(|(_, field)| field) {
+        let (ty, child_mode) = match child.map(|field| field) {
             Some(ElementField::Item(child)) => (child.ty.clone(), SingleChildMode::Item),
             Some(ElementField::Group(group)) => (group.ty.clone(), SingleChildMode::Group),
             None => {
@@ -343,13 +428,8 @@ mod tests {
 
     #[test]
     fn generate_empty_element() {
-        let record = ElementRecord {
-            name: ExpandedName::new(LocalName::new_dangerous("test"), None),
-            attribute_order: ItemOrder::None,
-            children_order: ItemOrder::None,
-            field_type: FieldType::Named,
-            fields: Vec::new(),
-        };
+        let record =
+            ElementRecord::new_empty(ExpandedName::new(LocalName::new_dangerous("test"), None));
 
         let ident = format_ident!("Test");
 
@@ -370,14 +450,13 @@ mod tests {
             name: ExpandedName::new(LocalName::new_dangerous("test"), None),
             attribute_order: ItemOrder::None,
             children_order: ItemOrder::None,
-            field_type: FieldType::Named,
-            fields: vec![(
-                Some(format_ident!("a")),
+            fields: ElementFieldType::Named(vec![(
+                format_ident!("a"),
                 ElementField::Item(ItemFieldItem {
                     ty: TypeReference::new_static(parse_quote!(Child)),
                     default: false,
                 }),
-            )],
+            )]),
         };
 
         let ident = format_ident!("Test");
@@ -401,14 +480,10 @@ mod tests {
             name: ExpandedName::new(LocalName::new_dangerous("test"), None),
             attribute_order: ItemOrder::None,
             children_order: ItemOrder::None,
-            field_type: FieldType::Unnamed,
-            fields: vec![(
-                None,
-                ElementField::Item(ItemFieldItem {
-                    ty: TypeReference::new_static(parse_quote!(Child)),
-                    default: false,
-                }),
-            )],
+            fields: ElementFieldType::Unnamed(vec![ElementField::Item(ItemFieldItem {
+                ty: TypeReference::new_static(parse_quote!(Child)),
+                default: false,
+            })]),
         };
 
         let ident = format_ident!("Test");
@@ -430,9 +505,8 @@ mod tests {
             name: ExpandedName::new(LocalName::new_dangerous("test"), None),
             attribute_order: ItemOrder::None,
             children_order: ItemOrder::None,
-            field_type: FieldType::Named,
-            fields: vec![(
-                Some(format_ident!("a")),
+            fields: ElementFieldType::Named(vec![(
+                format_ident!("a"),
                 ElementField::Attribute(ElementFieldAttribute {
                     name: Some(ExpandedName::new(LocalName::new_dangerous("a"), None)),
                     ty: TypeReference::new_static(parse_quote!(::std::string::String)),
@@ -440,7 +514,7 @@ mod tests {
                     optional: false,
                     default: false,
                 }),
-            )],
+            )]),
         };
 
         let ident = format_ident!("Test");
