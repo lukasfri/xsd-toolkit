@@ -708,7 +708,7 @@ impl ToTypeTemplate for cx::TopLevelGroupFragment {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use syn::{parse_quote, Item};
+    use syn::parse_quote;
     use xmlity::{LocalName, XmlNamespace};
     use xsd::schema as xs;
     use xsd::schema_names as xsn;

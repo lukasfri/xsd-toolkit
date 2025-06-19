@@ -15,7 +15,7 @@ use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_type_compiler::{
     complex::{
         transformers::{
-            ExpandAttributeGroups, ExpandExtensionFragments, ExpandRestrictionFragments,
+            ExpandAttributeDeclarations, ExpandExtensionFragments, ExpandRestrictionFragments,
             FlattenNestedAll, FlattenNestedChoices, FlattenNestedSequences,
             RemoveProhibitedAttributes,
         },
@@ -66,7 +66,7 @@ impl XmlnsLocalTransformer for XmlityCodegenTransformer {
 
             total_change |= context
                 .current_namespace_mut()
-                .transform(ExpandAttributeGroups::new())
+                .transform(ExpandAttributeDeclarations::new())
                 .unwrap();
 
             total_change |= context

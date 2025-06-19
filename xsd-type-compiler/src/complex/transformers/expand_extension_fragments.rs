@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::collections::VecDeque;
+use std::convert::Infallible;
 use std::ops::Deref;
 
 use xmlity::ExpandedName;
@@ -25,10 +26,10 @@ use xsd::schema_names as xsn;
 
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
 #[non_exhaustive]
-#[allow(clippy::new_without_default)]
 pub struct ExpandExtensionFragments {}
 
 impl ExpandExtensionFragments {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
@@ -37,7 +38,7 @@ impl ExpandExtensionFragments {
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         attribute: &FragmentIdx<LocalAttributeFragment>,
         base_attribute: &FragmentIdx<LocalAttributeFragment>,
-    ) -> Result<(), ()> {
+    ) -> Result<(), <Self as XmlnsLocalTransformer>::Error> {
         let base_attribute = ctx.get_complex_fragment(base_attribute).unwrap().clone();
         let attribute = ctx.get_complex_fragment_mut(attribute).unwrap();
 
@@ -60,11 +61,12 @@ impl ExpandExtensionFragments {
         Ok(())
     }
 
-    fn expand_expanded_attributes<'a>(
+    fn expand_expanded_attributes(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         child_attributes: FragmentIdx<AttributeDeclarationsFragment>,
         base_attributes: FragmentIdx<AttributeDeclarationsFragment>,
-    ) -> Result<FragmentIdx<AttributeDeclarationsFragment>, ()> {
+    ) -> Result<FragmentIdx<AttributeDeclarationsFragment>, <Self as XmlnsLocalTransformer>::Error>
+    {
         fn resolve_attr_name(
             ctx: &XmlnsLocalTransformerContext,
             a: &FragmentIdx<LocalAttributeFragment>,
@@ -150,7 +152,7 @@ impl ExpandExtensionFragments {
     fn expand_extension(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         child_complex_content_fragment_idx: &FragmentIdx<ComplexContentFragment>,
-    ) -> Result<TransformChange, ()> {
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
         let child_complex_content_fragment = ctx
             .get_complex_fragment(child_complex_content_fragment_idx)
             .unwrap();
@@ -281,9 +283,12 @@ impl ExpandExtensionFragments {
 }
 
 impl XmlnsLocalTransformer for ExpandExtensionFragments {
-    type Error = ();
+    type Error = Infallible;
 
-    fn transform(self, mut ctx: XmlnsLocalTransformerContext<'_>) -> Result<TransformChange, ()> {
+    fn transform(
+        self,
+        mut ctx: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
             .map(|f| Self::expand_extension(&mut ctx, &f))

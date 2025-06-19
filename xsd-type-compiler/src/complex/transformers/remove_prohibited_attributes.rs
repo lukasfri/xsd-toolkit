@@ -1,14 +1,15 @@
+use std::convert::Infallible;
+
 use crate::{
     complex::{AttributeDeclarationId, AttributeDeclarationsFragment, AttributeUse, FragmentIdx},
     transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
 };
 
 #[non_exhaustive]
-#[allow(clippy::new_without_default)]
-#[allow(clippy::new_without_default)]
 pub struct RemoveProhibitedAttributes {}
 
 impl RemoveProhibitedAttributes {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
@@ -16,7 +17,7 @@ impl RemoveProhibitedAttributes {
     fn expand_attribute_declarations(
         context: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: &FragmentIdx<AttributeDeclarationsFragment>,
-    ) -> Result<TransformChange, ()> {
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
         let mut change = TransformChange::default();
 
         let fragment = context.get_complex_fragment(fragment_id).unwrap();
@@ -53,7 +54,7 @@ impl RemoveProhibitedAttributes {
 }
 
 impl XmlnsLocalTransformer for RemoveProhibitedAttributes {
-    type Error = ();
+    type Error = Infallible;
 
     fn transform(
         self,

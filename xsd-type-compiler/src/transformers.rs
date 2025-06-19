@@ -90,7 +90,7 @@ impl XmlnsLocalTransformerContext<'_> {
     // }
 
     pub fn current_namespace(&self) -> &crate::CompiledNamespace {
-        &self.namespace
+        self.namespace
     }
 
     pub fn current_namespace_mut(&mut self) -> &mut crate::CompiledNamespace {

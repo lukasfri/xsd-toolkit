@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, convert::Infallible};
 
 use crate::{
     complex::{
@@ -9,18 +9,18 @@ use crate::{
 };
 
 #[non_exhaustive]
-#[allow(clippy::new_without_default)]
-pub struct ExpandAttributeGroups {}
+pub struct ExpandAttributeDeclarations {}
 
-impl ExpandAttributeGroups {
+impl ExpandAttributeDeclarations {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
 
-    fn expand_attribute_groups(
+    fn expand_attribute_declaration(
         context: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: &FragmentIdx<AttributeDeclarationsFragment>,
-    ) -> Result<TransformChange, ()> {
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
         let mut change = TransformChange::default();
 
         let fragment = context.get_complex_fragment(fragment_id).unwrap();
@@ -63,78 +63,79 @@ impl ExpandAttributeGroups {
             }
         }
 
-        let add_attribute =
-            |new_attributes: &mut VecDeque<AttributeDeclarationId>,
-             ctx: &mut XmlnsLocalTransformerContext<'_>,
-             fragment_idx: &FragmentIdx<LocalAttributeFragment>| {
-                let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
+        fn add_attribute(
+            new_attributes: &mut VecDeque<AttributeDeclarationId>,
+            ctx: &mut XmlnsLocalTransformerContext<'_>,
+            fragment_idx: &FragmentIdx<LocalAttributeFragment>,
+        ) {
+            let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
 
-                // Check if the attribute already exists in the new_attributes list
-                let attribute_exists = new_attributes
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, a)| match a {
-                        AttributeDeclarationId::Attribute(a) => Some((i, a)),
-                        _ => None,
-                    })
-                    .map(|(i, a)| (i, ctx.get_complex_fragment(a).unwrap()))
-                    .find(
-                        |(_, existing)| match (&existing.type_mode, &possible.type_mode) {
-                            (
-                                LocalAttributeFragmentTypeMode::Declared(existing),
-                                LocalAttributeFragmentTypeMode::Declared(possible),
-                            ) => existing.name == possible.name,
-                            (
-                                LocalAttributeFragmentTypeMode::Reference(existing),
-                                LocalAttributeFragmentTypeMode::Reference(possible),
-                            ) => existing.name == possible.name,
-                            _ => false,
-                        },
-                    )
-                    .map(|(i, _)| i);
+            // Check if the attribute already exists in the new_attributes list
+            let attribute_exists = new_attributes
+                .iter()
+                .enumerate()
+                .filter_map(|(i, a)| match a {
+                    AttributeDeclarationId::Attribute(a) => Some((i, a)),
+                    _ => None,
+                })
+                .map(|(i, a)| (i, ctx.get_complex_fragment(a).unwrap()))
+                .find(
+                    |(_, existing)| match (&existing.type_mode, &possible.type_mode) {
+                        (
+                            LocalAttributeFragmentTypeMode::Declared(existing),
+                            LocalAttributeFragmentTypeMode::Declared(possible),
+                        ) => existing.name == possible.name,
+                        (
+                            LocalAttributeFragmentTypeMode::Reference(existing),
+                            LocalAttributeFragmentTypeMode::Reference(possible),
+                        ) => existing.name == possible.name,
+                        _ => false,
+                    },
+                )
+                .map(|(i, _)| i);
 
-                // If the attribute does not exist, add it to the new_attributes list
-                let Some(i) = attribute_exists else {
-                    new_attributes.push_back(AttributeDeclarationId::Attribute(*fragment_idx));
-                    return;
-                };
-
-                // Otherwise, merge the attributes
-                let AttributeDeclarationId::Attribute(existing_idx) = new_attributes
-                    .get(i)
-                    .expect("Attribute must exist in the list since we just found it")
-                else {
-                    unreachable!("Attribute must exist in the list since we just found it - we filtered out attribute groups")
-                };
-
-                let existing = ctx.get_complex_fragment_mut(existing_idx).unwrap();
-
-                merge_attribute(existing, &possible);
+            // If the attribute does not exist, add it to the new_attributes list
+            let Some(i) = attribute_exists else {
+                new_attributes.push_back(AttributeDeclarationId::Attribute(*fragment_idx));
+                return;
             };
 
-        let add_group =
-            |new_attributes: &mut VecDeque<AttributeDeclarationId>,
-             ctx: &mut XmlnsLocalTransformerContext<'_>,
-             fragment_idx: &FragmentIdx<AttributeGroupRefFragment>| {
-                let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
-
-                // Check if the attribute group already exists in the new_attributes list
-                let group_exists = new_attributes
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, a)| match a {
-                        AttributeDeclarationId::AttributeGroupRef(a) => Some((i, a)),
-                        _ => None,
-                    })
-                    .map(|(i, a)| (i, ctx.get_complex_fragment(a).unwrap()))
-                    .any(|(_, existing)| existing.ref_ == possible.ref_);
-
-                // If the attribute group does not exist, add it to the new_attributes list
-                if !group_exists {
-                    new_attributes
-                        .push_back(AttributeDeclarationId::AttributeGroupRef(*fragment_idx));
-                }
+            // Otherwise, merge the attributes
+            let AttributeDeclarationId::Attribute(existing_idx) = new_attributes
+                .get(i)
+                .expect("Attribute must exist in the list since we just found it")
+            else {
+                unreachable!("Attribute must exist in the list since we just found it - we filtered out attribute groups")
             };
+
+            let existing = ctx.get_complex_fragment_mut(existing_idx).unwrap();
+
+            merge_attribute(existing, &possible);
+        }
+
+        fn add_group(
+            new_attributes: &mut VecDeque<AttributeDeclarationId>,
+            ctx: &mut XmlnsLocalTransformerContext<'_>,
+            fragment_idx: &FragmentIdx<AttributeGroupRefFragment>,
+        ) {
+            let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
+
+            // Check if the attribute group already exists in the new_attributes list
+            let group_exists = new_attributes
+                .iter()
+                .enumerate()
+                .filter_map(|(i, a)| match a {
+                    AttributeDeclarationId::AttributeGroupRef(a) => Some((i, a)),
+                    _ => None,
+                })
+                .map(|(i, a)| (i, ctx.get_complex_fragment(a).unwrap()))
+                .any(|(_, existing)| existing.ref_ == possible.ref_);
+
+            // If the attribute group does not exist, add it to the new_attributes list
+            if !group_exists {
+                new_attributes.push_back(AttributeDeclarationId::AttributeGroupRef(*fragment_idx));
+            }
+        }
 
         // We iterate through all attributes and attribute groups, applying edits to already existing attributes.
         for attributes in fragment.declarations.clone().iter() {
@@ -177,8 +178,8 @@ impl ExpandAttributeGroups {
     }
 }
 
-impl XmlnsLocalTransformer for ExpandAttributeGroups {
-    type Error = ();
+impl XmlnsLocalTransformer for ExpandAttributeDeclarations {
+    type Error = Infallible;
 
     fn transform(
         self,
@@ -187,7 +188,7 @@ impl XmlnsLocalTransformer for ExpandAttributeGroups {
         context
             .iter_complex_fragment_ids::<AttributeDeclarationsFragment>()
             .iter()
-            .map(|fragment_id| Self::expand_attribute_groups(&mut context, fragment_id))
+            .map(|fragment_id| Self::expand_attribute_declaration(&mut context, fragment_id))
             .collect()
     }
 }
@@ -258,7 +259,7 @@ mod tests {
             .unwrap();
         ns.import_top_level_complex_type(&input).unwrap();
 
-        let transform_changed = ns.transform(ExpandAttributeGroups::new()).unwrap();
+        let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
@@ -366,7 +367,7 @@ mod tests {
             .unwrap();
         ns.import_top_level_complex_type(&input).unwrap();
 
-        let transform_changed = ns.transform(ExpandAttributeGroups::new()).unwrap();
+        let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
@@ -476,7 +477,7 @@ mod tests {
             .unwrap();
         ns.import_top_level_complex_type(&input).unwrap();
 
-        let transform_changed = ns.transform(ExpandAttributeGroups::new()).unwrap();
+        let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 

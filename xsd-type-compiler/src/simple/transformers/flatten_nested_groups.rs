@@ -1,14 +1,18 @@
 use std::collections::VecDeque;
+use std::convert::Infallible;
 
 use crate::simple::SimpleTypeFragment;
-use crate::transformers::{TransformChange, XmlnsLocalTransformerContext, XmlnsLocalTransformer};
+use crate::transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
 
 pub struct FlattenNestedUnions;
 
 impl XmlnsLocalTransformer for FlattenNestedUnions {
-    type Error = ();
+    type Error = Infallible;
 
-    fn transform(self, mut ctx: XmlnsLocalTransformerContext<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(
+        self,
+        mut ctx: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
         for fragment_idx in ctx.iter_simple_fragment_ids() {
             let fragment = ctx.get_simple_fragment(&fragment_idx).unwrap();
             let SimpleTypeFragment::Union { fragments } = fragment else {

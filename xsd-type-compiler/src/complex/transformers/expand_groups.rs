@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, convert::Infallible};
 
 use crate::{
     complex::{
@@ -87,10 +87,10 @@ impl HasTypeDefParticle for ComplexTypeRootFragment {
 }
 
 #[non_exhaustive]
-#[allow(clippy::new_without_default)]
 pub struct ExpandGroups {}
 
 impl ExpandGroups {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
@@ -112,7 +112,7 @@ impl ExpandGroups {
     fn expand_fragment_with_group_content<F: HasGroupContent>(
         context: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: &FragmentIdx<F>,
-    ) -> Result<TransformChange, ()>
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error>
     where
         ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
@@ -142,7 +142,7 @@ impl ExpandGroups {
 
     fn expand_fragments_group_content<F: HasGroupContent + 'static>(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
-    ) -> Result<TransformChange, ()>
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error>
     where
         ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
@@ -155,7 +155,7 @@ impl ExpandGroups {
     fn expand_fragment_with_type_def_particle<F: HasTypeDefParticle>(
         context: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: &FragmentIdx<F>,
-    ) -> Result<TransformChange, ()>
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error>
     where
         ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
@@ -178,7 +178,7 @@ impl ExpandGroups {
 
     fn expand_fragments_type_def_particle<F: HasTypeDefParticle + 'static>(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
-    ) -> Result<TransformChange, ()>
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error>
     where
         ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
@@ -190,7 +190,7 @@ impl ExpandGroups {
 }
 
 impl XmlnsLocalTransformer for ExpandGroups {
-    type Error = ();
+    type Error = Infallible;
 
     fn transform(
         self,

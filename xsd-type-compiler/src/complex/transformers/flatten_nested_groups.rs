@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::convert::Infallible;
 
 use crate::complex::{
     AllFragment, ChoiceFragment, FragmentIdx, GroupTypeContentId, SequenceFragment,
@@ -53,7 +54,7 @@ impl FlattenNestedSequences {
 }
 
 impl XmlnsLocalTransformer for FlattenNestedSequences {
-    type Error = ();
+    type Error = Infallible;
 
     fn transform(
         self,
@@ -66,7 +67,11 @@ impl XmlnsLocalTransformer for FlattenNestedSequences {
     }
 }
 
+#[non_exhaustive]
+pub struct FlattenNestedChoices {}
+
 impl FlattenNestedChoices {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
@@ -108,11 +113,8 @@ impl FlattenNestedChoices {
     }
 }
 
-#[non_exhaustive]
-pub struct FlattenNestedChoices {}
-
 impl XmlnsLocalTransformer for FlattenNestedChoices {
-    type Error = ();
+    type Error = Infallible;
 
     fn transform(
         self,
@@ -125,7 +127,11 @@ impl XmlnsLocalTransformer for FlattenNestedChoices {
     }
 }
 
+#[non_exhaustive]
+pub struct FlattenNestedAll {}
+
 impl FlattenNestedAll {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
@@ -167,11 +173,8 @@ impl FlattenNestedAll {
     }
 }
 
-#[non_exhaustive]
-pub struct FlattenNestedAll {}
-
 impl XmlnsLocalTransformer for FlattenNestedAll {
-    type Error = ();
+    type Error = Infallible;
 
     fn transform(
         self,

@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::collections::VecDeque;
+use std::convert::Infallible;
 use std::ops::Deref;
 
 use crate::complex::AttributeDeclarationId;
@@ -20,10 +21,10 @@ use xsd::schema_names as xsn;
 
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
 #[non_exhaustive]
-#[allow(clippy::new_without_default)]
 pub struct ExpandRestrictionFragments {}
 
 impl ExpandRestrictionFragments {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
@@ -32,7 +33,7 @@ impl ExpandRestrictionFragments {
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         attribute: &FragmentIdx<LocalAttributeFragment>,
         base_attribute: &FragmentIdx<LocalAttributeFragment>,
-    ) -> Result<(), ()> {
+    ) -> Result<(), <Self as XmlnsLocalTransformer>::Error> {
         let base_attribute = ctx.get_complex_fragment(base_attribute).unwrap().clone();
         let attribute = ctx.get_complex_fragment_mut(attribute).unwrap();
 
@@ -55,11 +56,12 @@ impl ExpandRestrictionFragments {
         Ok(())
     }
 
-    fn expand_restricted_attributes<'a>(
+    fn expand_restricted_attributes(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         child_attributes: FragmentIdx<AttributeDeclarationsFragment>,
         base_attributes: FragmentIdx<AttributeDeclarationsFragment>,
-    ) -> Result<FragmentIdx<AttributeDeclarationsFragment>, ()> {
+    ) -> Result<FragmentIdx<AttributeDeclarationsFragment>, <Self as XmlnsLocalTransformer>::Error>
+    {
         fn resolve_attr_name(
             ctx: &XmlnsLocalTransformerContext,
             a: &FragmentIdx<LocalAttributeFragment>,
@@ -80,7 +82,7 @@ impl ExpandRestrictionFragments {
             .declarations
             .iter()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(&ctx, a)),
+                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
             .collect::<BTreeMap<_, _>>();
@@ -88,7 +90,7 @@ impl ExpandRestrictionFragments {
             .declarations
             .iter()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(&ctx, a)),
+                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
             .collect::<BTreeMap<_, _>>();
@@ -145,8 +147,8 @@ impl ExpandRestrictionFragments {
     fn expand_restriction(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         child_fragment_idx: &FragmentIdx<RestrictionFragment>,
-    ) -> Result<TransformChange, ()> {
-        let child_fragment = ctx.get_complex_fragment(&child_fragment_idx).unwrap();
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
+        let child_fragment = ctx.get_complex_fragment(child_fragment_idx).unwrap();
 
         let base = child_fragment.base.clone();
 
@@ -203,7 +205,7 @@ impl ExpandRestrictionFragments {
 }
 
 impl XmlnsLocalTransformer for ExpandRestrictionFragments {
-    type Error = ();
+    type Error = Infallible;
 
     fn transform(
         self,

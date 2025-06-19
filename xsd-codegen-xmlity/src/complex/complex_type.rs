@@ -147,7 +147,7 @@ impl ToTypeTemplate for cx::ComplexTypeModelId {
                     })
                     .unwrap_or_else(|| Ok((None, GroupRecord::new_empty())))?;
 
-                let attributes = context.resolve_fragment_id(&attr_decls, scope)?;
+                let attributes = context.resolve_fragment_id(attr_decls, scope)?;
 
                 template
                     .fields

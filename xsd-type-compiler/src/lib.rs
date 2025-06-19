@@ -10,6 +10,11 @@ pub mod transformers;
 pub mod complex;
 pub mod simple;
 
+#[derive(Debug)]
+pub enum Error {
+    ImportOfExistingEntity,
+}
+
 pub struct XmlnsContext {
     pub namespaces: BTreeMap<XmlNamespace<'static>, CompiledNamespace>,
 }
@@ -103,7 +108,7 @@ impl CompiledNamespace {
         transformer.transform(transformers::XmlnsLocalTransformerContext { namespace: self })
     }
 
-    pub fn from_schema(schema: &xsd::XmlSchema) -> Result<Self, ()> {
+    pub fn from_schema(schema: &xsd::XmlSchema) -> Result<Self, Error> {
         let mut this = Self::new(schema.underlying_schema.target_namespace.clone());
 
         for redefine in schema.schema_tops() {
@@ -143,11 +148,11 @@ impl CompiledNamespace {
     pub fn import_top_level_simple_type(
         &mut self,
         type_: &xs::TopLevelSimpleType,
-    ) -> Result<ExpandedName<'_>, ()> {
+    ) -> Result<ExpandedName<'_>, Error> {
         let name = type_.name.clone();
 
         if self.top_level_types.contains_key(&name) {
-            return Err(());
+            return Err(Error::ImportOfExistingEntity);
         }
 
         let root_fragment = type_.content.to_simple_fragments(&mut self.complex_type);
@@ -162,11 +167,11 @@ impl CompiledNamespace {
     pub fn import_top_level_complex_type(
         &mut self,
         type_: &xs::TopLevelComplexType,
-    ) -> Result<ExpandedName<'_>, ()> {
+    ) -> Result<ExpandedName<'_>, Error> {
         let name = type_.name.clone();
 
         if self.top_level_types.contains_key(&name) {
-            return Err(());
+            return Err(Error::ImportOfExistingEntity);
         }
 
         let root_fragment = type_.to_complex_fragments(&mut self.complex_type);
@@ -182,11 +187,11 @@ impl CompiledNamespace {
     pub fn import_top_level_group(
         &mut self,
         type_: &xs::GroupType,
-    ) -> Result<ExpandedName<'_>, ()> {
+    ) -> Result<ExpandedName<'_>, Error> {
         let name = type_.name.clone();
 
         if self.top_level_groups.contains_key(&name) {
-            return Err(());
+            return Err(Error::ImportOfExistingEntity);
         }
 
         let root_fragment = type_.to_complex_fragments(&mut self.complex_type);
@@ -201,11 +206,11 @@ impl CompiledNamespace {
     pub fn import_top_level_attribute_group(
         &mut self,
         type_: &xs::AttributeGroupType,
-    ) -> Result<ExpandedName<'_>, ()> {
+    ) -> Result<ExpandedName<'_>, Error> {
         let name = type_.name.clone();
 
         if self.top_level_groups.contains_key(&name) {
-            return Err(());
+            return Err(Error::ImportOfExistingEntity);
         }
 
         let root_fragment = type_.to_complex_fragments(&mut self.complex_type);
@@ -220,7 +225,7 @@ impl CompiledNamespace {
     pub fn export_top_level_complex_type(
         &self,
         type_: &LocalName<'_>,
-    ) -> Result<Option<xs::TopLevelComplexType>, ()> {
+    ) -> Result<Option<xs::TopLevelComplexType>, Error> {
         let Some(TopLevelType::Complex(top_level_complex_type)) = self.top_level_types.get(type_)
         else {
             return Ok(None);
@@ -238,11 +243,11 @@ impl CompiledNamespace {
     pub fn import_top_level_element(
         &mut self,
         element: &xs::TopLevelElement,
-    ) -> Result<ExpandedName<'_>, ()> {
+    ) -> Result<ExpandedName<'_>, Error> {
         let name = element.0.name.clone();
 
         if self.top_level_elements.contains_key(&name) {
-            return Err(());
+            return Err(Error::ImportOfExistingEntity);
         }
 
         let root_fragment = element.to_complex_fragments(&mut self.complex_type);
@@ -258,7 +263,7 @@ impl CompiledNamespace {
     pub fn export_top_level_element(
         &self,
         type_: &LocalName<'_>,
-    ) -> Result<Option<xs::TopLevelElement>, ()> {
+    ) -> Result<Option<xs::TopLevelElement>, Error> {
         let Some(top_level_element) = self.top_level_elements.get(type_) else {
             return Ok(None);
         };
@@ -274,11 +279,11 @@ impl CompiledNamespace {
     pub fn import_top_level_attribute(
         &mut self,
         attribute: &xs::TopLevelAttribute,
-    ) -> Result<ExpandedName<'_>, ()> {
+    ) -> Result<ExpandedName<'_>, Error> {
         let name = attribute.name.0.clone();
 
         if self.top_level_attributes.contains_key(&name) {
-            return Err(());
+            return Err(Error::ImportOfExistingEntity);
         }
 
         let root_fragment = attribute.to_complex_fragments(&mut self.complex_type);

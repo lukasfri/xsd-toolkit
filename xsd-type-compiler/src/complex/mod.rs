@@ -303,6 +303,10 @@ impl<T> FragmentCollection<T> {
     pub fn len(&self) -> usize {
         self.fragments.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.fragments.is_empty()
+    }
 }
 
 impl<T> Default for FragmentCollection<T> {
@@ -1856,7 +1860,7 @@ impl ComplexFragmentEquivalent for xs::AttrDecls {
                 fragment
                     .declarations
                     .iter()
-                    .map(|attr| xs::AttributeDeclaration::from_complex_fragments(&compiler, attr))
+                    .map(|attr| xs::AttributeDeclaration::from_complex_fragments(compiler, attr))
                     .collect::<Result<_, _>>()?,
             )
             .build())
