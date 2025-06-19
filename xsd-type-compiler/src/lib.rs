@@ -26,15 +26,15 @@ impl XmlnsContext {
             .insert(namespace.namespace.clone(), namespace);
     }
 
-    pub fn transform<T: transformers::XmlnsContextTransformer>(
+    pub fn transform<T: transformers::XmlnsLocalTransformer>(
         &mut self,
         namespace: &XmlNamespace<'static>,
         transformer: T,
     ) -> Result<TransformChange, T::Error> {
-        transformer.transform(transformers::TransformerContext {
-            namespace,
-            xmlns_context: self,
-        })
+        self.namespaces
+            .get_mut(namespace)
+            .unwrap()
+            .transform(transformer)
     }
 }
 
@@ -94,6 +94,13 @@ impl CompiledNamespace {
             top_level_groups: BTreeMap::new(),
             top_level_attribute_groups: BTreeMap::new(),
         }
+    }
+
+    pub fn transform<T: transformers::XmlnsLocalTransformer>(
+        &mut self,
+        transformer: T,
+    ) -> Result<TransformChange, T::Error> {
+        transformer.transform(transformers::XmlnsLocalTransformerContext { namespace: self })
     }
 
     pub fn from_schema(schema: &xsd::XmlSchema) -> Result<Self, ()> {

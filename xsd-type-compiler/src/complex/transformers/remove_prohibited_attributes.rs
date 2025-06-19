@@ -1,9 +1,11 @@
 use crate::{
     complex::{AttributeDeclarationId, AttributeDeclarationsFragment, AttributeUse, FragmentIdx},
-    transformers::{TransformerContext, TransformChange, XmlnsContextTransformer},
+    transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
 };
 
 #[non_exhaustive]
+#[allow(clippy::new_without_default)]
+#[allow(clippy::new_without_default)]
 pub struct RemoveProhibitedAttributes {}
 
 impl RemoveProhibitedAttributes {
@@ -12,7 +14,7 @@ impl RemoveProhibitedAttributes {
     }
 
     fn expand_attribute_declarations(
-        context: &mut TransformerContext<'_>,
+        context: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: &FragmentIdx<AttributeDeclarationsFragment>,
     ) -> Result<TransformChange, ()> {
         let mut change = TransformChange::default();
@@ -50,10 +52,13 @@ impl RemoveProhibitedAttributes {
     }
 }
 
-impl XmlnsContextTransformer for RemoveProhibitedAttributes {
+impl XmlnsLocalTransformer for RemoveProhibitedAttributes {
     type Error = ();
 
-    fn transform(self, mut context: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(
+        self,
+        mut context: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
         context
             .iter_complex_fragment_ids::<AttributeDeclarationsFragment>()
             .iter()

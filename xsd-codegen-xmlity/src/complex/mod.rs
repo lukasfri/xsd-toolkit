@@ -70,6 +70,8 @@ pub trait Context {
 
 pub trait Scope {
     fn add_item<I: Into<syn::Item>>(&mut self, item: I) -> Result<TypeReference<'static>>;
+
+    fn add_items<I: IntoIterator<Item = J>, J: Into<syn::Item>>(&mut self, items: I);
 }
 
 pub struct ToTypeTemplateData<T> {

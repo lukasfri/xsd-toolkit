@@ -3,7 +3,7 @@ use crate::{
         ComplexContentChildId, ComplexTypeModelId, ComplexTypeRootFragment, FragmentAccess,
         FragmentIdx, RestrictionFragment,
     },
-    transformers::{TransformerContext, TransformChange, XmlnsContextTransformer},
+    transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
 };
 use xsd::schema_names as xsn;
 
@@ -33,6 +33,7 @@ use xsd::schema_names as xsn;
 /// ```
 /// Above example taken from the examples of the XML Specification.
 #[non_exhaustive]
+#[allow(clippy::new_without_default)]
 pub struct ExpandShortFormComplexTypes {}
 
 impl ExpandShortFormComplexTypes {
@@ -41,7 +42,7 @@ impl ExpandShortFormComplexTypes {
     }
 
     pub fn expand_short_form_complex_type(
-        ctx: &mut TransformerContext<'_>,
+        ctx: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: &FragmentIdx<ComplexTypeRootFragment>,
     ) -> Result<TransformChange, ()> {
         let root_fragment = ctx
@@ -79,10 +80,13 @@ impl ExpandShortFormComplexTypes {
     }
 }
 
-impl XmlnsContextTransformer for ExpandShortFormComplexTypes {
+impl XmlnsLocalTransformer for ExpandShortFormComplexTypes {
     type Error = ();
 
-    fn transform(self, mut ctx: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(
+        self,
+        mut ctx: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
             .map(|f| Self::expand_short_form_complex_type(&mut ctx, &f))
@@ -108,8 +112,6 @@ mod tests {
 
     #[test]
     fn specification_1() {
-        let mut xmlns_context = XmlnsContext::new();
-
         let namespace = XmlNamespace::new_dangerous("http://localhost");
         let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
 
@@ -181,19 +183,21 @@ mod tests {
             .unwrap()
             .into_owned();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let transform_changed = xmlns_context
-            .transform(&namespace, ExpandShortFormComplexTypes::new())
+        let transform_changed = compiled_namespace
+            .transform(ExpandShortFormComplexTypes::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = xmlns_context
-            .transform(&namespace, ExpandShortFormComplexTypes::new())
+        let transform_changed = compiled_namespace
+            .transform(ExpandShortFormComplexTypes::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
+
+        let mut xmlns_context = XmlnsContext::new();
+
+        xmlns_context.add_namespace(compiled_namespace);
 
         let output_namespace = xmlns_context
             .namespaces

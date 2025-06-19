@@ -18,13 +18,14 @@ use crate::complex::LocalAttributeFragmentTypeMode;
 use crate::complex::RestrictionFragment;
 use crate::complex::SequenceFragment;
 use crate::transformers::TransformChange;
-use crate::transformers::TransformerContext;
-use crate::transformers::XmlnsContextTransformer;
+use crate::transformers::XmlnsLocalTransformer;
+use crate::transformers::XmlnsLocalTransformerContext;
 use crate::TopLevelType;
 use xsd::schema_names as xsn;
 
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
 #[non_exhaustive]
+#[allow(clippy::new_without_default)]
 pub struct ExpandExtensionFragments {}
 
 impl ExpandExtensionFragments {
@@ -33,7 +34,7 @@ impl ExpandExtensionFragments {
     }
 
     fn expand_attribute(
-        ctx: &mut TransformerContext<'_>,
+        ctx: &mut XmlnsLocalTransformerContext<'_>,
         attribute: &FragmentIdx<LocalAttributeFragment>,
         base_attribute: &FragmentIdx<LocalAttributeFragment>,
     ) -> Result<(), ()> {
@@ -60,12 +61,12 @@ impl ExpandExtensionFragments {
     }
 
     fn expand_expanded_attributes<'a>(
-        ctx: &mut TransformerContext<'_>,
+        ctx: &mut XmlnsLocalTransformerContext<'_>,
         child_attributes: FragmentIdx<AttributeDeclarationsFragment>,
         base_attributes: FragmentIdx<AttributeDeclarationsFragment>,
     ) -> Result<FragmentIdx<AttributeDeclarationsFragment>, ()> {
         fn resolve_attr_name(
-            ctx: &TransformerContext,
+            ctx: &XmlnsLocalTransformerContext,
             a: &FragmentIdx<LocalAttributeFragment>,
         ) -> ExpandedName<'static> {
             let fragment = ctx.get_complex_fragment(a).unwrap();
@@ -84,7 +85,7 @@ impl ExpandExtensionFragments {
             .declarations
             .iter()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (a.clone(), resolve_attr_name(&ctx, a)),
+                AttributeDeclarationId::Attribute(a) => (a.clone(), resolve_attr_name(ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
             .collect::<BTreeMap<_, _>>();
@@ -92,7 +93,7 @@ impl ExpandExtensionFragments {
             .declarations
             .iter()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (a.clone(), resolve_attr_name(&ctx, a)),
+                AttributeDeclarationId::Attribute(a) => (a.clone(), resolve_attr_name(ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
             .collect::<BTreeMap<_, _>>();
@@ -147,7 +148,7 @@ impl ExpandExtensionFragments {
     }
 
     fn expand_extension(
-        ctx: &mut TransformerContext<'_>,
+        ctx: &mut XmlnsLocalTransformerContext<'_>,
         child_complex_content_fragment_idx: &FragmentIdx<ComplexContentFragment>,
     ) -> Result<TransformChange, ()> {
         let child_complex_content_fragment = ctx
@@ -271,7 +272,7 @@ impl ExpandExtensionFragments {
         let new_child_content = compiler.push_fragment(new_child_content);
 
         compiler
-            .get_fragment_mut(&child_complex_content_fragment_idx)
+            .get_fragment_mut(child_complex_content_fragment_idx)
             .unwrap()
             .content_fragment = ComplexContentChildId::Restriction(new_child_content);
 
@@ -279,10 +280,10 @@ impl ExpandExtensionFragments {
     }
 }
 
-impl XmlnsContextTransformer for ExpandExtensionFragments {
+impl XmlnsLocalTransformer for ExpandExtensionFragments {
     type Error = ();
 
-    fn transform(self, mut ctx: TransformerContext<'_>) -> Result<TransformChange, ()> {
+    fn transform(self, mut ctx: XmlnsLocalTransformerContext<'_>) -> Result<TransformChange, ()> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
             .map(|f| Self::expand_extension(&mut ctx, &f))
@@ -431,8 +432,6 @@ mod tests {
             ))
             .build();
 
-        let mut xmlns_context = XmlnsContext::new();
-
         let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
 
         compiled_namespace
@@ -442,19 +441,21 @@ mod tests {
             .import_top_level_complex_type(&derived_shirt_type)
             .unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let transform_changed = xmlns_context
-            .transform(&test_namespace, ExpandExtensionFragments::new())
+        let transform_changed = compiled_namespace
+            .transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = xmlns_context
-            .transform(&test_namespace, ExpandExtensionFragments::new())
+        let transform_changed = compiled_namespace
+            .transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
+
+        let mut xmlns_context = XmlnsContext::new();
+
+        xmlns_context.add_namespace(compiled_namespace);
 
         let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
 
@@ -601,8 +602,6 @@ mod tests {
             ))
             .build();
 
-        let mut xmlns_context = XmlnsContext::new();
-
         let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
 
         compiled_namespace
@@ -612,19 +611,21 @@ mod tests {
             .import_top_level_complex_type(&derived_shirt_type)
             .unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let transform_changed = xmlns_context
-            .transform(&test_namespace, ExpandExtensionFragments::new())
+        let transform_changed = compiled_namespace
+            .transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = xmlns_context
-            .transform(&test_namespace, ExpandExtensionFragments::new())
+        let transform_changed = compiled_namespace
+            .transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
+
+        let mut xmlns_context = XmlnsContext::new();
+
+        xmlns_context.add_namespace(compiled_namespace);
 
         let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
 
@@ -804,8 +805,6 @@ mod tests {
                 .build(),
         );
 
-        let mut xmlns_context = XmlnsContext::new();
-
         let mut compiled_namespace = CompiledNamespace::new(XmlNamespace::XHTML);
 
         compiled_namespace
@@ -815,19 +814,21 @@ mod tests {
             .import_top_level_element(&noscript)
             .unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let transform_changed = xmlns_context
-            .transform(&XmlNamespace::XHTML, ExpandExtensionFragments::new())
+        let transform_changed = compiled_namespace
+            .transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = xmlns_context
-            .transform(&XmlNamespace::XHTML, ExpandExtensionFragments::new())
+        let transform_changed = compiled_namespace
+            .transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
+
+        let mut xmlns_context = XmlnsContext::new();
+
+        xmlns_context.add_namespace(compiled_namespace);
 
         let compiled_namespace = xmlns_context.namespaces.get(&XmlNamespace::XHTML).unwrap();
 
@@ -1187,8 +1188,6 @@ mod tests {
                 .build(),
         );
 
-        let mut xmlns_context = XmlnsContext::new();
-
         let mut compiled_namespace = CompiledNamespace::new(XmlNamespace::XHTML);
 
         compiled_namespace
@@ -1196,19 +1195,21 @@ mod tests {
             .unwrap();
         compiled_namespace.import_top_level_element(&a).unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let transform_changed = xmlns_context
-            .transform(&XmlNamespace::XHTML, ExpandExtensionFragments::new())
+        let transform_changed = compiled_namespace
+            .transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = xmlns_context
-            .transform(&XmlNamespace::XHTML, ExpandExtensionFragments::new())
+        let transform_changed = compiled_namespace
+            .transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
+
+        let mut xmlns_context = XmlnsContext::new();
+
+        xmlns_context.add_namespace(compiled_namespace);
 
         let compiled_namespace = xmlns_context.namespaces.get(&XmlNamespace::XHTML).unwrap();
 

@@ -35,8 +35,6 @@ fn specification_test_1() {
 
 #[test]
 fn specification_test_2() {
-    let mut xmlns_context = XmlnsContext::new();
-
     let mut compiled_namespace =
         CompiledNamespace::new(XmlNamespace::new_dangerous("http://localhost"));
 
@@ -88,13 +86,10 @@ fn specification_test_2() {
     };
 
     let depth = compiled_namespace.add_top_level_element(&depth);
+    compiled_namespace.transform(ExpandBasedFragments::new());
 
+    let mut xmlns_context = XmlnsContext::new();
     xmlns_context.add_namespace(compiled_namespace);
-
-    ExpandBasedFragments.transform(super::Context {
-        xmlns_context: &mut xmlns_context,
-        namespace: &XmlNamespace::new_dangerous("http://localhost"),
-    });
 
     // let top_level_element = xmlns_context
     //     .namespaces

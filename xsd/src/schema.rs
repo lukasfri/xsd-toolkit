@@ -970,6 +970,7 @@ pub struct AttributeGroupType {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Builder)]
 pub struct AttrDecls {
+    #[builder(default)]
     pub declarations: Vec<AttributeDeclaration>,
     pub any: Option<AnyAttribute>,
 }

@@ -21,7 +21,7 @@ use xsd_type_compiler::{
         },
         ComplexTypeFragmentCompiler, FragmentAccess,
     },
-    transformers::{TransformChange, XmlnsContextTransformer},
+    transformers::{TransformChange, XmlnsLocalTransformer},
     CompiledNamespace, TopLevelType,
 };
 
@@ -34,55 +34,54 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub struct XmlityCodegenTransformer {}
 
 impl XmlityCodegenTransformer {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
 }
 
-impl XmlnsContextTransformer for XmlityCodegenTransformer {
+impl XmlnsLocalTransformer for XmlityCodegenTransformer {
     type Error = Infallible;
     fn transform(
         self,
-        mut context: xsd_type_compiler::transformers::TransformerContext<'_>,
+        mut context: xsd_type_compiler::transformers::XmlnsLocalTransformerContext<'_>,
     ) -> std::result::Result<TransformChange, Self::Error> {
-        let namespace: XmlNamespace<'static> = context.namespace.clone();
-
         for i in 0..100 {
             let mut total_change = TransformChange::Unchanged;
 
             total_change |= context
-                .context_mut()
-                .transform(&namespace, FlattenNestedSequences::new())
+                .current_namespace_mut()
+                .transform(FlattenNestedSequences::new())
                 .unwrap();
 
             total_change |= context
-                .context_mut()
-                .transform(&namespace, FlattenNestedChoices::new())
+                .current_namespace_mut()
+                .transform(FlattenNestedChoices::new())
                 .unwrap();
 
             total_change |= context
-                .context_mut()
-                .transform(&namespace, FlattenNestedAll::new())
+                .current_namespace_mut()
+                .transform(FlattenNestedAll::new())
                 .unwrap();
 
             total_change |= context
-                .context_mut()
-                .transform(&namespace, ExpandAttributeGroups::new())
+                .current_namespace_mut()
+                .transform(ExpandAttributeGroups::new())
                 .unwrap();
 
             total_change |= context
-                .context_mut()
-                .transform(&namespace, ExpandExtensionFragments::new())
+                .current_namespace_mut()
+                .transform(ExpandExtensionFragments::new())
                 .unwrap();
 
             total_change |= context
-                .context_mut()
-                .transform(&namespace, ExpandRestrictionFragments::new())
+                .current_namespace_mut()
+                .transform(ExpandRestrictionFragments::new())
                 .unwrap();
 
             total_change |= context
-                .context_mut()
-                .transform(&namespace, RemoveProhibitedAttributes::new())
+                .current_namespace_mut()
+                .transform(RemoveProhibitedAttributes::new())
                 .unwrap();
 
             if total_change == TransformChange::Unchanged {
@@ -266,8 +265,10 @@ impl<'c> complex::Context for GeneratorContext<'c> {
         let name = name.local_name().to_item_ident();
         let ty: syn::Type = parse_quote!(#namespace_crate::#type_mod_ident::#name);
 
+        let ty = TypeReference::new_static(ty).wrap(TypeReference::box_wrapper);
+
         Ok(BoundType {
-            ty: TypeReference::new_static(ty),
+            ty,
             ty_type: TypeType::Complex,
             serialize_with: None,
             deserialize_with: None,
@@ -295,7 +296,9 @@ impl<'c> complex::Context for GeneratorContext<'c> {
         let name = name.local_name().to_item_ident();
         let ty: syn::Type = parse_quote!(#namespace_crate::#name);
 
-        Ok(TypeReference::new_static(ty))
+        let ty = TypeReference::new_static(ty).wrap(TypeReference::box_wrapper);
+
+        Ok(ty)
     }
 
     fn resolve_named_attribute(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
@@ -322,7 +325,9 @@ impl<'c> complex::Context for GeneratorContext<'c> {
         let name = name.local_name().to_item_ident();
         let ty: syn::Type = parse_quote!(#namespace_crate::#attribute_mod_ident::#name);
 
-        Ok(TypeReference::new_static(ty))
+        let ty = TypeReference::new_static(ty).wrap(TypeReference::box_wrapper);
+
+        Ok(ty)
     }
 
     fn to_expanded_name(&self, local_name: xmlity::LocalName<'static>) -> ExpandedName<'static> {
@@ -353,7 +358,9 @@ impl<'c> complex::Context for GeneratorContext<'c> {
         let name = name.local_name().to_item_ident();
         let ty: syn::Type = parse_quote!(#namespace_crate::#group_mod_ident::#name);
 
-        Ok(TypeReference::new_static(ty))
+        let ty = TypeReference::new_static(ty).wrap(TypeReference::box_wrapper);
+
+        Ok(ty)
     }
 }
 
@@ -378,6 +385,10 @@ impl complex::Scope for GeneratorScope {
         self.items.push(item);
 
         Ok(ref_)
+    }
+
+    fn add_items<I: IntoIterator<Item = J>, J: Into<syn::Item>>(&mut self, items: I) {
+        self.items.extend(items.into_iter().map(Into::into));
     }
 }
 
@@ -665,7 +676,8 @@ impl<'a> Generator<'a> {
 
                 items.push(Item::Struct(item));
 
-                let ty = TypeReference::new_prefixed_type(parse_quote!(#item_name));
+                let ty = TypeReference::new_prefixed_type(parse_quote!(#item_name))
+                    .wrap(TypeReference::box_wrapper);
 
                 let bound_type = BoundType {
                     ty,

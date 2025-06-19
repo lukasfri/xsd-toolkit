@@ -60,9 +60,7 @@ impl ToTypeTemplate for cx::DeclaredElementFragment {
 
         match &self.type_ {
             xsd_type_compiler::NamedOrAnonymous::Named(expanded_name) => {
-                let mut bound_type = context.resolve_named_type(expanded_name)?;
-
-                bound_type.ty = bound_type.ty.wrap(TypeReference::box_wrapper);
+                let bound_type = context.resolve_named_type(expanded_name)?;
 
                 let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false);
 
@@ -96,9 +94,7 @@ impl ToTypeTemplate for cx::ReferenceElementFragment {
         context: &C,
         _scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let ty = context
-            .resolve_named_element(&self.name)?
-            .wrap(TypeReference::box_wrapper);
+        let ty = context.resolve_named_element(&self.name)?;
 
         let template = ItemFieldItem { ty, default: false };
 
@@ -177,9 +173,7 @@ impl ToTypeTemplate for cx::TopLevelElementFragment {
 
         let template = match type_ {
             Some(xsd_type_compiler::NamedOrAnonymous::Named(expanded_name)) => {
-                let mut bound_type = context.resolve_named_type(expanded_name)?;
-
-                bound_type.ty = bound_type.ty.wrap(TypeReference::box_wrapper);
+                let bound_type = context.resolve_named_type(expanded_name)?;
 
                 let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false);
 
@@ -211,7 +205,7 @@ impl ToTypeTemplate for cx::TopLevelElementFragment {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use syn::{parse_quote, Item};
+    use syn::parse_quote;
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::schema as xs;
     use xsd::schema_names as xsn;
@@ -263,16 +257,22 @@ mod tests {
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
-        #[rustfmt::skip]
-        let expected_items: Vec<Item> = vec![
-            parse_quote!(
-                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                #[xelement(name = "SimpleSequence", namespace = "http://example.com", children_order = "strict")]
-                pub struct SimpleSequence;
-            )
-        ];
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: actual_items,
+        });
 
-        assert_eq!(expected_items, actual_items);
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
+            #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
+            pub struct SimpleSequence;
+        );
+
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
 
         assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
     }
@@ -336,21 +336,27 @@ mod tests {
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
-        #[rustfmt::skip]
-        let expected_items: Vec<Item> = vec![
-            parse_quote!(
-                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                #[xelement(name = "SimpleSequence", namespace = "http://example.com", children_order = "strict")]
-                pub struct SimpleSequence {
-                    #[xelement(name = "a", namespace = "http://example.com")]
-                    pub a: i32,
-                    #[xelement(name = "b", namespace = "http://example.com")]
-                    pub b: String,
-                }
-            )
-        ];
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: actual_items.clone(),
+        });
 
-        assert_eq!(expected_items, actual_items);
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
+            #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
+            pub struct SimpleSequence {
+                #[xelement(name = "a", namespace = "http://example.com")]
+                pub a: i32,
+                #[xelement(name = "b", namespace = "http://example.com")]
+                pub b: String,
+            }
+        );
+
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
 
         assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
     }
@@ -421,21 +427,27 @@ mod tests {
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
-        #[rustfmt::skip]
-        let expected_items: Vec<Item> = vec![
-            parse_quote!(
-                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                #[xelement(name = "SimpleSequence", namespace = "http://example.com", children_order = "strict")]
-                pub struct SimpleSequence {
-                    #[xattribute(name = "a")]
-                    pub a: i32,
-                    #[xattribute(name = "b")]
-                    pub b: String,
-                }
-            )
-        ];
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: actual_items.clone(),
+        });
 
-        assert_eq!(expected_items, actual_items);
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
+            #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
+            pub struct SimpleSequence {
+                #[xattribute(name = "a")]
+                pub a: i32,
+                #[xattribute(name = "b")]
+                pub b: String,
+            }
+        );
+
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
 
         assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
     }
@@ -508,33 +520,38 @@ mod tests {
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: actual_items.clone(),
+        });
+
         #[rustfmt::skip]
-        let expected_items: Vec<Item> = vec![
-            parse_quote!(
-                pub mod simple_sequence_items {
-                    #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                    #[xvalue(children_order = "strict")]
-                    pub struct Child0 {
-                        #[xelement(name = "a", namespace = "http://example.com")]
-                        pub a: i32,
-                        #[xelement(name = "b", namespace = "http://example.com")]
-                        pub b: String,
-                    }
-                }
-            ),
-            parse_quote!(
+        let expected: syn::File = parse_quote!(
+            pub mod simple_sequence_items {
                 #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                #[xelement(name = "SimpleSequence", namespace = "http://example.com", children_order = "strict")]
-                pub struct SimpleSequence {
-                    pub child_0: simple_sequence_items::Child0,
-                    #[xelement(name = "c", namespace = "http://example.com")]
-                    pub c: String,
-
+                #[xvalue(order = "strict")]
+                pub struct Child0 {
+                    #[xelement(name = "a", namespace = "http://example.com")]
+                    pub a: i32,
+                    #[xelement(name = "b", namespace = "http://example.com")]
+                    pub b: String,
                 }
-            )
-        ];
+            }
+            
+            #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
+            pub struct SimpleSequence {
+                pub child_0: simple_sequence_items::Child0,
+                #[xelement(name = "c", namespace = "http://example.com")]
+                pub c: String,
 
-        assert_eq!(expected_items, actual_items);
+            }
+        );
+
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
 
         assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
     }
@@ -615,25 +632,31 @@ mod tests {
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
-        #[rustfmt::skip]
-        let expected_items: Vec<Item> = vec![
-            parse_quote!(
-                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                #[xelement(name = "SimpleSequence", namespace = "http://example.com", children_order = "strict")]
-                pub struct SimpleSequence {
-                    #[xattribute(name = "c")]
-                    pub c: i32,
-                    #[xattribute(name = "d")]
-                    pub d: String,
-                    #[xelement(name = "a", namespace = "http://example.com")]
-                    pub a: i32,
-                    #[xelement(name = "b", namespace = "http://example.com")]
-                    pub b: String,
-                }
-            )
-        ];
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: actual_items.clone(),
+        });
 
-        assert_eq!(expected_items, actual_items);
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
+            #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
+            pub struct SimpleSequence {
+                #[xattribute(name = "c")]
+                pub c: i32,
+                #[xattribute(name = "d")]
+                pub d: String,
+                #[xelement(name = "a", namespace = "http://example.com")]
+                pub a: i32,
+                #[xelement(name = "b", namespace = "http://example.com")]
+                pub b: String,
+            }
+        );
+
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
 
         assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
     }
@@ -702,20 +725,25 @@ mod tests {
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: actual_items,
+        });
+
         #[rustfmt::skip]
-        let expected_items: Vec<Item> = vec![
-            parse_quote!(
-                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                #[xelement(name = "SimpleSequence", namespace = "http://example.com", children_order = "strict")]
-                pub struct SimpleSequence {
-                    #[xelement(name = "a", namespace = "http://example.com", group)]
-                    pub a: types::ChildType,
-                }
-            )
-        ];
+        let expected: syn::File = parse_quote!(
+            #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
+            pub struct SimpleSequence {
+                #[xelement(name = "a", namespace = "http://example.com", group)]
+                pub a: types::ChildType,
+            }
+        );
 
-        assert_eq!(expected_items, actual_items);
+        let expected = prettyplease::unparse(&expected);
 
+        assert_eq!(actual, expected);
         assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
     }
 
@@ -745,16 +773,22 @@ mod tests {
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
-        #[rustfmt::skip]
-        let expected_items: Vec<Item> = vec![
-            parse_quote!(
-                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                #[xelement(name = "SimpleSequence", namespace = "http://example.com")]
-                pub struct SimpleSequence(pub String);
-            )
-        ];
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: actual_items.clone(),
+        });
 
-        assert_eq!(expected_items, actual_items);
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
+            #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
+            pub struct SimpleSequence(pub String);
+        );
+
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
 
         assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
     }
@@ -798,16 +832,22 @@ mod tests {
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
-        #[rustfmt::skip]
-        let expected_items: Vec<Item> = vec![
-            parse_quote!(
-                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                #[xelement(name = "SimpleSequence", namespace = "http://example.com")]
-                pub struct SimpleSequence(#[xgroup] pub types::ChildType);
-            )
-        ];
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: actual_items.clone(),
+        });
 
-        assert_eq!(expected_items, actual_items);
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
+            #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
+            pub struct SimpleSequence(#[xgroup] pub types::ChildType);
+        );
+
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
 
         assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
     }
@@ -872,18 +912,24 @@ mod tests {
 
         let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
 
-        #[rustfmt::skip]
-        let expected_items: Vec<Item> = vec![
-            parse_quote!(
-                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                #[xelement(name = "SimpleSequence", namespace = "http://example.com", children_order = "strict")]
-                pub struct SimpleSequence {
-                    pub child_element: types::ChildElement,
-                }
-            )
-        ];
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: actual_items.clone(),
+        });
 
-        assert_eq!(expected_items, actual_items);
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
+            #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
+            pub struct SimpleSequence {
+                pub child_element: types::ChildElement,
+            }
+        );
+
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
 
         assert_eq!(type_.into_type(None), parse_quote!(SimpleSequence));
     }

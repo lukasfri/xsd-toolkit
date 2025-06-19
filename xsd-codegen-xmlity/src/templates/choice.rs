@@ -102,15 +102,24 @@ mod tests {
 
         let actual_item = record.to_enum(&ident, None);
 
-        let expected_item: ItemEnum = parse_quote!(
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: vec![actual_item.into()],
+        });
+
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
             pub enum Test {
-                #[xelement(name = "a")]
+                #[xelement(name = "a", allow_unknown_attributes = "any")]
                 A,
             }
         );
 
-        assert_eq!(expected_item, actual_item);
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
     }
 
     #[test]
@@ -142,10 +151,17 @@ mod tests {
 
         let actual_item = record.to_enum(&ident, None);
 
-        let expected_item: ItemEnum = parse_quote!(
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: vec![actual_item.into()],
+        });
+
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
             pub enum Test {
-                #[xelement(name = "a")]
+                #[xelement(name = "a", allow_unknown_attributes = "any")]
                 A {
                     #[xattribute(name = "for")]
                     for_: ::std::string::String,
@@ -153,6 +169,8 @@ mod tests {
             }
         );
 
-        assert_eq!(expected_item, actual_item);
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
     }
 }

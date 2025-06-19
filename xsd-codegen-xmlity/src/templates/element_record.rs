@@ -463,10 +463,11 @@ impl ElementRecord {
 #[cfg(test)]
 mod tests {
     use crate::templates::value_record::ItemFieldItem;
+    use pretty_assertions::assert_eq;
 
     use super::*;
     use quote::format_ident;
-    use syn::{parse_quote, ItemStruct};
+    use syn::parse_quote;
     use xmlity::{ExpandedName, LocalName};
 
     #[test]
@@ -478,13 +479,22 @@ mod tests {
 
         let actual_item = record.to_struct(&ident, None);
 
-        let expected_item: ItemStruct = parse_quote!(
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: vec![actual_item.into()],
+        });
+
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "test")]
+            #[xelement(name = "test", allow_unknown_attributes = "any")]
             pub struct Test;
         );
 
-        assert_eq!(expected_item, actual_item);
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
     }
 
     #[test]
@@ -508,15 +518,24 @@ mod tests {
 
         let actual_item = record.to_struct(&ident, None);
 
-        let expected_item: ItemStruct = parse_quote!(
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: vec![actual_item.into()],
+        });
+
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "test")]
+            #[xelement(name = "test", allow_unknown_attributes = "any")]
             pub struct Test {
                 pub a: Child,
             }
         );
 
-        assert_eq!(expected_item, actual_item);
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
     }
 
     #[test]
@@ -537,13 +556,22 @@ mod tests {
 
         let actual_item = record.to_struct(&ident, None);
 
-        let expected_item: ItemStruct = parse_quote!(
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: vec![actual_item.into()],
+        });
+
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "test")]
+            #[xelement(name = "test", allow_unknown_attributes = "any")]
             pub struct Test(pub Child);
         );
 
-        assert_eq!(expected_item, actual_item);
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
     }
 
     #[test]
@@ -570,15 +598,24 @@ mod tests {
 
         let actual_item = record.to_struct(&ident, None);
 
-        let expected_item: ItemStruct = parse_quote!(
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: vec![actual_item.into()],
+        });
+
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "test")]
+            #[xelement(name = "test", allow_unknown_attributes = "any")]
             pub struct Test {
                 #[xattribute(name = "a")]
                 pub a: ::std::string::String,
             }
         );
 
-        assert_eq!(expected_item, actual_item);
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
     }
 }

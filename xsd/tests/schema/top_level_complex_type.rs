@@ -757,7 +757,13 @@ fn xsd_any_type() -> xs::TopLevelComplexType {
                     .build()
                     .into(),
             ),
-            attr_decls: xs::AttrDecls::default(),
+            attr_decls: xs::AttrDecls::builder()
+                .any(
+                    xs::AnyAttribute::builder()
+                        .process_contents(xs::ProcessContentsType::Lax)
+                        .build(),
+                )
+                .build(),
         })
         .build()
 }

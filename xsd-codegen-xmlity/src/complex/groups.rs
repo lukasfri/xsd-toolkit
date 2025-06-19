@@ -50,20 +50,15 @@ impl ToTypeTemplate for cx::AllFragment {
                     .ident
                     .map(|a| a.to_field_ident())
                     .unwrap_or_else(|| format_ident!("child_{}", i));
-                let item =
-                    res.template
-                        .into_item(context, &mut sub_scope, &ident, Some(&mod_path))?;
+                let item = res
+                    .template
+                    .into_item(context, &mut sub_scope, &ident, None)?;
 
                 Ok((ident, item))
             })
             .collect::<Result<Vec<_>>>()?;
 
         let fields = dedup_field_idents(fields);
-
-        let _mod_ref = sub_scope
-            .finish_mod(&mod_name)
-            .map(|a| scope.add_item(a))
-            .transpose()?;
 
         let mut template = templates::value_record::ItemRecord {
             children_order: ItemOrder::None,
@@ -74,11 +69,22 @@ impl ToTypeTemplate for cx::AllFragment {
 
         let template = ItemOrTemplate::new(
             template,
-            |template| syn::Item::Struct(template.to_struct(context.suggested_ident(), None)),
+            |template| {
+                syn::Item::Struct(template.to_struct(context.suggested_ident(), Some(&mod_path)))
+            },
             min_occurs,
             max_occurs,
             scope,
         )?;
+
+        if matches!(template, ItemOrTemplate::Record(_)) {
+            scope.add_items(sub_scope.finish());
+        } else {
+            let _mod_ref = sub_scope
+                .finish_mod(&mod_name)
+                .map(|a| scope.add_item(a))
+                .transpose()?;
+        }
 
         Ok(ToTypeTemplateData {
             ident: None,
@@ -151,20 +157,15 @@ impl ToTypeTemplate for cx::SequenceFragment {
                     .ident
                     .map(|a| a.to_field_ident())
                     .unwrap_or_else(|| format_ident!("child_{}", i));
-                let item =
-                    res.template
-                        .into_item(context, &mut sub_scope, &ident, Some(&mod_path))?;
+                let item = res
+                    .template
+                    .into_item(context, &mut sub_scope, &ident, None)?;
 
                 Ok((ident, item))
             })
             .collect::<Result<Vec<_>>>()?;
 
         let fields = dedup_field_idents(fields);
-
-        let _mod_ref = sub_scope
-            .finish_mod(&mod_name)
-            .map(|a| scope.add_item(a))
-            .transpose()?;
 
         let mut template = templates::value_record::ItemRecord {
             children_order: ItemOrder::Strict,
@@ -175,11 +176,22 @@ impl ToTypeTemplate for cx::SequenceFragment {
 
         let template = ItemOrTemplate::new(
             template,
-            |template| syn::Item::Struct(template.to_struct(context.suggested_ident(), None)),
+            |template| {
+                syn::Item::Struct(template.to_struct(context.suggested_ident(), Some(&mod_path)))
+            },
             min_occurs,
             max_occurs,
             scope,
         )?;
+
+        if matches!(template, ItemOrTemplate::Record(_)) {
+            scope.add_items(sub_scope.finish());
+        } else {
+            let _mod_ref = sub_scope
+                .finish_mod(&mod_name)
+                .map(|a| scope.add_item(a))
+                .transpose()?;
+        }
 
         Ok(ToTypeTemplateData {
             ident: None,
@@ -198,7 +210,9 @@ impl ToTypeTemplate for cx::ChoiceFragment {
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let ident = context.suggested_ident();
 
-        let mod_name = format_ident!("{}_items", ident.to_path_ident());
+        let mod_name = format_ident!("{}_variants", ident.to_path_ident());
+
+        let mod_path: syn::Path = parse_quote!(#mod_name);
 
         let mut sub_scope = GeneratorScope::new();
 
@@ -216,7 +230,9 @@ impl ToTypeTemplate for cx::ChoiceFragment {
                     .map(|a| a.to_variant_ident())
                     .unwrap_or_else(|| format_ident!("Variant{}", i));
 
-                let variant = res.template.into_variant(context, scope, &ident, None)?;
+                let variant =
+                    res.template
+                        .into_variant(context, &mut sub_scope, &ident, Some(&mod_path))?;
 
                 Ok((ident, variant))
             })
@@ -231,7 +247,7 @@ impl ToTypeTemplate for cx::ChoiceFragment {
             .map(|a| scope.add_item(a))
             .transpose()?;
 
-        let item = template.to_enum(ident, Some(&parse_quote!(#mod_name)));
+        let item = template.to_enum(ident, None);
 
         let ty = scope.add_item(item)?;
 
@@ -277,9 +293,7 @@ impl ToTypeTemplate for cx::GroupRefFragment {
         let max_occurs = self.max_occurs.unwrap_or_default();
 
         //TODO: Should not wrap in box if we also wrap it in Vec.
-        let ty = context
-            .resolve_named_group(&self.ref_)?
-            .wrap(TypeReference::box_wrapper);
+        let ty = context.resolve_named_group(&self.ref_)?;
 
         let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
 
@@ -373,7 +387,6 @@ impl GroupTypeContentTemplate {
                             .ty
                             .wrap_if(optional, TypeReference::option_wrapper);
                         field_element.optional = optional;
-                        field_element.default = optional;
 
                         return Ok(ItemField::Element(field_element));
                     }
@@ -425,19 +438,19 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
         context: &C,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        match self {
+        let template = match self {
             cx::GroupTypeContentId::Element(fragment_idx) => context
                 .resolve_fragment_id(fragment_idx, scope)
                 .map(|res| ToTypeTemplateData {
                     ident: res.ident,
                     template: res.template.into(),
-                }),
+                })?,
             cx::GroupTypeContentId::Group(fragment_idx) => context
                 .resolve_fragment_id(fragment_idx, scope)
                 .map(|res| ToTypeTemplateData {
                     ident: res.ident,
                     template: GroupTypeContentTemplate::Item(res.template),
-                }),
+                })?,
             cx::GroupTypeContentId::All(fragment_idx) => {
                 let record = context.resolve_fragment_id(fragment_idx, scope)?;
 
@@ -459,23 +472,29 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
 
                 let template = GroupTypeContentTemplate::Item(item);
 
-                Ok(ToTypeTemplateData {
+                ToTypeTemplateData {
                     ident: None,
                     template,
-                })
+                }
             }
             cx::GroupTypeContentId::Choice(fragment_idx) => {
                 let record = context.resolve_fragment_id(fragment_idx, scope)?;
 
                 let template = GroupTypeContentTemplate::Item(record.template);
 
-                Ok(ToTypeTemplateData {
+                ToTypeTemplateData {
                     ident: None,
                     template,
-                })
+                }
             }
             cx::GroupTypeContentId::Sequence(fragment_idx) => {
-                let record = context.resolve_fragment_id(fragment_idx, scope)?;
+                let mut sub_scope = GeneratorScope::new();
+
+                let mod_name = format_ident!("{}_items", context.suggested_ident().to_path_ident());
+
+                let mod_path: syn::Path = parse_quote!(#mod_name);
+
+                let record = context.resolve_fragment_id(fragment_idx, &mut sub_scope)?;
 
                 let ident = record
                     .ident
@@ -484,33 +503,44 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
 
                 let item = match record.template {
                     ItemOrTemplate::Record(record) => {
-                        let item = record.to_struct(ident, None);
+                        let item = record.to_struct(ident, Some(&mod_path));
+
+                        sub_scope
+                            .finish_mod(&mod_name)
+                            .map(|a| scope.add_item(a))
+                            .transpose()?;
 
                         let ty = scope.add_item(item)?;
 
                         ItemFieldItem { ty, default: false }
                     }
-                    ItemOrTemplate::Item(item) => item,
+                    ItemOrTemplate::Item(item) => {
+                        scope.add_items(sub_scope.finish());
+
+                        item
+                    }
                 };
 
                 let template = GroupTypeContentTemplate::Item(item);
 
-                Ok(ToTypeTemplateData {
+                ToTypeTemplateData {
                     ident: None,
                     template,
-                })
+                }
             }
             cx::GroupTypeContentId::Any(fragment_idx) => {
                 let template = context.resolve_fragment_id(fragment_idx, scope)?;
 
                 let ty = template.template;
 
-                Ok(ToTypeTemplateData {
+                ToTypeTemplateData {
                     ident: template.ident,
                     template: GroupTypeContentTemplate::Item(ItemFieldItem { ty, default: false }),
-                })
+                }
             }
-        }
+        };
+
+        Ok(template)
     }
 }
 
@@ -676,7 +706,7 @@ impl ToTypeTemplate for cx::TopLevelGroupFragment {
 
 #[cfg(test)]
 mod tests {
-    // use pretty_assertions::assert_eq;
+    use pretty_assertions::assert_eq;
 
     use syn::{parse_quote, Item};
     use xmlity::{LocalName, XmlNamespace};
@@ -687,7 +717,7 @@ mod tests {
     use crate::Generator;
 
     #[test]
-    fn three_choice_sequence_deep_element() {
+    fn three_choice_sequence_deep_top_level_type() {
         let sequence = xs::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .content(
@@ -751,49 +781,155 @@ mod tests {
 
         let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
 
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: actual_items.clone(),
+        });
+
         #[rustfmt::skip]
-        let expected_items: Vec<Item> = vec![
-            parse_quote!(
-                pub mod simple_sequence_items {
-                    pub mod child_0_items {
-                        #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                        #[xvalue(children_order = "strict")]
-                        pub struct Variant0 {
-                            #[xelement(name = "a", namespace = "http://example.com")]
-                            pub a: i32,
-                        }
-                    }
-
+        let expected: syn::File = parse_quote!(
+            pub mod simple_sequence_items {
+                pub mod child_0_variants {
                     #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-                    pub enum Child0 {
-                        Variant0(child_0_items::Variant0),
-                        #[xelement(name = "b", namespace = "http://example.com")]
-                        B(String),
+                    #[xvalue(order = "strict")]
+                    pub struct Variant0 {
+                        #[xelement(name = "a", namespace = "http://example.com")]
+                        pub a: i32,
                     }
                 }
-            ),
-            parse_quote!(
-                #[derive(::core::fmt::Debug, ::xmlity::SerializationGroup, ::xmlity::DeserializationGroup)]
-                #[xgroup(children_order = "strict")]
-                pub struct SimpleSequence {
-                    pub child_0: simple_sequence_items::Child0,
-                    #[xelement(name = "c", namespace = "http://example.com")]
-                    pub c: String,
-                }
-            )
-        ];
 
-        println!(
-            "Generated code:\n\n{}",
-            prettyplease::unparse(&syn::File {
-                shebang: None,
-                attrs: Vec::new(),
-                items: actual_items.clone()
-            })
+                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+                pub enum Child0 {
+                    Variant0(::std::boxed::Box<child_0_variants::Variant0>),
+                    #[xelement(
+                        name = "b",
+                        namespace = "http://example.com",
+                        allow_unknown_attributes = "any"
+                    )]
+                    B(String),
+                }
+            }
+
+            #[derive(::core::fmt::Debug, ::xmlity::SerializationGroup, ::xmlity::DeserializationGroup)]
+            #[xgroup(children_order = "strict")]
+            pub struct SimpleSequence {
+                pub child_0: simple_sequence_items::Child0,
+                #[xelement(name = "c", namespace = "http://example.com")]
+                pub c: String,
+            }
         );
 
-        assert_eq!(expected_items, actual_items);
+        let expected = prettyplease::unparse(&expected);
 
-        assert_eq!(type_.ty.into_type(None), parse_quote!(SimpleSequence));
+        assert_eq!(actual, expected);
+
+        assert_eq!(
+            type_.ty.into_type(None),
+            parse_quote!(::std::boxed::Box<SimpleSequence>)
+        );
+    }
+
+    #[test]
+    fn two_sequence_deep_top_level_type() {
+        let sequence = xs::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("SimpleSequence"))
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .particle(
+                                xs::SequenceType::builder()
+                                    .content(vec![
+                                        xs::SequenceType::builder()
+                                            .content(vec![
+                                                xs::LocalElement::builder()
+                                                    .name(LocalName::new_dangerous("a"))
+                                                    .type_(xs::QName(xsn::INTEGER.clone()))
+                                                    .min_occurs(xs::MinOccurs(0))
+                                                    .build()
+                                                    .into(),
+                                                xs::LocalElement::builder()
+                                                    .name(LocalName::new_dangerous("b"))
+                                                    .type_(xs::QName(xsn::STRING.clone()))
+                                                    .build()
+                                                    .into(),
+                                            ])
+                                            .min_occurs(xs::MinOccurs(0))
+                                            .build()
+                                            .into(),
+                                        xs::LocalElement::builder()
+                                            .name(LocalName::new_dangerous("c"))
+                                            .type_(xs::QName(xsn::STRING.clone()))
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .build()
+                                    .into(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build();
+
+        let namespace = XmlNamespace::new_dangerous("http://example.com");
+
+        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
+
+        let sequence = compiled_namespace
+            .import_top_level_complex_type(&sequence)
+            .unwrap()
+            .into_owned();
+
+        let mut context = XmlnsContext::new();
+        context.add_namespace(compiled_namespace);
+
+        let mut generator = Generator::new(&context);
+
+        generator.bind_types(crate::binds::StdXsdTypes);
+
+        let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
+
+        let actual = prettyplease::unparse(&syn::File {
+            shebang: None,
+            attrs: Vec::new(),
+            items: actual_items.clone(),
+        });
+
+        #[rustfmt::skip]
+        let expected: syn::File = parse_quote!(
+            pub mod simple_sequence_items {
+                #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
+                #[xvalue(order = "strict")]
+                pub struct Child0 {
+                    #[xelement(name = "a", namespace = "http://example.com", optional)]
+                    pub a: ::core::option::Option<i32>,
+                    #[xelement(name = "b", namespace = "http://example.com")]
+                    pub b: String,
+                }
+            }
+            
+            #[derive(::core::fmt::Debug, ::xmlity::SerializationGroup, ::xmlity::DeserializationGroup)]
+            #[xgroup(children_order = "strict")]
+            pub struct SimpleSequence {
+                #[xvalue(default)]
+                pub child_0: ::core::option::Option<simple_sequence_items::Child0>,
+                #[xelement(name = "c", namespace = "http://example.com")]
+                pub c: String,
+            }
+        );
+
+        let expected = prettyplease::unparse(&expected);
+
+        assert_eq!(actual, expected);
+
+        assert_eq!(
+            type_.ty.into_type(None),
+            parse_quote!(::std::boxed::Box<SimpleSequence>)
+        );
     }
 }

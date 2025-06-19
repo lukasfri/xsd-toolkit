@@ -4,21 +4,22 @@ use crate::complex::{
     AllFragment, ChoiceFragment, FragmentIdx, GroupTypeContentId, SequenceFragment,
 };
 
-use crate::transformers::{TransformChange, TransformerContext, XmlnsContextTransformer};
+use crate::transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
 
 #[non_exhaustive]
 pub struct FlattenNestedSequences {}
 
 impl FlattenNestedSequences {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
 
     fn flatten_sequence(
-        ctx: &mut TransformerContext,
+        ctx: &mut XmlnsLocalTransformerContext,
         fragment_idx: &FragmentIdx<SequenceFragment>,
-    ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
-        let SequenceFragment { fragments, .. } = ctx.get_complex_fragment(&fragment_idx).unwrap();
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
+        let SequenceFragment { fragments, .. } = ctx.get_complex_fragment(fragment_idx).unwrap();
 
         let mut flattened = TransformChange::default();
 
@@ -44,17 +45,20 @@ impl FlattenNestedSequences {
             flattened = TransformChange::Changed;
         }
 
-        let fragment = ctx.get_complex_fragment_mut(&fragment_idx).unwrap();
+        let fragment = ctx.get_complex_fragment_mut(fragment_idx).unwrap();
         fragment.fragments = new_fragments;
 
         Ok(flattened)
     }
 }
 
-impl XmlnsContextTransformer for FlattenNestedSequences {
+impl XmlnsLocalTransformer for FlattenNestedSequences {
     type Error = ();
 
-    fn transform(self, mut ctx: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(
+        self,
+        mut ctx: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
             .map(|f| Self::flatten_sequence(&mut ctx, &f))
@@ -68,10 +72,10 @@ impl FlattenNestedChoices {
     }
 
     fn flatten_choice(
-        ctx: &mut TransformerContext,
+        ctx: &mut XmlnsLocalTransformerContext,
         fragment_idx: &FragmentIdx<ChoiceFragment>,
-    ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
-        let ChoiceFragment { fragments, .. } = ctx.get_complex_fragment(&fragment_idx).unwrap();
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
+        let ChoiceFragment { fragments, .. } = ctx.get_complex_fragment(fragment_idx).unwrap();
 
         let mut flattened = TransformChange::default();
 
@@ -97,7 +101,7 @@ impl FlattenNestedChoices {
             flattened = TransformChange::Changed;
         }
 
-        let fragment = ctx.get_complex_fragment_mut(&fragment_idx).unwrap();
+        let fragment = ctx.get_complex_fragment_mut(fragment_idx).unwrap();
         fragment.fragments = new_fragments;
 
         Ok(flattened)
@@ -107,10 +111,13 @@ impl FlattenNestedChoices {
 #[non_exhaustive]
 pub struct FlattenNestedChoices {}
 
-impl XmlnsContextTransformer for FlattenNestedChoices {
+impl XmlnsLocalTransformer for FlattenNestedChoices {
     type Error = ();
 
-    fn transform(self, mut ctx: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(
+        self,
+        mut ctx: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
             .map(|f| Self::flatten_choice(&mut ctx, &f))
@@ -124,10 +131,10 @@ impl FlattenNestedAll {
     }
 
     fn flatten_all(
-        ctx: &mut TransformerContext,
+        ctx: &mut XmlnsLocalTransformerContext,
         fragment_idx: &FragmentIdx<AllFragment>,
-    ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
-        let AllFragment { fragments, .. } = ctx.get_complex_fragment(&fragment_idx).unwrap();
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
+        let AllFragment { fragments, .. } = ctx.get_complex_fragment(fragment_idx).unwrap();
 
         let mut flattened = TransformChange::default();
 
@@ -153,7 +160,7 @@ impl FlattenNestedAll {
             flattened = TransformChange::Changed;
         }
 
-        let fragment = ctx.get_complex_fragment_mut(&fragment_idx).unwrap();
+        let fragment = ctx.get_complex_fragment_mut(fragment_idx).unwrap();
         fragment.fragments = new_fragments;
 
         Ok(flattened)
@@ -163,10 +170,13 @@ impl FlattenNestedAll {
 #[non_exhaustive]
 pub struct FlattenNestedAll {}
 
-impl XmlnsContextTransformer for FlattenNestedAll {
+impl XmlnsLocalTransformer for FlattenNestedAll {
     type Error = ();
 
-    fn transform(self, mut ctx: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(
+        self,
+        mut ctx: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
             .map(|f| Self::flatten_all(&mut ctx, &f))
@@ -299,27 +309,27 @@ mod tests {
             )
             .build();
 
-        let mut xmlns_context = XmlnsContext::new();
-
         let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
 
         compiled_namespace
             .import_top_level_complex_type(&non_flattened_shirt_type)
             .unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let transform_changed = xmlns_context
-            .transform(&test_namespace, FlattenNestedSequences::new())
+        let transform_changed = compiled_namespace
+            .transform(FlattenNestedSequences::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = xmlns_context
-            .transform(&test_namespace, FlattenNestedSequences::new())
+        let transform_changed = compiled_namespace
+            .transform(FlattenNestedSequences::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
+
+        let mut xmlns_context = XmlnsContext::new();
+
+        xmlns_context.add_namespace(compiled_namespace);
 
         let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
 
@@ -405,21 +415,21 @@ mod tests {
             )
             .build();
 
-        let mut xmlns_context = XmlnsContext::new();
-
         let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
 
         compiled_namespace
             .import_top_level_complex_type(&non_flattened_shirt_type)
             .unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let transform_changed = xmlns_context
-            .transform(&test_namespace, FlattenNestedSequences::new())
+        let transform_changed = compiled_namespace
+            .transform(FlattenNestedSequences::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
+
+        let mut xmlns_context = XmlnsContext::new();
+
+        xmlns_context.add_namespace(compiled_namespace);
 
         let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
 

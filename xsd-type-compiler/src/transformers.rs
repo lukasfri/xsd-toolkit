@@ -1,9 +1,8 @@
 use crate::complex::{self, ComplexTypeRootFragment, FragmentAccess};
 use crate::simple::{FragmentId as SimpleFragmentId, SimpleTypeFragment};
-use crate::ComplexTypeIdent;
+use crate::{CompiledNamespace, ComplexTypeIdent};
 
 use xmlity::ExpandedName;
-use xmlity::XmlNamespace;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TransformChange {
@@ -62,39 +61,40 @@ impl FromIterator<TransformChange> for TransformChange {
     }
 }
 
-pub trait XmlnsContextTransformer {
+/// This transformer type is only capable of doing local transformations within a namespace, and cannot access other namespaces.
+///
+/// It is useful for things like expanding extension fragments, or resolving local references, but not for things like resolving global references.
+pub trait XmlnsLocalTransformer {
     type Error: std::fmt::Debug;
 
     /// Returns true if the context was changed.
-    fn transform(self, context: TransformerContext<'_>) -> Result<TransformChange, Self::Error>;
+    fn transform(
+        self,
+        context: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error>;
 }
 
-pub struct TransformerContext<'a> {
-    pub namespace: &'a XmlNamespace<'static>,
-    pub xmlns_context: &'a mut crate::XmlnsContext,
+pub struct XmlnsLocalTransformerContext<'a> {
+    // pub namespace: &'a XmlNamespace<'static>,
+    pub namespace: &'a mut CompiledNamespace,
+    // pub xmlns_context: &'a mut crate::XmlnsContext,
 }
 
-impl TransformerContext<'_> {
-    pub fn context(&self) -> &crate::XmlnsContext {
-        self.xmlns_context
-    }
+impl XmlnsLocalTransformerContext<'_> {
+    // pub fn context(&self) -> &crate::XmlnsContext {
+    //     self.xmlns_context
+    // }
 
-    pub fn context_mut(&mut self) -> &mut crate::XmlnsContext {
-        self.xmlns_context
-    }
+    // pub fn context_mut(&mut self) -> &mut crate::XmlnsContext {
+    //     self.xmlns_context
+    // }
 
     pub fn current_namespace(&self) -> &crate::CompiledNamespace {
-        self.xmlns_context
-            .namespaces
-            .get(self.namespace)
-            .expect("Current namespace not found")
+        &self.namespace
     }
 
     pub fn current_namespace_mut(&mut self) -> &mut crate::CompiledNamespace {
-        self.xmlns_context
-            .namespaces
-            .get_mut(self.namespace)
-            .expect("Current namespace not found")
+        self.namespace
     }
 
     pub fn iter_complex_fragment_ids<F: 'static>(&self) -> Vec<complex::FragmentIdx<F>>
@@ -156,10 +156,7 @@ impl TransformerContext<'_> {
         &'a self,
         name: &'a ExpandedName<'_>,
     ) -> Option<&'a crate::TopLevelType> {
-        self.xmlns_context
-            .namespaces
-            .get(name.namespace().as_ref().unwrap())
-            .unwrap()
+        self.current_namespace()
             .top_level_types
             .get(name.local_name())
     }
@@ -168,10 +165,7 @@ impl TransformerContext<'_> {
         &'a self,
         name: &'a ExpandedName<'_>,
     ) -> Option<&'a crate::TopLevelAttributeGroup> {
-        self.xmlns_context
-            .namespaces
-            .get(name.namespace().as_ref().unwrap())
-            .unwrap()
+        self.current_namespace()
             .top_level_attribute_groups
             .get(name.local_name())
     }

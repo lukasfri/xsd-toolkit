@@ -90,7 +90,7 @@ fn xsd_attribute() {
     let attr_decls: crate::xs::groups::AttrDecls =
         xmlity_quick_xml::from_str(XSD_ATTRIBUTE).unwrap();
     println!("{attr_decls:#?}");
-    let attr: crate::xs::groups::attr_decls_items::attr_decls_items::Child0 =
+    let attr: crate::xs::groups::attr_decls_items::Child0 =
         xmlity_quick_xml::from_str(XSD_ATTRIBUTE).unwrap();
     println!("{attr:#?}");
 }

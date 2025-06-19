@@ -1,4 +1,5 @@
 use pretty_assertions::assert_eq;
+use syn::parse_quote;
 use xmlity::{LocalName, XmlNamespace};
 use xsd::schema as xs;
 use xsd::schema_names as xsn;
@@ -57,22 +58,29 @@ fn top_level_complex_type_sequence_test() {
 
     generator.bind_types(xsd_codegen_xmlity::binds::StdXsdTypes);
 
-    let (_, actual_code) = generator.generate_top_level_type(&product_type).unwrap();
+    let (_, actual_items) = generator.generate_top_level_type(&product_type).unwrap();
 
-    // Expected generated code
+    let actual = prettyplease::unparse(&syn::File {
+        shebang: None,
+        attrs: Vec::new(),
+        items: actual_items.clone(),
+    });
+
     #[rustfmt::skip]
-    let expected_code: syn::ItemStruct = syn::parse_quote!(
+    let expected: syn::File = parse_quote!(
         #[derive(::core::fmt::Debug, ::xmlity::SerializationGroup, ::xmlity::DeserializationGroup)]
         #[xgroup(children_order = "strict")]
         pub struct ProductType {
-            #[xelement(name = "number", namespace = "http://example.com", optional, default)]
-            pub number: Option<i32>,
+            #[xelement(name = "number", namespace = "http://example.com", optional)]
+            pub number: ::core::option::Option<i32>,
             #[xelement(name = "name", namespace = "http://example.com")]
             pub name: String,
         }
     );
 
-    assert_eq!(actual_code, vec![expected_code.into()]);
+    let expected = prettyplease::unparse(&expected);
+
+    assert_eq!(actual, expected);
 }
 
 #[test]
@@ -127,19 +135,26 @@ fn top_level_complex_type_attributes_test() {
 
     generator.bind_types(xsd_codegen_xmlity::binds::StdXsdTypes);
 
-    let (_, actual_code) = generator.generate_top_level_type(&product_type).unwrap();
+    let (_, actual_items) = generator.generate_top_level_type(&product_type).unwrap();
 
-    // Expected generated code
+    let actual = prettyplease::unparse(&syn::File {
+        shebang: None,
+        attrs: Vec::new(),
+        items: actual_items.clone(),
+    });
+
     #[rustfmt::skip]
-    let expected_code: syn::ItemStruct = syn::parse_quote!(
+    let expected: syn::File = parse_quote!(
         #[derive(::core::fmt::Debug, ::xmlity::SerializationGroup, ::xmlity::DeserializationGroup)]
         pub struct ProductType {
             #[xattribute(name = "number", optional, default)]
-            pub number: Option<i32>,
+            pub number: ::core::option::Option<i32>,
             #[xattribute(name = "name")]
             pub name: String,
         }
     );
 
-    assert_eq!(actual_code, vec![expected_code.into()]);
+    let expected = prettyplease::unparse(&expected);
+
+    assert_eq!(actual, expected);
 }

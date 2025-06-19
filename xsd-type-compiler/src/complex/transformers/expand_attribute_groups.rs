@@ -5,10 +5,11 @@ use crate::{
         AttributeDeclarationId, AttributeDeclarationsFragment, AttributeGroupRefFragment,
         FragmentIdx, LocalAttributeFragment, LocalAttributeFragmentTypeMode,
     },
-    transformers::{TransformerContext, TransformChange, XmlnsContextTransformer},
+    transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
 };
 
 #[non_exhaustive]
+#[allow(clippy::new_without_default)]
 pub struct ExpandAttributeGroups {}
 
 impl ExpandAttributeGroups {
@@ -17,7 +18,7 @@ impl ExpandAttributeGroups {
     }
 
     fn expand_attribute_groups(
-        context: &mut TransformerContext<'_>,
+        context: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: &FragmentIdx<AttributeDeclarationsFragment>,
     ) -> Result<TransformChange, ()> {
         let mut change = TransformChange::default();
@@ -64,7 +65,7 @@ impl ExpandAttributeGroups {
 
         let add_attribute =
             |new_attributes: &mut VecDeque<AttributeDeclarationId>,
-             ctx: &mut TransformerContext<'_>,
+             ctx: &mut XmlnsLocalTransformerContext<'_>,
              fragment_idx: &FragmentIdx<LocalAttributeFragment>| {
                 let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
 
@@ -113,7 +114,7 @@ impl ExpandAttributeGroups {
 
         let add_group =
             |new_attributes: &mut VecDeque<AttributeDeclarationId>,
-             ctx: &mut TransformerContext<'_>,
+             ctx: &mut XmlnsLocalTransformerContext<'_>,
              fragment_idx: &FragmentIdx<AttributeGroupRefFragment>| {
                 let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
 
@@ -126,8 +127,7 @@ impl ExpandAttributeGroups {
                         _ => None,
                     })
                     .map(|(i, a)| (i, ctx.get_complex_fragment(a).unwrap()))
-                    .find(|(_, existing)| existing.ref_ == possible.ref_)
-                    .is_some();
+                    .any(|(_, existing)| existing.ref_ == possible.ref_);
 
                 // If the attribute group does not exist, add it to the new_attributes list
                 if !group_exists {
@@ -177,10 +177,13 @@ impl ExpandAttributeGroups {
     }
 }
 
-impl XmlnsContextTransformer for ExpandAttributeGroups {
+impl XmlnsLocalTransformer for ExpandAttributeGroups {
     type Error = ();
 
-    fn transform(self, mut context: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(
+        self,
+        mut context: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
         context
             .iter_complex_fragment_ids::<AttributeDeclarationsFragment>()
             .iter()
@@ -255,15 +258,13 @@ mod tests {
             .unwrap();
         ns.import_top_level_complex_type(&input).unwrap();
 
+        let transform_changed = ns.transform(ExpandAttributeGroups::new()).unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Changed);
+
         let mut ctx = XmlnsContext::new();
 
         ctx.add_namespace(ns);
-
-        let transform_changed = ctx
-            .transform(&TEST_NAMESPACE, ExpandAttributeGroups::new())
-            .unwrap();
-
-        assert_eq!(transform_changed, TransformChange::Changed);
 
         let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
 
@@ -365,15 +366,13 @@ mod tests {
             .unwrap();
         ns.import_top_level_complex_type(&input).unwrap();
 
+        let transform_changed = ns.transform(ExpandAttributeGroups::new()).unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Changed);
+
         let mut ctx = XmlnsContext::new();
 
         ctx.add_namespace(ns);
-
-        let transform_changed = ctx
-            .transform(&TEST_NAMESPACE, ExpandAttributeGroups::new())
-            .unwrap();
-
-        assert_eq!(transform_changed, TransformChange::Changed);
 
         let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
 
@@ -477,15 +476,13 @@ mod tests {
             .unwrap();
         ns.import_top_level_complex_type(&input).unwrap();
 
+        let transform_changed = ns.transform(ExpandAttributeGroups::new()).unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Changed);
+
         let mut ctx = XmlnsContext::new();
 
         ctx.add_namespace(ns);
-
-        let transform_changed = ctx
-            .transform(&TEST_NAMESPACE, ExpandAttributeGroups::new())
-            .unwrap();
-
-        assert_eq!(transform_changed, TransformChange::Changed);
 
         let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
 

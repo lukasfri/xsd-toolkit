@@ -305,6 +305,12 @@ impl<T> FragmentCollection<T> {
     }
 }
 
+impl<T> Default for FragmentCollection<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> FragmentCollection<T> {
     fn get_fragment(&self, fragment_id: &FragmentIdx<T>) -> Option<&T> {
         self.fragments.get(fragment_id)
@@ -1878,7 +1884,16 @@ impl ComplexFragmentEquivalent for xs::AttributeGroupType {
         compiler: T,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        todo!()
+        let compiler = compiler.as_ref();
+        let fragment = compiler.get_fragment(fragment_id).unwrap();
+
+        Ok(Self::builder()
+            .name(fragment.name.clone())
+            .attr_decls(xs::AttrDecls::from_complex_fragments(
+                compiler,
+                &fragment.attr_decls,
+            )?)
+            .build())
     }
 }
 
