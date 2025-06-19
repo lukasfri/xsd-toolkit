@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use dyn_clone::DynClone;
+use quote::ToTokens;
 use syn::{Path, Type, TypePath};
 
 pub trait TypeReferenceTrait: FnOnce(Option<&Path>) -> Type + DynClone {}
@@ -80,6 +81,22 @@ impl<'a> TypeReference<'a> {
         syn::parse_quote! { ::std::boxed::Box<#ty> }
     }
 
+    pub fn box_non_boxed_wrapper(ty: Type) -> Type {
+        //TODO: This is a hack. We should use a better solution later.
+
+        if match &ty {
+            Type::Path(path) => Some(path),
+            _ => None,
+        }
+        .and_then(|a| unbox_type(a))
+        .is_some()
+        {
+            ty
+        } else {
+            Self::box_wrapper(ty)
+        }
+    }
+
     pub fn wrap_if<F>(self, condition: bool, wrapper: F) -> Self
     where
         F: FnOnce(Type) -> Type + Clone + 'static,
@@ -141,4 +158,38 @@ pub fn rustify_name(ident: &str) -> String {
         .enumerate()
         .map(|(i, c)| if i == 0 { c.to_ascii_uppercase() } else { c })
         .collect::<String>()
+}
+
+// Returns the type that is boxed, if any.
+// Examples:
+// - Box<Foo> -> Foo
+// - Box<dyn Foo> -> dyn Foo
+// - Foo -> None
+// - ::std::boxed::Box<Foo> -> Foo
+// - ::std::boxed::Box<dyn Foo> -> dyn Foo
+pub fn unbox_type(ty: &syn::TypePath) -> Option<syn::Type> {
+    let mut segments = ty.path.segments.iter();
+
+    let first = segments.next().unwrap();
+    if first.ident == "Box" {
+        let argument = match &first.arguments {
+            syn::PathArguments::AngleBracketed(arguments) => arguments,
+            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => panic!("TODO"),
+        };
+
+        Some(syn::parse2(argument.args.to_token_stream()).unwrap())
+    } else if first.ident == "std" {
+        let _boxed = segments.next().filter(|a| a.ident == "boxed")?;
+
+        let box_ = segments.next().filter(|a| a.ident == "Box")?;
+
+        let argument = match &box_.arguments {
+            syn::PathArguments::AngleBracketed(arguments) => arguments,
+            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => panic!("TODO"),
+        };
+
+        Some(syn::parse2(argument.args.to_token_stream()).unwrap())
+    } else {
+        None
+    }
 }

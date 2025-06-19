@@ -43,6 +43,8 @@ fn main() {
             xmlity_build::GenerateNamespace::builder()
                 .output_file("xmlity-build/tests/output/xs.rs".parse().unwrap())
                 .namespace(XmlNamespace::XS)
+                .bon_builders(true)
+                .enum_from(true)
                 .build(),
         )
         .unwrap();

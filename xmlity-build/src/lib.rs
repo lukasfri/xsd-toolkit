@@ -3,7 +3,11 @@ use std::path::{Path, PathBuf};
 use bon::Builder;
 use syn::parse_quote;
 use xmlity::{types::utils::XmlRoot, ExpandedName, LocalName, XmlNamespace};
-use xsd_codegen_xmlity::{misc::TypeReference, BoundType, XmlityCodegenTransformer};
+use xsd_codegen_xmlity::{
+    augments::{BonAugmentation, EnumFromAugmentation, ItemAugmentation},
+    misc::TypeReference,
+    BoundType, XmlityCodegenTransformer,
+};
 use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
 #[derive(Debug, Builder)]
@@ -22,6 +26,10 @@ pub struct BuildEngine {
 pub struct GenerateNamespace {
     pub namespace: XmlNamespace<'static>,
     pub output_file: PathBuf,
+    #[builder(default = false)]
+    pub bon_builders: bool,
+    #[builder(default = false)]
+    pub enum_from: bool,
 }
 
 #[derive(Debug, derive_more::derive::From, derive_more::derive::Display)]
@@ -135,7 +143,21 @@ impl BuildEngine {
 
 impl StartedBuildEngine {
     pub fn generate_namespace(&self, generate_namespace: GenerateNamespace) -> Result<(), Error> {
-        let mut generator = xsd_codegen_xmlity::Generator::new(&self.context);
+        let mut generator = xsd_codegen_xmlity::Generator::new_with_augmenter(
+            &self.context,
+            vec![
+                Box::new(if generate_namespace.bon_builders {
+                    Some(BonAugmentation::new())
+                } else {
+                    None
+                }) as Box<dyn ItemAugmentation>,
+                Box::new(if generate_namespace.enum_from {
+                    Some(EnumFromAugmentation::new())
+                } else {
+                    None
+                }) as Box<dyn ItemAugmentation>,
+            ],
+        );
 
         generator.bind_attribute(
             ExpandedName::new(LocalName::new_dangerous("lang"), Some(XmlNamespace::XML)),

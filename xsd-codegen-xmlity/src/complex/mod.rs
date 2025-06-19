@@ -3,7 +3,7 @@ pub mod complex_type;
 pub mod elements;
 pub mod groups;
 
-use crate::{misc::TypeReference, BoundType, Result};
+use crate::{augments::ItemAugmentation, misc::TypeReference, BoundType, Result};
 
 use quote::format_ident;
 use syn::Ident;
@@ -71,7 +71,9 @@ pub trait Context {
 pub trait Scope {
     fn add_item<I: Into<syn::Item>>(&mut self, item: I) -> Result<TypeReference<'static>>;
 
-    fn add_items<I: IntoIterator<Item = J>, J: Into<syn::Item>>(&mut self, items: I);
+    fn add_raw_items<I: IntoIterator<Item = J>, J: Into<syn::Item>>(&mut self, items: I);
+
+    fn augmenter(&self) -> &dyn ItemAugmentation;
 }
 
 pub struct ToTypeTemplateData<T> {

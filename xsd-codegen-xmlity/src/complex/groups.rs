@@ -1,5 +1,6 @@
 use crate::{
     complex::dedup_field_idents,
+    finish_mod,
     misc::TypeReference,
     templates::{
         self,
@@ -31,7 +32,7 @@ impl ToTypeTemplate for cx::AllFragment {
         let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
         let max_occurs = self.max_occurs.unwrap_or_default();
 
-        let mut sub_scope = GeneratorScope::new();
+        let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
         let mod_name = format_ident!("{}_items", context.suggested_ident().to_path_ident());
 
@@ -67,6 +68,8 @@ impl ToTypeTemplate for cx::AllFragment {
 
         template.force_empty_if_empty();
 
+        let sub_scope_items = sub_scope.finish();
+
         let template = ItemOrTemplate::new(
             template,
             |template| {
@@ -78,10 +81,9 @@ impl ToTypeTemplate for cx::AllFragment {
         )?;
 
         if matches!(template, ItemOrTemplate::Record(_)) {
-            scope.add_items(sub_scope.finish());
+            scope.add_raw_items(sub_scope_items);
         } else {
-            let _mod_ref = sub_scope
-                .finish_mod(&mod_name)
+            let _mod_ref = finish_mod(&mod_name, sub_scope_items)
                 .map(|a| scope.add_item(a))
                 .transpose()?;
         }
@@ -138,7 +140,7 @@ impl ToTypeTemplate for cx::SequenceFragment {
         let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
         let max_occurs = self.max_occurs.unwrap_or_default();
 
-        let mut sub_scope = GeneratorScope::new();
+        let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
         let mod_name = format_ident!("{}_items", context.suggested_ident().to_path_ident());
 
@@ -174,6 +176,8 @@ impl ToTypeTemplate for cx::SequenceFragment {
 
         template.force_empty_if_empty();
 
+        let sub_scope_items = sub_scope.finish();
+
         let template = ItemOrTemplate::new(
             template,
             |template| {
@@ -185,10 +189,9 @@ impl ToTypeTemplate for cx::SequenceFragment {
         )?;
 
         if matches!(template, ItemOrTemplate::Record(_)) {
-            scope.add_items(sub_scope.finish());
+            scope.add_raw_items(sub_scope_items);
         } else {
-            let _mod_ref = sub_scope
-                .finish_mod(&mod_name)
+            let _mod_ref = finish_mod(&mod_name, sub_scope_items)
                 .map(|a| scope.add_item(a))
                 .transpose()?;
         }
@@ -214,7 +217,7 @@ impl ToTypeTemplate for cx::ChoiceFragment {
 
         let mod_path: syn::Path = parse_quote!(#mod_name);
 
-        let mut sub_scope = GeneratorScope::new();
+        let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
         // Struct with strict order
         let variants = self
@@ -339,7 +342,7 @@ impl GroupTypeContentTemplate {
                 } else {
                     let ty = scope.add_item(record.to_struct(ident, path))?;
 
-                    let ty = ty.wrap(TypeReference::box_wrapper);
+                    let ty = ty.wrap(TypeReference::box_non_boxed_wrapper);
 
                     let (ty, default) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
 
@@ -353,7 +356,7 @@ impl GroupTypeContentTemplate {
                 if let Some(path) = path {
                     item.ty = item
                         .ty
-                        .wrap(TypeReference::box_wrapper)
+                        .wrap(TypeReference::box_non_boxed_wrapper)
                         .prefix(path.clone());
                 }
 
@@ -488,7 +491,7 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
                 }
             }
             cx::GroupTypeContentId::Sequence(fragment_idx) => {
-                let mut sub_scope = GeneratorScope::new();
+                let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
                 let mod_name = format_ident!("{}_items", context.suggested_ident().to_path_ident());
 
@@ -515,7 +518,7 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
                         ItemFieldItem { ty, default: false }
                     }
                     ItemOrTemplate::Item(item) => {
-                        scope.add_items(sub_scope.finish());
+                        scope.add_raw_items(sub_scope.finish());
 
                         item
                     }

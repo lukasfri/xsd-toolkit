@@ -1,10 +1,11 @@
+pub mod augments;
 pub mod binds;
 mod complex;
 pub mod misc;
 mod simple;
 pub mod templates;
 
-use std::{collections::BTreeMap, convert::Infallible};
+use std::{collections::BTreeMap, convert::Infallible, ops::Deref};
 
 use complex::{Scope, ToTypeTemplate, ToTypeTemplateData};
 use inflector::Inflector;
@@ -24,6 +25,8 @@ use xsd_type_compiler::{
     transformers::{TransformChange, XmlnsLocalTransformer},
     CompiledNamespace, TopLevelType,
 };
+
+use crate::augments::{ItemAugmentation, ItemAugmentationExt};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {}
@@ -100,6 +103,7 @@ pub struct Generator<'a> {
     pub bound_elements: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
     pub bound_attributes: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
     pub bound_groups: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
+    pub augmenter: Box<dyn ItemAugmentation>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -365,13 +369,16 @@ impl<'c> complex::Context for GeneratorContext<'c> {
 }
 
 #[derive(Debug)]
-struct GeneratorScope {
+struct GeneratorScope<'a> {
     items: Vec<Item>,
+    augmentation: &'a dyn augments::ItemAugmentation,
 }
 
-impl complex::Scope for GeneratorScope {
+impl complex::Scope for GeneratorScope<'_> {
     fn add_item<I: Into<Item>>(&mut self, item: I) -> Result<TypeReference<'static>> {
-        let item: Item = item.into();
+        let mut item: Item = item.into();
+
+        self.items.extend(self.augmentation.augment_item(&mut item));
 
         let ident = match &item {
             Item::Struct(item) => &item.ident,
@@ -387,14 +394,33 @@ impl complex::Scope for GeneratorScope {
         Ok(ref_)
     }
 
-    fn add_items<I: IntoIterator<Item = J>, J: Into<syn::Item>>(&mut self, items: I) {
-        self.items.extend(items.into_iter().map(Into::into));
+    fn add_raw_items<I: IntoIterator<Item = J>, J: Into<syn::Item>>(&mut self, items: I) {
+        self.items
+            .extend(items.into_iter().map(Into::into).map(|item| item));
+    }
+
+    fn augmenter(&self) -> &dyn augments::ItemAugmentation {
+        self.augmentation
     }
 }
 
-impl GeneratorScope {
-    fn new() -> Self {
-        Self { items: Vec::new() }
+fn finish_mod(mod_name: &Ident, items: Vec<Item>) -> Option<ItemMod> {
+    if items.is_empty() {
+        return None;
+    }
+    Some(parse_quote!(
+        pub mod #mod_name {
+            #(#items)*
+        }
+    ))
+}
+
+impl<'a> GeneratorScope<'a> {
+    fn new(augmentation: &'a dyn augments::ItemAugmentation) -> Self {
+        Self {
+            items: Vec::new(),
+            augmentation,
+        }
     }
 
     fn finish(self) -> Vec<Item> {
@@ -402,17 +428,7 @@ impl GeneratorScope {
     }
 
     fn finish_mod(self, mod_name: &Ident) -> Option<ItemMod> {
-        let items = self.finish();
-
-        if items.is_empty() {
-            return None;
-        }
-
-        Some(parse_quote!(
-            pub mod #mod_name {
-                #(#items)*
-            }
-        ))
+        finish_mod(mod_name, self.items)
     }
 }
 
@@ -425,7 +441,10 @@ pub struct BoundType {
 }
 
 impl<'a> Generator<'a> {
-    pub fn new(context: &'a xsd_type_compiler::XmlnsContext) -> Self {
+    pub fn new_with_augmenter<A: augments::ItemAugmentation + 'static>(
+        context: &'a xsd_type_compiler::XmlnsContext,
+        augmentation: A,
+    ) -> Self {
         Self {
             context,
             bound_namespaces: BTreeMap::new(),
@@ -433,7 +452,11 @@ impl<'a> Generator<'a> {
             bound_elements: BTreeMap::new(),
             bound_attributes: BTreeMap::new(),
             bound_groups: BTreeMap::new(),
+            augmenter: Box::new(augmentation),
         }
+    }
+    pub fn new(context: &'a xsd_type_compiler::XmlnsContext) -> Self {
+        Self::new_with_augmenter(context, augments::NoopAugmentation::new())
     }
 
     pub fn bind_namespace(&mut self, namespace: XmlNamespace<'static>, path: syn::Path) {
@@ -663,21 +686,26 @@ impl<'a> Generator<'a> {
                 let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
                 let context =
                     GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
-                let mut scope = GeneratorScope::new();
+                let mut scope = GeneratorScope::new(self.augmenter.deref());
 
                 let type_ = fragment.to_type_template(&context, &mut scope)?;
-                let item = type_
+
+                let mut items = Vec::new();
+
+                let mut item = type_
                     .template
                     .to_struct(&item_name, Some(&parse_quote!(#module_name)));
-                let mut items = scope
-                    .finish_mod(&module_name)
-                    .map(|i| vec![Item::Mod(i)])
-                    .unwrap_or_default();
+
+                let augment_items = self.augmenter.augment_struct(&mut item);
+
+                items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
 
                 items.push(Item::Struct(item));
 
+                items.extend(augment_items);
+
                 let ty = TypeReference::new_prefixed_type(parse_quote!(#item_name))
-                    .wrap(TypeReference::box_wrapper);
+                    .wrap(TypeReference::box_non_boxed_wrapper);
 
                 let bound_type = BoundType {
                     ty,
@@ -715,18 +743,23 @@ impl<'a> Generator<'a> {
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
-        let mut scope = GeneratorScope::new();
+        let mut scope = GeneratorScope::new(self.augmenter.deref());
 
         let type_ = fragment.to_type_template(&context, &mut scope)?;
-        let item = type_
+
+        let mut items = Vec::new();
+
+        let mut item = type_
             .template
             .to_struct(&item_name, Some(&parse_quote!(#module_name)));
-        let mut items = scope
-            .finish_mod(&module_name)
-            .map(|i| vec![Item::Mod(i)])
-            .unwrap_or_default();
+
+        let augment_items = self.augmenter.augment_struct(&mut item);
+
+        items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
 
         items.push(Item::Struct(item));
+
+        items.extend(augment_items);
 
         let type_ = TypeReference::new_prefixed_type(parse_quote!(#item_name));
 
@@ -757,18 +790,23 @@ impl<'a> Generator<'a> {
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
-        let mut scope = GeneratorScope::new();
+        let mut scope = GeneratorScope::new(self.augmenter.deref());
 
         let type_ = fragment.to_type_template(&context, &mut scope)?;
-        let item = type_
+
+        let mut items = Vec::new();
+
+        let mut item = type_
             .template
             .to_struct(&item_name, Some(&parse_quote!(#module_name)));
-        let mut items = scope
-            .finish_mod(&module_name)
-            .map(|i| vec![Item::Mod(i)])
-            .unwrap_or_default();
+
+        let augment_items = self.augmenter.augment_struct(&mut item);
+
+        items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
 
         items.push(Item::Struct(item));
+
+        items.extend(augment_items);
 
         let type_ = TypeReference::new_prefixed_type(parse_quote!(#item_name));
 
@@ -799,18 +837,23 @@ impl<'a> Generator<'a> {
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
-        let mut scope = GeneratorScope::new();
+        let mut scope = GeneratorScope::new(self.augmenter.deref());
 
         let type_ = fragment.to_type_template(&context, &mut scope)?;
-        let item = type_
+
+        let mut items = Vec::new();
+
+        let mut item = type_
             .template
             .to_struct(&item_name, Some(&parse_quote!(#module_name)));
-        let mut items = scope
-            .finish_mod(&module_name)
-            .map(|i| vec![Item::Mod(i)])
-            .unwrap_or_default();
+
+        let augment_items = self.augmenter.augment_struct(&mut item);
+
+        items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
 
         items.push(Item::Struct(item));
+
+        items.extend(augment_items);
 
         let type_ = TypeReference::new_prefixed_type(parse_quote!(#item_name));
 
