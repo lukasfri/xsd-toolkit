@@ -2,6 +2,8 @@ use syn::parse_quote;
 use xmlity::XmlNamespace;
 
 fn main() {
+    let time = std::time::Instant::now();
+    println!("Building the engine... {}", time.elapsed().as_secs_f32());
     let engine = xmlity_build::BuildEngine::builder()
         .glob_patterns(vec!["./schemas/**/*.xsd".to_string()])
         .url_net_resolution(true)
@@ -11,7 +13,14 @@ fn main() {
             (XmlNamespace::XS, parse_quote!(crate::xs)),
         ])
         .build();
-    println!("{:?}", engine);
+
+    let engine = engine.start().unwrap();
+    println!(
+        "Starting the engine took {:?}",
+        time.elapsed().as_secs_f32()
+    );
+
+    let time = std::time::Instant::now();
 
     engine
         .generate_namespace(
@@ -22,6 +31,13 @@ fn main() {
         )
         .unwrap();
 
+    println!(
+        "Generating the xhtml namespace took {:?}",
+        time.elapsed().as_secs_f32()
+    );
+
+    let time = std::time::Instant::now();
+
     engine
         .generate_namespace(
             xmlity_build::GenerateNamespace::builder()
@@ -31,5 +47,8 @@ fn main() {
         )
         .unwrap();
 
-    println!("{}", std::env::current_dir().unwrap().display());
+    println!(
+        "Generating the xs namespace took {:?}",
+        time.elapsed().as_secs_f32()
+    );
 }

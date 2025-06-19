@@ -206,15 +206,8 @@ impl ItemFieldType {
 
     pub fn to_item_fields(self) -> value_record::ItemFieldType {
         match self {
-            Self::Named(items) => value_record::ItemFieldType::Named(
-                items
-                    .into_iter()
-                    .map(|(ident, field)| (ident, field.into()))
-                    .collect(),
-            ),
-            Self::Unnamed(items) => value_record::ItemFieldType::Unnamed(
-                items.into_iter().map(|field| field.into()).collect(),
-            ),
+            Self::Named(items) => value_record::ItemFieldType::Named(items),
+            Self::Unnamed(items) => value_record::ItemFieldType::Unnamed(items),
             Self::Empty => value_record::ItemFieldType::Empty,
         }
     }

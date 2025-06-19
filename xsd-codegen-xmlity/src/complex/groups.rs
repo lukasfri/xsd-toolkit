@@ -52,7 +52,7 @@ impl ToTypeTemplate for cx::AllFragment {
                     .unwrap_or_else(|| format_ident!("child_{}", i));
                 let item =
                     res.template
-                        .to_item(context, &mut sub_scope, &ident, Some(&mod_path))?;
+                        .into_item(context, &mut sub_scope, &ident, Some(&mod_path))?;
 
                 Ok((ident, item))
             })
@@ -74,7 +74,7 @@ impl ToTypeTemplate for cx::AllFragment {
 
         let template = ItemOrTemplate::new(
             template,
-            |template| syn::Item::Struct(template.to_struct(&context.suggested_ident(), None)),
+            |template| syn::Item::Struct(template.to_struct(context.suggested_ident(), None)),
             min_occurs,
             max_occurs,
             scope,
@@ -153,7 +153,7 @@ impl ToTypeTemplate for cx::SequenceFragment {
                     .unwrap_or_else(|| format_ident!("child_{}", i));
                 let item =
                     res.template
-                        .to_item(context, &mut sub_scope, &ident, Some(&mod_path))?;
+                        .into_item(context, &mut sub_scope, &ident, Some(&mod_path))?;
 
                 Ok((ident, item))
             })
@@ -175,7 +175,7 @@ impl ToTypeTemplate for cx::SequenceFragment {
 
         let template = ItemOrTemplate::new(
             template,
-            |template| syn::Item::Struct(template.to_struct(&context.suggested_ident(), None)),
+            |template| syn::Item::Struct(template.to_struct(context.suggested_ident(), None)),
             min_occurs,
             max_occurs,
             scope,
@@ -216,7 +216,7 @@ impl ToTypeTemplate for cx::ChoiceFragment {
                     .map(|a| a.to_variant_ident())
                     .unwrap_or_else(|| format_ident!("Variant{}", i));
 
-                let variant = res.template.to_variant(context, scope, &ident, None)?;
+                let variant = res.template.into_variant(context, scope, &ident, None)?;
 
                 Ok((ident, variant))
             })
@@ -307,7 +307,7 @@ pub enum GroupTypeContentTemplate {
 }
 
 impl GroupTypeContentTemplate {
-    fn to_variant<C: Context, S: Scope>(
+    fn into_variant<C: Context, S: Scope>(
         self,
         _context: &C,
         scope: &mut S,
@@ -325,6 +325,8 @@ impl GroupTypeContentTemplate {
                 } else {
                     let ty = scope.add_item(record.to_struct(ident, path))?;
 
+                    let ty = ty.wrap(TypeReference::box_wrapper);
+
                     let (ty, default) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
 
                     Ok(ChoiceVariantType::Item(ItemRecord::new_single_field(
@@ -335,7 +337,10 @@ impl GroupTypeContentTemplate {
             }
             GroupTypeContentTemplate::Item(mut item) => {
                 if let Some(path) = path {
-                    item.ty = item.ty.prefix(path.clone());
+                    item.ty = item
+                        .ty
+                        .wrap(TypeReference::box_wrapper)
+                        .prefix(path.clone());
                 }
 
                 Ok(ChoiceVariantType::Item(ItemRecord::new_single_field(
@@ -346,7 +351,7 @@ impl GroupTypeContentTemplate {
         }
     }
 
-    fn to_item<C: Context, S: Scope>(
+    fn into_item<C: Context, S: Scope>(
         self,
         _context: &C,
         scope: &mut S,
@@ -496,13 +501,12 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
                 })
             }
             cx::GroupTypeContentId::Any(fragment_idx) => {
-                let mut sub_scope = GeneratorScope::new();
-                let any = context.resolve_fragment_id(fragment_idx, &mut sub_scope)?;
+                let template = context.resolve_fragment_id(fragment_idx, scope)?;
 
-                let ty = any.template;
+                let ty = template.template;
 
                 Ok(ToTypeTemplateData {
-                    ident: any.ident,
+                    ident: template.ident,
                     template: GroupTypeContentTemplate::Item(ItemFieldItem { ty, default: false }),
                 })
             }
@@ -672,7 +676,7 @@ impl ToTypeTemplate for cx::TopLevelGroupFragment {
 
 #[cfg(test)]
 mod tests {
-    use pretty_assertions::assert_eq;
+    // use pretty_assertions::assert_eq;
 
     use syn::{parse_quote, Item};
     use xmlity::{LocalName, XmlNamespace};
@@ -778,6 +782,15 @@ mod tests {
                 }
             )
         ];
+
+        println!(
+            "Generated code:\n\n{}",
+            prettyplease::unparse(&syn::File {
+                shebang: None,
+                attrs: Vec::new(),
+                items: actual_items.clone()
+            })
+        );
 
         assert_eq!(expected_items, actual_items);
 

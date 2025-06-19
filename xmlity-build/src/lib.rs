@@ -3,15 +3,8 @@ use std::path::{Path, PathBuf};
 use bon::Builder;
 use syn::parse_quote;
 use xmlity::{types::utils::XmlRoot, ExpandedName, LocalName, XmlNamespace};
-use xsd_codegen_xmlity::{misc::TypeReference, BoundType};
-use xsd_type_compiler::{
-    complex::transformers::{
-        ExpandAttributeGroups, ExpandExtensionFragments, ExpandRestrictionFragments,
-        RemoveProhibitedAttributes,
-    },
-    transformers::TransformChange,
-    CompiledNamespace, XmlnsContext,
-};
+use xsd_codegen_xmlity::{misc::TypeReference, BoundType, XmlityCodegenTransformer};
+use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
 #[derive(Debug, Builder)]
 pub struct BuildEngine {
@@ -65,6 +58,11 @@ pub enum FileErrorKind {
     XmlityQuickXml(xmlity_quick_xml::de::Error),
 }
 
+pub struct StartedBuildEngine {
+    engine: BuildEngine,
+    context: XmlnsContext,
+}
+
 impl BuildEngine {
     pub fn file_paths_from_glob<P: AsRef<str>>(pattern: P) -> Result<Vec<PathBuf>, GlobErrorKind> {
         let paths = glob::glob(pattern.as_ref()).map_err(GlobErrorKind::Pattern)?;
@@ -92,37 +90,7 @@ impl BuildEngine {
         self.glob_patterns.push(path.into());
     }
 
-    pub fn transform_namespace(context: &mut XmlnsContext, namespace: &XmlNamespace<'static>) {
-        for _ in 0..100 {
-            let mut total_change = TransformChange::Unchanged;
-
-            total_change |= context
-                .transform(&namespace, ExpandAttributeGroups::new())
-                .unwrap();
-
-            // total_change |= context.transform(&namespace, ExpandGroups::new()).unwrap();
-
-            total_change |= context
-                .transform(&namespace, ExpandExtensionFragments::new())
-                .unwrap();
-
-            total_change |= context
-                .transform(&namespace, ExpandRestrictionFragments::new())
-                .unwrap();
-
-            total_change |= context
-                .transform(&namespace, RemoveProhibitedAttributes::new())
-                .unwrap();
-
-            if total_change == TransformChange::Unchanged {
-                return;
-            }
-        }
-
-        panic!("Maximum number of transformation loops reached")
-    }
-
-    pub fn generate_namespace(&self, generate_namespace: GenerateNamespace) -> Result<(), Error> {
+    pub fn start(self) -> Result<StartedBuildEngine, Error> {
         let paths = self
             .glob_patterns
             .iter()
@@ -145,7 +113,7 @@ impl BuildEngine {
                     _ => None,
                 })
             })
-            .map(|schema| xsd::XmlSchema::new(schema))
+            .map(xsd::XmlSchema::new)
             .map(|a| CompiledNamespace::from_schema(&a).unwrap())
             .fold(XmlnsContext::new(), |mut context, namespace| {
                 context.add_namespace(namespace);
@@ -153,10 +121,21 @@ impl BuildEngine {
             });
 
         for namespace in context.namespaces.keys().cloned().collect::<Vec<_>>() {
-            Self::transform_namespace(&mut context, &namespace);
+            context
+                .transform(&namespace, XmlityCodegenTransformer::new())
+                .unwrap();
         }
 
-        let mut generator = xsd_codegen_xmlity::Generator::new(&context);
+        Ok(StartedBuildEngine {
+            engine: self,
+            context,
+        })
+    }
+}
+
+impl StartedBuildEngine {
+    pub fn generate_namespace(&self, generate_namespace: GenerateNamespace) -> Result<(), Error> {
+        let mut generator = xsd_codegen_xmlity::Generator::new(&self.context);
 
         generator.bind_attribute(
             ExpandedName::new(LocalName::new_dangerous("lang"), Some(XmlNamespace::XML)),
@@ -169,11 +148,14 @@ impl BuildEngine {
         );
 
         generator.bind_types(xsd_codegen_xmlity::binds::StdXsdTypes);
-        self.bound_namespaces.iter().for_each(|(namespace, path)| {
-            generator.bind_namespace(namespace.clone(), path.clone())
-        });
+        self.engine
+            .bound_namespaces
+            .iter()
+            .for_each(|(namespace, path)| {
+                generator.bind_namespace(namespace.clone(), path.clone())
+            });
 
-        generator.bind_types(self.bound_types.iter().cloned());
+        generator.bind_types(self.engine.bound_types.iter().cloned());
 
         let items = generator
             .generate_namespace(&generate_namespace.namespace)

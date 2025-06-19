@@ -1,5 +1,3 @@
-use xmlity::{Deserialize, Serialize};
-
 pub mod xhtml;
 pub mod xs;
 
@@ -85,28 +83,14 @@ fn xsd_import_content() {
     println!("{import:#?}");
 }
 
-const XSD_IMPORT_LOCAL_COMPLEX_TYPE_EXT: &str = r###"
-<xs:extension xmlns:xs="http://www.w3.org/2001/XMLSchema" base="xs:annotated">
-    <xs:attribute name="namespace" type="xs:anyURI"/>
-    <xs:attribute name="schemaLocation" type="xs:anyURI"/>
-</xs:extension>
-"###;
-
-#[derive(Debug, Serialize, Deserialize)]
-#[xelement(name = "extension", namespace = "http://www.w3.org/2001/XMLSchema")]
-struct Extension(#[xgroup] ::std::boxed::Box<crate::xs::types::ExtensionType>);
+const XSD_ATTRIBUTE: &str = r###"<xs:attribute xmlns:xs="http://www.w3.org/2001/XMLSchema" name="namespace" type="xs:anyURI"/>"###;
 
 #[test]
-fn xsd_import_content_ext() {
-    let a: xs::groups::AttrDecls = xmlity_quick_xml::from_str("").unwrap();
-    println!("A1: {a:#?}");
-    let a: xs::types::extension_type_items::content_items::Child1 =
-        xmlity_quick_xml::from_str("").unwrap();
-    println!("A2: {a:#?}");
-    let a: Extension =
-        xmlity_quick_xml::from_str(XSD_IMPORT_LOCAL_COMPLEX_TYPE_EXT.trim()).unwrap();
-    println!("A3: {a:#?}");
-    let a: xs::complex_content_items::content_items::Child1 =
-        xmlity_quick_xml::from_str(XSD_IMPORT_LOCAL_COMPLEX_TYPE_EXT.trim()).unwrap();
-    println!("A4: {a:#?}");
+fn xsd_attribute() {
+    let attr_decls: crate::xs::groups::AttrDecls =
+        xmlity_quick_xml::from_str(XSD_ATTRIBUTE).unwrap();
+    println!("{attr_decls:#?}");
+    let attr: crate::xs::groups::attr_decls_items::attr_decls_items::Child0 =
+        xmlity_quick_xml::from_str(XSD_ATTRIBUTE).unwrap();
+    println!("{attr:#?}");
 }

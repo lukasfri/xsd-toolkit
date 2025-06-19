@@ -54,7 +54,7 @@ mod tests {
     use crate::{
         misc::TypeReference,
         templates::{
-            element_record::{ElementField, ElementFieldAttribute, ElementFieldType},
+            element_record::{AllowUnknown, ElementField, ElementFieldAttribute, ElementFieldType},
             ItemOrder,
         },
     };
@@ -92,6 +92,8 @@ mod tests {
                     attribute_order: ItemOrder::None,
                     children_order: ItemOrder::None,
                     fields: ElementFieldType::Empty,
+                    allow_unknown_attributes: AllowUnknown::Any,
+                    allow_unknown_children: AllowUnknown::AtEnd,
                 }),
             )],
         };
@@ -130,6 +132,8 @@ mod tests {
                             default: false,
                         }),
                     )]),
+                    allow_unknown_attributes: AllowUnknown::Any,
+                    allow_unknown_children: AllowUnknown::AtEnd,
                 }),
             )],
         };

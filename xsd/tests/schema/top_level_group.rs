@@ -220,7 +220,7 @@ fn xsd_all_model() -> xs::GroupType {
                                                             .build()
                                                             .into()
                                                     )
-                                                    .attributes(vec![
+                                                    .attr_decls(xs::AttrDecls::builder().declarations(vec![
                                                         xs::LocalAttribute::builder()
                                                         .name(LocalName::new_dangerous("minOccurs"))
                                                         .fixed(xs::Fixed("1".to_string()))  
@@ -233,7 +233,7 @@ fn xsd_all_model() -> xs::GroupType {
                                                         .type_(xs::QName(ExpandedName::new(LocalName::new_dangerous("nonNegativeInteger"), Some(XmlNamespace::XS))))
                                                         .build()
                                                         .into(),
-                                                    ])
+                                                    ]).build())
                                                     .build()
                                                     .into()
                                                 )

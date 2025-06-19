@@ -85,18 +85,20 @@ fn xhtml_title() -> xs::TopLevelElement {
                         xs::ComplexTypeModel::Other {
                             open_content: None,
                             type_def_particle: None,
-                            attributes: bon::vec![
-                                xs::AttributeGroupRefType::builder()
-                                    .ref_(xs::QName(ExpandedName::new(
-                                        LocalName::new_dangerous("i18n"),
-                                        Some(XmlNamespace::XHTML),
-                                    )))
-                                    .build(),
-                                xs::LocalAttribute::builder()
-                                    .name(LocalName::new_dangerous("id"))
-                                    .type_(xs::QName(xsn::ID.clone()))
-                                    .build(),
-                            ],
+                            attr_decls: xs::AttrDecls::builder()
+                                .declarations(bon::vec![
+                                    xs::AttributeGroupRefType::builder()
+                                        .ref_(xs::QName(ExpandedName::new(
+                                            LocalName::new_dangerous("i18n"),
+                                            Some(XmlNamespace::XHTML),
+                                        )))
+                                        .build(),
+                                    xs::LocalAttribute::builder()
+                                        .name(LocalName::new_dangerous("id"))
+                                        .type_(xs::QName(xsn::ID.clone()))
+                                        .build(),
+                                ])
+                                .build(),
                         }
                         .into(),
                     )
@@ -1315,29 +1317,31 @@ fn xhtml_thead() -> xs::TopLevelElement {
                                 .build()
                                 .into(),
                         ),
-                        attributes: vec![
-                            xs::AttributeGroupRefType::builder()
-                                .ref_(xs::QName(ExpandedName::new(
-                                    LocalName::new_dangerous("attrs"),
-                                    Some(XmlNamespace::XHTML),
-                                )))
-                                .build()
-                                .into(),
-                            xs::AttributeGroupRefType::builder()
-                                .ref_(xs::QName(ExpandedName::new(
-                                    LocalName::new_dangerous("cellhalign"),
-                                    Some(XmlNamespace::XHTML),
-                                )))
-                                .build()
-                                .into(),
-                            xs::AttributeGroupRefType::builder()
-                                .ref_(xs::QName(ExpandedName::new(
-                                    LocalName::new_dangerous("cellvalign"),
-                                    Some(XmlNamespace::XHTML),
-                                )))
-                                .build()
-                                .into(),
-                        ],
+                        attr_decls: xs::AttrDecls::builder()
+                            .declarations(vec![
+                                xs::AttributeGroupRefType::builder()
+                                    .ref_(xs::QName(ExpandedName::new(
+                                        LocalName::new_dangerous("attrs"),
+                                        Some(XmlNamespace::XHTML),
+                                    )))
+                                    .build()
+                                    .into(),
+                                xs::AttributeGroupRefType::builder()
+                                    .ref_(xs::QName(ExpandedName::new(
+                                        LocalName::new_dangerous("cellhalign"),
+                                        Some(XmlNamespace::XHTML),
+                                    )))
+                                    .build()
+                                    .into(),
+                                xs::AttributeGroupRefType::builder()
+                                    .ref_(xs::QName(ExpandedName::new(
+                                        LocalName::new_dangerous("cellvalign"),
+                                        Some(XmlNamespace::XHTML),
+                                    )))
+                                    .build()
+                                    .into(),
+                            ])
+                            .build(),
                     })
                     .build()
                     .into(),

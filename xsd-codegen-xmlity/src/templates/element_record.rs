@@ -1,6 +1,7 @@
 use std::iter;
 
-use quote::quote;
+use proc_macro2::Span;
+use quote::{quote, ToTokens};
 use syn::{parse_quote, Field, Ident, ItemStruct};
 use xmlity::ExpandedName;
 
@@ -10,6 +11,30 @@ use super::{
     value_record::{ItemFieldElement, SingleChildMode},
     FieldMode, FieldType, ItemOrder,
 };
+
+#[derive(Debug, Default, PartialEq)]
+pub enum AllowUnknown {
+    Any,
+    #[default]
+    AtEnd,
+    None,
+}
+
+impl AllowUnknown {
+    pub fn to_item_value(&self) -> syn::LitStr {
+        match self {
+            AllowUnknown::Any => syn::LitStr::new("any", Span::call_site()),
+            AllowUnknown::AtEnd => syn::LitStr::new("at_end", Span::call_site()),
+            AllowUnknown::None => syn::LitStr::new("none", Span::call_site()),
+        }
+    }
+}
+
+impl ToTokens for AllowUnknown {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        self.to_item_value().to_tokens(tokens)
+    }
+}
 
 #[derive(Debug)]
 pub struct ElementFieldAttribute {
@@ -232,7 +257,9 @@ impl ElementFieldType {
 pub struct ElementRecord {
     pub name: ExpandedName<'static>,
     pub attribute_order: ItemOrder,
+    pub allow_unknown_attributes: AllowUnknown,
     pub children_order: ItemOrder,
+    pub allow_unknown_children: AllowUnknown,
     pub fields: ElementFieldType,
 }
 
@@ -243,6 +270,8 @@ impl ElementRecord {
             attribute_order: ItemOrder::None,
             children_order: ItemOrder::None,
             fields: ElementFieldType::Empty,
+            allow_unknown_attributes: AllowUnknown::Any,
+            allow_unknown_children: AllowUnknown::default(),
         }
     }
 
@@ -259,6 +288,8 @@ impl ElementRecord {
                 Some(ident) => ElementFieldType::Named(vec![(ident, field)]),
                 None => ElementFieldType::Unnamed(vec![field]),
             },
+            allow_unknown_attributes: AllowUnknown::Any,
+            allow_unknown_children: AllowUnknown::default(),
         }
     }
 
@@ -301,6 +332,11 @@ impl ElementRecord {
             }
         };
 
+        let allow_unknown_attributes_option: Option<syn::MetaNameValue> =
+            Some(&self.allow_unknown_attributes)
+                .filter(|a| **a != AllowUnknown::default())
+                .map(|allow_unknown| parse_quote!(allow_unknown_attributes = #allow_unknown));
+
         let children_order_attr = match self.children_order {
             ItemOrder::None => None,
             order => {
@@ -310,10 +346,17 @@ impl ElementRecord {
             }
         };
 
+        let allow_unknown_children_option: Option<syn::MetaNameValue> =
+            Some(&self.allow_unknown_children)
+                .filter(|a| **a != AllowUnknown::default())
+                .map(|allow_unknown| parse_quote!(allow_unknown_children = #allow_unknown));
+
         iter::once(name_option)
             .chain(namespace_option)
             .chain(attribute_order_attr)
+            .chain(allow_unknown_attributes_option)
             .chain(children_order_attr)
+            .chain(allow_unknown_children_option)
     }
 
     fn element_attr(&self) -> syn::Attribute {
@@ -397,7 +440,7 @@ impl ElementRecord {
 
         // #2: The field must be a simple child or a group.
         let child = self.fields.first();
-        let (ty, child_mode) = match child.map(|field| field) {
+        let (ty, child_mode) = match child {
             Some(ElementField::Item(child)) => (child.ty.clone(), SingleChildMode::Item),
             Some(ElementField::Group(group)) => (group.ty.clone(), SingleChildMode::Group),
             None => {
@@ -457,6 +500,8 @@ mod tests {
                     default: false,
                 }),
             )]),
+            allow_unknown_attributes: AllowUnknown::Any,
+            allow_unknown_children: AllowUnknown::AtEnd,
         };
 
         let ident = format_ident!("Test");
@@ -484,6 +529,8 @@ mod tests {
                 ty: TypeReference::new_static(parse_quote!(Child)),
                 default: false,
             })]),
+            allow_unknown_attributes: AllowUnknown::Any,
+            allow_unknown_children: AllowUnknown::AtEnd,
         };
 
         let ident = format_ident!("Test");
@@ -515,6 +562,8 @@ mod tests {
                     default: false,
                 }),
             )]),
+            allow_unknown_attributes: AllowUnknown::Any,
+            allow_unknown_children: AllowUnknown::AtEnd,
         };
 
         let ident = format_ident!("Test");

@@ -2,52 +2,11 @@ use std::collections::VecDeque;
 
 use crate::{
     complex::{
-        AttributeDeclarationId, ComplexTypeFragmentCompiler, ComplexTypeModelId,
-        ComplexTypeRootFragment, ExtensionFragment, FragmentAccess, FragmentIdx,
-        RestrictionFragment,
+        AttributeDeclarationId, AttributeDeclarationsFragment, AttributeGroupRefFragment,
+        FragmentIdx, LocalAttributeFragment, LocalAttributeFragmentTypeMode,
     },
-    transformers::{Context, TransformChange, XmlnsContextTransformer},
+    transformers::{TransformerContext, TransformChange, XmlnsContextTransformer},
 };
-
-trait HasAttributeDeclarations {
-    fn attribute_declarations(&self) -> Option<&VecDeque<AttributeDeclarationId>>;
-
-    fn attribute_declarations_mut(&mut self) -> Option<&mut VecDeque<AttributeDeclarationId>>;
-}
-
-impl HasAttributeDeclarations for ExtensionFragment {
-    fn attribute_declarations(&self) -> Option<&VecDeque<AttributeDeclarationId>> {
-        Some(&self.attribute_declarations)
-    }
-
-    fn attribute_declarations_mut(&mut self) -> Option<&mut VecDeque<AttributeDeclarationId>> {
-        Some(&mut self.attribute_declarations)
-    }
-}
-impl HasAttributeDeclarations for RestrictionFragment {
-    fn attribute_declarations(&self) -> Option<&VecDeque<AttributeDeclarationId>> {
-        Some(&self.attribute_declarations)
-    }
-
-    fn attribute_declarations_mut(&mut self) -> Option<&mut VecDeque<AttributeDeclarationId>> {
-        Some(&mut self.attribute_declarations)
-    }
-}
-impl HasAttributeDeclarations for ComplexTypeRootFragment {
-    fn attribute_declarations(&self) -> Option<&VecDeque<AttributeDeclarationId>> {
-        match &self.content {
-            ComplexTypeModelId::Other { attributes, .. } => Some(attributes),
-            _ => None,
-        }
-    }
-
-    fn attribute_declarations_mut(&mut self) -> Option<&mut VecDeque<AttributeDeclarationId>> {
-        match &mut self.content {
-            ComplexTypeModelId::Other { attributes, .. } => Some(attributes),
-            _ => None,
-        }
-    }
-}
 
 #[non_exhaustive]
 pub struct ExpandAttributeGroups {}
@@ -57,83 +16,509 @@ impl ExpandAttributeGroups {
         Self {}
     }
 
-    fn expand_fragment_with_attribute_declarations<F: HasAttributeDeclarations>(
-        context: &mut Context<'_>,
-        fragment_id: &FragmentIdx<F>,
-    ) -> Result<TransformChange, ()>
-    where
-        ComplexTypeFragmentCompiler: FragmentAccess<F>,
-    {
+    fn expand_attribute_groups(
+        context: &mut TransformerContext<'_>,
+        fragment_id: &FragmentIdx<AttributeDeclarationsFragment>,
+    ) -> Result<TransformChange, ()> {
         let mut change = TransformChange::default();
 
         let fragment = context.get_complex_fragment(fragment_id).unwrap();
 
-        let Some(unexpanded_fragments) = fragment.attribute_declarations().clone() else {
-            return Ok(change);
-        };
+        let mut new_attributes = VecDeque::new();
 
-        let (attributes, attribute_groups) = unexpanded_fragments
-            .iter()
-            .map(|a| match a {
-                AttributeDeclarationId::Attribute(fragment_idx) => (Some(*fragment_idx), None),
-                AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
-                    (None, Some(*fragment_idx))
+        fn merge_attribute(target: &mut LocalAttributeFragment, source: &LocalAttributeFragment) {
+            if let Some(default) = &source.default {
+                target.default = Some(default.clone());
+            }
+
+            if let Some(use_) = source.use_ {
+                target.use_ = Some(use_);
+            }
+
+            match (&mut target.type_mode, &source.type_mode) {
+                (
+                    LocalAttributeFragmentTypeMode::Declared(target_declared),
+                    LocalAttributeFragmentTypeMode::Declared(source_declared),
+                ) => {
+                    assert_eq!(
+                        target_declared.name, source_declared.name,
+                        "When merging, the attribute names must be the same"
+                    );
+
+                    if let Some(type_) = source_declared.type_.clone() {
+                        target_declared.type_ = Some(type_);
+                    }
                 }
-            })
-            .unzip::<_, _, Vec<_>, Vec<_>>();
+                (
+                    LocalAttributeFragmentTypeMode::Reference(target_reference),
+                    LocalAttributeFragmentTypeMode::Reference(source_reference),
+                ) => {
+                    assert_eq!(
+                        target_reference.name, source_reference.name,
+                        "When merging, the attribute references must be the same"
+                    );
+                }
+                _ => todo!(),
+            }
+        }
 
-        let attributes: Vec<_> = attributes.into_iter().flatten().collect();
+        let add_attribute =
+            |new_attributes: &mut VecDeque<AttributeDeclarationId>,
+             ctx: &mut TransformerContext<'_>,
+             fragment_idx: &FragmentIdx<LocalAttributeFragment>| {
+                let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
 
-        for _attribute_group in attribute_groups.into_iter().flatten() {
-            change |= TransformChange::Changed;
+                // Check if the attribute already exists in the new_attributes list
+                let attribute_exists = new_attributes
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, a)| match a {
+                        AttributeDeclarationId::Attribute(a) => Some((i, a)),
+                        _ => None,
+                    })
+                    .map(|(i, a)| (i, ctx.get_complex_fragment(a).unwrap()))
+                    .find(
+                        |(_, existing)| match (&existing.type_mode, &possible.type_mode) {
+                            (
+                                LocalAttributeFragmentTypeMode::Declared(existing),
+                                LocalAttributeFragmentTypeMode::Declared(possible),
+                            ) => existing.name == possible.name,
+                            (
+                                LocalAttributeFragmentTypeMode::Reference(existing),
+                                LocalAttributeFragmentTypeMode::Reference(possible),
+                            ) => existing.name == possible.name,
+                            _ => false,
+                        },
+                    )
+                    .map(|(i, _)| i);
 
-            // todo!()
-            //TODO
+                // If the attribute does not exist, add it to the new_attributes list
+                let Some(i) = attribute_exists else {
+                    new_attributes.push_back(AttributeDeclarationId::Attribute(*fragment_idx));
+                    return;
+                };
+
+                // Otherwise, merge the attributes
+                let AttributeDeclarationId::Attribute(existing_idx) = new_attributes
+                    .get(i)
+                    .expect("Attribute must exist in the list since we just found it")
+                else {
+                    unreachable!("Attribute must exist in the list since we just found it - we filtered out attribute groups")
+                };
+
+                let existing = ctx.get_complex_fragment_mut(existing_idx).unwrap();
+
+                merge_attribute(existing, &possible);
+            };
+
+        let add_group =
+            |new_attributes: &mut VecDeque<AttributeDeclarationId>,
+             ctx: &mut TransformerContext<'_>,
+             fragment_idx: &FragmentIdx<AttributeGroupRefFragment>| {
+                let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
+
+                // Check if the attribute group already exists in the new_attributes list
+                let group_exists = new_attributes
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, a)| match a {
+                        AttributeDeclarationId::AttributeGroupRef(a) => Some((i, a)),
+                        _ => None,
+                    })
+                    .map(|(i, a)| (i, ctx.get_complex_fragment(a).unwrap()))
+                    .find(|(_, existing)| existing.ref_ == possible.ref_)
+                    .is_some();
+
+                // If the attribute group does not exist, add it to the new_attributes list
+                if !group_exists {
+                    new_attributes
+                        .push_back(AttributeDeclarationId::AttributeGroupRef(*fragment_idx));
+                }
+            };
+
+        // We iterate through all attributes and attribute groups, applying edits to already existing attributes.
+        for attributes in fragment.declarations.clone().iter() {
+            match attributes {
+                AttributeDeclarationId::Attribute(fragment_idx) => {
+                    add_attribute(&mut new_attributes, context, fragment_idx);
+                }
+                AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
+                    change = TransformChange::Changed;
+
+                    let attribute_fragment = context
+                        .get_complex_fragment::<AttributeGroupRefFragment>(fragment_idx)
+                        .unwrap();
+
+                    let group = context
+                        .get_named_attribute_group(&attribute_fragment.ref_)
+                        .unwrap();
+                    let group = context.get_complex_fragment(&group.root_fragment).unwrap();
+                    let attr_decls = context.get_complex_fragment(&group.attr_decls).unwrap();
+
+                    for declaration in attr_decls.declarations.clone().iter() {
+                        match declaration {
+                            AttributeDeclarationId::Attribute(fragment_idx) => {
+                                add_attribute(&mut new_attributes, context, fragment_idx);
+                            }
+                            AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
+                                add_group(&mut new_attributes, context, fragment_idx);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         let fragment = context.get_complex_fragment_mut(fragment_id).unwrap();
 
-        *fragment
-            .attribute_declarations_mut()
-            .expect("If it was none, it should've returned earlier.") =
-            attributes.into_iter().map(Into::into).collect();
+        fragment.declarations = new_attributes;
 
         Ok(change)
-    }
-
-    fn expand_fragments_with_attribute_declarations<F: HasAttributeDeclarations + 'static>(
-        context: &mut Context<'_>,
-    ) -> Result<TransformChange, ()>
-    where
-        ComplexTypeFragmentCompiler: FragmentAccess<F>,
-    {
-        context
-            .iter_complex_fragment_ids::<F>()
-            .iter()
-            .map(|fragment_id| {
-                Self::expand_fragment_with_attribute_declarations(context, fragment_id)
-            })
-            .collect()
     }
 }
 
 impl XmlnsContextTransformer for ExpandAttributeGroups {
     type Error = ();
 
-    fn transform(self, mut context: Context<'_>) -> Result<TransformChange, Self::Error> {
-        let mut changed = TransformChange::default();
+    fn transform(self, mut context: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
+        context
+            .iter_complex_fragment_ids::<AttributeDeclarationsFragment>()
+            .iter()
+            .map(|fragment_id| Self::expand_attribute_groups(&mut context, fragment_id))
+            .collect()
+    }
+}
 
-        changed |=
-            Self::expand_fragments_with_attribute_declarations::<ExtensionFragment>(&mut context)?;
+#[cfg(test)]
+mod tests {
+    use crate::{CompiledNamespace, XmlnsContext};
 
-        changed |= Self::expand_fragments_with_attribute_declarations::<RestrictionFragment>(
-            &mut context,
-        )?;
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use xmlity::{ExpandedName, LocalName, XmlNamespace};
+    use xsd::{schema as xs, schema_names as xsn};
 
-        changed |= Self::expand_fragments_with_attribute_declarations::<ComplexTypeRootFragment>(
-            &mut context,
-        )?;
+    #[test]
+    fn one_attribute_group() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com/test");
 
-        Ok(changed)
+        const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
+            LocalName::new_dangerous("test-attr-group");
+
+        const TEST_ATTRIBUTE_NAME: LocalName<'static> = LocalName::new_dangerous("test-attr");
+
+        let attribute_group = xs::AttributeGroupType::builder()
+            .name(TEST_ATTRIBUTE_GROUP_NAME)
+            .attr_decls(
+                xs::AttrDecls::builder()
+                    .declarations(vec![xs::LocalAttribute::builder()
+                        .name(TEST_ATTRIBUTE_NAME)
+                        .type_(xs::QName(xsn::STRING.clone()))
+                        .build()
+                        .into()])
+                    .build(),
+            )
+            .build();
+
+        const TOP_LEVEL_COMPLEX_TYPE_NAME: LocalName<'static> = LocalName::new_dangerous("test");
+
+        let input = xs::TopLevelComplexType::builder()
+            .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::AttrDecls::builder()
+                                    .declarations(vec![xs::AttributeGroupRefType::builder()
+                                        .ref_(xs::QName(ExpandedName::new(
+                                            TEST_ATTRIBUTE_GROUP_NAME,
+                                            Some(TEST_NAMESPACE),
+                                        )))
+                                        .build()
+                                        .into()])
+                                    .build(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build();
+
+        let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
+
+        ns.import_top_level_attribute_group(&attribute_group)
+            .unwrap();
+        ns.import_top_level_complex_type(&input).unwrap();
+
+        let mut ctx = XmlnsContext::new();
+
+        ctx.add_namespace(ns);
+
+        let transform_changed = ctx
+            .transform(&TEST_NAMESPACE, ExpandAttributeGroups::new())
+            .unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Changed);
+
+        let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
+
+        let actual = ns
+            .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .unwrap()
+            .unwrap();
+
+        let expected = xs::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("test"))
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::AttrDecls::builder()
+                                    .declarations(vec![xs::LocalAttribute::builder()
+                                        .name(LocalName::new_dangerous("test-attr"))
+                                        .type_(xs::QName(xsn::STRING.clone()))
+                                        .build()
+                                        .into()])
+                                    .build(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn same_attribute_overwrites_values_1() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com/test");
+
+        const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
+            LocalName::new_dangerous("test-attr-group");
+
+        const TEST_ATTRIBUTE_NAME: LocalName<'static> = LocalName::new_dangerous("test-attr");
+
+        let attribute_group = xs::AttributeGroupType::builder()
+            .name(TEST_ATTRIBUTE_GROUP_NAME)
+            .attr_decls(
+                xs::AttrDecls::builder()
+                    .declarations(vec![xs::LocalAttribute::builder()
+                        .name(TEST_ATTRIBUTE_NAME)
+                        .type_(xs::QName(xsn::STRING.clone()))
+                        .use_(xs::AttributeUseType::Prohibited)
+                        .build()
+                        .into()])
+                    .build(),
+            )
+            .build();
+
+        const TOP_LEVEL_COMPLEX_TYPE_NAME: LocalName<'static> = LocalName::new_dangerous("test");
+
+        let input = xs::TopLevelComplexType::builder()
+            .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::AttrDecls::builder()
+                                    .declarations(vec![
+                                        xs::AttributeGroupRefType::builder()
+                                            .ref_(xs::QName(ExpandedName::new(
+                                                TEST_ATTRIBUTE_GROUP_NAME,
+                                                Some(TEST_NAMESPACE),
+                                            )))
+                                            .build()
+                                            .into(),
+                                        xs::LocalAttribute::builder()
+                                            .name(TEST_ATTRIBUTE_NAME)
+                                            .type_(xs::QName(xsn::STRING.clone()))
+                                            .use_(xs::AttributeUseType::Optional)
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .build(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build();
+
+        let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
+
+        ns.import_top_level_attribute_group(&attribute_group)
+            .unwrap();
+        ns.import_top_level_complex_type(&input).unwrap();
+
+        let mut ctx = XmlnsContext::new();
+
+        ctx.add_namespace(ns);
+
+        let transform_changed = ctx
+            .transform(&TEST_NAMESPACE, ExpandAttributeGroups::new())
+            .unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Changed);
+
+        let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
+
+        let actual = ns
+            .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .unwrap()
+            .unwrap();
+
+        let expected = xs::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("test"))
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::AttrDecls::builder()
+                                    .declarations(vec![xs::LocalAttribute::builder()
+                                        .name(LocalName::new_dangerous("test-attr"))
+                                        .type_(xs::QName(xsn::STRING.clone()))
+                                        .use_(xs::AttributeUseType::Optional)
+                                        .build()
+                                        .into()])
+                                    .build(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build();
+
+        assert_eq!(actual, expected);
+    }
+
+    // The order is different from `same_attribute_overwrites_values_2`, with the group's attribute overwriting the top-level attribute.
+    #[test]
+    fn same_attribute_overwrites_values_2() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com/test");
+
+        const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
+            LocalName::new_dangerous("test-attr-group");
+
+        const TEST_ATTRIBUTE_NAME: LocalName<'static> = LocalName::new_dangerous("test-attr");
+
+        let attribute_group = xs::AttributeGroupType::builder()
+            .name(TEST_ATTRIBUTE_GROUP_NAME)
+            .attr_decls(
+                xs::AttrDecls::builder()
+                    .declarations(vec![xs::LocalAttribute::builder()
+                        .name(TEST_ATTRIBUTE_NAME)
+                        .type_(xs::QName(xsn::STRING.clone()))
+                        .use_(xs::AttributeUseType::Prohibited)
+                        .build()
+                        .into()])
+                    .build(),
+            )
+            .build();
+
+        const TOP_LEVEL_COMPLEX_TYPE_NAME: LocalName<'static> = LocalName::new_dangerous("test");
+
+        let input = xs::TopLevelComplexType::builder()
+            .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::AttrDecls::builder()
+                                    .declarations(vec![
+                                        xs::LocalAttribute::builder()
+                                            .name(TEST_ATTRIBUTE_NAME)
+                                            .type_(xs::QName(xsn::STRING.clone()))
+                                            .use_(xs::AttributeUseType::Optional)
+                                            .build()
+                                            .into(),
+                                        xs::AttributeGroupRefType::builder()
+                                            .ref_(xs::QName(ExpandedName::new(
+                                                TEST_ATTRIBUTE_GROUP_NAME,
+                                                Some(TEST_NAMESPACE),
+                                            )))
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .build(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build();
+
+        let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
+
+        ns.import_top_level_attribute_group(&attribute_group)
+            .unwrap();
+        ns.import_top_level_complex_type(&input).unwrap();
+
+        let mut ctx = XmlnsContext::new();
+
+        ctx.add_namespace(ns);
+
+        let transform_changed = ctx
+            .transform(&TEST_NAMESPACE, ExpandAttributeGroups::new())
+            .unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Changed);
+
+        let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
+
+        let actual = ns
+            .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .unwrap()
+            .unwrap();
+
+        let expected = xs::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("test"))
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::AttrDecls::builder()
+                                    .declarations(vec![xs::LocalAttribute::builder()
+                                        .name(LocalName::new_dangerous("test-attr"))
+                                        .type_(xs::QName(xsn::STRING.clone()))
+                                        .use_(xs::AttributeUseType::Prohibited)
+                                        .build()
+                                        .into()])
+                                    .build(),
+                            )
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build();
+
+        assert_eq!(actual, expected);
     }
 }

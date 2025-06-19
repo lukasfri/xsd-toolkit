@@ -765,10 +765,7 @@ pub enum ComplexTypeModel {
         open_content: Option<OpenContent>,
         #[xvalue(default)]
         type_def_particle: Option<TypeDefParticle>,
-        #[xvalue(default)]
-        attributes: Vec<AttributeDeclaration>,
-        // #[xvalue(default)]
-        // attr_decls: AttrDecls,
+        attr_decls: AttrDecls,
         // #[xvalue(default)]
         // assertions: Assertions,
     },
@@ -968,32 +965,21 @@ pub struct AttributeGroupType {
     pub name: LocalName<'static>,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
-    #[xvalue(default)]
-    pub content: Vec<AttributeGroupTypeContent>,
+    pub attr_decls: AttrDecls,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub enum AttributeGroupTypeContent {
-    Attribute(Box<LocalAttribute>),
-    AttributeGroup(Box<AttributeGroupType>),
-    AnyAttribute(Box<AnyAttribute>),
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Builder)]
+pub struct AttrDecls {
+    pub declarations: Vec<AttributeDeclaration>,
+    pub any: Option<AnyAttribute>,
 }
 
-impl From<LocalAttribute> for AttributeGroupTypeContent {
-    fn from(value: LocalAttribute) -> Self {
-        Self::Attribute(Box::new(value))
-    }
-}
-
-impl From<AttributeGroupType> for AttributeGroupTypeContent {
-    fn from(value: AttributeGroupType) -> Self {
-        Self::AttributeGroup(Box::new(value))
-    }
-}
-
-impl From<AnyAttribute> for AttributeGroupTypeContent {
-    fn from(value: AnyAttribute) -> Self {
-        Self::AnyAttribute(Box::new(value))
+impl Default for AttrDecls {
+    fn default() -> Self {
+        Self {
+            declarations: Vec::new(),
+            any: None,
+        }
     }
 }
 
@@ -1005,8 +991,8 @@ impl From<AnyAttribute> for AttributeGroupTypeContent {
 pub struct AttributeGroupRefType {
     #[xattribute(deferred = true, default)]
     pub id: Option<Id>,
-    #[xattribute(name = "ref", optional)]
-    pub ref_: Option<QName>,
+    #[xattribute(name = "ref")]
+    pub ref_: QName,
     #[xvalue(default)]
     pub annotation: Option<Annotation>,
 }
@@ -2228,11 +2214,7 @@ pub struct ComplexRestrictionType {
     #[xvalue(default)]
     pub particle: Option<TypeDefParticle>,
     #[builder(default)]
-    #[xvalue(default)]
-    pub attributes: Vec<AttributeDeclaration>,
-    #[builder(default)]
-    #[xvalue(default)]
-    pub any_attributes: Vec<AnyAttribute>,
+    pub attr_decls: AttrDecls,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -2295,7 +2277,7 @@ pub struct ExtensionType {
     #[xvalue(default)]
     pub particle: Option<TypeDefParticle>,
     #[builder(default)]
-    pub attributes: Vec<AttributeDeclaration>,
+    pub attr_decls: AttrDecls,
     // #[xvalue(default)]
     // pub attr_decls: Option<AttrDeclsType>,
     // #[xvalue(default)]

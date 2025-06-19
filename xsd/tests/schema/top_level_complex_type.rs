@@ -564,70 +564,78 @@ fn xsd_all() -> xs::TopLevelComplexType {
                                 .build()
                                 .into(),
                         )
-                        .attributes(vec![
-                            xs::LocalAttribute::builder()
-                                .name(LocalName::new_dangerous("minOccurs"))
-                                .default("1".to_string())
-                                .use_(xs::AttributeUseType::Optional)
-                                .simple_type(
-                                    xs::LocalSimpleType::builder()
-                                        .content(
-                                            xs::SimpleRestrictionType::builder()
-                                                .base(xs::QName(ExpandedName::new(
-                                                    LocalName::new_dangerous("nonNegativeInteger"),
-                                                    Some(XmlNamespace::XS),
-                                                )))
-                                                .facets(vec![
-                                                    xs::Enumeration::builder()
-                                                        .value("0".to_string())
+                        .attr_decls(
+                            xs::AttrDecls::builder()
+                                .declarations(vec![
+                                    xs::LocalAttribute::builder()
+                                        .name(LocalName::new_dangerous("minOccurs"))
+                                        .default("1".to_string())
+                                        .use_(xs::AttributeUseType::Optional)
+                                        .simple_type(
+                                            xs::LocalSimpleType::builder()
+                                                .content(
+                                                    xs::SimpleRestrictionType::builder()
+                                                        .base(xs::QName(ExpandedName::new(
+                                                            LocalName::new_dangerous(
+                                                                "nonNegativeInteger",
+                                                            ),
+                                                            Some(XmlNamespace::XS),
+                                                        )))
+                                                        .facets(vec![
+                                                            xs::Enumeration::builder()
+                                                                .value("0".to_string())
+                                                                .build()
+                                                                .into(),
+                                                            xs::Enumeration::builder()
+                                                                .value("1".to_string())
+                                                                .build()
+                                                                .into(),
+                                                        ])
                                                         .build()
                                                         .into(),
-                                                    xs::Enumeration::builder()
-                                                        .value("1".to_string())
-                                                        .build()
-                                                        .into(),
-                                                ])
-                                                .build()
-                                                .into(),
+                                                )
+                                                .build(),
                                         )
+                                        .build()
+                                        .into(),
+                                    xs::LocalAttribute::builder()
+                                        .name(LocalName::new_dangerous("maxOccurs"))
+                                        .default("1".to_string())
+                                        .use_(xs::AttributeUseType::Optional)
+                                        .simple_type(
+                                            xs::LocalSimpleType::builder()
+                                                .content(
+                                                    xs::SimpleRestrictionType::builder()
+                                                        .base(xs::QName(ExpandedName::new(
+                                                            LocalName::new_dangerous("allNNI"),
+                                                            Some(XmlNamespace::XS),
+                                                        )))
+                                                        .facets(vec![
+                                                            xs::Enumeration::builder()
+                                                                .value("0".to_string())
+                                                                .build()
+                                                                .into(),
+                                                            xs::Enumeration::builder()
+                                                                .value("1".to_string())
+                                                                .build()
+                                                                .into(),
+                                                        ])
+                                                        .build()
+                                                        .into(),
+                                                )
+                                                .build(),
+                                        )
+                                        .build()
+                                        .into(),
+                                ])
+                                .any(
+                                    xs::AnyAttribute::builder()
+                                        .namespace(xs::NamespaceListType::Other)
+                                        .process_contents(xs::ProcessContentsType::Lax)
                                         .build(),
                                 )
-                                .build()
-                                .into(),
-                            xs::LocalAttribute::builder()
-                                .name(LocalName::new_dangerous("maxOccurs"))
-                                .default("1".to_string())
-                                .use_(xs::AttributeUseType::Optional)
-                                .simple_type(
-                                    xs::LocalSimpleType::builder()
-                                        .content(
-                                            xs::SimpleRestrictionType::builder()
-                                                .base(xs::QName(ExpandedName::new(
-                                                    LocalName::new_dangerous("allNNI"),
-                                                    Some(XmlNamespace::XS),
-                                                )))
-                                                .facets(vec![
-                                                    xs::Enumeration::builder()
-                                                        .value("0".to_string())
-                                                        .build()
-                                                        .into(),
-                                                    xs::Enumeration::builder()
-                                                        .value("1".to_string())
-                                                        .build()
-                                                        .into(),
-                                                ])
-                                                .build()
-                                                .into(),
-                                        )
-                                        .build(),
-                                )
-                                .build()
-                                .into(),
-                        ])
-                        .any_attributes(vec![xs::AnyAttribute::builder()
-                            .namespace(xs::NamespaceListType::Other)
-                            .process_contents(xs::ProcessContentsType::Lax)
-                            .build()])
+                                .build(),
+                        )
                         .build()
                         .into(),
                 )
@@ -749,7 +757,7 @@ fn xsd_any_type() -> xs::TopLevelComplexType {
                     .build()
                     .into(),
             ),
-            attributes: Vec::new(),
+            attr_decls: xs::AttrDecls::default(),
         })
         .build()
 }

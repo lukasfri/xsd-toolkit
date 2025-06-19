@@ -23,7 +23,7 @@ impl ItemOrder {
 
     pub fn to_item_value(&self) -> syn::LitStr {
         match self {
-            ItemOrder::Strict => LitStr::new("loose", Span::call_site()),
+            ItemOrder::Strict => LitStr::new("strict", Span::call_site()),
             ItemOrder::None => LitStr::new("none", Span::call_site()),
         }
     }

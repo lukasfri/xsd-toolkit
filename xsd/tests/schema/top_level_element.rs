@@ -111,15 +111,19 @@ fn xsd_any_attribute() -> xs::TopLevelElement {
                                     LocalName::new_dangerous("wildcard"),
                                     Some(XmlNamespace::XS),
                                 )))
-                                .attributes(vec![xs::LocalAttribute::builder()
-                                    .name(LocalName::new_dangerous("notQName"))
-                                    .type_(xs::QName(ExpandedName::new(
-                                        LocalName::new_dangerous("qnameListA"),
-                                        Some(XmlNamespace::XS),
-                                    )))
-                                    .use_(xs::AttributeUseType::Optional)
-                                    .build()
-                                    .into()])
+                                .attr_decls(
+                                    xs::AttrDecls::builder()
+                                        .declarations(vec![xs::LocalAttribute::builder()
+                                            .name(LocalName::new_dangerous("notQName"))
+                                            .type_(xs::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("qnameListA"),
+                                                Some(XmlNamespace::XS),
+                                            )))
+                                            .use_(xs::AttributeUseType::Optional)
+                                            .build()
+                                            .into()])
+                                        .build(),
+                                )
                                 .build()
                                 .into(),
                         )
@@ -752,19 +756,25 @@ fn xsd_total_digits() -> xs::TopLevelElement {
                                             .build()
                                             .into(),
                                     )
-                                    .attributes(vec![xs::LocalAttribute::builder()
-                                        .name(LocalName::new_dangerous("value"))
-                                        .type_(xs::QName(ExpandedName::new(
-                                            LocalName::new_dangerous("positiveInteger"),
-                                            Some(XmlNamespace::XS),
-                                        )))
-                                        .use_(xs::AttributeUseType::Required)
-                                        .build()
-                                        .into()])
-                                    .any_attributes(vec![xs::AnyAttribute::builder()
-                                        .namespace(xs::NamespaceListType::Other)
-                                        .process_contents(xs::ProcessContentsType::Lax)
-                                        .build()])
+                                    .attr_decls(
+                                        xs::AttrDecls::builder()
+                                            .declarations(vec![xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("value"))
+                                                .type_(xs::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("positiveInteger"),
+                                                    Some(XmlNamespace::XS),
+                                                )))
+                                                .use_(xs::AttributeUseType::Required)
+                                                .build()
+                                                .into()])
+                                            .any(
+                                                xs::AnyAttribute::builder()
+                                                    .namespace(xs::NamespaceListType::Other)
+                                                    .process_contents(xs::ProcessContentsType::Lax)
+                                                    .build(),
+                                            )
+                                            .build(),
+                                    )
                                     .build()
                                     .into(),
                             )
@@ -900,42 +910,56 @@ fn xsd_white_space() -> xs::TopLevelElement {
                                             .build()
                                             .into(),
                                     )
-                                    .attributes(vec![xs::LocalAttribute::builder()
-                                        .name(LocalName::new_dangerous("value"))
-                                        .use_(xs::AttributeUseType::Required)
-                                        .simple_type(
-                                            xs::LocalSimpleType::builder()
-                                                .content(
-                                                    xs::SimpleRestrictionType::builder()
-                                                        .base(xs::QName(ExpandedName::new(
-                                                            LocalName::new_dangerous("NMTOKEN"),
-                                                            Some(XmlNamespace::XS),
-                                                        )))
-                                                        .facets(vec![
-                                                            xs::Enumeration::builder()
-                                                                .value("preserve".to_string())
+                                    .attr_decls(
+                                        xs::AttrDecls::builder()
+                                            .declarations(vec![xs::LocalAttribute::builder()
+                                                .name(LocalName::new_dangerous("value"))
+                                                .use_(xs::AttributeUseType::Required)
+                                                .simple_type(
+                                                    xs::LocalSimpleType::builder()
+                                                        .content(
+                                                            xs::SimpleRestrictionType::builder()
+                                                                .base(xs::QName(ExpandedName::new(
+                                                                    LocalName::new_dangerous(
+                                                                        "NMTOKEN",
+                                                                    ),
+                                                                    Some(XmlNamespace::XS),
+                                                                )))
+                                                                .facets(vec![
+                                                                    xs::Enumeration::builder()
+                                                                        .value(
+                                                                            "preserve".to_string(),
+                                                                        )
+                                                                        .build()
+                                                                        .into(),
+                                                                    xs::Enumeration::builder()
+                                                                        .value(
+                                                                            "replace".to_string(),
+                                                                        )
+                                                                        .build()
+                                                                        .into(),
+                                                                    xs::Enumeration::builder()
+                                                                        .value(
+                                                                            "collapse".to_string(),
+                                                                        )
+                                                                        .build()
+                                                                        .into(),
+                                                                ])
                                                                 .build()
                                                                 .into(),
-                                                            xs::Enumeration::builder()
-                                                                .value("replace".to_string())
-                                                                .build()
-                                                                .into(),
-                                                            xs::Enumeration::builder()
-                                                                .value("collapse".to_string())
-                                                                .build()
-                                                                .into(),
-                                                        ])
-                                                        .build()
-                                                        .into(),
+                                                        )
+                                                        .build(),
                                                 )
-                                                .build(),
-                                        )
-                                        .build()
-                                        .into()])
-                                    .any_attributes(vec![xs::AnyAttribute::builder()
-                                        .namespace(xs::NamespaceListType::Other)
-                                        .process_contents(xs::ProcessContentsType::Lax)
-                                        .build()])
+                                                .build()
+                                                .into()])
+                                            .any(
+                                                xs::AnyAttribute::builder()
+                                                    .namespace(xs::NamespaceListType::Other)
+                                                    .process_contents(xs::ProcessContentsType::Lax)
+                                                    .build(),
+                                            )
+                                            .build(),
+                                    )
                                     .build()
                                     .into(),
                             )

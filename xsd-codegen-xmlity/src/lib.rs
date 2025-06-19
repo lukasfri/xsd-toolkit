@@ -4,7 +4,7 @@ pub mod misc;
 mod simple;
 pub mod templates;
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, convert::Infallible};
 
 use complex::{Scope, ToTypeTemplate, ToTypeTemplateData};
 use inflector::Inflector;
@@ -13,13 +13,86 @@ use quote::format_ident;
 use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_type_compiler::{
-    complex::{ComplexTypeFragmentCompiler, FragmentAccess},
+    complex::{
+        transformers::{
+            ExpandAttributeGroups, ExpandExtensionFragments, ExpandRestrictionFragments,
+            FlattenNestedAll, FlattenNestedChoices, FlattenNestedSequences,
+            RemoveProhibitedAttributes,
+        },
+        ComplexTypeFragmentCompiler, FragmentAccess,
+    },
+    transformers::{TransformChange, XmlnsContextTransformer},
     CompiledNamespace, TopLevelType,
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {}
 pub type Result<T> = std::result::Result<T, Error>;
+
+#[non_exhaustive]
+/// This transformer is used to transform the XSD into a form that is required for the codegen to work.
+pub struct XmlityCodegenTransformer {}
+
+impl XmlityCodegenTransformer {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl XmlnsContextTransformer for XmlityCodegenTransformer {
+    type Error = Infallible;
+    fn transform(
+        self,
+        mut context: xsd_type_compiler::transformers::TransformerContext<'_>,
+    ) -> std::result::Result<TransformChange, Self::Error> {
+        let namespace: XmlNamespace<'static> = context.namespace.clone();
+
+        for i in 0..100 {
+            let mut total_change = TransformChange::Unchanged;
+
+            total_change |= context
+                .context_mut()
+                .transform(&namespace, FlattenNestedSequences::new())
+                .unwrap();
+
+            total_change |= context
+                .context_mut()
+                .transform(&namespace, FlattenNestedChoices::new())
+                .unwrap();
+
+            total_change |= context
+                .context_mut()
+                .transform(&namespace, FlattenNestedAll::new())
+                .unwrap();
+
+            total_change |= context
+                .context_mut()
+                .transform(&namespace, ExpandAttributeGroups::new())
+                .unwrap();
+
+            total_change |= context
+                .context_mut()
+                .transform(&namespace, ExpandExtensionFragments::new())
+                .unwrap();
+
+            total_change |= context
+                .context_mut()
+                .transform(&namespace, ExpandRestrictionFragments::new())
+                .unwrap();
+
+            total_change |= context
+                .context_mut()
+                .transform(&namespace, RemoveProhibitedAttributes::new())
+                .unwrap();
+
+            if total_change == TransformChange::Unchanged {
+                return Ok(TransformChange::from(i > 0));
+            }
+        }
+
+        panic!("Maximum number of transformation loops reached")
+    }
+}
 
 pub struct Generator<'a> {
     pub context: &'a xsd_type_compiler::XmlnsContext,
@@ -455,7 +528,6 @@ impl<'a> Generator<'a> {
         let attributes_items = compiled_namespace
             .top_level_attributes
             .keys()
-            .into_iter()
             .map(|local_name| {
                 let expanded_name =
                     ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
@@ -489,7 +561,6 @@ impl<'a> Generator<'a> {
         let group_items = compiled_namespace
             .top_level_groups
             .keys()
-            .into_iter()
             .map(|local_name| {
                 let expanded_name =
                     ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));

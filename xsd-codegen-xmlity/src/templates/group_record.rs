@@ -1,7 +1,7 @@
 use syn::{parse_quote, Field, Ident, ItemStruct};
 use xmlity::ExpandedName;
 
-use crate::templates::element_record::ElementFieldType;
+use crate::templates::element_record::{AllowUnknown, ElementFieldType};
 
 use super::{
     element_record::{ElementField, ElementRecord},
@@ -143,6 +143,8 @@ impl GroupRecord {
             attribute_order: self.attribute_order,
             children_order: self.children_order,
             fields: self.fields,
+            allow_unknown_attributes: AllowUnknown::Any,
+            allow_unknown_children: AllowUnknown::AtEnd,
         }
     }
 }

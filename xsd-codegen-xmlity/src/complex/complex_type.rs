@@ -13,39 +13,16 @@ use xsd_type_compiler::complex::{self as cx};
 
 use super::{groups::TypeDefParticleTemplate, Context, Scope, ToTypeTemplate, ToTypeTemplateData};
 
-impl ToTypeTemplate for cx::RestrictionFragment {
-    type TypeTemplate = templates::group_record::GroupRecord;
+impl ToTypeTemplate for cx::AttributeDeclarationsFragment {
+    type TypeTemplate = Vec<(syn::Ident, ElementField)>;
 
     fn to_type_template<C: Context, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let mut template = self
-            .content_fragment
-            .map(|a| {
-                context
-                    .sub_context(format_ident!("Content"))
-                    .resolve_fragment(&a, scope)
-                    .map(|a| match a.template {
-                        TypeDefParticleTemplate::Record(item_record) => {
-                            item_record.into_group_record()
-                        }
-                        TypeDefParticleTemplate::Item(item) => GroupRecord::new_single_field(
-                            Some(
-                                a.ident
-                                    .unwrap_or_else(|| format_ident!("particle"))
-                                    .to_field_ident(),
-                            ),
-                            ElementField::Item(item),
-                        ),
-                    })
-            })
-            .transpose()?
-            .unwrap_or_else(|| GroupRecord::new_empty());
-
         let attributes = self
-            .attribute_declarations
+            .declarations
             .iter()
             .enumerate()
             .map(|(i, a)| {
@@ -65,9 +42,49 @@ impl ToTypeTemplate for cx::RestrictionFragment {
 
         let attributes = dedup_field_idents(attributes);
 
+        Ok(ToTypeTemplateData {
+            ident: None,
+            template: attributes,
+        })
+    }
+}
+
+impl ToTypeTemplate for cx::RestrictionFragment {
+    type TypeTemplate = templates::group_record::GroupRecord;
+
+    fn to_type_template<C: Context, S: Scope>(
+        &self,
+        context: &C,
+        scope: &mut S,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let mut template = self
+            .content_fragment
+            .map(|a| {
+                context
+                    // .sub_context(format_ident!("Content"))
+                    .resolve_fragment(&a, scope)
+                    .map(|a| match a.template {
+                        TypeDefParticleTemplate::Record(item_record) => {
+                            item_record.into_group_record()
+                        }
+                        TypeDefParticleTemplate::Item(item) => GroupRecord::new_single_field(
+                            Some(
+                                a.ident
+                                    .unwrap_or_else(|| format_ident!("particle"))
+                                    .to_field_ident(),
+                            ),
+                            ElementField::Item(item),
+                        ),
+                    })
+            })
+            .transpose()?
+            .unwrap_or_else(GroupRecord::new_empty);
+
+        let attributes = context.resolve_fragment_id(&self.attribute_declarations, scope)?;
+
         template
             .fields
-            .prefix_fields(ElementFieldType::Named(attributes));
+            .prefix_fields(ElementFieldType::Named(attributes.template));
 
         template.force_empty_if_empty();
 
@@ -115,7 +132,7 @@ impl ToTypeTemplate for cx::ComplexTypeModelId {
             }
             cx::ComplexTypeModelId::Other {
                 particle,
-                attributes,
+                attr_decls,
             } => {
                 let (ident, mut template) = particle
                     .as_ref()
@@ -130,30 +147,11 @@ impl ToTypeTemplate for cx::ComplexTypeModelId {
                     })
                     .unwrap_or_else(|| Ok((None, GroupRecord::new_empty())))?;
 
-                let attributes = attributes
-                    .iter()
-                    .enumerate()
-                    .map(|(i, a)| {
-                        context
-                            .sub_context(format_ident!("Attribute{i}"))
-                            .resolve_fragment(a, scope)
-                            .map(|a| (i, a))
-                    })
-                    .collect::<Result<Vec<_>>>()?
-                    .into_iter()
-                    .map(|(i, a)| {
-                        (
-                            a.ident
-                                .unwrap_or_else(|| format_ident!("attr_{}", i))
-                                .to_field_ident(),
-                            ElementField::Attribute(a.template),
-                        )
-                    })
-                    .collect();
+                let attributes = context.resolve_fragment_id(&attr_decls, scope)?;
 
                 template
                     .fields
-                    .prefix_fields(ElementFieldType::Named(attributes));
+                    .prefix_fields(ElementFieldType::Named(attributes.template));
 
                 Ok(ToTypeTemplateData { ident, template })
             }
@@ -169,14 +167,13 @@ impl ToTypeTemplate for cx::ComplexTypeRootFragment {
         context: &C,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let mut fragment = context.resolve_fragment(&self.content, scope)?;
+
         let name_ident = self
             .name
             .as_ref()
             .map(|a| a.to_item_ident())
             .unwrap_or_else(|| context.suggested_ident().clone());
-
-        let mut fragment = context.resolve_fragment(&self.content, scope)?;
-
         fragment.ident = Some(name_ident);
 
         Ok(fragment)
@@ -324,20 +321,24 @@ mod tests {
                         xs::ComplexRestrictionType::builder()
                             .base(xs::QName(xsn::ANY_TYPE.clone()))
                             .particle(xs::SequenceType::builder().content(vec![]).build().into())
-                            .attributes(vec![
-                                xs::LocalAttribute::builder()
-                                    .name(LocalName::new_dangerous("a"))
-                                    .type_(xs::QName(xsn::INTEGER.clone()))
-                                    .use_(xs::AttributeUseType::Required)
-                                    .build()
-                                    .into(),
-                                xs::LocalAttribute::builder()
-                                    .name(LocalName::new_dangerous("b"))
-                                    .type_(xs::QName(xsn::STRING.clone()))
-                                    .use_(xs::AttributeUseType::Optional)
-                                    .build()
-                                    .into(),
-                            ])
+                            .attr_decls(
+                                xs::AttrDecls::builder()
+                                    .declarations(vec![
+                                        xs::LocalAttribute::builder()
+                                            .name(LocalName::new_dangerous("a"))
+                                            .type_(xs::QName(xsn::INTEGER.clone()))
+                                            .use_(xs::AttributeUseType::Required)
+                                            .build()
+                                            .into(),
+                                        xs::LocalAttribute::builder()
+                                            .name(LocalName::new_dangerous("b"))
+                                            .type_(xs::QName(xsn::STRING.clone()))
+                                            .use_(xs::AttributeUseType::Optional)
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .build(),
+                            )
                             .build()
                             .into(),
                     )

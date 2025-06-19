@@ -4,7 +4,7 @@ use crate::complex::{
     AllFragment, ChoiceFragment, FragmentIdx, GroupTypeContentId, SequenceFragment,
 };
 
-use crate::transformers::{Context, TransformChange, XmlnsContextTransformer};
+use crate::transformers::{TransformChange, TransformerContext, XmlnsContextTransformer};
 
 #[non_exhaustive]
 pub struct FlattenNestedSequences {}
@@ -15,7 +15,7 @@ impl FlattenNestedSequences {
     }
 
     fn flatten_sequence(
-        ctx: &mut Context,
+        ctx: &mut TransformerContext,
         fragment_idx: &FragmentIdx<SequenceFragment>,
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let SequenceFragment { fragments, .. } = ctx.get_complex_fragment(&fragment_idx).unwrap();
@@ -54,7 +54,7 @@ impl FlattenNestedSequences {
 impl XmlnsContextTransformer for FlattenNestedSequences {
     type Error = ();
 
-    fn transform(self, mut ctx: Context<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(self, mut ctx: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
             .map(|f| Self::flatten_sequence(&mut ctx, &f))
@@ -68,7 +68,7 @@ impl FlattenNestedChoices {
     }
 
     fn flatten_choice(
-        ctx: &mut Context,
+        ctx: &mut TransformerContext,
         fragment_idx: &FragmentIdx<ChoiceFragment>,
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let ChoiceFragment { fragments, .. } = ctx.get_complex_fragment(&fragment_idx).unwrap();
@@ -110,7 +110,7 @@ pub struct FlattenNestedChoices {}
 impl XmlnsContextTransformer for FlattenNestedChoices {
     type Error = ();
 
-    fn transform(self, mut ctx: Context<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(self, mut ctx: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
             .map(|f| Self::flatten_choice(&mut ctx, &f))
@@ -124,7 +124,7 @@ impl FlattenNestedAll {
     }
 
     fn flatten_all(
-        ctx: &mut Context,
+        ctx: &mut TransformerContext,
         fragment_idx: &FragmentIdx<AllFragment>,
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let AllFragment { fragments, .. } = ctx.get_complex_fragment(&fragment_idx).unwrap();
@@ -166,7 +166,7 @@ pub struct FlattenNestedAll {}
 impl XmlnsContextTransformer for FlattenNestedAll {
     type Error = ();
 
-    fn transform(self, mut ctx: Context<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(self, mut ctx: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
             .map(|f| Self::flatten_all(&mut ctx, &f))
@@ -196,22 +196,20 @@ mod tests {
             ExpandedName::new(LocalName::new_dangerous("integer"), XmlNamespace::XS.into()),
         );
 
-        let name = xs::LocalElement::new_ref_typed(
-            LocalName::new_dangerous("name"),
-            ExpandedName::new(LocalName::new_dangerous("string"), XmlNamespace::XS.into()),
-        );
+        let name =
+            xs::LocalElement::new_ref_typed(LocalName::new_dangerous("name"), xsn::STRING.clone());
 
         let child_choice = xs::ChoiceType::builder()
             .max_occurs(MaxOccurs(MaxOccursValue::Unbounded))
             .content(vec![
                 xs::LocalElement::new_ref_typed(
                     LocalName::new_dangerous("size"),
-                    ExpandedName::new(LocalName::new_dangerous("integer"), XmlNamespace::XS.into()),
+                    xsn::INTEGER.clone(),
                 )
                 .into(),
                 xs::LocalElement::new_ref_typed(
                     LocalName::new_dangerous("color"),
-                    ExpandedName::new(LocalName::new_dangerous("string"), XmlNamespace::XS.into()),
+                    xsn::STRING.clone(),
                 )
                 .into(),
             ])
@@ -331,5 +329,105 @@ mod tests {
             .unwrap();
 
         assert_eq!(expected_flattened_shirt_type, actual_flattened_shirt_type);
+    }
+
+    #[test]
+    fn do_not_flatten_sequences_with_occurs() {
+        let test_namespace = XmlNamespace::new_dangerous("http://localhost");
+
+        let number = xs::LocalElement::new_ref_typed(
+            LocalName::new_dangerous("number"),
+            ExpandedName::new(LocalName::new_dangerous("integer"), XmlNamespace::XS.into()),
+        );
+
+        let name =
+            xs::LocalElement::new_ref_typed(LocalName::new_dangerous("name"), xsn::STRING.clone());
+
+        let child_choice = xs::ChoiceType::builder()
+            .max_occurs(MaxOccurs(MaxOccursValue::Unbounded))
+            .content(vec![
+                xs::LocalElement::new_ref_typed(
+                    LocalName::new_dangerous("size"),
+                    xsn::INTEGER.clone(),
+                )
+                .into(),
+                xs::LocalElement::new_ref_typed(
+                    LocalName::new_dangerous("color"),
+                    xsn::STRING.clone(),
+                )
+                .into(),
+            ])
+            .build();
+
+        // ```xml
+        // <xs:complexType name="ShirtType">
+        //   <xs:restriction base="xs:anyType">
+        //     <xs:sequence>
+        //       <xs:sequence maxOccurs="unbounded">
+        //         <xs:element name="number" type="xs:integer"/>
+        //         <xs:element name="name" type="xs:string"/>
+        //       </xs:sequence>
+        //       <xs:choice maxOccurs="unbounded">
+        //         <xs:element name="size" type="xs:integer"/>
+        //         <xs:element name="color" type="xs:string"/>
+        //       </xs:choice>
+        //     </xs:sequence>
+        //   </xs:restriction>
+        // </xs:complexType>
+        // ```
+        let non_flattened_shirt_type = xs::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("ShirtType"))
+            .content(
+                xs::ComplexContent::builder()
+                    .content(
+                        xs::ComplexRestrictionType::builder()
+                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .particle(xs::TypeDefParticle::Sequence(
+                                xs::SequenceType::builder()
+                                    .content(vec![
+                                        xs::SequenceType::builder()
+                                            .content(vec![
+                                                number.clone().into(),
+                                                name.clone().into(),
+                                            ])
+                                            .max_occurs(MaxOccurs(MaxOccursValue::Unbounded))
+                                            .build()
+                                            .into(),
+                                        child_choice.clone().into(),
+                                    ])
+                                    .build(),
+                            ))
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            )
+            .build();
+
+        let mut xmlns_context = XmlnsContext::new();
+
+        let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
+
+        compiled_namespace
+            .import_top_level_complex_type(&non_flattened_shirt_type)
+            .unwrap();
+
+        xmlns_context.add_namespace(compiled_namespace);
+
+        let transform_changed = xmlns_context
+            .transform(&test_namespace, FlattenNestedSequences::new())
+            .unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Unchanged);
+
+        let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
+
+        let actual_flattened_shirt_type = compiled_namespace
+            .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(non_flattened_shirt_type, actual_flattened_shirt_type);
     }
 }

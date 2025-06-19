@@ -2,7 +2,7 @@ use crate::{
     misc::TypeReference,
     templates::{
         self,
-        element_record::{ElementFieldType, ElementRecord},
+        element_record::{AllowUnknown, ElementFieldType, ElementRecord},
         group_record::GroupRecord,
         value_record::ItemFieldItem,
         ItemOrder,
@@ -188,6 +188,8 @@ impl ToTypeTemplate for cx::TopLevelElementFragment {
                     attribute_order: ItemOrder::None,
                     children_order: ItemOrder::None,
                     fields: ElementFieldType::Unnamed(vec![field]),
+                    allow_unknown_attributes: AllowUnknown::Any,
+                    allow_unknown_children: AllowUnknown::AtEnd,
                 }
             }
             Some(xsd_type_compiler::NamedOrAnonymous::Anonymous(anonymous)) => {
@@ -371,20 +373,24 @@ mod tests {
                                                 .build()
                                                 .into(),
                                         )
-                                        .attributes(vec![
-                                            xs::LocalAttribute::builder()
-                                                .name(LocalName::new_dangerous("a"))
-                                                .type_(xs::QName(xsn::INTEGER.clone()))
-                                                .use_(xs::AttributeUseType::Required)
-                                                .build()
-                                                .into(),
-                                            xs::LocalAttribute::builder()
-                                                .name(LocalName::new_dangerous("b"))
-                                                .type_(xs::QName(xsn::STRING.clone()))
-                                                .use_(xs::AttributeUseType::Required)
-                                                .build()
-                                                .into(),
-                                        ])
+                                        .attr_decls(
+                                            xs::AttrDecls::builder()
+                                                .declarations(vec![
+                                                    xs::LocalAttribute::builder()
+                                                        .name(LocalName::new_dangerous("a"))
+                                                        .type_(xs::QName(xsn::INTEGER.clone()))
+                                                        .use_(xs::AttributeUseType::Required)
+                                                        .build()
+                                                        .into(),
+                                                    xs::LocalAttribute::builder()
+                                                        .name(LocalName::new_dangerous("b"))
+                                                        .type_(xs::QName(xsn::STRING.clone()))
+                                                        .use_(xs::AttributeUseType::Required)
+                                                        .build()
+                                                        .into(),
+                                                ])
+                                                .build(),
+                                        )
                                         .build()
                                         .into(),
                                 )
@@ -561,20 +567,24 @@ mod tests {
                                             .build()
                                             .into(),
                                     )
-                                    .attributes(vec![
-                                        xs::LocalAttribute::builder()
-                                            .name(LocalName::new_dangerous("c"))
-                                            .type_(xs::QName(xsn::INTEGER.clone()))
-                                            .use_(xs::AttributeUseType::Required)
-                                            .build()
-                                            .into(),
-                                        xs::LocalAttribute::builder()
-                                            .name(LocalName::new_dangerous("d"))
-                                            .type_(xs::QName(xsn::STRING.clone()))
-                                            .use_(xs::AttributeUseType::Required)
-                                            .build()
-                                            .into(),
-                                    ])
+                                    .attr_decls(
+                                        xs::AttrDecls::builder()
+                                            .declarations(vec![
+                                                xs::LocalAttribute::builder()
+                                                    .name(LocalName::new_dangerous("c"))
+                                                    .type_(xs::QName(xsn::INTEGER.clone()))
+                                                    .use_(xs::AttributeUseType::Required)
+                                                    .build()
+                                                    .into(),
+                                                xs::LocalAttribute::builder()
+                                                    .name(LocalName::new_dangerous("d"))
+                                                    .type_(xs::QName(xsn::STRING.clone()))
+                                                    .use_(xs::AttributeUseType::Required)
+                                                    .build()
+                                                    .into(),
+                                            ])
+                                            .build(),
+                                    )
                                     .build()
                                     .into(),
                             )

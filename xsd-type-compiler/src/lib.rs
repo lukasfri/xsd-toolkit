@@ -31,7 +31,7 @@ impl XmlnsContext {
         namespace: &XmlNamespace<'static>,
         transformer: T,
     ) -> Result<TransformChange, T::Error> {
-        transformer.transform(transformers::Context {
+        transformer.transform(transformers::TransformerContext {
             namespace,
             xmlns_context: self,
         })
@@ -52,6 +52,7 @@ pub struct CompiledNamespace {
     pub top_level_elements: BTreeMap<LocalName<'static>, TopLevelElement>,
     pub top_level_attributes: BTreeMap<LocalName<'static>, TopLevelAttribute>,
     pub top_level_groups: BTreeMap<LocalName<'static>, TopLevelGroup>,
+    pub top_level_attribute_groups: BTreeMap<LocalName<'static>, TopLevelAttributeGroup>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -91,6 +92,7 @@ impl CompiledNamespace {
             top_level_elements: BTreeMap::new(),
             top_level_attributes: BTreeMap::new(),
             top_level_groups: BTreeMap::new(),
+            top_level_attribute_groups: BTreeMap::new(),
         }
     }
 
@@ -195,7 +197,13 @@ impl CompiledNamespace {
     ) -> Result<ExpandedName<'_>, ()> {
         let name = type_.name.clone();
 
-        //TODO
+        if self.top_level_groups.contains_key(&name) {
+            return Err(());
+        }
+
+        let root_fragment = type_.to_complex_fragments(&mut self.complex_type);
+        let type_ = TopLevelAttributeGroup { root_fragment };
+        self.top_level_attribute_groups.insert(name.clone(), type_);
 
         let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
 
@@ -306,4 +314,9 @@ pub struct TopLevelAttribute {
 #[derive(Debug)]
 pub struct TopLevelGroup {
     pub root_fragment: complex::FragmentIdx<complex::TopLevelGroupFragment>,
+}
+
+#[derive(Debug)]
+pub struct TopLevelAttributeGroup {
+    pub root_fragment: complex::FragmentIdx<complex::TopLevelAttributeGroupFragment>,
 }

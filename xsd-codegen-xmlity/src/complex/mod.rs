@@ -39,7 +39,7 @@ pub trait Context {
 
     fn namespace(&self) -> &XmlNamespace<'_>;
 
-    fn sub_context<'i>(&self, suggested_ident: Ident) -> Self::SubContext;
+    fn sub_context(&self, suggested_ident: Ident) -> Self::SubContext;
 
     fn suggested_ident(&self) -> &Ident;
 

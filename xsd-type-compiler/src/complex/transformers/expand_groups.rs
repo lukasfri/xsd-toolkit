@@ -6,7 +6,7 @@ use crate::{
         ComplexTypeRootFragment, ExtensionFragment, FragmentAccess, FragmentIdx,
         GroupTypeContentId, RestrictionFragment, SequenceFragment, TypeDefParticleId,
     },
-    transformers::{Context, TransformChange, XmlnsContextTransformer},
+    transformers::{TransformChange, TransformerContext, XmlnsContextTransformer},
 };
 
 trait HasGroupContent {
@@ -95,21 +95,21 @@ impl ExpandGroups {
     }
 
     pub fn expand_group_content<'a>(
-        _context: &mut Context<'_>,
+        _context: &mut TransformerContext<'_>,
         _group_contents: GroupTypeContentId,
     ) -> GroupTypeContentId {
         todo!()
     }
 
     pub fn expand_type_def_particle<'a>(
-        _context: &mut Context<'_>,
+        _context: &mut TransformerContext<'_>,
         _group_contents: TypeDefParticleId,
     ) -> TypeDefParticleId {
         todo!()
     }
 
     fn expand_fragment_with_group_content<F: HasGroupContent>(
-        context: &mut Context<'_>,
+        context: &mut TransformerContext<'_>,
         fragment_id: &FragmentIdx<F>,
     ) -> Result<TransformChange, ()>
     where
@@ -140,7 +140,7 @@ impl ExpandGroups {
     }
 
     fn expand_fragments_group_content<F: HasGroupContent + 'static>(
-        ctx: &mut Context<'_>,
+        ctx: &mut TransformerContext<'_>,
     ) -> Result<TransformChange, ()>
     where
         ComplexTypeFragmentCompiler: FragmentAccess<F>,
@@ -152,7 +152,7 @@ impl ExpandGroups {
     }
 
     fn expand_fragment_with_type_def_particle<F: HasTypeDefParticle>(
-        context: &mut Context<'_>,
+        context: &mut TransformerContext<'_>,
         fragment_id: &FragmentIdx<F>,
     ) -> Result<TransformChange, ()>
     where
@@ -176,14 +176,14 @@ impl ExpandGroups {
     }
 
     fn expand_fragments_type_def_particle<F: HasTypeDefParticle + 'static>(
-        ctx: &mut Context<'_>,
+        ctx: &mut TransformerContext<'_>,
     ) -> Result<TransformChange, ()>
     where
         ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         ctx.iter_complex_fragment_ids()
-            .into_iter()
-            .map(|f| Self::expand_fragment_with_type_def_particle(ctx, &f))
+            .iter()
+            .map(|f| Self::expand_fragment_with_type_def_particle(ctx, f))
             .collect()
     }
 }
@@ -191,7 +191,7 @@ impl ExpandGroups {
 impl XmlnsContextTransformer for ExpandGroups {
     type Error = ();
 
-    fn transform(self, mut ctx: Context<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(self, mut ctx: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
         let mut changed = TransformChange::default();
 
         changed |= Self::expand_fragments_group_content::<AllFragment>(&mut ctx)?;

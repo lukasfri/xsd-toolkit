@@ -2,9 +2,8 @@ use std::collections::BTreeMap;
 use std::collections::VecDeque;
 use std::ops::Deref;
 
-use xmlity::ExpandedName;
-
 use crate::complex::AttributeDeclarationId;
+use crate::complex::AttributeDeclarationsFragment;
 use crate::complex::ComplexContentChildId;
 use crate::complex::ComplexTypeModelId;
 use crate::complex::ComplexTypeRootFragment;
@@ -12,10 +11,11 @@ use crate::complex::FragmentIdx;
 use crate::complex::LocalAttributeFragment;
 use crate::complex::LocalAttributeFragmentTypeMode;
 use crate::complex::RestrictionFragment;
-use crate::transformers::Context;
+use crate::transformers::TransformerContext;
 use crate::transformers::TransformChange;
 use crate::transformers::XmlnsContextTransformer;
 use crate::TopLevelType;
+use xmlity::ExpandedName;
 use xsd::schema_names as xsn;
 
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
@@ -28,7 +28,7 @@ impl ExpandRestrictionFragments {
     }
 
     fn restrict_attribute(
-        ctx: &mut Context<'_>,
+        ctx: &mut TransformerContext<'_>,
         attribute: &FragmentIdx<LocalAttributeFragment>,
         base_attribute: &FragmentIdx<LocalAttributeFragment>,
     ) -> Result<(), ()> {
@@ -55,12 +55,12 @@ impl ExpandRestrictionFragments {
     }
 
     fn expand_restricted_attributes<'a>(
-        ctx: &mut Context<'_>,
-        child_attributes: impl Iterator<Item = &'a AttributeDeclarationId> + Clone,
-        base_attributes: impl Iterator<Item = &'a AttributeDeclarationId> + Clone,
-    ) -> Result<VecDeque<AttributeDeclarationId>, ()> {
+        ctx: &mut TransformerContext<'_>,
+        child_attributes: FragmentIdx<AttributeDeclarationsFragment>,
+        base_attributes: FragmentIdx<AttributeDeclarationsFragment>,
+    ) -> Result<FragmentIdx<AttributeDeclarationsFragment>, ()> {
         fn resolve_attr_name(
-            ctx: &Context,
+            ctx: &TransformerContext,
             a: &FragmentIdx<LocalAttributeFragment>,
         ) -> ExpandedName<'static> {
             let fragment = ctx.get_complex_fragment(a).unwrap();
@@ -72,15 +72,20 @@ impl ExpandRestrictionFragments {
             }
         }
 
-        let resolved_base_attributes = base_attributes
-            .clone()
+        let base_attribute_fragment = ctx.get_complex_fragment(&base_attributes).unwrap().clone();
+        let child_attribute_fragment = ctx.get_complex_fragment(&child_attributes).unwrap().clone();
+
+        let resolved_base_attributes = base_attribute_fragment
+            .declarations
+            .iter()
             .map(|a| match a {
                 AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(&ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
             .collect::<BTreeMap<_, _>>();
-        let resolved_child_attributes = child_attributes
-            .clone()
+        let resolved_child_attributes = child_attribute_fragment
+            .declarations
+            .iter()
             .map(|a| match a {
                 AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(&ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
@@ -89,7 +94,7 @@ impl ExpandRestrictionFragments {
 
         let mut new_attribute_declarations = VecDeque::new();
 
-        for base_attribute in base_attributes.clone() {
+        for base_attribute in base_attribute_fragment.declarations.iter() {
             let AttributeDeclarationId::Attribute(base_attribute) = base_attribute else {
                 todo!()
             };
@@ -112,7 +117,7 @@ impl ExpandRestrictionFragments {
         }
 
         // Now we iterate through children attributes and only add those that have not been added yet because they were in the base.
-        for child_attribute in child_attributes.clone() {
+        for child_attribute in child_attribute_fragment.declarations.iter() {
             let AttributeDeclarationId::Attribute(child_attribute) = child_attribute else {
                 todo!()
             };
@@ -130,11 +135,14 @@ impl ExpandRestrictionFragments {
                 .push_back(AttributeDeclarationId::Attribute(*child_attribute));
         }
 
-        Ok(new_attribute_declarations)
+        let child_attribute_fragment = ctx.get_complex_fragment_mut(&child_attributes).unwrap();
+        child_attribute_fragment.declarations = new_attribute_declarations;
+
+        Ok(child_attributes)
     }
 
     fn expand_restriction(
-        ctx: &mut Context<'_>,
+        ctx: &mut TransformerContext<'_>,
         child_fragment_idx: &FragmentIdx<RestrictionFragment>,
     ) -> Result<TransformChange, ()> {
         let child_fragment = ctx.get_complex_fragment(&child_fragment_idx).unwrap();
@@ -172,25 +180,21 @@ impl ExpandRestrictionFragments {
             todo!("Error - cannot expand complex content of extension type.")
         };
 
-        let base_restriction = ctx
+        let base = ctx
             .get_complex_fragment(&base_restriction_id)
             .unwrap()
             .clone();
 
-        let child_restriction = ctx.get_complex_fragment(child_fragment_idx).unwrap();
-
-        let base_attributes = base_restriction.attribute_declarations.clone();
-
-        let child_attributes = child_restriction.attribute_declarations.clone();
+        let child = ctx.get_complex_fragment(child_fragment_idx).unwrap();
 
         let new_attribute_declarations = Self::expand_restricted_attributes(
             ctx,
-            child_attributes.iter(),
-            base_attributes.iter(),
+            child.attribute_declarations,
+            base.attribute_declarations,
         )?;
 
         let child_restriction = ctx.get_complex_fragment_mut(child_fragment_idx).unwrap();
-        child_restriction.base = base_restriction.base.clone();
+        child_restriction.base = base.base.clone();
         child_restriction.attribute_declarations = new_attribute_declarations;
 
         Ok(TransformChange::Changed)
@@ -200,7 +204,7 @@ impl ExpandRestrictionFragments {
 impl XmlnsContextTransformer for ExpandRestrictionFragments {
     type Error = ();
 
-    fn transform(self, mut ctx: Context<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(self, mut ctx: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
             .map(|f| Self::expand_restriction(&mut ctx, &f))
@@ -412,20 +416,24 @@ mod tests {
                     .content(
                         xs::ComplexRestrictionType::builder()
                             .base(xs::QName(xsn::ANY_TYPE.clone()))
-                            .attributes(vec![
-                                xs::LocalAttribute::builder()
-                                    .name(LocalName::new_dangerous("number"))
-                                    .type_(xs::QName(xsn::INTEGER.clone()))
-                                    .use_(xs::AttributeUseType::Optional)
-                                    .build()
-                                    .into(),
-                                xs::LocalAttribute::builder()
-                                    .name(LocalName::new_dangerous("name"))
-                                    .type_(xs::QName(xsn::STRING.clone()))
-                                    .use_(xs::AttributeUseType::Required)
-                                    .build()
-                                    .into(),
-                            ])
+                            .attr_decls(
+                                xs::AttrDecls::builder()
+                                    .declarations(vec![
+                                        xs::LocalAttribute::builder()
+                                            .name(LocalName::new_dangerous("number"))
+                                            .type_(xs::QName(xsn::INTEGER.clone()))
+                                            .use_(xs::AttributeUseType::Optional)
+                                            .build()
+                                            .into(),
+                                        xs::LocalAttribute::builder()
+                                            .name(LocalName::new_dangerous("name"))
+                                            .type_(xs::QName(xsn::STRING.clone()))
+                                            .use_(xs::AttributeUseType::Required)
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .build(),
+                            )
                             .build()
                             .into(),
                     )
@@ -453,12 +461,16 @@ mod tests {
                                 LocalName::new_dangerous("ProductType"),
                                 Some(test_namespace.clone()),
                             )))
-                            .attributes(vec![xs::LocalAttribute::builder()
-                                .name(LocalName::new_dangerous("number"))
-                                .type_(xs::QName(xsn::INTEGER.clone()))
-                                .use_(xs::AttributeUseType::Required)
-                                .build()
-                                .into()])
+                            .attr_decls(
+                                xs::AttrDecls::builder()
+                                    .declarations(vec![xs::LocalAttribute::builder()
+                                        .name(LocalName::new_dangerous("number"))
+                                        .type_(xs::QName(xsn::INTEGER.clone()))
+                                        .use_(xs::AttributeUseType::Required)
+                                        .build()
+                                        .into()])
+                                    .build(),
+                            )
                             .build()
                             .into(),
                     )
@@ -484,20 +496,24 @@ mod tests {
                     .content(
                         xs::ComplexRestrictionType::builder()
                             .base(xs::QName(xsn::ANY_TYPE.clone()))
-                            .attributes(vec![
-                                xs::LocalAttribute::builder()
-                                    .name(LocalName::new_dangerous("number"))
-                                    .type_(xs::QName(xsn::INTEGER.clone()))
-                                    .use_(xs::AttributeUseType::Required)
-                                    .build()
-                                    .into(),
-                                xs::LocalAttribute::builder()
-                                    .name(LocalName::new_dangerous("name"))
-                                    .type_(xs::QName(xsn::STRING.clone()))
-                                    .use_(xs::AttributeUseType::Required)
-                                    .build()
-                                    .into(),
-                            ])
+                            .attr_decls(
+                                xs::AttrDecls::builder()
+                                    .declarations(vec![
+                                        xs::LocalAttribute::builder()
+                                            .name(LocalName::new_dangerous("number"))
+                                            .type_(xs::QName(xsn::INTEGER.clone()))
+                                            .use_(xs::AttributeUseType::Required)
+                                            .build()
+                                            .into(),
+                                        xs::LocalAttribute::builder()
+                                            .name(LocalName::new_dangerous("name"))
+                                            .type_(xs::QName(xsn::STRING.clone()))
+                                            .use_(xs::AttributeUseType::Required)
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .build(),
+                            )
                             .build()
                             .into(),
                     )

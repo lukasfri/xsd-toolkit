@@ -84,20 +84,24 @@ fn top_level_complex_type_attributes_test() {
                 .content(
                     xs::ComplexRestrictionType::builder()
                         .base(xs::QName(xsn::ANY_TYPE.clone()))
-                        .attributes(vec![
-                            xs::LocalAttribute::builder()
-                                .name(LocalName::new_dangerous("number"))
-                                .type_(xs::QName(xsn::INTEGER.clone()))
-                                .use_(xs::AttributeUseType::Optional)
-                                .build()
-                                .into(),
-                            xs::LocalAttribute::builder()
-                                .name(LocalName::new_dangerous("name"))
-                                .type_(xs::QName(xsn::STRING.clone()))
-                                .use_(xs::AttributeUseType::Required)
-                                .build()
-                                .into(),
-                        ])
+                        .attr_decls(
+                            xs::AttrDecls::builder()
+                                .declarations(vec![
+                                    xs::LocalAttribute::builder()
+                                        .name(LocalName::new_dangerous("number"))
+                                        .type_(xs::QName(xsn::INTEGER.clone()))
+                                        .use_(xs::AttributeUseType::Optional)
+                                        .build()
+                                        .into(),
+                                    xs::LocalAttribute::builder()
+                                        .name(LocalName::new_dangerous("name"))
+                                        .type_(xs::QName(xsn::STRING.clone()))
+                                        .use_(xs::AttributeUseType::Required)
+                                        .build()
+                                        .into(),
+                                ])
+                                .build(),
+                        )
                         .build()
                         .into(),
                 )

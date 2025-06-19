@@ -66,15 +66,23 @@ pub trait XmlnsContextTransformer {
     type Error: std::fmt::Debug;
 
     /// Returns true if the context was changed.
-    fn transform(self, context: Context<'_>) -> Result<TransformChange, Self::Error>;
+    fn transform(self, context: TransformerContext<'_>) -> Result<TransformChange, Self::Error>;
 }
 
-pub struct Context<'a> {
+pub struct TransformerContext<'a> {
     pub namespace: &'a XmlNamespace<'static>,
     pub xmlns_context: &'a mut crate::XmlnsContext,
 }
 
-impl Context<'_> {
+impl TransformerContext<'_> {
+    pub fn context(&self) -> &crate::XmlnsContext {
+        self.xmlns_context
+    }
+
+    pub fn context_mut(&mut self) -> &mut crate::XmlnsContext {
+        self.xmlns_context
+    }
+
     pub fn current_namespace(&self) -> &crate::CompiledNamespace {
         self.xmlns_context
             .namespaces
@@ -96,25 +104,25 @@ impl Context<'_> {
         self.current_namespace().complex_type.iter_fragment_ids()
     }
 
-    pub fn get_complex_fragment<F>(&self, fragment_id: &complex::FragmentIdx<F>) -> Option<&F>
+    pub fn get_complex_fragment<F>(&self, fragment_idx: &complex::FragmentIdx<F>) -> Option<&F>
     where
         complex::ComplexTypeFragmentCompiler: complex::FragmentAccess<F>,
     {
         self.current_namespace()
             .complex_type
-            .get_fragment(fragment_id)
+            .get_fragment(fragment_idx)
     }
 
     pub fn get_complex_fragment_mut<F>(
         &mut self,
-        fragment_id: &complex::FragmentIdx<F>,
+        fragment_idx: &complex::FragmentIdx<F>,
     ) -> Option<&mut F>
     where
         complex::ComplexTypeFragmentCompiler: complex::FragmentAccess<F>,
     {
         self.current_namespace_mut()
             .complex_type
-            .get_fragment_mut(fragment_id)
+            .get_fragment_mut(fragment_idx)
     }
 
     pub fn iter_simple_fragment_ids(&self) -> impl Iterator<Item = SimpleFragmentId> {
@@ -153,6 +161,18 @@ impl Context<'_> {
             .get(name.namespace().as_ref().unwrap())
             .unwrap()
             .top_level_types
+            .get(name.local_name())
+    }
+
+    pub fn get_named_attribute_group<'a>(
+        &'a self,
+        name: &'a ExpandedName<'_>,
+    ) -> Option<&'a crate::TopLevelAttributeGroup> {
+        self.xmlns_context
+            .namespaces
+            .get(name.namespace().as_ref().unwrap())
+            .unwrap()
+            .top_level_attribute_groups
             .get(name.local_name())
     }
 

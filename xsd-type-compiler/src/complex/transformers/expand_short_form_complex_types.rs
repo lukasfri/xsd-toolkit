@@ -3,7 +3,7 @@ use crate::{
         ComplexContentChildId, ComplexTypeModelId, ComplexTypeRootFragment, FragmentAccess,
         FragmentIdx, RestrictionFragment,
     },
-    transformers::{Context, TransformChange, XmlnsContextTransformer},
+    transformers::{TransformerContext, TransformChange, XmlnsContextTransformer},
 };
 use xsd::schema_names as xsn;
 
@@ -41,7 +41,7 @@ impl ExpandShortFormComplexTypes {
     }
 
     pub fn expand_short_form_complex_type(
-        ctx: &mut Context<'_>,
+        ctx: &mut TransformerContext<'_>,
         fragment_id: &FragmentIdx<ComplexTypeRootFragment>,
     ) -> Result<TransformChange, ()> {
         let root_fragment = ctx
@@ -50,20 +50,20 @@ impl ExpandShortFormComplexTypes {
 
         let ComplexTypeModelId::Other {
             particle,
-            attributes,
+            attr_decls,
         } = &root_fragment.content
         else {
             return Ok(TransformChange::Unchanged);
         };
-        let content_fragment = particle.clone();
-        let attributes = attributes.clone();
+        let content_fragment = *particle;
+        let attribute_declarations = attr_decls.clone();
 
         let compiler = &mut ctx.current_namespace_mut().complex_type;
 
         let complex_content = compiler.push_fragment(RestrictionFragment {
             base: xsn::ANY_TYPE.clone(),
             content_fragment,
-            attribute_declarations: attributes,
+            attribute_declarations,
         });
 
         let complex_content = compiler.push_fragment(crate::complex::ComplexContentFragment {
@@ -71,7 +71,7 @@ impl ExpandShortFormComplexTypes {
             mixed: None,
         });
 
-        let root_fragment = ctx.get_complex_fragment_mut(&fragment_id).unwrap();
+        let root_fragment = ctx.get_complex_fragment_mut(fragment_id).unwrap();
 
         root_fragment.content = ComplexTypeModelId::ComplexContent(complex_content);
 
@@ -82,7 +82,7 @@ impl ExpandShortFormComplexTypes {
 impl XmlnsContextTransformer for ExpandShortFormComplexTypes {
     type Error = ();
 
-    fn transform(self, mut ctx: Context<'_>) -> Result<TransformChange, Self::Error> {
+    fn transform(self, mut ctx: TransformerContext<'_>) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
             .map(|f| Self::expand_short_form_complex_type(&mut ctx, &f))
@@ -96,7 +96,7 @@ mod tests {
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::schema::{
-        ComplexContent, ComplexRestrictionType, ComplexTypeModel, LocalElement, QName,
+        self as xs, ComplexContent, ComplexRestrictionType, ComplexTypeModel, LocalElement, QName,
         SequenceType, TopLevelComplexType, TypeDefParticle,
     };
     use xsd::schema_names as xsn;
@@ -146,7 +146,7 @@ mod tests {
             .content(ComplexTypeModel::Other {
                 open_content: None,
                 type_def_particle: Some(TypeDefParticle::Sequence(sequence.clone())),
-                attributes: Vec::new(),
+                attr_decls: xs::AttrDecls::default(),
             })
             .build();
 
@@ -199,8 +199,6 @@ mod tests {
             .namespaces
             .get(length.namespace().unwrap())
             .unwrap();
-
-        println!("{:#?}", output_namespace);
 
         let actual_output = output_namespace
             .export_top_level_complex_type(length.local_name())
