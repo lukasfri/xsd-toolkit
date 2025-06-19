@@ -49,6 +49,30 @@ impl ToTypeTemplate for cx::AttributeDeclarationsFragment {
     }
 }
 
+fn dedup_attribute_field_idents<T, E>(
+    existing_fields: &[(syn::Ident, E)],
+    attribute_fields: impl IntoIterator<Item = (syn::Ident, T)>,
+) -> Vec<(syn::Ident, T)> {
+    attribute_fields
+        .into_iter()
+        .map(|(mut ident, value)| {
+            if existing_fields
+                .iter()
+                .any(|(existing_ident, _)| existing_ident == &ident)
+            {
+                const ATTRIBUTE_SUFFIX: &str = "attribute";
+                ident = if ident.to_string().ends_with("_") {
+                    format_ident!("{ident}{ATTRIBUTE_SUFFIX}")
+                } else {
+                    format_ident!("{ident}_{ATTRIBUTE_SUFFIX}")
+                };
+            }
+
+            (ident, value)
+        })
+        .collect()
+}
+
 impl ToTypeTemplate for cx::RestrictionFragment {
     type TypeTemplate = templates::group_record::GroupRecord;
 
@@ -61,7 +85,6 @@ impl ToTypeTemplate for cx::RestrictionFragment {
             .content_fragment
             .map(|a| {
                 context
-                    // .sub_context(format_ident!("Content"))
                     .resolve_fragment(&a, scope)
                     .map(|a| match a.template {
                         TypeDefParticleTemplate::Record(item_record) => {
@@ -82,9 +105,20 @@ impl ToTypeTemplate for cx::RestrictionFragment {
 
         let attributes = context.resolve_fragment_id(&self.attribute_declarations, scope)?;
 
+        let attribute_fields = dedup_attribute_field_idents(
+            match &template.fields {
+                ElementFieldType::Named(items) => items,
+                ElementFieldType::Empty => &[],
+                ElementFieldType::Unnamed(_) => {
+                    unreachable!("Should only be named fields or empty")
+                }
+            },
+            attributes.template,
+        );
+
         template
             .fields
-            .prefix_fields(ElementFieldType::Named(attributes.template));
+            .prefix_fields(ElementFieldType::Named(attribute_fields));
 
         template.force_empty_if_empty();
 

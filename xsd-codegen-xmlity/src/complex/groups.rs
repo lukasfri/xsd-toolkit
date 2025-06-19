@@ -21,6 +21,50 @@ use super::{
     elements::LocalElementFragmentTemplate, Context, Scope, ToTypeTemplate, ToTypeTemplateData,
 };
 
+// Tries to find a common name between a list of strings.
+// ["SimpleType", "ComplexType"] becomes Some("Type")
+// ["One", "Two"] becomes None
+fn common_name<'a, I: IntoIterator<Item = T>, T: AsRef<str>>(
+    names: I,
+    min_length: usize,
+) -> Option<String> {
+    let names: Vec<String> = names.into_iter().map(|s| s.as_ref().to_string()).collect();
+    if names.is_empty() {
+        return None;
+    }
+    if names.len() == 1 {
+        return Some(names[0].clone());
+    }
+
+    let min_len = names.iter().map(|s| s.len()).min().unwrap();
+    let first = &names[0];
+
+    for len in (min_length.max(1)..=min_len).rev() {
+        let mut candidates = Vec::new();
+
+        for start in 0..=(first.len() - len) {
+            let substring = &first[start..start + len];
+            if names.iter().skip(1).all(|s| s.contains(substring)) {
+                candidates.push(substring.to_string());
+            }
+        }
+
+        // First find if there is a type if a capital letter start, otherwise, pick the last.
+        let candidate_index = candidates
+            .iter()
+            .position(|a| a.chars().next().unwrap().is_ascii_uppercase())
+            .or_else(|| (!candidates.is_empty()).then(|| candidates.len() - 1));
+
+        if let Some(candidate_index) = candidate_index {
+            return candidates.into_iter().nth(candidate_index);
+        }
+    }
+
+    None
+}
+
+const GROUP_COMMON_NAME_MIN_LENGTH: usize = 4;
+
 impl ToTypeTemplate for cx::AllFragment {
     type TypeTemplate = ItemOrTemplate<ItemRecord>;
 
@@ -29,14 +73,7 @@ impl ToTypeTemplate for cx::AllFragment {
         context: &C,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
-        let max_occurs = self.max_occurs.unwrap_or_default();
-
         let mut sub_scope = GeneratorScope::new(scope.augmenter());
-
-        let mod_name = format_ident!("{}_items", context.suggested_ident().to_path_ident());
-
-        let mod_path: syn::Path = parse_quote!(#mod_name);
 
         // Struct with strict order
         let fields = self
@@ -44,20 +81,35 @@ impl ToTypeTemplate for cx::AllFragment {
             .iter()
             .enumerate()
             .map(|(i, fragment_id)| {
+                let suggested_ident = format_ident!("Child{i}");
                 let res = context
-                    .sub_context(format_ident!("Child{i}"))
+                    .sub_context(suggested_ident.clone())
                     .resolve_fragment(fragment_id, &mut sub_scope)?;
-                let ident = res
-                    .ident
-                    .map(|a| a.to_field_ident())
-                    .unwrap_or_else(|| format_ident!("child_{}", i));
-                let item = res
-                    .template
-                    .into_item(context, &mut sub_scope, &ident, None)?;
 
-                Ok((ident, item))
+                let ident = res.ident.unwrap_or_else(|| suggested_ident);
+
+                let item = res.template.into_item(
+                    context,
+                    &mut sub_scope,
+                    &ident.to_field_ident(),
+                    None,
+                )?;
+
+                Ok(((ident.to_field_ident(), item), ident))
             })
             .collect::<Result<Vec<_>>>()?;
+
+        let (fields, names) = fields.into_iter().unzip::<_, _, Vec<_>, Vec<_>>();
+
+        let common_name = common_name(
+            names.iter().map(|a| a.to_string()),
+            GROUP_COMMON_NAME_MIN_LENGTH,
+        );
+
+        let ident = common_name
+            .map(|a| format_ident!("{a}"))
+            .unwrap_or_else(|| context.suggested_ident().clone())
+            .to_item_ident();
 
         let fields = dedup_field_idents(fields);
 
@@ -70,11 +122,16 @@ impl ToTypeTemplate for cx::AllFragment {
 
         let sub_scope_items = sub_scope.finish();
 
+        let mod_name = format_ident!("{}_items", ident.to_path_ident());
+
+        let mod_path: syn::Path = parse_quote!(#mod_name);
+
+        let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
+        let max_occurs = self.max_occurs.unwrap_or_default();
+
         let template = ItemOrTemplate::new(
             template,
-            |template| {
-                syn::Item::Struct(template.to_struct(context.suggested_ident(), Some(&mod_path)))
-            },
+            |template| syn::Item::Struct(template.to_struct(&ident, Some(&mod_path))),
             min_occurs,
             max_occurs,
             scope,
@@ -89,7 +146,7 @@ impl ToTypeTemplate for cx::AllFragment {
         }
 
         Ok(ToTypeTemplateData {
-            ident: None,
+            ident: Some(ident),
             template,
         })
     }
@@ -137,14 +194,7 @@ impl ToTypeTemplate for cx::SequenceFragment {
         context: &C,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
-        let max_occurs = self.max_occurs.unwrap_or_default();
-
         let mut sub_scope = GeneratorScope::new(scope.augmenter());
-
-        let mod_name = format_ident!("{}_items", context.suggested_ident().to_path_ident());
-
-        let mod_path: syn::Path = parse_quote!(#mod_name);
 
         // Struct with strict order
         let fields = self
@@ -152,20 +202,35 @@ impl ToTypeTemplate for cx::SequenceFragment {
             .iter()
             .enumerate()
             .map(|(i, fragment_id)| {
+                let suggested_ident = format_ident!("Child{i}");
                 let res = context
-                    .sub_context(format_ident!("Child{i}"))
+                    .sub_context(suggested_ident.clone())
                     .resolve_fragment(fragment_id, &mut sub_scope)?;
-                let ident = res
-                    .ident
-                    .map(|a| a.to_field_ident())
-                    .unwrap_or_else(|| format_ident!("child_{}", i));
-                let item = res
-                    .template
-                    .into_item(context, &mut sub_scope, &ident, None)?;
 
-                Ok((ident, item))
+                let ident = res.ident.unwrap_or_else(|| suggested_ident);
+
+                let item = res.template.into_item(
+                    context,
+                    &mut sub_scope,
+                    &ident.to_field_ident(),
+                    None,
+                )?;
+
+                Ok(((ident.to_field_ident(), item), ident))
             })
             .collect::<Result<Vec<_>>>()?;
+
+        let (fields, names) = fields.into_iter().unzip::<_, _, Vec<_>, Vec<_>>();
+
+        let common_name = common_name(
+            names.iter().map(|a| a.to_string()),
+            GROUP_COMMON_NAME_MIN_LENGTH,
+        );
+
+        let ident = common_name
+            .map(|a| format_ident!("{a}"))
+            .unwrap_or_else(|| context.suggested_ident().clone())
+            .to_item_ident();
 
         let fields = dedup_field_idents(fields);
 
@@ -178,11 +243,16 @@ impl ToTypeTemplate for cx::SequenceFragment {
 
         let sub_scope_items = sub_scope.finish();
 
+        let mod_name = format_ident!("{}_items", ident.to_path_ident());
+
+        let mod_path: syn::Path = parse_quote!(#mod_name);
+
+        let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
+        let max_occurs = self.max_occurs.unwrap_or_default();
+
         let template = ItemOrTemplate::new(
             template,
-            |template| {
-                syn::Item::Struct(template.to_struct(context.suggested_ident(), Some(&mod_path)))
-            },
+            |template| syn::Item::Struct(template.to_struct(&ident, Some(&mod_path))),
             min_occurs,
             max_occurs,
             scope,
@@ -197,7 +267,7 @@ impl ToTypeTemplate for cx::SequenceFragment {
         }
 
         Ok(ToTypeTemplateData {
-            ident: None,
+            ident: Some(ident),
             template,
         })
     }
@@ -211,12 +281,6 @@ impl ToTypeTemplate for cx::ChoiceFragment {
         context: &C,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let ident = context.suggested_ident();
-
-        let mod_name = format_ident!("{}_variants", ident.to_path_ident());
-
-        let mod_path: syn::Path = parse_quote!(#mod_name);
-
         let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
         // Struct with strict order
@@ -225,17 +289,38 @@ impl ToTypeTemplate for cx::ChoiceFragment {
             .iter()
             .enumerate()
             .map(|(i, fragment_id)| {
+                let suggested_ident = format_ident!("Variant{i}");
                 let res = context
-                    .sub_context(format_ident!("Variant{i}"))
+                    .sub_context(suggested_ident.clone())
                     .resolve_fragment(fragment_id, &mut sub_scope)?;
-                let ident = res
-                    .ident
-                    .map(|a| a.to_variant_ident())
-                    .unwrap_or_else(|| format_ident!("Variant{}", i));
 
+                let ident = res.ident.unwrap_or_else(|| suggested_ident);
+
+                Ok(((ident.to_variant_ident(), res.template), ident))
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let (variants, names) = variants.into_iter().unzip::<_, _, Vec<_>, Vec<_>>();
+
+        let common_name = common_name(
+            names.iter().map(|a| a.to_string()),
+            GROUP_COMMON_NAME_MIN_LENGTH,
+        );
+
+        let ident = common_name
+            .map(|a| format_ident!("{a}"))
+            .unwrap_or_else(|| context.suggested_ident().clone())
+            .to_item_ident();
+
+        let mod_name = format_ident!("{}_variants", ident.to_path_ident());
+
+        let mod_path: syn::Path = parse_quote!(#mod_name);
+
+        let variants = variants
+            .into_iter()
+            .map(|(ident, variant)| {
                 let variant =
-                    res.template
-                        .into_variant(context, &mut sub_scope, &ident, Some(&mod_path))?;
+                    variant.into_variant(context, &mut sub_scope, &ident, Some(&mod_path))?;
 
                 Ok((ident, variant))
             })
@@ -250,7 +335,7 @@ impl ToTypeTemplate for cx::ChoiceFragment {
             .map(|a| scope.add_item(a))
             .transpose()?;
 
-        let item = template.to_enum(ident, None);
+        let item = template.to_enum(&ident, None);
 
         let ty = scope.add_item(item)?;
 
@@ -260,7 +345,7 @@ impl ToTypeTemplate for cx::ChoiceFragment {
         let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
 
         Ok(ToTypeTemplateData {
-            ident: None,
+            ident: Some(ident),
             template: ItemFieldItem {
                 ty,
                 default: optional,
@@ -305,8 +390,10 @@ impl ToTypeTemplate for cx::GroupRefFragment {
             default: optional,
         };
 
+        let ident = self.ref_.local_name().to_item_ident();
+
         Ok(ToTypeTemplateData {
-            ident: Some(self.ref_.local_name().to_item_ident()),
+            ident: Some(ident),
             template,
         })
     }
@@ -459,12 +546,11 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
 
                 let ident = record
                     .ident
-                    .as_ref()
-                    .unwrap_or_else(|| context.suggested_ident());
+                    .unwrap_or_else(|| context.suggested_ident().clone());
 
                 let item = match record.template {
                     ItemOrTemplate::Record(record) => {
-                        let item = record.to_struct(ident, None);
+                        let item = record.to_struct(&ident, None);
 
                         let ty = scope.add_item(item)?;
 
@@ -476,7 +562,7 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
                 let template = GroupTypeContentTemplate::Item(item);
 
                 ToTypeTemplateData {
-                    ident: None,
+                    ident: Some(ident),
                     template,
                 }
             }
@@ -486,7 +572,7 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
                 let template = GroupTypeContentTemplate::Item(record.template);
 
                 ToTypeTemplateData {
-                    ident: None,
+                    ident: record.ident,
                     template,
                 }
             }
@@ -501,12 +587,11 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
 
                 let ident = record
                     .ident
-                    .as_ref()
-                    .unwrap_or_else(|| context.suggested_ident());
+                    .unwrap_or_else(|| context.suggested_ident().clone());
 
                 let item = match record.template {
                     ItemOrTemplate::Record(record) => {
-                        let item = record.to_struct(ident, Some(&mod_path));
+                        let item = record.to_struct(&ident, Some(&mod_path));
 
                         sub_scope
                             .finish_mod(&mod_name)
@@ -527,7 +612,7 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
                 let template = GroupTypeContentTemplate::Item(item);
 
                 ToTypeTemplateData {
-                    ident: None,
+                    ident: Some(ident),
                     template,
                 }
             }
@@ -672,15 +757,10 @@ impl ToTypeTemplate for cx::NamedGroupTypeContentId {
             cx::NamedGroupTypeContentId::Choice(fragment_idx) => {
                 let choice = context.resolve_fragment_id(fragment_idx, scope)?;
 
-                let ident = choice
-                    .ident
-                    .as_ref()
-                    .unwrap_or_else(|| context.suggested_ident());
-
                 let template = TypeDefParticleTemplate::Item(choice.template);
 
                 Ok(ToTypeTemplateData {
-                    ident: Some(ident.clone()),
+                    ident: choice.ident,
                     template,
                 })
             }
@@ -696,12 +776,14 @@ impl ToTypeTemplate for cx::TopLevelGroupFragment {
         context: &C,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let name_ident = self.name.as_ref().to_item_ident();
+        let ident = self.name.as_ref().to_item_ident();
 
-        let fragment = context.resolve_fragment(&self.content, scope)?;
+        let fragment = context
+            .sub_context(ident.clone())
+            .resolve_fragment(&self.content, scope)?;
 
         Ok(ToTypeTemplateData {
-            ident: Some(name_ident),
+            ident: Some(ident),
             template: fragment.template.into_item_record(None),
         })
     }
@@ -718,6 +800,21 @@ mod tests {
     use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
     use crate::Generator;
+
+    #[test]
+    fn common_name() {
+        assert_eq!(
+            super::common_name(["SimpleType", "ComplexType"], 3),
+            Some("Type".to_string())
+        );
+        assert_eq!(
+            super::common_name(["SimpleType", "ComplexType"], 4),
+            Some("Type".to_string())
+        );
+        assert_eq!(super::common_name(["SimpleType", "ComplexType"], 5), None);
+
+        assert_eq!(super::common_name(["One", "Two"], 1), None);
+    }
 
     #[test]
     fn three_choice_sequence_deep_top_level_type() {

@@ -1,6 +1,5 @@
 use std::{collections::HashMap, ops::AddAssign};
 
-use quote::ToTokens;
 use syn::Item;
 
 use crate::{augments::ItemAugmentation, misc::unbox_type};
