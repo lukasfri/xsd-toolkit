@@ -51,28 +51,31 @@ const XSD_ANY_ATTR_GROUP: &str = r###"
 fn xsd_any_attr_group() -> xs::AttributeGroup {
     xs::AttributeGroup(Box::new(
         xs::types::NamedAttributeGroup::builder()
-            .name("anyAttrGroup".to_string())
+            .name(LocalName::new_dangerous("anyAttrGroup"))
             .attr_decls(Box::new(
                 xs::groups::AttrDecls::builder()
                     .attribute(vec![
                         xs::types::Attribute::builder()
-                            .name("namespace".to_string())
-                            .type_("xs:namespaceList".to_string())
-                            // .type_(xs::QName(ExpandedName::new(
-                            //     LocalName::new_dangerous("namespaceList"),
-                            //     Some(XmlNamespace::XS),
-                            // )))
+                            .name(LocalName::new_dangerous("namespace"))
+                            .type_(xs_raw::QName(ExpandedName::new(
+                                LocalName::new_dangerous("namespaceList"),
+                                Some(XmlNamespace::XS),
+                            )))
                             .use_("optional".to_string())
                             .build()
                             .into(),
                         xs::types::Attribute::builder()
-                            .name("notNamespace".to_string())
-                            .use_("xs:namespaceList".to_string())
+                            .name(LocalName::new_dangerous("notNamespace"))
+                            .use_("optional".to_string())
                             .simple_type(
                                 xs::types::LocalSimpleType::builder()
                                     .simple_derivation(
                                         Box::new(xs::groups::SimpleDerivation(
                                             xs::Restriction::builder()
+                                                .base(xs_raw::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("basicNamespaceList"),
+                                                    Some(XmlNamespace::XS),
+                                                )))
                                                 .simple_restriction_model(
                                                     xs::groups::SimpleRestrictionModel::builder()
                                                         .child_1(vec![
@@ -103,7 +106,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                             .build()
                             .into(),
                         xs::types::Attribute::builder()
-                            .name("processContents".to_string())
+                            .name(LocalName::new_dangerous("processContents"))
                             .default("strict".to_string())
                             .use_("optional".to_string())
                             .simple_type(
@@ -159,6 +162,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
 #[case::occurs(XSD_OCCURS, None)]
 #[case::def_ref(XSD_DEF_REF, None)]
 #[case::any_attr_group(XSD_ANY_ATTR_GROUP, Some(xsd_any_attr_group()))]
+#[ntest::timeout(1000)]
 fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::AttributeGroup>) {
     let xml = xml.trim();
     let element: xs::AttributeGroup = xmlity_quick_xml::de::from_str(xml).unwrap();

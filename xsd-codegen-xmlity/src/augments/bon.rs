@@ -1,7 +1,6 @@
-use quote::ToTokens;
 use syn::{Item, ItemStruct};
 
-use crate::augments::ItemAugmentation;
+use crate::{augments::ItemAugmentation, misc::unvec_type};
 
 #[derive(Debug)]
 pub struct BonAugmentation {}
@@ -35,12 +34,7 @@ impl ItemAugmentation for BonAugmentation {
 
         for field in fields.named.iter_mut() {
             if let syn::Type::Path(type_path) = &field.ty {
-                let ty = type_path.to_token_stream().to_string();
-
-                if ty.starts_with("Vec")
-                    || ty.starts_with("std::vec::Vec")
-                    || ty.starts_with("::std::vec::Vec")
-                {
+                if unvec_type(type_path).is_some() {
                     field.attrs.push(syn::parse_quote! {
                         #[builder(default)]
                     });

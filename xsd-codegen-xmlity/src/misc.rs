@@ -194,6 +194,33 @@ pub fn unbox_type(ty: &syn::TypePath) -> Option<syn::Type> {
     }
 }
 
+pub fn unvec_type(ty: &syn::TypePath) -> Option<syn::Type> {
+    let mut segments = ty.path.segments.iter();
+
+    let first = segments.next().unwrap();
+    if first.ident == "Vec" {
+        let argument = match &first.arguments {
+            syn::PathArguments::AngleBracketed(arguments) => arguments,
+            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => panic!("TODO"),
+        };
+
+        Some(syn::parse2(argument.args.to_token_stream()).unwrap())
+    } else if first.ident == "std" {
+        let _vec = segments.next().filter(|a| a.ident == "vec")?;
+
+        let vec_ = segments.next().filter(|a| a.ident == "Vec")?;
+
+        let argument = match &vec_.arguments {
+            syn::PathArguments::AngleBracketed(arguments) => arguments,
+            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => panic!("TODO"),
+        };
+
+        Some(syn::parse2(argument.args.to_token_stream()).unwrap())
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use syn::parse_quote;
@@ -211,5 +238,13 @@ mod tests {
             Option::<syn::Type>::Some(parse_quote!(i32))
         );
         assert_eq!(unbox_type(&parse_quote!(i32)), None);
+    }
+
+    #[test]
+    fn unvec() {
+        assert_eq!(
+            unvec_type(&parse_quote!(::std::vec::Vec<documentation_items::Child0>)),
+            Option::<syn::Type>::Some(parse_quote!(documentation_items::Child0))
+        );
     }
 }

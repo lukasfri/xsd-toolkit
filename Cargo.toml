@@ -1,6 +1,12 @@
 [workspace]
 resolver = "2"
-members = ["xsd", "xsd-codegen-xmlity", "xsd-type-compiler", "xmlity-build", "xs_raw"]
+members = [
+  "xsd",
+  "xsd-codegen-xmlity",
+  "xsd-type-compiler",
+  "xmlity-build",
+  "xs_raw",
+]
 
 [workspace.package]
 version = "0.0.0"
@@ -18,3 +24,4 @@ xmlity = { version = "0.0.6", features = [
   "derive",
 ], git = "https://github.com/lukasfri/xmlity.git", rev = "247112a7c290710c21a1824ac0687cf0476ef984" }
 xmlity-quick-xml = { version = "0.0.6", git = "https://github.com/lukasfri/xmlity.git", rev = "247112a7c290710c21a1824ac0687cf0476ef984" }
+ntest = "0.9.3"

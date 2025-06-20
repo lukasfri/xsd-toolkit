@@ -1,5 +1,6 @@
 use syn::parse_quote;
-use xmlity::XmlNamespace;
+use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xsd_codegen_xmlity::{misc::TypeReference, BoundType, TypeType};
 
 fn main() {
     let time = std::time::Instant::now();
@@ -11,6 +12,26 @@ fn main() {
             (XmlNamespace::XML, parse_quote!(crate::xml)),
             (XmlNamespace::XHTML, parse_quote!(crate::xhtml)),
             (XmlNamespace::XS, parse_quote!(crate::xs)),
+        ])
+        .bound_types(vec![
+            (
+                ExpandedName::new(LocalName::new_dangerous("QName"), Some(XmlNamespace::XS)),
+                BoundType {
+                    ty: TypeReference::new_static(parse_quote!(crate::QName)),
+                    ty_type: TypeType::Simple,
+                    serialize_with: None,
+                    deserialize_with: None,
+                },
+            ),
+            (
+                ExpandedName::new(LocalName::new_dangerous("NCName"), Some(XmlNamespace::XS)),
+                BoundType {
+                    ty: TypeReference::new_static(parse_quote!(::xmlity::LocalName<'static>)),
+                    ty_type: TypeType::Simple,
+                    serialize_with: None,
+                    deserialize_with: None,
+                },
+            ),
         ])
         .build();
 
