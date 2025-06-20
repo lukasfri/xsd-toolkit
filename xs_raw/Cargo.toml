@@ -1,5 +1,5 @@
 [package]
-name = "xmlity-build"
+name = "xs_raw"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,16 +8,8 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-xsd = { path = "../xsd" }
-xsd-codegen-xmlity = { path = "../xsd-codegen-xmlity" }
-xsd-type-compiler = { path = "../xsd-type-compiler" }
-proc-macro2 = "1.0.66"
-quote = "1.0.33"
-syn = { version = "2.0.29", features = ["full", "extra-traits"] }
-prettyplease = "0.2.15"
 thiserror.workspace = true
 bon = "3.6.3"
-glob = "0.3.2"
 xmlity.workspace = true
 xmlity-quick-xml.workspace = true
 derive_more = { version = "2.0.1", features = ["full"] }

@@ -6,6 +6,10 @@ mod bon;
 pub use bon::BonAugmentation;
 mod enum_from;
 pub use enum_from::EnumFromAugmentation;
+mod additional_derives;
+pub use additional_derives::AdditionalDerives;
+mod struct_from;
+pub use struct_from::StructFromAugmentation;
 
 pub trait ItemAugmentation: Debug {
     fn augment_struct(&self, item: &mut ItemStruct) -> Vec<Item> {

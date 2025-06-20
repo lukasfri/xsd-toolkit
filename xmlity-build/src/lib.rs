@@ -4,7 +4,10 @@ use bon::Builder;
 use syn::parse_quote;
 use xmlity::{types::utils::XmlRoot, ExpandedName, LocalName, XmlNamespace};
 use xsd_codegen_xmlity::{
-    augments::{BonAugmentation, EnumFromAugmentation, ItemAugmentation},
+    augments::{
+        AdditionalDerives, BonAugmentation, EnumFromAugmentation, ItemAugmentation,
+        StructFromAugmentation,
+    },
     misc::TypeReference,
     BoundType, XmlityCodegenTransformer,
 };
@@ -30,6 +33,8 @@ pub struct GenerateNamespace {
     pub bon_builders: bool,
     #[builder(default = false)]
     pub enum_from: bool,
+    #[builder(default = false)]
+    pub struct_from: bool,
 }
 
 #[derive(Debug, derive_more::derive::From, derive_more::derive::Display)]
@@ -156,6 +161,16 @@ impl StartedBuildEngine {
                 } else {
                     None
                 }) as Box<dyn ItemAugmentation>,
+                Box::new(if generate_namespace.struct_from {
+                    Some(StructFromAugmentation::new())
+                } else {
+                    None
+                }) as Box<dyn ItemAugmentation>,
+                Box::new(Some(AdditionalDerives {
+                    structs: vec![parse_quote!(::core::cmp::PartialEq)],
+                    enums: vec![parse_quote!(::core::cmp::PartialEq)],
+                    ..Default::default()
+                })) as Box<dyn ItemAugmentation>,
             ],
         );
 

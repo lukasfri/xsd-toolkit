@@ -89,7 +89,6 @@ impl ItemAugmentation for EnumFromAugmentation {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-    use syn::parse_quote;
 
     #[test]
     fn enum_augmentation() {
@@ -132,19 +131,6 @@ mod tests {
             prettyplease::unparse(&actual),
             prettyplease::unparse(&expected)
         );
-    }
-
-    #[test]
-    fn unbox() {
-        assert_eq!(
-            unbox_type(&parse_quote!(::std::boxed::Box<i32>)),
-            Option::<syn::Type>::Some(parse_quote!(i32))
-        );
-        assert_eq!(
-            unbox_type(&parse_quote!(Box<i32>)),
-            Option::<syn::Type>::Some(parse_quote!(i32))
-        );
-        assert_eq!(unbox_type(&parse_quote!(i32)), None);
     }
 
     #[test]

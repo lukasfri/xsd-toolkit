@@ -20,31 +20,32 @@ fn main() {
         time.elapsed().as_secs_f32()
     );
 
+    // let time = std::time::Instant::now();
+
+    // engine
+    //     .generate_namespace(
+    //         xmlity_build::GenerateNamespace::builder()
+    //             .output_file("xmlity-build/tests/output/xhtml.rs".parse().unwrap())
+    //             .namespace(XmlNamespace::new_dangerous("http://www.w3.org/1999/xhtml"))
+    //             .build(),
+    //     )
+    //     .unwrap();
+
+    // println!(
+    //     "Generating the xhtml namespace took {:?}",
+    //     time.elapsed().as_secs_f32()
+    // );
+
     let time = std::time::Instant::now();
 
     engine
         .generate_namespace(
             xmlity_build::GenerateNamespace::builder()
-                .output_file("xmlity-build/tests/output/xhtml.rs".parse().unwrap())
-                .namespace(XmlNamespace::new_dangerous("http://www.w3.org/1999/xhtml"))
-                .build(),
-        )
-        .unwrap();
-
-    println!(
-        "Generating the xhtml namespace took {:?}",
-        time.elapsed().as_secs_f32()
-    );
-
-    let time = std::time::Instant::now();
-
-    engine
-        .generate_namespace(
-            xmlity_build::GenerateNamespace::builder()
-                .output_file("xmlity-build/tests/output/xs.rs".parse().unwrap())
+                .output_file("xs_raw/src/xs.rs".parse().unwrap())
                 .namespace(XmlNamespace::XS)
                 .bon_builders(true)
                 .enum_from(true)
+                .struct_from(true)
                 .build(),
         )
         .unwrap();

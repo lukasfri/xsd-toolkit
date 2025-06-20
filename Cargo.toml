@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["xsd", "xsd-codegen-xmlity", "xsd-type-compiler", "xmlity-build"]
+members = ["xsd", "xsd-codegen-xmlity", "xsd-type-compiler", "xmlity-build", "xs_raw"]
 
 [workspace.package]
 version = "0.0.0"

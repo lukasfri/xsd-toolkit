@@ -617,9 +617,11 @@ dependencies = [
  "bon",
  "derive_more",
  "glob",
+ "pretty_assertions",
  "prettyplease",
  "proc-macro2",
  "quote",
+ "rstest",
  "syn",
  "thiserror",
  "xmlity",
@@ -648,6 +650,19 @@ dependencies = [
  "quick-xml",
  "thiserror",
  "xmlity",
+]
+
+[[package]]
+name = "xs_raw"
+version = "0.0.0"
+dependencies = [
+ "bon",
+ "derive_more",
+ "pretty_assertions",
+ "rstest",
+ "thiserror",
+ "xmlity",
+ "xmlity-quick-xml",
 ]
 
 [[package]]

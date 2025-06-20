@@ -193,3 +193,23 @@ pub fn unbox_type(ty: &syn::TypePath) -> Option<syn::Type> {
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use syn::parse_quote;
+
+    use super::*;
+
+    #[test]
+    fn unbox() {
+        assert_eq!(
+            unbox_type(&parse_quote!(::std::boxed::Box<i32>)),
+            Option::<syn::Type>::Some(parse_quote!(i32))
+        );
+        assert_eq!(
+            unbox_type(&parse_quote!(Box<i32>)),
+            Option::<syn::Type>::Some(parse_quote!(i32))
+        );
+        assert_eq!(unbox_type(&parse_quote!(i32)), None);
+    }
+}
