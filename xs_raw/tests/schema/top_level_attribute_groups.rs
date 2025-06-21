@@ -1,5 +1,6 @@
 use super::xs;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xs_raw::xs_custom;
 
 const XSD_OCCURS: &str = r###"
 <xs:attributeGroup xmlns:xs="http://www.w3.org/2001/XMLSchema" name="occurs">
@@ -57,7 +58,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                     .attribute(vec![
                         xs::types::Attribute::builder()
                             .name(LocalName::new_dangerous("namespace"))
-                            .type_(xs_raw::QName(ExpandedName::new(
+                            .type_(xs_custom::QName(ExpandedName::new(
                                 LocalName::new_dangerous("namespaceList"),
                                 Some(XmlNamespace::XS),
                             )))
@@ -72,7 +73,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                     .simple_derivation(
                                         Box::new(xs::groups::SimpleDerivation(
                                             xs::Restriction::builder()
-                                                .base(xs_raw::QName(ExpandedName::new(
+                                                .base(xs_custom::QName(ExpandedName::new(
                                                     LocalName::new_dangerous("basicNamespaceList"),
                                                     Some(XmlNamespace::XS),
                                                 )))

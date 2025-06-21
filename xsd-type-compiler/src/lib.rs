@@ -15,6 +15,7 @@ pub enum Error {
     ImportOfExistingEntity,
 }
 
+#[derive(Debug)]
 pub struct XmlnsContext {
     pub namespaces: BTreeMap<XmlNamespace<'static>, CompiledNamespace>,
 }

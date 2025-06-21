@@ -96,6 +96,7 @@ impl XmlnsLocalTransformer for XmlityCodegenTransformer {
     }
 }
 
+#[derive(Debug)]
 pub struct Generator<'a> {
     pub context: &'a xsd_type_compiler::XmlnsContext,
     pub bound_namespaces: BTreeMap<XmlNamespace<'static>, syn::Path>,
@@ -178,6 +179,7 @@ impl ToIdentTypesExt for Ident {
     }
 }
 
+#[derive(Debug)]
 struct GeneratorContext<'a> {
     generator: &'a Generator<'a>,
     namespace: &'a XmlNamespace<'a>,
@@ -463,8 +465,12 @@ impl<'a> Generator<'a> {
         self.bound_namespaces.insert(namespace, path);
     }
 
-    pub fn bind_type(&mut self, name: ExpandedName<'static>, bound_type: BoundType) {
-        self.bound_types.insert(name, bound_type);
+    pub fn bind_type(
+        &mut self,
+        name: ExpandedName<'static>,
+        bound_type: BoundType,
+    ) -> Option<BoundType> {
+        self.bound_types.insert(name, bound_type)
     }
 
     pub fn bind_types<T: IntoIterator<Item = (ExpandedName<'static>, BoundType)>>(
@@ -502,11 +508,17 @@ impl<'a> Generator<'a> {
             .top_level_types
             .iter()
             .filter(|(_key, type_)| matches!(type_, TopLevelType::Simple(_)))
-            .map(|(key, _)| key)
-            .map(|local_name| {
-                let expanded_name =
-                    ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
-                let (mut bound_type, i) = self.generate_top_level_type(&expanded_name)?;
+            .map(|(key, _)| ExpandedName::new(key.as_ref(), Some(namespace.as_ref())))
+            .filter_map(|expanded_name| {
+                if self.bound_types.contains_key(&expanded_name) {
+                    //TODO: Probably should warn.
+                    return None;
+                }
+
+                let (mut bound_type, i) = match self.generate_top_level_type(&expanded_name) {
+                    Ok(ok) => ok,
+                    Err(err) => return Some(Err(err)),
+                };
 
                 let bound_namespace = self.bound_namespaces.get(namespace).unwrap();
 
@@ -516,7 +528,7 @@ impl<'a> Generator<'a> {
 
                 self.bind_type(expanded_name.into_owned(), bound_type);
 
-                Ok(i)
+                Some(Ok(i))
             })
             .collect::<Result<Vec<_>>>()?;
 
