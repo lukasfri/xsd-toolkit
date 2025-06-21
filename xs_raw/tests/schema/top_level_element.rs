@@ -960,9 +960,6 @@ fn xsd_white_space() -> xs::Element {
                                                             .simple_derivation(
                                                               xs::groups::SimpleDerivation(
                                                                 xs::Restriction::builder()
-                                                                .simple_restriction_model(
-                                                                xs::types::SimpleRestrictionType::builder(
-                                                                )
                                                                 .base(xs_custom::QName(ExpandedName::new(
                                                                     LocalName::new_dangerous(
                                                                         "NMTOKEN",
@@ -994,14 +991,9 @@ fn xsd_white_space() -> xs::Element {
                                                                 ]).build()
                                                                 .into()
                                                                 )
-                                                                .attr_decls(xs::groups::AttrDecls::builder().build().into())
-                                                               
-                                                                .assertions(xs::groups::Assertions::builder().build().into())
                                                                 .build()
-                                                                .into()).build()
-                                                                .into(),
-                                                              )
-                                                              .into()
+                                                                .into())
+                                                                .into()
                                                             )
                                                             .build()
                                                             .into(),
