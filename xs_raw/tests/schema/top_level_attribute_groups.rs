@@ -2,6 +2,20 @@ use super::xs;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xs_raw::xs_custom;
 
+#[rstest::rstest]
+#[case::occurs(XSD_OCCURS, None)]
+#[case::def_ref(XSD_DEF_REF, None)]
+#[case::any_attr_group(XSD_ANY_ATTR_GROUP, Some(xsd_any_attr_group()))]
+#[ntest::timeout(1000)]
+fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::AttributeGroup>) {
+    let xml = xml.trim();
+    let element: xs::AttributeGroup = xmlity_quick_xml::de::from_str(xml).unwrap();
+
+    if let Some(expected) = expected {
+        pretty_assertions::assert_eq!(element, expected);
+    }
+}
+
 const XSD_OCCURS: &str = r###"
 <xs:attributeGroup xmlns:xs="http://www.w3.org/2001/XMLSchema" name="occurs">
   <xs:annotation>
@@ -70,37 +84,28 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                             .use_("optional".to_string())
                             .simple_type(
                                 xs::types::LocalSimpleType::builder()
-                                    .simple_derivation(
-                                        Box::new(xs::groups::SimpleDerivation(
-                                            xs::Restriction::builder()
-                                                .base(xs_custom::QName(ExpandedName::new(
-                                                    LocalName::new_dangerous("basicNamespaceList"),
-                                                    Some(XmlNamespace::XS),
-                                                )))
-                                                .simple_restriction_model(
-                                                    xs::groups::SimpleRestrictionModel::builder()
-                                                        .child_1(vec![
-                                                          //TODO: Facets are fucked.
-                                                        ])
-                                                        .build(),
-                                                )
-                                                .build()
-                                                .into(),
-                                        )),
-                                        // xs::SimpleRestrictionType::builder()
-                                        //     .base(xs::QName(ExpandedName::new(
-                                        //         LocalName::new_dangerous("basicNamespaceList"),
-                                        //         Some(XmlNamespace::XS),
-                                        //     )))
-                                        //     .facets(vec![xs::MinLength(
-                                        //         xs::FacetType::builder()
-                                        //             .value("1".to_string())
-                                        //             .build(),
-                                        //     )
-                                        //     .into()])
-                                        //     .build()
-                                        //     .into(),
-                                    )
+                                    .simple_derivation(Box::new(
+                                        xs::Restriction::builder()
+                                            .base(xs_custom::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("basicNamespaceList"),
+                                                Some(XmlNamespace::XS),
+                                            )))
+                                            .simple_restriction_model(
+                                                xs::groups::SimpleRestrictionModel::builder()
+                                                    .child_1(vec![
+                                                      //TODO: Facets are fucked.
+                                                      // xs::MinLength(
+                                                      //     xs::FacetType::builder()
+                                                      //         .value("1".to_string())
+                                                      //         .build(),
+                                                      // )
+                                                      // .into()
+                                                    ])
+                                                    .build(),
+                                            )
+                                            .build()
+                                            .into(),
+                                    ))
                                     .build()
                                     .into(),
                             )
@@ -112,41 +117,34 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                             .use_("optional".to_string())
                             .simple_type(
                                 xs::types::LocalSimpleType::builder()
-                                    .simple_derivation(
-                                        Box::new(xs::groups::SimpleDerivation(
-                                            xs::Restriction::builder()
-                                                .simple_restriction_model(
-                                                    xs::groups::SimpleRestrictionModel::builder()
-                                                        .child_1(vec![
-                                                          //TODO: Facets are fucked.
-                                                        ])
-                                                        .build(),
-                                                )
-                                                .build()
-                                                .into(),
-                                        )),
-                                        // xs::SimpleRestrictionType::builder()
-                                        //     .base(xs::QName(ExpandedName::new(
-                                        //         LocalName::new_dangerous("NMTOKEN"),
-                                        //         Some(XmlNamespace::XS),
-                                        //     )))
-                                        //     .facets(vec![
-                                        //         xs::Enumeration(Box:::new(xs::types::NoFixedFacet::builder().value("skip".to_string())
-                                        //             .build()))
+                                    .simple_derivation(Box::new(
+                                        xs::Restriction::builder()
+                                            .base(xs_custom::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("NMTOKEN"),
+                                                Some(XmlNamespace::XS),
+                                            )))
+                                            .simple_restriction_model(
+                                                xs::groups::SimpleRestrictionModel::builder()
+                                                    .child_1(vec![
+                                                        //TODO: Facets are fucked.
+                                                        // xs::Enumeration(Box:::new(xs::types::NoFixedFacet::builder().value("skip".to_string())
+                                                        //     .build()))
 
-                                        //             .into(),
-                                        //         xs::Enumeration::builder()
-                                        //             .value("lax".to_string())
-                                        //             .build()
-                                        //             .into(),
-                                        //         xs::Enumeration::builder()
-                                        //             .value("strict".to_string())
-                                        //             .build()
-                                        //             .into(),
-                                        //     ])
-                                        //     .build()
-                                        //     .into(),
-                                    )
+                                                        //     .into(),
+                                                        // xs::Enumeration::builder()
+                                                        //     .value("lax".to_string())
+                                                        //     .build()
+                                                        //     .into(),
+                                                        // xs::Enumeration::builder()
+                                                        //     .value("strict".to_string())
+                                                        //     .build()
+                                                        //     .into(),
+                                                    ])
+                                                    .build(),
+                                            )
+                                            .build()
+                                            .into(),
+                                    ))
                                     .build()
                                     .into(),
                             )
@@ -157,18 +155,4 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
             ))
             .build(),
     ))
-}
-
-#[rstest::rstest]
-#[case::occurs(XSD_OCCURS, None)]
-#[case::def_ref(XSD_DEF_REF, None)]
-#[case::any_attr_group(XSD_ANY_ATTR_GROUP, Some(xsd_any_attr_group()))]
-#[ntest::timeout(1000)]
-fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::AttributeGroup>) {
-    let xml = xml.trim();
-    let element: xs::AttributeGroup = xmlity_quick_xml::de::from_str(xml).unwrap();
-
-    if let Some(expected) = expected {
-        pretty_assertions::assert_eq!(element, expected);
-    }
 }

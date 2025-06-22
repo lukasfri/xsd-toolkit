@@ -1,6 +1,64 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xs_raw::{xs, xs_custom};
 
+#[rstest::rstest]
+#[case::schema(XSD_SCHEMA, None)]
+#[case::any_attribute(XSD_ANY_ATTRIBUTE, Some(xsd_any_attribute()))]
+#[case::complex_content(XSD_COMPLEX_CONTENT, None)]
+#[case::open_content(XSD_OPEN_CONTENT, None)]
+#[case::default_open_content(XSD_DEFAULT_OPEN_CONTENT, None)]
+#[case::simple_content(XSD_SIMPLE_CONTENT, None)]
+#[case::complex_type(XSD_COMPLEX_TYPE, None)]
+#[case::element(XSD_ELEMENT, None)]
+#[case::all(XSD_ALL, None)]
+#[case::choice(XSD_CHOICE, None)]
+#[case::sequence(XSD_SEQUENCE, None)]
+#[case::group(XSD_GROUP, None)]
+#[case::any(XSD_ANY, None)]
+#[case::attribute(XSD_ATTRIBUTE, None)]
+#[case::attribute_group(XSD_ATTRIBUTE_GROUP, None)]
+#[case::include(XSD_INCLUDE, None)]
+#[case::redefine(XSD_REDEFINE, None)]
+#[case::override_(XSD_OVERRIDE, None)]
+#[case::import(XSD_IMPORT, None)]
+#[case::selector(XSD_SELECTOR, None)]
+#[case::field(XSD_FIELD, None)]
+#[case::unique(XSD_UNIQUE, None)]
+#[case::key(XSD_KEY, None)]
+#[case::keyref(XSD_KEYREF, None)]
+#[case::notation(XSD_NOTATION, None)]
+#[case::appinfo(XSD_APPINFO, None)]
+#[case::documentation(XSD_DOCUMENTATION, None)]
+#[case::annotation(XSD_ANNOTATION, None)]
+#[case::simple_type(XSD_SIMPLE_TYPE, None)]
+#[case::facet(XSD_FACET, None)]
+#[case::restriction(XSD_RESTRICTION, None)]
+#[case::list(XSD_LIST, None)]
+#[case::union(XSD_UNION, None)]
+#[case::min_exclusive(XSD_MIN_EXCLUSIVE, None)]
+#[case::min_inclusive(XSD_MIN_INCLUSIVE, None)]
+#[case::max_exclusive(XSD_MAX_EXCLUSIVE, None)]
+#[case::max_inclusive(XSD_MAX_INCLUSIVE, None)]
+#[case::total_digits(XSD_TOTAL_DIGITS, Some(xsd_total_digits()))]
+#[case::fraction_digits(XSD_FRACTION_DIGITS, None)]
+#[case::length(XSD_LENGTH, None)]
+#[case::min_length(XSD_MIN_LENGTH, None)]
+#[case::max_length(XSD_MAX_LENGTH, None)]
+#[case::enumeration(XSD_ENUMERATION, None)]
+#[case::white_space(XSD_WHITE_SPACE, Some(xsd_white_space()))]
+#[case::pattern(XSD_PATTERN, None)]
+#[case::assertion(XSD_ASSERTION, None)]
+#[case::explicit_timezone(XSD_EXPLICIT_TIMEZONE, None)]
+#[ntest::timeout(1000)]
+fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::Element>) {
+    let xml = xml.trim();
+    let element: xs::Element = xmlity_quick_xml::de::from_str(xml).unwrap();
+
+    if let Some(expected) = expected {
+        pretty_assertions::assert_eq!(element, expected);
+    }
+}
+
 const XSD_SCHEMA: &str = r###"
 <xs:element xmlns:xs="http://www.w3.org/2001/XMLSchema" name="schema" id="schema">
   <xs:annotation>
@@ -106,39 +164,36 @@ fn xsd_any_attribute() -> xs::Element {
         )
         .type_(
             xs::types::LocalComplexType::builder()
-                .complex_type_model(
-                    xs::groups::ComplexTypeModel(
-                        xs::ComplexContent::builder()
-                            .child_1(
-                                xs::types::ExtensionType::builder()
-                                    .base(xs_custom::QName(ExpandedName::new(
-                                        LocalName::new_dangerous("wildcard"),
-                                        Some(XmlNamespace::XS),
-                                    )))
-                                    .attr_decls(
-                                        xs::groups::AttrDecls::builder()
-                                            .attribute(vec![xs::types::Attribute::builder()
-                                                .name(LocalName::new_dangerous("notQName"))
-                                                .type_(xs_custom::QName(ExpandedName::new(
-                                                    LocalName::new_dangerous("qnameListA"),
-                                                    Some(XmlNamespace::XS),
-                                                )))
-                                                // .use_(xs::AttributeUseType::Optional)
-                                                .use_("optional".to_string())
-                                                .build()
-                                                .into()])
+                .complex_type_model(Box::new(
+                    xs::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ExtensionType::builder()
+                                .base(xs_custom::QName(ExpandedName::new(
+                                    LocalName::new_dangerous("wildcard"),
+                                    Some(XmlNamespace::XS),
+                                )))
+                                .attr_decls(
+                                    xs::groups::AttrDecls::builder()
+                                        .attribute(vec![xs::types::Attribute::builder()
+                                            .name(LocalName::new_dangerous("notQName"))
+                                            .type_(xs_custom::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("qnameListA"),
+                                                Some(XmlNamespace::XS),
+                                            )))
+                                            // .use_(xs::AttributeUseType::Optional)
+                                            .use_("optional".to_string())
                                             .build()
-                                            .into(),
-                                    )
-                                    .assertions(xs::groups::Assertions::builder().build().into())
-                                    .build()
-                                    .into(),
-                            )
-                            .build()
-                            .into(),
-                    )
-                    .into(),
-                )
+                                            .into()])
+                                        .build()
+                                        .into(),
+                                )
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .build()
+                                .into(),
+                        )
+                        .build()
+                        .into(),
+                ))
                 .build()
                 .into(),
         )
@@ -743,7 +798,7 @@ fn xsd_total_digits() -> xs::Element {
         .type_(
             xs::types::LocalComplexType::builder()
                 .complex_type_model(
-                    xs::groups::ComplexTypeModel(
+                    Box::new(
                         xs::ComplexContent::builder()
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
@@ -755,19 +810,18 @@ fn xsd_total_digits() -> xs::Element {
                                       xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
                                       .type_def_particle(
                                         Box::new(
-                                          xs::groups::TypeDefParticle(
                                             xs::Sequence(Box::new(
                                               xs::types::ExplicitGroup::builder()
-                                            .nested_particle(vec![xs::groups::NestedParticle(xs::types::LocalElement::builder()
+                                            .nested_particle(vec![Box::new(xs::types::LocalElement::builder()
                                                 .ref_(xs_custom::QName(ExpandedName::new(
                                                     LocalName::new_dangerous("annotation"),
                                                     Some(XmlNamespace::XS),
                                                 )))
                                                 .min_occurs(0)
                                                 .build()
-                                                .into()).into()])
+                                                .into())])
                                             .build())
-                                            .into()).into()))
+                                            .into()).into())
                                           ).build().into(),
                                     )
                                     .attr_decls(
@@ -786,7 +840,6 @@ fn xsd_total_digits() -> xs::Element {
                                                 xs::AnyAttribute::builder()
                                                     .namespace(xs_custom::NamespaceListType::Other)
                                                     .process_contents("lax".to_string())
-                                                    // .namespace(xs::NamespaceListType::Other)
                                                     // .process_contents(xs::ProcessContentsType::Lax)
                                                     .build().into(),
                                             )
@@ -798,9 +851,7 @@ fn xsd_total_digits() -> xs::Element {
                                     .into(),
                             )
                             .build()
-                            .into(),
-                    )
-                    .into(),
+                            .into()),
                 )
                 .build()
                 .into(),
@@ -912,7 +963,7 @@ fn xsd_white_space() -> xs::Element {
             .type_(
                 xs::types::LocalComplexType::builder()
                     .complex_type_model(
-                        xs::groups::ComplexTypeModel(
+                      Box::new(
                             xs::ComplexContent::builder()
                                 .child_1(
                                     xs::types::ComplexRestrictionType::builder()
@@ -923,30 +974,26 @@ fn xsd_white_space() -> xs::Element {
                                         .variant_0(
                                           xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
                                           .type_def_particle(
-                                            xs::groups::TypeDefParticle(
-                                              
-                                            xs::Sequence(
-                                              xs::types::ExplicitGroup::builder()
-                                                .nested_particle(vec![
-                                                  xs::groups::NestedParticle(
-                                                  
-                                                  xs::types::LocalElement::builder()
-                                                    .ref_(xs_custom::QName(ExpandedName::new(
-                                                        LocalName::new_dangerous("annotation"),
-                                                        Some(XmlNamespace::XS),
-                                                    )))
-                                                    .min_occurs(0)
+                                            Box::new(
+                                                xs::Sequence(
+                                                  xs::types::ExplicitGroup::builder()
+                                                    .nested_particle(vec![
+                                                      Box::new(
+                                                          xs::types::LocalElement::builder()
+                                                              .ref_(xs_custom::QName(ExpandedName::new(
+                                                                  LocalName::new_dangerous("annotation"),
+                                                                  Some(XmlNamespace::XS),
+                                                              )))
+                                                              .min_occurs(0)
+                                                              .build()
+                                                              .into()
+                                                      )
+                                                    ])
                                                     .build()
                                                     .into()
-                                                    )
-                                                    .into()])
-                                                .build()
-                                                .into()
-                                                  )
+                                                )
                                                 .into(),
                                             )
-                                            .into()
-                                                 
                                           ).build().into()
                                         )
                                         .attr_decls(
@@ -958,7 +1005,7 @@ fn xsd_white_space() -> xs::Element {
                                                     .simple_type(
                                                         xs::types::LocalSimpleType::builder()
                                                             .simple_derivation(
-                                                              xs::groups::SimpleDerivation(
+                                                              Box::new(
                                                                 xs::Restriction::builder()
                                                                 .base(xs_custom::QName(ExpandedName::new(
                                                                     LocalName::new_dangerous(
@@ -969,7 +1016,7 @@ fn xsd_white_space() -> xs::Element {
                                                                 .simple_restriction_model(
                                                                   xs::groups::SimpleRestrictionModel::builder()
                                                                   .child_1(vec![
-                                                                    //TODO
+                                                                    //TODO: Facets
                                                                     // xs::Enumeration::builder()
                                                                     //     .value(
                                                                     //         "preserve".to_string(),
@@ -993,7 +1040,6 @@ fn xsd_white_space() -> xs::Element {
                                                                 )
                                                                 .build()
                                                                 .into())
-                                                                .into()
                                                             )
                                                             .build()
                                                             .into(),
@@ -1019,8 +1065,7 @@ fn xsd_white_space() -> xs::Element {
                                 )
                                 .build()
                                 .into(),
-                        )
-                        .into(),
+                        ),
                     )
                     .build()
                     .into(),
@@ -1091,61 +1136,3 @@ const XSD_EXPLICIT_TIMEZONE: &str = r###"
   </xs:complexType>
 </xs:element>
 "###;
-
-#[rstest::rstest]
-#[case::schema(XSD_SCHEMA, None)]
-#[case::any_attribute(XSD_ANY_ATTRIBUTE, Some(xsd_any_attribute()))]
-#[case::complex_content(XSD_COMPLEX_CONTENT, None)]
-#[case::open_content(XSD_OPEN_CONTENT, None)]
-#[case::default_open_content(XSD_DEFAULT_OPEN_CONTENT, None)]
-#[case::simple_content(XSD_SIMPLE_CONTENT, None)]
-#[case::complex_type(XSD_COMPLEX_TYPE, None)]
-#[case::element(XSD_ELEMENT, None)]
-#[case::all(XSD_ALL, None)]
-#[case::choice(XSD_CHOICE, None)]
-#[case::sequence(XSD_SEQUENCE, None)]
-#[case::group(XSD_GROUP, None)]
-#[case::any(XSD_ANY, None)]
-#[case::attribute(XSD_ATTRIBUTE, None)]
-#[case::attribute_group(XSD_ATTRIBUTE_GROUP, None)]
-#[case::include(XSD_INCLUDE, None)]
-#[case::redefine(XSD_REDEFINE, None)]
-#[case::override_(XSD_OVERRIDE, None)]
-#[case::import(XSD_IMPORT, None)]
-#[case::selector(XSD_SELECTOR, None)]
-#[case::field(XSD_FIELD, None)]
-#[case::unique(XSD_UNIQUE, None)]
-#[case::key(XSD_KEY, None)]
-#[case::keyref(XSD_KEYREF, None)]
-#[case::notation(XSD_NOTATION, None)]
-#[case::appinfo(XSD_APPINFO, None)]
-#[case::documentation(XSD_DOCUMENTATION, None)]
-#[case::annotation(XSD_ANNOTATION, None)]
-#[case::simple_type(XSD_SIMPLE_TYPE, None)]
-#[case::facet(XSD_FACET, None)]
-#[case::restriction(XSD_RESTRICTION, None)]
-#[case::list(XSD_LIST, None)]
-#[case::union(XSD_UNION, None)]
-#[case::min_exclusive(XSD_MIN_EXCLUSIVE, None)]
-#[case::min_inclusive(XSD_MIN_INCLUSIVE, None)]
-#[case::max_exclusive(XSD_MAX_EXCLUSIVE, None)]
-#[case::max_inclusive(XSD_MAX_INCLUSIVE, None)]
-#[case::total_digits(XSD_TOTAL_DIGITS, Some(xsd_total_digits()))]
-#[case::fraction_digits(XSD_FRACTION_DIGITS, None)]
-#[case::length(XSD_LENGTH, None)]
-#[case::min_length(XSD_MIN_LENGTH, None)]
-#[case::max_length(XSD_MAX_LENGTH, None)]
-#[case::enumeration(XSD_ENUMERATION, None)]
-#[case::white_space(XSD_WHITE_SPACE, Some(xsd_white_space()))]
-#[case::pattern(XSD_PATTERN, None)]
-#[case::assertion(XSD_ASSERTION, None)]
-#[case::explicit_timezone(XSD_EXPLICIT_TIMEZONE, None)]
-#[ntest::timeout(1000)]
-fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::Element>) {
-    let xml = xml.trim();
-    let element: xs::Element = xmlity_quick_xml::de::from_str(xml).unwrap();
-
-    if let Some(expected) = expected {
-        pretty_assertions::assert_eq!(element, expected);
-    }
-}

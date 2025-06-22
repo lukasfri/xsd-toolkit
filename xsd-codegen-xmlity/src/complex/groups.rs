@@ -13,7 +13,7 @@ use crate::{
 };
 
 use quote::format_ident;
-use syn::parse_quote;
+use syn::{parse_quote, Item, Path};
 use xsd::schema::MaxOccursValue;
 use xsd_type_compiler::complex as cx;
 
@@ -91,7 +91,7 @@ impl ToTypeTemplate for cx::AllFragment {
                 let item = res.template.into_item(
                     context,
                     &mut sub_scope,
-                    &ident.to_field_ident(),
+                    &ident.to_item_ident(),
                     None,
                 )?;
 
@@ -137,7 +137,7 @@ impl ToTypeTemplate for cx::AllFragment {
             scope,
         )?;
 
-        if matches!(template, ItemOrTemplate::Record(_)) {
+        if matches!(template, ItemOrTemplate::Template(_)) {
             scope.add_raw_items(sub_scope_items);
         } else {
             let _mod_ref = finish_mod(&mod_name, sub_scope_items)
@@ -153,7 +153,7 @@ impl ToTypeTemplate for cx::AllFragment {
 }
 
 pub enum ItemOrTemplate<T> {
-    Record(T),
+    Template(T),
     Item(templates::value_record::ItemFieldItem),
 }
 
@@ -166,7 +166,7 @@ impl<T> ItemOrTemplate<T> {
         scope: &mut S,
     ) -> Result<Self> {
         match (min_occurs, max_occurs) {
-            (1, MaxOccursValue::Bounded(1)) => Ok(Self::Record(template)),
+            (1, MaxOccursValue::Bounded(1)) => Ok(Self::Template(template)),
             (min, max) => {
                 let ty = scope.add_item(template_to_item(template))?;
 
@@ -212,7 +212,7 @@ impl ToTypeTemplate for cx::SequenceFragment {
                 let item = res.template.into_item(
                     context,
                     &mut sub_scope,
-                    &ident.to_field_ident(),
+                    &ident.to_item_ident(),
                     None,
                 )?;
 
@@ -258,7 +258,7 @@ impl ToTypeTemplate for cx::SequenceFragment {
             scope,
         )?;
 
-        if matches!(template, ItemOrTemplate::Record(_)) {
+        if matches!(template, ItemOrTemplate::Template(_)) {
             scope.add_raw_items(sub_scope_items);
         } else {
             let _mod_ref = finish_mod(&mod_name, sub_scope_items)
@@ -274,7 +274,7 @@ impl ToTypeTemplate for cx::SequenceFragment {
 }
 
 impl ToTypeTemplate for cx::ChoiceFragment {
-    type TypeTemplate = ItemFieldItem;
+    type TypeTemplate = ItemOrTemplate<templates::choice::Choice>;
 
     fn to_type_template<C: Context, S: Scope>(
         &self,
@@ -335,21 +335,27 @@ impl ToTypeTemplate for cx::ChoiceFragment {
             .map(|a| scope.add_item(a))
             .transpose()?;
 
-        let item = template.to_enum(&ident, None);
-
-        let ty = scope.add_item(item)?;
-
         let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
         let max_occurs = self.max_occurs.unwrap_or(MaxOccursValue::Bounded(1));
 
-        let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
+        let template = if min_occurs != 1 || max_occurs != MaxOccursValue::Bounded(1) {
+            let item = template.to_enum(&ident, None);
+
+            let ty = scope.add_item(item)?;
+
+            let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
+
+            ItemOrTemplate::Item(ItemFieldItem {
+                ty,
+                default: optional,
+            })
+        } else {
+            ItemOrTemplate::Template(template)
+        };
 
         Ok(ToTypeTemplateData {
             ident: Some(ident),
-            template: ItemFieldItem {
-                ty,
-                default: optional,
-            },
+            template,
         })
     }
 }
@@ -468,19 +474,23 @@ impl GroupTypeContentTemplate {
                 min_occurs,
                 max_occurs,
             } => {
-                let optional = min_occurs == 0;
-                let res = record.try_into_compact_item_field(optional);
+                let record = if max_occurs == MaxOccursValue::Bounded(1) {
+                    let optional = min_occurs == 0;
+                    let res = record.try_into_compact_item_field(optional);
 
-                let record = match res {
-                    Ok(mut field_element) => {
-                        field_element.ty = field_element
-                            .ty
-                            .wrap_if(optional, TypeReference::option_wrapper);
-                        field_element.optional = optional;
+                    match res {
+                        Ok(mut field_element) => {
+                            field_element.ty = field_element
+                                .ty
+                                .wrap_if(optional, TypeReference::option_wrapper);
+                            field_element.optional = optional;
 
-                        return Ok(ItemField::Element(field_element));
+                            return Ok(ItemField::Element(field_element));
+                        }
+                        Err(item) => item,
                     }
-                    Err(item) => item,
+                } else {
+                    record
                 };
 
                 let ty = scope.add_item(record.to_struct(ident, path))?;
@@ -549,7 +559,7 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
                     .unwrap_or_else(|| context.suggested_ident().clone());
 
                 let item = match record.template {
-                    ItemOrTemplate::Record(record) => {
+                    ItemOrTemplate::Template(record) => {
                         let item = record.to_struct(&ident, None);
 
                         let ty = scope.add_item(item)?;
@@ -569,10 +579,25 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
             cx::GroupTypeContentId::Choice(fragment_idx) => {
                 let record = context.resolve_fragment_id(fragment_idx, scope)?;
 
-                let template = GroupTypeContentTemplate::Item(record.template);
+                let ident = record
+                    .ident
+                    .unwrap_or_else(|| context.suggested_ident().clone());
+
+                let item = match record.template {
+                    ItemOrTemplate::Template(record) => {
+                        let item = record.to_enum(&ident, None);
+
+                        let ty = scope.add_item(item)?;
+
+                        ItemFieldItem { ty, default: false }
+                    }
+                    ItemOrTemplate::Item(item) => item,
+                };
+
+                let template = GroupTypeContentTemplate::Item(item);
 
                 ToTypeTemplateData {
-                    ident: record.ident,
+                    ident: Some(ident),
                     template,
                 }
             }
@@ -590,7 +615,7 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
                     .unwrap_or_else(|| context.suggested_ident().clone());
 
                 let item = match record.template {
-                    ItemOrTemplate::Record(record) => {
+                    ItemOrTemplate::Template(record) => {
                         let item = record.to_struct(&ident, Some(&mod_path));
 
                         sub_scope
@@ -635,6 +660,7 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
 #[derive(Debug)]
 pub enum TypeDefParticleTemplate {
     Record(ItemRecord),
+    Choice(templates::choice::Choice),
     Item(ItemFieldItem),
 }
 
@@ -645,19 +671,9 @@ impl TypeDefParticleTemplate {
     ) -> templates::group_record::GroupRecord {
         match self {
             TypeDefParticleTemplate::Record(item_record) => item_record.into_group_record(),
+            TypeDefParticleTemplate::Choice(_) => todo!(),
             TypeDefParticleTemplate::Item(item_field_item) => {
                 item_field_item.into_group_record(ident)
-            }
-        }
-    }
-    pub fn into_item_record(
-        self,
-        ident: Option<syn::Ident>,
-    ) -> templates::value_record::ItemRecord {
-        match self {
-            TypeDefParticleTemplate::Record(item_record) => item_record.into_item_record(),
-            TypeDefParticleTemplate::Item(item_field_item) => {
-                item_field_item.into_item_record(ident)
             }
         }
     }
@@ -685,23 +701,27 @@ impl ToTypeTemplate for cx::TypeDefParticleId {
             cx::TypeDefParticleId::All(fragment_idx) => {
                 let all = context.resolve_fragment_id(fragment_idx, scope)?;
 
+                let template = match all.template {
+                    ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
+                    ItemOrTemplate::Item(item) => TypeDefParticleTemplate::Item(item),
+                };
+
                 Ok(ToTypeTemplateData {
                     ident: all.ident,
-                    template: match all.template {
-                        ItemOrTemplate::Record(record) => TypeDefParticleTemplate::Record(record),
-                        ItemOrTemplate::Item(item) => TypeDefParticleTemplate::Item(item),
-                    },
+                    template,
                 })
             }
             cx::TypeDefParticleId::Sequence(fragment_idx) => {
                 let sequence = context.resolve_fragment_id(fragment_idx, scope)?;
 
+                let template = match sequence.template {
+                    ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
+                    ItemOrTemplate::Item(item) => TypeDefParticleTemplate::Item(item),
+                };
+
                 Ok(ToTypeTemplateData {
                     ident: sequence.ident,
-                    template: match sequence.template {
-                        ItemOrTemplate::Record(record) => TypeDefParticleTemplate::Record(record),
-                        ItemOrTemplate::Item(item) => TypeDefParticleTemplate::Item(item),
-                    },
+                    template,
                 })
             }
             cx::TypeDefParticleId::Choice(fragment_idx) => {
@@ -712,7 +732,10 @@ impl ToTypeTemplate for cx::TypeDefParticleId {
                     .as_ref()
                     .unwrap_or_else(|| context.suggested_ident());
 
-                let template = TypeDefParticleTemplate::Item(choice.template);
+                let template = match choice.template {
+                    ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Choice(record),
+                    ItemOrTemplate::Item(item) => TypeDefParticleTemplate::Item(item),
+                };
 
                 Ok(ToTypeTemplateData {
                     ident: Some(ident.clone()),
@@ -735,29 +758,36 @@ impl ToTypeTemplate for cx::NamedGroupTypeContentId {
             cx::NamedGroupTypeContentId::All(fragment_idx) => {
                 let all = context.resolve_fragment_id(fragment_idx, scope)?;
 
+                let template = match all.template {
+                    ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
+                    ItemOrTemplate::Item(item) => TypeDefParticleTemplate::Item(item),
+                };
+
                 Ok(ToTypeTemplateData {
                     ident: all.ident,
-                    template: match all.template {
-                        ItemOrTemplate::Record(record) => TypeDefParticleTemplate::Record(record),
-                        ItemOrTemplate::Item(item) => TypeDefParticleTemplate::Item(item),
-                    },
+                    template,
                 })
             }
             cx::NamedGroupTypeContentId::Sequence(fragment_idx) => {
                 let sequence = context.resolve_fragment_id(fragment_idx, scope)?;
 
+                let template = match sequence.template {
+                    ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
+                    ItemOrTemplate::Item(item) => TypeDefParticleTemplate::Item(item),
+                };
+
                 Ok(ToTypeTemplateData {
                     ident: sequence.ident,
-                    template: match sequence.template {
-                        ItemOrTemplate::Record(record) => TypeDefParticleTemplate::Record(record),
-                        ItemOrTemplate::Item(item) => TypeDefParticleTemplate::Item(item),
-                    },
+                    template,
                 })
             }
             cx::NamedGroupTypeContentId::Choice(fragment_idx) => {
                 let choice = context.resolve_fragment_id(fragment_idx, scope)?;
 
-                let template = TypeDefParticleTemplate::Item(choice.template);
+                let template = match choice.template {
+                    ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Choice(record),
+                    ItemOrTemplate::Item(item) => TypeDefParticleTemplate::Item(item),
+                };
 
                 Ok(ToTypeTemplateData {
                     ident: choice.ident,
@@ -768,8 +798,24 @@ impl ToTypeTemplate for cx::NamedGroupTypeContentId {
     }
 }
 
+pub enum TopLevelGroupTemplate {
+    ItemRecord(ItemRecord),
+    Choice(choice::Choice),
+}
+
+impl TopLevelGroupTemplate {
+    pub fn to_item(&self, ident: &syn::Ident, path: Option<&Path>) -> Item {
+        match self {
+            TopLevelGroupTemplate::ItemRecord(item_record) => {
+                Item::Struct(item_record.to_struct(ident, path))
+            }
+            TopLevelGroupTemplate::Choice(choice) => Item::Enum(choice.to_enum(ident, path)),
+        }
+    }
+}
+
 impl ToTypeTemplate for cx::TopLevelGroupFragment {
-    type TypeTemplate = ItemRecord;
+    type TypeTemplate = TopLevelGroupTemplate;
 
     fn to_type_template<C: Context, S: Scope>(
         &self,
@@ -782,9 +828,19 @@ impl ToTypeTemplate for cx::TopLevelGroupFragment {
             .sub_context(ident.clone())
             .resolve_fragment(&self.content, scope)?;
 
+        let template = match fragment.template {
+            TypeDefParticleTemplate::Record(item_record) => {
+                TopLevelGroupTemplate::ItemRecord(item_record.into_item_record())
+            }
+            TypeDefParticleTemplate::Choice(choice) => TopLevelGroupTemplate::Choice(choice),
+            TypeDefParticleTemplate::Item(item_field_item) => {
+                TopLevelGroupTemplate::ItemRecord(item_field_item.into_item_record(None))
+            }
+        };
+
         Ok(ToTypeTemplateData {
             ident: Some(ident),
-            template: fragment.template.into_item_record(None),
+            template,
         })
     }
 }

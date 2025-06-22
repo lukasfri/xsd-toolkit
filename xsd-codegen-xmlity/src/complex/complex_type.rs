@@ -4,6 +4,7 @@ use crate::{
         self,
         element_record::{ElementField, ElementFieldType},
         group_record::GroupRecord,
+        value_record::ItemFieldItem,
     },
     Result, ToIdentTypesExt,
 };
@@ -84,21 +85,29 @@ impl ToTypeTemplate for cx::RestrictionFragment {
         let mut template = self
             .content_fragment
             .map(|a| {
-                context
-                    .resolve_fragment(&a, scope)
-                    .map(|a| match a.template {
+                context.resolve_fragment(&a, scope).map(|a| {
+                    let ident = a.ident.unwrap_or_else(|| format_ident!("Particle"));
+
+                    match a.template {
                         TypeDefParticleTemplate::Record(item_record) => {
                             item_record.into_group_record()
                         }
+                        TypeDefParticleTemplate::Choice(item) => {
+                            let item = item.to_enum(&ident, None);
+
+                            let ty = scope.add_item(item).unwrap();
+
+                            GroupRecord::new_single_field(
+                                Some(ident.to_field_ident()),
+                                ElementField::Item(ItemFieldItem { ty, default: false }),
+                            )
+                        }
                         TypeDefParticleTemplate::Item(item) => GroupRecord::new_single_field(
-                            Some(
-                                a.ident
-                                    .unwrap_or_else(|| format_ident!("particle"))
-                                    .to_field_ident(),
-                            ),
+                            Some(ident.to_field_ident()),
                             ElementField::Item(item),
                         ),
-                    })
+                    }
+                })
             })
             .transpose()?
             .unwrap_or_else(GroupRecord::new_empty);

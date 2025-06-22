@@ -857,13 +857,13 @@ impl<'a> Generator<'a> {
 
         let mut item = type_
             .template
-            .to_struct(&item_name, Some(&parse_quote!(#module_name)));
+            .to_item(&item_name, Some(&parse_quote!(#module_name)));
 
-        let augment_items = self.augmenter.augment_struct(&mut item);
+        let augment_items = self.augmenter.augment_item(&mut item);
 
         items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
 
-        items.push(Item::Struct(item));
+        items.push(item);
 
         items.extend(augment_items);
 

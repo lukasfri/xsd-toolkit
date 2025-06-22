@@ -1,5 +1,53 @@
-use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd::schema as xs;
+use xmlity::{ExpandedName, LocalName, XmlNamespace, XmlValue};
+use xs_raw::{xs, xs_custom};
+
+#[rstest::rstest]
+#[case::open_attrs(XSD_OPEN_ATTRS, None)]
+#[case::annotated(XSD_ANNOTATED, None)]
+#[case::attribute(XSD_ATTRIBUTE, None)]
+#[case::top_level_attribute(XSD_TOP_LEVEL_ATTRIBUTE, None)]
+#[case::assertion(XSD_ASSERTION, None)]
+#[case::complex_base_type(XSD_COMPLEX_BASE_TYPE, None)]
+#[case::top_level_complex_type(XSD_TOP_LEVEL_COMPLEX_TYPE, None)]
+#[case::local_complex_type(XSD_LOCAL_COMPLEX_TYPE, None)]
+#[case::restriction_type(XSD_RESTRICTION_TYPE, None)]
+#[case::complex_restriction_type(XSD_COMPLEX_RESTRICTION_TYPE, None)]
+#[case::extension_type(XSD_EXTENSION_TYPE, None)]
+#[case::simple_restriction_type(XSD_SIMPLE_RESTRICTION_TYPE, None)]
+#[case::simple_extension_type(XSD_SIMPLE_EXTENSION_TYPE, None)]
+#[case::element(XSD_ELEMENT, None)]
+#[case::top_level_element(XSD_TOP_LEVEL_ELEMENT, None)]
+#[case::local_element(XSD_LOCAL_ELEMENT, None)]
+#[case::alt_type(XSD_ALT_TYPE, None)]
+#[case::group(XSD_GROUP, None)]
+#[case::real_group(XSD_REAL_GROUP, None)]
+#[case::named_group(XSD_NAMED_GROUP, None)]
+#[case::group_ref(XSD_GROUP_REF, None)]
+#[case::explicit_group(XSD_EXPLICIT_GROUP, None)]
+#[case::simple_explicit_group(XSD_SIMPLE_EXPLICIT_GROUP, None)]
+#[case::all(XSD_ALL, Some(xsd_all()))]
+#[case::wildcard(XSD_WILDCARD, None)]
+#[case::attribute_group(XSD_ATTRIBUTE_GROUP, None)]
+#[case::named_attribute_group(XSD_NAMED_ATTRIBUTE_GROUP, None)]
+#[case::attribute_group_ref(XSD_ATTRIBUTE_GROUP_REF, None)]
+#[case::keybase(XSD_KEYBASE, None)]
+#[case::any_type(XSD_ANY_TYPE, Some(xsd_any_type()))]
+#[case::simple_base_type(XSD_SIMPLE_BASE_TYPE, None)]
+#[case::top_level_simple_type(XSD_TOP_LEVEL_SIMPLE_TYPE, None)]
+#[case::local_simple_type(XSD_LOCAL_SIMPLE_TYPE, None)]
+#[case::facet(XSD_FACET, None)]
+#[case::no_fixed_facet(XSD_NO_FIXED_FACET, None)]
+#[case::num_facet(XSD_NUM_FACET, None)]
+#[case::int_facet(XSD_INT_FACET, None)]
+#[ntest::timeout(1000)]
+fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::ComplexType>) {
+    let xml = xml.trim();
+    let element: xs::ComplexType = xmlity_quick_xml::de::from_str(xml).unwrap();
+
+    if let Some(expected) = expected {
+        pretty_assertions::assert_eq!(element, expected);
+    }
+}
 
 const XSD_OPEN_ATTRS: &str = r###"
 <xs:complexType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="openAttrs">
@@ -534,119 +582,163 @@ const XSD_ALL: &str = r###"
 </xs:complexType>
 "###;
 
-fn xsd_all() -> xs::TopLevelComplexType {
-    xs::TopLevelComplexType::builder()
-        .name(LocalName::new_dangerous("all"))
-        .annotation(
-            xs::Annotation::builder()
-                .content(vec![xs::Documentation::builder()
-                    .any(vec![xmlity::XmlValue::Text(xmlity::xml!(
-                        "\n  Only elements allowed inside"
-                    ))])
-                    .build()
-                    .into()])
-                .build(),
-        )
-        .content(xs::ComplexTypeModel::ComplexContent(
-            xs::ComplexContent::builder()
-                .content(
-                    xs::ComplexRestrictionType::builder()
-                        .base(xs::QName(ExpandedName::new(
-                            LocalName::new_dangerous("explicitGroup"),
-                            Some(XmlNamespace::XS),
-                        )))
-                        .particle(
-                            xs::GroupRef::builder()
-                                .ref_(xs::QName(ExpandedName::new(
-                                    LocalName::new_dangerous("allModel"),
-                                    Some(XmlNamespace::XS),
-                                )))
-                                .build()
-                                .into(),
-                        )
-                        .attr_decls(
-                            xs::AttrDecls::builder()
-                                .declarations(vec![
-                                    xs::LocalAttribute::builder()
-                                        .name(LocalName::new_dangerous("minOccurs"))
-                                        .default("1".to_string())
-                                        .use_(xs::AttributeUseType::Optional)
-                                        .simple_type(
-                                            xs::LocalSimpleType::builder()
-                                                .content(
-                                                    xs::SimpleRestrictionType::builder()
-                                                        .base(xs::QName(ExpandedName::new(
-                                                            LocalName::new_dangerous(
-                                                                "nonNegativeInteger",
-                                                            ),
-                                                            Some(XmlNamespace::XS),
-                                                        )))
-                                                        .facets(vec![
-                                                            xs::Enumeration::builder()
-                                                                .value("0".to_string())
-                                                                .build()
-                                                                .into(),
-                                                            xs::Enumeration::builder()
-                                                                .value("1".to_string())
-                                                                .build()
-                                                                .into(),
-                                                        ])
-                                                        .build()
-                                                        .into(),
-                                                )
-                                                .build(),
-                                        )
-                                        .build()
-                                        .into(),
-                                    xs::LocalAttribute::builder()
-                                        .name(LocalName::new_dangerous("maxOccurs"))
-                                        .default("1".to_string())
-                                        .use_(xs::AttributeUseType::Optional)
-                                        .simple_type(
-                                            xs::LocalSimpleType::builder()
-                                                .content(
-                                                    xs::SimpleRestrictionType::builder()
-                                                        .base(xs::QName(ExpandedName::new(
-                                                            LocalName::new_dangerous("allNNI"),
-                                                            Some(XmlNamespace::XS),
-                                                        )))
-                                                        .facets(vec![
-                                                            xs::Enumeration::builder()
-                                                                .value("0".to_string())
-                                                                .build()
-                                                                .into(),
-                                                            xs::Enumeration::builder()
-                                                                .value("1".to_string())
-                                                                .build()
-                                                                .into(),
-                                                        ])
-                                                        .build()
-                                                        .into(),
-                                                )
-                                                .build(),
-                                        )
-                                        .build()
-                                        .into(),
-                                ])
-                                .any(
-                                    xs::AnyAttribute::builder()
-                                        .namespace(xs::NamespaceListType::Other)
-                                        .process_contents(xs::ProcessContentsType::Lax)
-                                        .build(),
-                                )
-                                .build(),
-                        )
+fn xsd_all() -> xs::ComplexType {
+    xs::ComplexType(
+        xs::types::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("all"))
+            .annotation(
+                xs::Annotation::builder()
+                    .annotation(vec![xs::Documentation::builder()
+                        .particle(vec![xs::documentation_items::Child0 {
+                            child_0: xmlity::XmlValue::Text(xmlity::xml!(
+                                "\n  Only elements allowed inside"
+                            )),
+                        }])
                         .build()
-                        .into(),
-                )
-                .build(),
-        ))
-        .build()
+                        .into()])
+                    .build()
+                    .into(),
+            )
+            .complex_type_model(Box::new(
+                xs::ComplexContent::builder()
+                    .child_1(
+                        xs::types::ComplexRestrictionType::builder()
+                            .base(xs_custom::QName(ExpandedName::new(
+                                LocalName::new_dangerous("explicitGroup"),
+                                Some(XmlNamespace::XS),
+                            )))
+                            .variant_0(
+                              xs::types::complex_restriction_type_items::variant_0_variants::Variant0
+                              ::builder()
+                              .type_def_particle(Box::new(
+                                xs::types::GroupRef::builder()
+                                    .ref_(xs_custom::QName(ExpandedName::new(
+                                        LocalName::new_dangerous("allModel"),
+                                        Some(XmlNamespace::XS),
+                                    )))
+                                    .build()
+                                    .into(),
+                                    )).build().into()
+                            )
+                            .attr_decls(
+                                xs::groups::AttrDecls::builder()
+                                    .attribute(vec![
+                                        xs::types::Attribute::builder()
+                                            .name(LocalName::new_dangerous("minOccurs"))
+                                            .default("1".to_string())
+                                            // .use_(xs::AttributeUseType::Optional)
+                                            .use_("optional".to_string())
+                                            .simple_type(
+                                                xs::types::LocalSimpleType::builder()
+                                                    .simple_derivation(
+                                                      Box::new(
+                                                      xs::Restriction::builder()
+                                                            .base(xs_custom::QName(
+                                                                ExpandedName::new(
+                                                                    LocalName::new_dangerous(
+                                                                        "nonNegativeInteger",
+                                                                    ),
+                                                                    Some(XmlNamespace::XS),
+                                                                ),
+                                                            ))
+                                                            .simple_restriction_model(
+                                                              xs::groups::SimpleRestrictionModel::builder()
+                                                                .child_1(vec![
+                                                                    // xs::Enumeration::builder()
+                                                                    //     .value("0".to_string())
+                                                                    //     .build()
+                                                                    //     .into(),
+                                                                    // xs::Enumeration::builder()
+                                                                    //     .value("1".to_string())
+                                                                    //     .build()
+                                                                    //     .into(),
+                                                                ])
+                                                                .build()
+                                                                .into()
+                                                            )
+                                                            .build()
+                                                            .into()
+                                                          ),
+                                                    )
+                                                    .build()
+                                                    .into(),
+                                            )
+                                            .build()
+                                            .into(),
+                                        xs::types::Attribute::builder()
+                                            .name(LocalName::new_dangerous("maxOccurs"))
+                                            .default("1".to_string())
+                                            .use_("optional".to_string())
+                                            // .use_(xs::AttributeUseType::Optional)
+                                            .simple_type(
+                                                xs::types::LocalSimpleType::builder()
+                                                    .simple_derivation(Box::new(
+                                                        xs::Restriction::builder()
+                                                            .base(xs_custom::QName(
+                                                                ExpandedName::new(
+                                                                    LocalName::new_dangerous(
+                                                                        "allNNI",
+                                                                    ),
+                                                                    Some(XmlNamespace::XS),
+                                                                ),
+                                                            ))
+                                                            .simple_restriction_model(
+                                                              xs::groups::SimpleRestrictionModel::builder()
+                                                              .child_1(vec![
+                                                                //TODO: Facets are fucked.
+                                                                // xs::Enumeration::builder()
+                                                                //     .value("0".to_string())
+                                                                //     .build()
+                                                                //     .into(),
+                                                                // xs::Enumeration::builder()
+                                                                //     .value("1".to_string())
+                                                                //     .build()
+                                                                //     .into(),
+                                                              ])
+                                                              .build()
+                                                            )
+                                                            .build()
+                                                            .into(),
+                                                    ))
+                                                    .build()
+                                                    .into(),
+                                            )
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .any_attribute(
+                                        xs::AnyAttribute::builder()
+                                            .namespace(xs_custom::NamespaceListType::Other)
+                                            .process_contents(
+                                                "lax".to_string(), // xs::ProcessContentsType::Lax
+                                            )
+                                            .build().into(),
+                                    )
+                                    .build()
+                                    .into(),
+                            )
+                            .assertions(xs::groups::Assertions::builder().build().into())
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            ))
+            .build()
+            .into(),
+    )
 }
 
 const XSD_WILDCARD: &str = r###"
 <xs:complexType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="wildcard">
-  <xs:complexContent>
+  <xs:complexContent>ration::builder()
+                                                            //     .value("0".to_string())
+                                                            //     .build()
+                                                            //     .into(),
+                                                            // xs::Enumeration::builder()
+                                                            //     .value("1".to_string())
+                                                            //     .build()
+                                                            //     .into(),
     <xs:extension base="xs:annotated">
 
         <xs:attributeGroup ref="xs:anyAttrGroup"/>
@@ -729,43 +821,55 @@ const XSD_ANY_TYPE: &str = r###"
 </xs:complexType>
 "###;
 
-fn xsd_any_type() -> xs::TopLevelComplexType {
-    xs::TopLevelComplexType::builder()
-        .name(LocalName::new_dangerous("anyType"))
-        .mixed(true)
-        .annotation(
-            xs::Annotation::builder()
-                .content(vec![xs::Documentation::builder()
-                    .any(vec![xmlity::XmlValue::Text(xmlity::xml!(
-                        "\n  Not the real urType, but as close an approximation as we can
+fn xsd_any_type() -> xs::ComplexType {
+    xs::ComplexType(
+        xs::types::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("anyType"))
+            .mixed(true)
+            .annotation(
+                xs::Annotation::builder()
+                    .annotation(vec![xs::Documentation::builder()
+                        .particle(vec![xs::documentation_items::Child0 {
+                            child_0: XmlValue::Text(xmlity::xml!(
+                                "\n  Not the real urType, but as close an approximation as we can
   get in the XML representation"
-                    ))])
-                    .build()
-                    .into()])
-                .build(),
-        )
-        .content(xs::ComplexTypeModel::Other {
-            open_content: None,
-            type_def_particle: Some(
-                xs::SequenceType::builder()
-                    .content(vec![xs::Any::builder()
-                        .min_occurs(xs::MinOccurs(0))
-                        .max_occurs(xs::MaxOccurs(xs::MaxOccursValue::Unbounded))
-                        .process_contents(xs::ProcessContentsType::Lax)
+                            )),
+                        }])
                         .build()
                         .into()])
                     .build()
                     .into(),
-            ),
-            attr_decls: xs::AttrDecls::builder()
-                .any(
-                    xs::AnyAttribute::builder()
-                        .process_contents(xs::ProcessContentsType::Lax)
-                        .build(),
-                )
-                .build(),
-        })
-        .build()
+            )
+            .complex_type_model(Box::new(
+                xs::groups::complex_type_model_items::complex_type_model_variants::Variant2.into(), //    {
+                                                                                                    //     open_content: None,
+                                                                                                    //     type_def_particle: Some(
+                                                                                                    //         xs::SequenceType::builder()
+                                                                                                    //             .content(vec![xs::Any::builder()
+                                                                                                    //                 .min_occurs(0)
+                                                                                                    //                 .max_occurs("unbounded".to_string())
+                                                                                                    //                 .process_contents(
+                                                                                                    //                     "lax".to_string(), // xs::ProcessContentsType::Lax
+                                                                                                    //                 )
+                                                                                                    //                 .build()
+                                                                                                    //                 .into()])
+                                                                                                    //             .build()
+                                                                                                    //             .into(),
+                                                                                                    //     ),
+                                                                                                    //     attr_decls: xs::AttrDecls::builder()
+                                                                                                    //         .any(
+                                                                                                    //             xs::AnyAttribute::builder()
+                                                                                                    //                 .process_contents(
+                                                                                                    //                     "lax".to_string(), // xs::ProcessContentsType::Lax
+                                                                                                    //                 )
+                                                                                                    //                 .build(),
+                                                                                                    //         )
+                                                                                                    //         .build(),
+                                                                                                    // }
+            ))
+            .build()
+            .into(),
+    )
 }
 
 const XSD_SIMPLE_BASE_TYPE: &str = r###"
@@ -883,50 +987,3 @@ const XSD_INT_FACET: &str = r###"
   </xs:complexContent>
 </xs:complexType>
 "###;
-
-#[rstest::rstest]
-#[case::open_attrs(XSD_OPEN_ATTRS, None)]
-#[case::annotated(XSD_ANNOTATED, None)]
-#[case::attribute(XSD_ATTRIBUTE, None)]
-#[case::top_level_attribute(XSD_TOP_LEVEL_ATTRIBUTE, None)]
-#[case::assertion(XSD_ASSERTION, None)]
-#[case::complex_base_type(XSD_COMPLEX_BASE_TYPE, None)]
-#[case::top_level_complex_type(XSD_TOP_LEVEL_COMPLEX_TYPE, None)]
-#[case::local_complex_type(XSD_LOCAL_COMPLEX_TYPE, None)]
-#[case::restriction_type(XSD_RESTRICTION_TYPE, None)]
-#[case::complex_restriction_type(XSD_COMPLEX_RESTRICTION_TYPE, None)]
-#[case::extension_type(XSD_EXTENSION_TYPE, None)]
-#[case::simple_restriction_type(XSD_SIMPLE_RESTRICTION_TYPE, None)]
-#[case::simple_extension_type(XSD_SIMPLE_EXTENSION_TYPE, None)]
-#[case::element(XSD_ELEMENT, None)]
-#[case::top_level_element(XSD_TOP_LEVEL_ELEMENT, None)]
-#[case::local_element(XSD_LOCAL_ELEMENT, None)]
-#[case::alt_type(XSD_ALT_TYPE, None)]
-#[case::group(XSD_GROUP, None)]
-#[case::real_group(XSD_REAL_GROUP, None)]
-#[case::named_group(XSD_NAMED_GROUP, None)]
-#[case::group_ref(XSD_GROUP_REF, None)]
-#[case::explicit_group(XSD_EXPLICIT_GROUP, None)]
-#[case::simple_explicit_group(XSD_SIMPLE_EXPLICIT_GROUP, None)]
-#[case::all(XSD_ALL, Some(xsd_all()))]
-#[case::wildcard(XSD_WILDCARD, None)]
-#[case::attribute_group(XSD_ATTRIBUTE_GROUP, None)]
-#[case::named_attribute_group(XSD_NAMED_ATTRIBUTE_GROUP, None)]
-#[case::attribute_group_ref(XSD_ATTRIBUTE_GROUP_REF, None)]
-#[case::keybase(XSD_KEYBASE, None)]
-#[case::any_type(XSD_ANY_TYPE, Some(xsd_any_type()))]
-#[case::simple_base_type(XSD_SIMPLE_BASE_TYPE, None)]
-#[case::top_level_simple_type(XSD_TOP_LEVEL_SIMPLE_TYPE, None)]
-#[case::local_simple_type(XSD_LOCAL_SIMPLE_TYPE, None)]
-#[case::facet(XSD_FACET, None)]
-#[case::no_fixed_facet(XSD_NO_FIXED_FACET, None)]
-#[case::num_facet(XSD_NUM_FACET, None)]
-#[case::int_facet(XSD_INT_FACET, None)]
-fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::TopLevelComplexType>) {
-    let xml = xml.trim();
-    let element: xs::TopLevelComplexType = xmlity_quick_xml::de::from_str(xml).unwrap();
-
-    if let Some(expected) = expected {
-        pretty_assertions::assert_eq!(element, expected);
-    }
-}
