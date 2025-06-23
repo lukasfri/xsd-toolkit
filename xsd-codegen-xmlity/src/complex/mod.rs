@@ -8,7 +8,7 @@ use crate::{augments::ItemAugmentation, misc::TypeReference, BoundType, Result};
 use quote::format_ident;
 use syn::Ident;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd::schema::MaxOccursValue;
+use xsd::xs::types::AllNNI;
 use xsd_type_compiler::complex::{ComplexTypeFragmentCompiler, FragmentAccess, FragmentIdx};
 
 fn dedup_field_idents<T>(
@@ -93,12 +93,12 @@ pub trait ToTypeTemplate {
 
 fn min_max_occurs_type(
     min_occurs: usize,
-    max_occurs: MaxOccursValue,
+    max_occurs: AllNNI,
     type_: TypeReference<'_>,
 ) -> (TypeReference<'_>, bool) {
     match (min_occurs, max_occurs) {
-        (1, MaxOccursValue::Bounded(1)) => (type_, false),
-        (0, MaxOccursValue::Bounded(1)) => (type_.wrap(TypeReference::option_wrapper), true),
+        (1, AllNNI::Bounded(1)) => (type_, false),
+        (0, AllNNI::Bounded(1)) => (type_.wrap(TypeReference::option_wrapper), true),
         (_, _) => (type_.wrap(TypeReference::vec_wrapper), true),
     }
 }

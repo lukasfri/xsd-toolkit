@@ -7,7 +7,7 @@ use crate::{
     },
     transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
 };
-use xsd::schema_names as xsn;
+use xsd::xsn;
 
 /// This transformer expands the short form of complex types (particles as a direct descendent of `complexType`) into the `complexContent` form.
 ///
@@ -105,7 +105,7 @@ mod tests {
         self as xs, ComplexContent, ComplexRestrictionType, ComplexTypeModel, LocalElement, QName,
         SequenceType, TopLevelComplexType, TypeDefParticle,
     };
-    use xsd::schema_names as xsn;
+    use xsd::xsn;
 
     use crate::{
         complex::transformers::expand_short_form_complex_types::ExpandShortFormComplexTypes,

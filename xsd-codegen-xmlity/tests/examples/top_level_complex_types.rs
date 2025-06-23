@@ -2,7 +2,7 @@ use pretty_assertions::assert_eq;
 use syn::parse_quote;
 use xmlity::{LocalName, XmlNamespace};
 use xsd::schema as xs;
-use xsd::schema_names as xsn;
+use xsd::xsn as xsn;
 use xsd_codegen_xmlity::Generator;
 use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
@@ -14,19 +14,19 @@ fn top_level_complex_type_sequence_test() {
             xs::ComplexContent::builder()
                 .content(
                     xs::ComplexRestrictionType::builder()
-                        .base(xs::QName(xsn::ANY_TYPE.clone()))
+                        .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                         .particle(
                             xs::SequenceType::builder()
                                 .content(vec![
                                     xs::LocalElement::builder()
                                         .name(LocalName::new_dangerous("number"))
-                                        .type_(xs::QName(xsn::INTEGER.clone()))
+                                        .type_(xs::types::QName(xsn::INTEGER.clone()))
                                         .min_occurs(xs::MinOccurs(0))
                                         .build()
                                         .into(),
                                     xs::LocalElement::builder()
                                         .name(LocalName::new_dangerous("name"))
-                                        .type_(xs::QName(xsn::STRING.clone()))
+                                        .type_(xs::types::QName(xsn::STRING.clone()))
                                         .build()
                                         .into(),
                                 ])
@@ -91,19 +91,19 @@ fn top_level_complex_type_attributes_test() {
             xs::ComplexContent::builder()
                 .content(
                     xs::ComplexRestrictionType::builder()
-                        .base(xs::QName(xsn::ANY_TYPE.clone()))
+                        .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                         .attr_decls(
                             xs::AttrDecls::builder()
                                 .declarations(vec![
                                     xs::LocalAttribute::builder()
                                         .name(LocalName::new_dangerous("number"))
-                                        .type_(xs::QName(xsn::INTEGER.clone()))
+                                        .type_(xs::types::QName(xsn::INTEGER.clone()))
                                         .use_(xs::AttributeUseType::Optional)
                                         .build()
                                         .into(),
                                     xs::LocalAttribute::builder()
                                         .name(LocalName::new_dangerous("name"))
-                                        .type_(xs::QName(xsn::STRING.clone()))
+                                        .type_(xs::types::QName(xsn::STRING.clone()))
                                         .use_(xs::AttributeUseType::Required)
                                         .build()
                                         .into(),

@@ -3,43 +3,43 @@ use std::{collections::VecDeque, convert::Infallible};
 use crate::{
     complex::{
         AllFragment, ChoiceFragment, ComplexTypeFragmentCompiler, ComplexTypeModelId,
-        ComplexTypeRootFragment, ExtensionFragment, FragmentAccess, FragmentIdx,
-        GroupTypeContentId, RestrictionFragment, SequenceFragment, TypeDefParticleId,
+        ComplexTypeRootFragment, ExtensionFragment, FragmentAccess, FragmentIdx, NestedParticleId,
+        RestrictionFragment, SequenceFragment, TypeDefParticleId,
     },
     transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
 };
 
 trait HasGroupContent {
-    fn group_content(&self) -> &VecDeque<GroupTypeContentId>;
+    fn group_content(&self) -> &VecDeque<NestedParticleId>;
 
-    fn group_content_mut(&mut self) -> &mut VecDeque<GroupTypeContentId>;
+    fn group_content_mut(&mut self) -> &mut VecDeque<NestedParticleId>;
 }
 
 impl HasGroupContent for AllFragment {
-    fn group_content(&self) -> &VecDeque<GroupTypeContentId> {
+    fn group_content(&self) -> &VecDeque<NestedParticleId> {
         &self.fragments
     }
 
-    fn group_content_mut(&mut self) -> &mut VecDeque<GroupTypeContentId> {
+    fn group_content_mut(&mut self) -> &mut VecDeque<NestedParticleId> {
         &mut self.fragments
     }
 }
 impl HasGroupContent for SequenceFragment {
-    fn group_content(&self) -> &VecDeque<GroupTypeContentId> {
+    fn group_content(&self) -> &VecDeque<NestedParticleId> {
         &self.fragments
     }
 
-    fn group_content_mut(&mut self) -> &mut VecDeque<GroupTypeContentId> {
+    fn group_content_mut(&mut self) -> &mut VecDeque<NestedParticleId> {
         &mut self.fragments
     }
 }
 
 impl HasGroupContent for ChoiceFragment {
-    fn group_content(&self) -> &VecDeque<GroupTypeContentId> {
+    fn group_content(&self) -> &VecDeque<NestedParticleId> {
         &self.fragments
     }
 
-    fn group_content_mut(&mut self) -> &mut VecDeque<GroupTypeContentId> {
+    fn group_content_mut(&mut self) -> &mut VecDeque<NestedParticleId> {
         &mut self.fragments
     }
 }
@@ -97,8 +97,8 @@ impl ExpandGroups {
 
     pub fn expand_group_content(
         _context: &mut XmlnsLocalTransformerContext<'_>,
-        _group_contents: GroupTypeContentId,
-    ) -> GroupTypeContentId {
+        _group_contents: NestedParticleId,
+    ) -> NestedParticleId {
         todo!()
     }
 

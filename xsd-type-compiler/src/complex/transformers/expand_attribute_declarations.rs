@@ -200,7 +200,7 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
-    use xsd::{schema as xs, schema_names as xsn};
+    use xsd::{schema as xs, xsn};
 
     #[test]
     fn one_attribute_group() {

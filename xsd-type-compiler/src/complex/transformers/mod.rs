@@ -3,7 +3,7 @@ pub use expand_restriction_fragments::ExpandRestrictionFragments;
 mod expand_extension_fragments;
 pub use expand_extension_fragments::ExpandExtensionFragments;
 mod flatten_nested_groups;
-pub use flatten_nested_groups::{FlattenNestedAll, FlattenNestedChoices, FlattenNestedSequences};
+pub use flatten_nested_groups::{FlattenNestedChoices, FlattenNestedSequences};
 mod expand_short_form_complex_types;
 pub use expand_short_form_complex_types::ExpandShortFormComplexTypes;
 mod expand_groups;

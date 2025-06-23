@@ -17,7 +17,7 @@ use crate::transformers::XmlnsLocalTransformer;
 use crate::transformers::XmlnsLocalTransformerContext;
 use crate::TopLevelType;
 use xmlity::ExpandedName;
-use xsd::schema_names as xsn;
+use xsd::xsn;
 
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
 #[non_exhaustive]
@@ -224,7 +224,7 @@ mod tests {
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::schema::{self as xs};
-    use xsd::schema_names as xsn;
+    use xsd::xsn;
 
     use crate::{
         complex::transformers::ExpandRestrictionFragments, transformers::TransformChange,

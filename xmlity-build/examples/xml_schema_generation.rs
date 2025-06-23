@@ -18,7 +18,7 @@ fn main() {
         // ("TODO", parse_quote!(ElementSubstitutionGroupType)),
         ("formChoice", parse_quote!(FormChoiceType)),
         ("fullDerivationSet", parse_quote!(FullDerivationSetType)),
-        // ("TODO", parse_quote!(MaxOccursValue)),
+        ("allNNI", parse_quote!(AllNNI)),
         ("namespaceList", parse_quote!(NamespaceListType)),
         // ("TODO", parse_quote!(OpenContentModeType)),
         // ("TODO", parse_quote!(ProcessContentsType)),
@@ -94,28 +94,12 @@ fn main() {
         time.elapsed().as_secs_f32()
     );
 
-    // let time = std::time::Instant::now();
-
-    // engine
-    //     .generate_namespace(
-    //         xmlity_build::GenerateNamespace::builder()
-    //             .output_file("xmlity-build/tests/output/xhtml.rs".parse().unwrap())
-    //             .namespace(XmlNamespace::new_dangerous("http://www.w3.org/1999/xhtml"))
-    //             .build(),
-    //     )
-    //     .unwrap();
-
-    // println!(
-    //     "Generating the xhtml namespace took {:?}",
-    //     time.elapsed().as_secs_f32()
-    // );
-
     let time = std::time::Instant::now();
 
     engine
         .generate_namespace(
             xmlity_build::GenerateNamespace::builder()
-                .output_file("xs_raw/src/xs_generated.rs".parse().unwrap())
+                .output_file("xsd/src/xs_generated.rs".parse().unwrap())
                 .namespace(XmlNamespace::XS)
                 .bon_builders(true)
                 .enum_from(true)

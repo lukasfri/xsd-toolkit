@@ -1,5 +1,29 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace, XmlValue};
-use xsd::schema as xs;
+use xsd::xs;
+
+#[rstest::rstest]
+#[case::composition(XSD_COMPOSITION, None)]
+#[case::schema_top(XSD_SCHEMA_TOP, None)]
+#[case::redefinable(XSD_REDEFINABLE, None)]
+#[case::type_def_particle(XSD_TYPEDEF_PARTICLE, None)]
+#[case::nested_particle(XSD_NESTED_PARTICLE, None)]
+#[case::particle(XSD_PARTICLE, None)]
+#[case::attr_decls(XSD_ATTR_DECLS, None)]
+#[case::assertions(XSD_ASSERTIONS, None)]
+#[case::complex_type_model(XSD_COMPLEX_TYPE_MODEL, None)]
+#[case::all_model(XSD_ALL_MODEL, Some(xsd_all_model()))]
+#[case::identity_constraint(XSD_IDENTITY_CONSTRAINT, None)]
+#[case::simple_derivation(XSD_SIMPLE_DERIVATION, None)]
+#[case::simple_restriction_model(XSD_SIMPLE_RESTRICTION_MODEL, None)]
+#[ntest::timeout(1000)]
+fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::Group>) {
+    let xml = xml.trim();
+    let element: xs::Group = xmlity_quick_xml::de::from_str(xml).unwrap();
+
+    if let Some(expected) = expected {
+        pretty_assertions::assert_eq!(element, expected);
+    }
+}
 
 const XSD_COMPOSITION: &str = r###"
 <xs:group xmlns:xs="http://www.w3.org/2001/XMLSchema" name="composition">
@@ -162,97 +186,108 @@ const XSD_ALL_MODEL: &str = r###"
 </xs:group>
 "###;
 
-fn xsd_all_model() -> xs::GroupType {
-    xs::GroupType::builder()
+fn xsd_all_model() -> xs::Group {
+    xs::Group(Box::new(
+    xs::types::NamedGroup::builder()
         .name(LocalName::new_dangerous("allModel"))
-        .content(
-            xs::SequenceType::builder()
-                .content(vec![
-                    xs::LocalElement::builder()
-                        .ref_(xs::QName(ExpandedName::new(
+        .child_1(
+            xs::types::named_group_items::Child1::Sequence(xs::types::SimpleExplicitGroup::builder()
+                .nested_particle(vec![
+                    Box::new(xs::types::LocalElement::builder()
+                        .ref_(xs::types::QName(ExpandedName::new(
                             LocalName::new_dangerous("annotation"),
                             Some(XmlNamespace::XS),
                         )))
-                        .min_occurs(xs::MinOccurs(0))
+                        .min_occurs(0)
                         .build()
-                        .into(),
-                    xs::ChoiceType::builder()
-                        .min_occurs(xs::MinOccurs(0))
-                        .max_occurs(xs::MaxOccurs(xs::MaxOccursValue::Unbounded))
+                        .into()),
+                    Box::new(xs::Choice( xs::types::ExplicitGroup::builder()
+                        .min_occurs(0)
+                        .max_occurs(xs::types::AllNNI::Unbounded)
                         .annotation(
                             xs::Annotation::builder()
-                            .content(vec![
+                            .annotation(vec![
                               xs::Documentation::builder()
-                                .any(vec![XmlValue::Text(xmlity::xml!("This choice with min/max is here to\n                        avoid a pblm with the Elt:All/Choice/Seq\n                        Particle derivation constraint"))])
+                                .particle(vec![xs::documentation_items::Child0 {
+                                  child_0: XmlValue::Text(xmlity::xml!("This choice with min/max is here to\n                        avoid a pblm with the Elt:All/Choice/Seq\n                        Particle derivation constraint"))}])
                                 .build()
                                 .into()
-                            ]).build()
+                            ]).build().into()
                         )
-                        .content(vec![
-                            xs::LocalElement::builder()
+                        .nested_particle(vec![
+                            Box::new(xs::types::LocalElement::builder()
                                 .name(LocalName::new_dangerous("element"))
-                                .type_(xs::QName(ExpandedName::new(LocalName::new_dangerous("localElement"), Some(XmlNamespace::XS))))
+                                .type_attribute(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("localElement"), Some(XmlNamespace::XS))))
                                 .build()
-                                .into(),
-                            xs::LocalElement::builder()
-                                .ref_(xs::QName(ExpandedName::new(
+                                .into()),
+                            Box::new(xs::types::LocalElement::builder()
+                                .ref_(xs::types::QName(ExpandedName::new(
                                     LocalName::new_dangerous("any"),
                                     Some(XmlNamespace::XS),
                                 )))
                                 .build()
-                                .into(),
-                            xs::LocalElement::builder()
+                                .into()),
+                            Box::new(xs::types::LocalElement::builder()
                                 .name(LocalName::new_dangerous("group"))
-                                .type_choice(
-                                    xs::LocalComplexType::builder()
-                                        .content(
+                                .type_(
+                                    xs::types::LocalComplexType::builder()
+                                        .complex_type_model(Box::new(
                                             xs::ComplexContent::builder()
-                                                .content(
-                                                    xs::ComplexRestrictionType::builder()
-                                                    .base(xs::QName(ExpandedName::new(LocalName::new_dangerous("groupRef"), Some(XmlNamespace::XS))))
-                                                    .particle(
-                                                        xs::SequenceType::builder()
-                                                            .content(vec![
-                                                              xs::LocalElement::builder()
-                                                              .ref_(xs::QName(ExpandedName::new(LocalName::new_dangerous("annotation"), Some(XmlNamespace::XS))))
-                                                              .min_occurs(xs::MinOccurs(0)).build().into()
+                                                .child_1(
+                                                    xs::types::ComplexRestrictionType::builder()
+                                                    .base(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("groupRef"), Some(XmlNamespace::XS))))
+                                                    .variant_0(
+                                                      xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder().type_def_particle(
+                                                        Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
+                                                            .nested_particle(vec![
+                                                                Box::new(
+                                                                    xs::types::LocalElement::builder()
+                                                                        .ref_(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("annotation"), Some(XmlNamespace::XS))))
+                                                                        .min_occurs(0)
+                                                                        .build().into()
+                                                                )
                                                             ])
                                                             .build()
-                                                            .into()
+                                                            .into()).into())
+                                                      ).build().into()
                                                     )
-                                                    .attr_decls(xs::AttrDecls::builder().declarations(vec![
-                                                        xs::LocalAttribute::builder()
+                                                    .attr_decls(xs::groups::AttrDecls::builder().attribute(vec![
+                                                        xs::types::Attribute::builder()
                                                         .name(LocalName::new_dangerous("minOccurs"))
-                                                        .fixed(xs::Fixed("1".to_string()))  
-                                                        .type_(xs::QName(ExpandedName::new(LocalName::new_dangerous("nonNegativeInteger"), Some(XmlNamespace::XS))))
+                                                        .fixed("1".to_string()) 
+                                                        .type_(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("nonNegativeInteger"), Some(XmlNamespace::XS))))
                                                         .build()
                                                         .into(),
-                                                        xs::LocalAttribute::builder()
+                                                        xs::types::Attribute::builder()
                                                         .name(LocalName::new_dangerous("maxOccurs"))
-                                                        .fixed(xs::Fixed("1".to_string()))  
-                                                        .type_(xs::QName(ExpandedName::new(LocalName::new_dangerous("nonNegativeInteger"), Some(XmlNamespace::XS))))
+                                                        .fixed("1".to_string())
+                                                        .type_(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("nonNegativeInteger"), Some(XmlNamespace::XS))))
                                                         .build()
                                                         .into(),
-                                                    ]).build())
+                                                    ]).build().into())
+                                                    .assertions(Box::new(xs::groups::Assertions::builder().build()))
                                                     .build()
                                                     .into()
                                                 )
                                             .build()
                                             .into()
+                                            )
                                         )
                                         .build()
                                         .into()
                                 )
                                 .build()
                                 .into(),
+                              )
                         ])
                         .build()
-                        .into(),
+                        .into()).into()),
                 ])
                 .build()
                 .into(),
-        )
+        ))
         .build()
+    ))
 }
 
 const XSD_IDENTITY_CONSTRAINT: &str = r###"
@@ -293,26 +328,3 @@ const XSD_SIMPLE_RESTRICTION_MODEL: &str = r###"
   </xs:sequence>
 </xs:group>
 "###;
-
-#[rstest::rstest]
-#[case::composition(XSD_COMPOSITION, None)]
-#[case::schema_top(XSD_SCHEMA_TOP, None)]
-#[case::redefinable(XSD_REDEFINABLE, None)]
-#[case::type_def_particle(XSD_TYPEDEF_PARTICLE, None)]
-#[case::nested_particle(XSD_NESTED_PARTICLE, None)]
-#[case::particle(XSD_PARTICLE, None)]
-#[case::attr_decls(XSD_ATTR_DECLS, None)]
-#[case::assertions(XSD_ASSERTIONS, None)]
-#[case::complex_type_model(XSD_COMPLEX_TYPE_MODEL, None)]
-#[case::all_model(XSD_ALL_MODEL, Some(xsd_all_model()))]
-#[case::identity_constraint(XSD_IDENTITY_CONSTRAINT, None)]
-#[case::simple_derivation(XSD_SIMPLE_DERIVATION, None)]
-#[case::simple_restriction_model(XSD_SIMPLE_RESTRICTION_MODEL, None)]
-fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::GroupType>) {
-    let xml = xml.trim();
-    let element: xs::GroupType = xmlity_quick_xml::de::from_str(xml).unwrap();
-
-    if let Some(expected) = expected {
-        pretty_assertions::assert_eq!(element, expected);
-    }
-}

@@ -1,5 +1,19 @@
+use super::xs;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd::schema as xs;
+
+#[rstest::rstest]
+#[case::occurs(XSD_OCCURS, None)]
+#[case::def_ref(XSD_DEF_REF, None)]
+#[case::any_attr_group(XSD_ANY_ATTR_GROUP, Some(xsd_any_attr_group()))]
+#[ntest::timeout(1000)]
+fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::AttributeGroup>) {
+    let xml = xml.trim();
+    let element: xs::AttributeGroup = xmlity_quick_xml::de::from_str(xml).unwrap();
+
+    if let Some(expected) = expected {
+        pretty_assertions::assert_eq!(element, expected);
+    }
+}
 
 const XSD_OCCURS: &str = r###"
 <xs:attributeGroup xmlns:xs="http://www.w3.org/2001/XMLSchema" name="occurs">
@@ -48,91 +62,102 @@ const XSD_ANY_ATTR_GROUP: &str = r###"
 </xs:attributeGroup>
 "###;
 
-fn xsd_any_attr_group() -> xs::AttributeGroupType {
-    xs::AttributeGroupType::builder()
-        .name(LocalName::new_dangerous("anyAttrGroup"))
-        .attr_decls(
-            xs::AttrDecls::builder()
-                .declarations(vec![
-                    xs::LocalAttribute::builder()
-                        .name(LocalName::new_dangerous("namespace"))
-                        .type_(xs::QName(ExpandedName::new(
-                            LocalName::new_dangerous("namespaceList"),
-                            Some(XmlNamespace::XS),
-                        )))
-                        .use_(xs::AttributeUseType::Optional)
-                        .build()
-                        .into(),
-                    xs::LocalAttribute::builder()
-                        .name(LocalName::new_dangerous("notNamespace"))
-                        .use_(xs::AttributeUseType::Optional)
-                        .simple_type(
-                            xs::LocalSimpleType::builder()
-                                .content(
-                                    xs::SimpleRestrictionType::builder()
-                                        .base(xs::QName(ExpandedName::new(
-                                            LocalName::new_dangerous("basicNamespaceList"),
-                                            Some(XmlNamespace::XS),
-                                        )))
-                                        .facets(vec![xs::MinLength(
-                                            xs::FacetType::builder().value("1".to_string()).build(),
-                                        )
-                                        .into()])
-                                        .build()
-                                        .into(),
-                                )
-                                .build(),
-                        )
-                        .build()
-                        .into(),
-                    xs::LocalAttribute::builder()
-                        .name(LocalName::new_dangerous("processContents"))
-                        .default("strict".to_string())
-                        .use_(xs::AttributeUseType::Optional)
-                        .simple_type(
-                            xs::LocalSimpleType::builder()
-                                .content(
-                                    xs::SimpleRestrictionType::builder()
-                                        .base(xs::QName(ExpandedName::new(
-                                            LocalName::new_dangerous("NMTOKEN"),
-                                            Some(XmlNamespace::XS),
-                                        )))
-                                        .facets(vec![
-                                            xs::Enumeration::builder()
-                                                .value("skip".to_string())
-                                                .build()
-                                                .into(),
-                                            xs::Enumeration::builder()
-                                                .value("lax".to_string())
-                                                .build()
-                                                .into(),
-                                            xs::Enumeration::builder()
-                                                .value("strict".to_string())
-                                                .build()
-                                                .into(),
-                                        ])
-                                        .build()
-                                        .into(),
-                                )
-                                .build(),
-                        )
-                        .build()
-                        .into(),
-                ])
-                .build(),
-        )
-        .build()
-}
-
-#[rstest::rstest]
-#[case::occurs(XSD_OCCURS, None)]
-#[case::def_ref(XSD_DEF_REF, None)]
-#[case::any_attr_group(XSD_ANY_ATTR_GROUP, Some(xsd_any_attr_group()))]
-fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::AttributeGroupType>) {
-    let xml = xml.trim();
-    let element: xs::AttributeGroupType = xmlity_quick_xml::de::from_str(xml).unwrap();
-
-    if let Some(expected) = expected {
-        pretty_assertions::assert_eq!(element, expected);
-    }
+fn xsd_any_attr_group() -> xs::AttributeGroup {
+    xs::AttributeGroup(Box::new(
+        xs::types::NamedAttributeGroup::builder()
+            .name(LocalName::new_dangerous("anyAttrGroup"))
+            .attr_decls(Box::new(
+                xs::groups::AttrDecls::builder()
+                    .attribute(vec![
+                        xs::types::Attribute::builder()
+                            .name(LocalName::new_dangerous("namespace"))
+                            .type_(xs::types::QName(ExpandedName::new(
+                                LocalName::new_dangerous("namespaceList"),
+                                Some(XmlNamespace::XS),
+                            )))
+                            .use_("optional".to_string())
+                            .build()
+                            .into(),
+                        xs::types::Attribute::builder()
+                            .name(LocalName::new_dangerous("notNamespace"))
+                            .use_("optional".to_string())
+                            .simple_type(
+                                xs::types::LocalSimpleType::builder()
+                                    .simple_derivation(Box::new(
+                                        xs::Restriction::builder()
+                                            .base(xs::types::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("basicNamespaceList"),
+                                                Some(XmlNamespace::XS),
+                                            )))
+                                            .simple_restriction_model(
+                                                xs::groups::SimpleRestrictionModel::builder()
+                                                    .child_1(vec![xs::Facet::from(xs::MinLength(
+                                                        xs::types::NumFacet::builder()
+                                                            .value(1)
+                                                            .build()
+                                                            .into(),
+                                                    ))
+                                                    .into()])
+                                                    .build(),
+                                            )
+                                            .build()
+                                            .into(),
+                                    ))
+                                    .build()
+                                    .into(),
+                            )
+                            .build()
+                            .into(),
+                        xs::types::Attribute::builder()
+                            .name(LocalName::new_dangerous("processContents"))
+                            .default("strict".to_string())
+                            .use_("optional".to_string())
+                            .simple_type(
+                                xs::types::LocalSimpleType::builder()
+                                    .simple_derivation(Box::new(
+                                        xs::Restriction::builder()
+                                            .base(xs::types::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("NMTOKEN"),
+                                                Some(XmlNamespace::XS),
+                                            )))
+                                            .simple_restriction_model(
+                                                xs::groups::SimpleRestrictionModel::builder()
+                                                    .child_1(vec![
+                                                        xs::Facet::from(xs::Enumeration(
+                                                            xs::types::NoFixedFacet::builder()
+                                                                .value("skip".to_string())
+                                                                .build()
+                                                                .into(),
+                                                        ))
+                                                        .into(),
+                                                        xs::Facet::from(xs::Enumeration(
+                                                            xs::types::NoFixedFacet::builder()
+                                                                .value("lax".to_string())
+                                                                .build()
+                                                                .into(),
+                                                        ))
+                                                        .into(),
+                                                        xs::Facet::from(xs::Enumeration(
+                                                            xs::types::NoFixedFacet::builder()
+                                                                .value("strict".to_string())
+                                                                .build()
+                                                                .into(),
+                                                        ))
+                                                        .into(),
+                                                    ])
+                                                    .build(),
+                                            )
+                                            .build()
+                                            .into(),
+                                    ))
+                                    .build()
+                                    .into(),
+                            )
+                            .build()
+                            .into(),
+                    ])
+                    .build(),
+            ))
+            .build(),
+    ))
 }

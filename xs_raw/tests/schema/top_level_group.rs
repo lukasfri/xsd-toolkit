@@ -203,7 +203,7 @@ fn xsd_all_model() -> xs::Group {
                         .into()),
                     Box::new(xs::Choice( xs::types::ExplicitGroup::builder()
                         .min_occurs(0)
-                        .max_occurs("unbounded".to_string())
+                        .max_occurs(xs::types::AllNNI::Unbounded)
                         .annotation(
                             xs::Annotation::builder()
                             .annotation(vec![

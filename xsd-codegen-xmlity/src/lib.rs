@@ -17,8 +17,7 @@ use xsd_type_compiler::{
     complex::{
         transformers::{
             ExpandAttributeDeclarations, ExpandExtensionFragments, ExpandRestrictionFragments,
-            FlattenNestedAll, FlattenNestedChoices, FlattenNestedSequences,
-            RemoveProhibitedAttributes,
+            FlattenNestedChoices, FlattenNestedSequences, RemoveProhibitedAttributes,
         },
         ComplexTypeFragmentCompiler, FragmentAccess,
     },
@@ -60,11 +59,6 @@ impl XmlnsLocalTransformer for XmlityCodegenTransformer {
             total_change |= context
                 .current_namespace_mut()
                 .transform(FlattenNestedChoices::new())
-                .unwrap();
-
-            total_change |= context
-                .current_namespace_mut()
-                .transform(FlattenNestedAll::new())
                 .unwrap();
 
             total_change |= context
@@ -708,7 +702,7 @@ impl<'a> Generator<'a> {
                     .unwrap();
 
                 let item_name = name.local_name().to_item_ident();
-                let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
+                let module_name = format_ident!("{}Items", item_name).to_path_ident();
                 let context =
                     GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
                 let mut scope = GeneratorScope::new(self.augmenter.deref());
@@ -766,7 +760,7 @@ impl<'a> Generator<'a> {
             .unwrap();
 
         let item_name = name.local_name().to_item_ident();
-        let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
+        let module_name = format_ident!("{}Items", item_name).to_path_ident();
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
         let mut scope = GeneratorScope::new(self.augmenter.deref());
 
@@ -813,7 +807,7 @@ impl<'a> Generator<'a> {
             .unwrap();
 
         let item_name = name.local_name().to_item_ident();
-        let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
+        let module_name = format_ident!("{}Items", item_name).to_path_ident();
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
         let mut scope = GeneratorScope::new(self.augmenter.deref());
 
@@ -860,7 +854,7 @@ impl<'a> Generator<'a> {
             .unwrap();
 
         let item_name = name.local_name().to_item_ident();
-        let module_name = format_ident!("{}_items", name.local_name().to_path_ident());
+        let module_name = format_ident!("{}Items", item_name).to_path_ident();
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
         let mut scope = GeneratorScope::new(self.augmenter.deref());
 

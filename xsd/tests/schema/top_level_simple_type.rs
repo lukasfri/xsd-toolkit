@@ -1,5 +1,32 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd::schema as xs;
+use xsd::xs;
+
+#[rstest::rstest]
+#[case::form_choice(XSD_FORM_CHOICE, None)]
+#[case::reduced_derivation_control(XSD_REDUCED_DERIVATION_CONTROL, None)]
+#[case::derivation_set(XSD_DERIVATION_SET, None)]
+#[case::type_derivation_control(XSD_TYPE_DERIVATION_CONTROL, Some(xsd_type_derivation_control()))]
+#[case::full_derivation_set(XSD_FULL_DERIVATION_SET, None)]
+#[case::all_nni(XSD_ALL_NNI, None)]
+#[case::block_set(XSD_BLOCK_SET, Some(xsd_block_set()))]
+#[case::namespace_list(XSD_NAMESPACE_LIST, None)]
+#[case::basic_namespace_list(XSD_BASIC_NAMESPACE_LIST, None)]
+#[case::special_namespace_list(XSD_SPECIAL_NAMESPACE_LIST, None)]
+#[case::qname_list(XSD_QNAME_LIST, None)]
+#[case::qname_list_a(XSD_QNAME_LIST_A, None)]
+#[case::xpath_default_namespace(XSD_XPATH_DEFAULT_NAMESPACE, None)]
+#[case::public(XSD_PUBLIC, None)]
+#[case::derivation_control(XSD_DERIVATION_CONTROL, None)]
+#[case::simple_derivation_set(XSD_SIMPLE_DERIVATION_SET, None)]
+#[ntest::timeout(1000)]
+fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::SimpleType>) {
+    let xml = xml.trim();
+    let element: xs::SimpleType = xmlity_quick_xml::de::from_str(xml).unwrap();
+
+    if let Some(expected) = expected {
+        pretty_assertions::assert_eq!(element, expected);
+    }
+}
 
 const XSD_FORM_CHOICE: &str = r###"
 <xs:simpleType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="formChoice">
@@ -63,47 +90,68 @@ const XSD_TYPE_DERIVATION_CONTROL: &str = r###"
 </xs:simpleType>
 "###;
 
-fn xsd_type_derivation_control() -> xs::TopLevelSimpleType {
-    xs::TopLevelSimpleType::builder()
+fn xsd_type_derivation_control() -> xs::SimpleType {
+    xs::types::TopLevelSimpleType::builder()
         .name(LocalName::new_dangerous("typeDerivationControl"))
         .annotation(
             xs::Annotation::builder()
-                .content(vec![xs::Documentation::builder()
-                    .any(vec![xmlity::XmlValue::Text(xmlity::xml!(
-                        "\n  A utility type, not for public use"
-                    ))])
+                .annotation(vec![xs::Documentation::builder()
+                    .particle(vec![xs::documentation_items::Child0 {
+                        child_0: xmlity::XmlValue::Text(xmlity::xml!(
+                            "\n  A utility type, not for public use"
+                        )),
+                    }])
                     .build()
                     .into()])
-                .build(),
-        )
-        .content(
-            xs::SimpleRestrictionType::builder()
-                .base(xs::QName(ExpandedName::new(
-                    LocalName::new_dangerous("derivationControl"),
-                    Some(XmlNamespace::XS),
-                )))
-                .facets(vec![
-                    xs::Enumeration::builder()
-                        .value("extension".to_string())
-                        .build()
-                        .into(),
-                    xs::Enumeration::builder()
-                        .value("restriction".to_string())
-                        .build()
-                        .into(),
-                    xs::Enumeration::builder()
-                        .value("list".to_string())
-                        .build()
-                        .into(),
-                    xs::Enumeration::builder()
-                        .value("union".to_string())
-                        .build()
-                        .into(),
-                ])
                 .build()
                 .into(),
         )
+        .simple_derivation(Box::new(
+            xs::Restriction::builder()
+                .base(xs::types::QName(ExpandedName::new(
+                    LocalName::new_dangerous("derivationControl"),
+                    Some(XmlNamespace::XS),
+                )))
+                .simple_restriction_model(
+                    xs::groups::SimpleRestrictionModel::builder()
+                        .child_1(vec![
+                            xs::Facet::from(xs::Enumeration(
+                                xs::types::NoFixedFacet::builder()
+                                    .value("extension".to_string())
+                                    .build()
+                                    .into(),
+                            ))
+                            .into(),
+                            xs::Facet::from(xs::Enumeration(
+                                xs::types::NoFixedFacet::builder()
+                                    .value("restriction".to_string())
+                                    .build()
+                                    .into(),
+                            ))
+                            .into(),
+                            xs::Facet::from(xs::Enumeration(
+                                xs::types::NoFixedFacet::builder()
+                                    .value("list".to_string())
+                                    .build()
+                                    .into(),
+                            ))
+                            .into(),
+                            xs::Facet::from(xs::Enumeration(
+                                xs::types::NoFixedFacet::builder()
+                                    .value("union".to_string())
+                                    .build()
+                                    .into(),
+                            ))
+                            .into(),
+                        ])
+                        .build()
+                        .into(),
+                )
+                .build()
+                .into(),
+        ))
         .build()
+        .into()
 }
 
 const XSD_FULL_DERIVATION_SET: &str = r###"
@@ -173,84 +221,115 @@ const XSD_BLOCK_SET: &str = r###"
 </xs:simpleType>
 "###;
 
-fn xsd_block_set() -> xs::TopLevelSimpleType {
-    xs::TopLevelSimpleType::builder()
+fn xsd_block_set() -> xs::SimpleType {
+    xs::types::TopLevelSimpleType::builder()
     .name(LocalName::new_dangerous("blockSet"))
     .annotation(
         xs::Annotation::builder()
-            .content(vec![
+            .annotation(vec![
                 xs::Documentation::builder()
-                    .any(vec![xmlity::XmlValue::Text(xmlity::xml!(
+                    .particle(vec![xs::documentation_items::Child0 {
+                            child_0:xmlity::XmlValue::Text(xmlity::xml!(
                         "\n  A utility type, not for public use"
-                    ))])
-                    .build()
-                    .into(),
-                xs::Documentation::builder()
-                    .any(vec![xmlity::XmlValue::Text(xmlity::xml!(
-                        "\n  #all or (possibly empty) subset of {substitution, extension,\n  restriction}"
-                    ))])
-                    .build()
-                    .into(),
-            ])
-            .build(),
-    )
-    .content(
-        xs::Union::builder()
-              .simple_types(vec![
-                xs::LocalSimpleType::builder()
-                    .content(
-                        xs::SimpleRestrictionType::builder()
-                            .base(xs::QName(ExpandedName::new(
-                                LocalName::new_dangerous("token"),
-                                Some(XmlNamespace::XS),
-                            )))
-                            .facets(vec![
-                                xs::Enumeration::builder()
-                                    .value("#all".to_string())
-                                    .build()
-                                    .into(),
-                            ])
-                            .build()
-                            .into()
-                    )
-                    .build(),
-                xs::LocalSimpleType::builder()
-                    .content(
-                        xs::List::builder()
-                        .simple_type(
-                            xs::LocalSimpleType::builder()
-                            .content(
-                                xs::SimpleRestrictionType::builder()
-                                    .base(xs::QName(ExpandedName::new(
-                                        LocalName::new_dangerous("derivationControl"),
-                                        Some(XmlNamespace::XS),
-                                    )))
-                                    .facets(vec![
-                                        xs::Enumeration::builder()
-                                            .value("extension".to_string())
-                                            .build()
-                                            .into(),
-                                        xs::Enumeration::builder()
-                                            .value("restriction".to_string())
-                                            .build()
-                                            .into(),
-                                        xs::Enumeration::builder()
-                                            .value("substitution".to_string())
-                                            .build()
-                                            .into(),
-                                    ])
-                                    .build()
-                                    .into()
-                            ).build()
-                        ).build()
+                    )),
+                        }])
+                        .build()
                         .into(),
-                    )
-                    .build(),
+                xs::Documentation::builder()
+                    .particle(vec![xs::documentation_items::Child0 {
+                            child_0: xmlity::XmlValue::Text(xmlity::xml!(
+                        "\n  #all or (possibly empty) subset of {substitution, extension,\n  restriction}"
+                    )),
+                        }])
+                        .build()
+                        .into(),
             ])
             .build()
             .into(),
     )
+    .simple_derivation(Box::new(
+        xs::Union::builder()
+              .simple_type(vec![
+                xs::types::LocalSimpleType::builder()
+                    .simple_derivation(Box::new(
+                        xs::Restriction::builder()
+                            .base(xs::types::QName(ExpandedName::new(
+                                LocalName::new_dangerous("token"),
+                                Some(XmlNamespace::XS),
+                            )))
+                            .simple_restriction_model(
+                                xs::groups::SimpleRestrictionModel::builder()
+                                    .child_1(vec![
+                                        xs::Facet::from(xs::Enumeration(
+                                            xs::types::NoFixedFacet::builder()
+                                                .value("#all".to_string())
+                                                .build()
+                                                .into(),
+                                        ))
+                                        .into(),
+                                    ])
+                                    .build()
+                                    .into(),
+                            )
+                            .build()
+                            .into(),
+                    ))
+                    .build()
+                    .into(),
+                xs::types::LocalSimpleType::builder()
+                    .simple_derivation(Box::new(
+                        xs::List::builder()
+                        .simple_type(
+                            xs::types::LocalSimpleType::builder()
+                            .simple_derivation(Box::new(
+                                xs::Restriction::builder()
+                                    .base(xs::types::QName(ExpandedName::new(
+                                        LocalName::new_dangerous("derivationControl"),
+                                        Some(XmlNamespace::XS),
+                                    )))
+                                    .simple_restriction_model(
+                                        xs::groups::SimpleRestrictionModel::builder()
+                                            .child_1(vec![
+                                                xs::Facet::from(xs::Enumeration(
+                                                    xs::types::NoFixedFacet::builder()
+                                                        .value("extension".to_string())
+                                                        .build()
+                                                        .into(),
+                                                ))
+                                                .into(),
+                                                xs::Facet::from(xs::Enumeration(
+                                                    xs::types::NoFixedFacet::builder()
+                                                        .value("restriction".to_string())
+                                                        .build()
+                                                        .into(),
+                                                ))
+                                                .into(),
+                                                xs::Facet::from(xs::Enumeration(
+                                                    xs::types::NoFixedFacet::builder()
+                                                        .value("substitution".to_string())
+                                                        .build()
+                                                        .into(),
+                                                ))
+                                                .into(),
+                                            ])
+                                            .build()
+                                            .into(),
+                                    )
+                                    .build()
+                                    .into(),
+                            ))
+                            .build().into()
+                        ).build()
+                        .into(),
+                    ))
+                    .build()
+                    .into(),
+            ])
+            .build()
+            .into(),
+    ))
     .build()
+    .into()
 }
 
 const XSD_NAMESPACE_LIST: &str = r###"
@@ -413,29 +492,3 @@ const XSD_SIMPLE_DERIVATION_SET: &str = r###"
   </xs:union>
 </xs:simpleType>
 "###;
-
-#[rstest::rstest]
-#[case::form_choice(XSD_FORM_CHOICE, None)]
-#[case::reduced_derivation_control(XSD_REDUCED_DERIVATION_CONTROL, None)]
-#[case::derivation_set(XSD_DERIVATION_SET, None)]
-#[case::type_derivation_control(XSD_TYPE_DERIVATION_CONTROL, Some(xsd_type_derivation_control()))]
-#[case::full_derivation_set(XSD_FULL_DERIVATION_SET, None)]
-#[case::all_nni(XSD_ALL_NNI, None)]
-#[case::block_set(XSD_BLOCK_SET, Some(xsd_block_set()))]
-#[case::namespace_list(XSD_NAMESPACE_LIST, None)]
-#[case::basic_namespace_list(XSD_BASIC_NAMESPACE_LIST, None)]
-#[case::special_namespace_list(XSD_SPECIAL_NAMESPACE_LIST, None)]
-#[case::qname_list(XSD_QNAME_LIST, None)]
-#[case::qname_list_a(XSD_QNAME_LIST_A, None)]
-#[case::xpath_default_namespace(XSD_XPATH_DEFAULT_NAMESPACE, None)]
-#[case::public(XSD_PUBLIC, None)]
-#[case::derivation_control(XSD_DERIVATION_CONTROL, None)]
-#[case::simple_derivation_set(XSD_SIMPLE_DERIVATION_SET, None)]
-fn deserialize(#[case] xml: &str, #[case] expected: Option<xs::TopLevelSimpleType>) {
-    let xml = xml.trim();
-    let element: xs::TopLevelSimpleType = xmlity_quick_xml::de::from_str(xml).unwrap();
-
-    if let Some(expected) = expected {
-        pretty_assertions::assert_eq!(element, expected);
-    }
-}

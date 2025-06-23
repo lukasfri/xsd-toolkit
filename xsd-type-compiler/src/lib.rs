@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
+use std::ops::Deref;
 
 use complex::ComplexFragmentEquivalent;
 use simple::ToSimpleFragments;
 use transformers::TransformChange;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd::schema as xs;
+use xsd::xs;
 pub mod transformers;
 
 pub mod complex;
@@ -110,32 +111,33 @@ impl CompiledNamespace {
     }
 
     pub fn from_schema(schema: &xsd::XmlSchema) -> Result<Self, Error> {
-        let mut this = Self::new(schema.underlying_schema.target_namespace.clone());
+        let mut this = Self::new(schema.underlying_schema.target_namespace.clone().unwrap().0);
+
+        use xs::groups::{Redefinable, SchemaTop};
 
         for redefine in schema.schema_tops() {
             match redefine {
-                xs::SchemaTop::Redefineable(redefineable) => match redefineable {
-                    xs::Redefineable::SimpleType(simple_type) => {
+                SchemaTop::Redefinable(redefineable) => match redefineable.deref() {
+                    Redefinable::SimpleType(simple_type) => {
                         this.import_top_level_simple_type(simple_type)?;
                     }
-                    xs::Redefineable::ComplexType(complex_type) => {
+                    Redefinable::ComplexType(complex_type) => {
                         this.import_top_level_complex_type(complex_type)?;
                     }
-                    xs::Redefineable::Group(group) => {
+                    Redefinable::Group(group) => {
                         this.import_top_level_group(group)?;
                     }
-                    xs::Redefineable::AttributeGroup(attribute_group) => {
+                    Redefinable::AttributeGroup(attribute_group) => {
                         this.import_top_level_attribute_group(attribute_group)?;
                     }
                 },
-                xs::SchemaTop::Element(element) => {
+                SchemaTop::Element(element) => {
                     this.import_top_level_element(element)?;
                 }
-                xs::SchemaTop::Attribute(attribute) => {
+                SchemaTop::Attribute(attribute) => {
                     this.import_top_level_attribute(attribute)?;
                 }
-                xs::SchemaTop::Notation(_) => {}
-                xs::SchemaTop::Annotation(_) => {}
+                SchemaTop::Notation(_) => {}
             }
         }
 
@@ -148,15 +150,15 @@ impl CompiledNamespace {
 
     pub fn import_top_level_simple_type(
         &mut self,
-        type_: &xs::TopLevelSimpleType,
+        simple_type: &xs::SimpleType,
     ) -> Result<ExpandedName<'_>, Error> {
-        let name = type_.name.clone();
+        let name = simple_type.0.name.clone();
 
         if self.top_level_types.contains_key(&name) {
             return Err(Error::ImportOfExistingEntity);
         }
 
-        let root_fragment = type_.content.to_simple_fragments(&mut self.complex_type);
+        let root_fragment = simple_type.0.to_simple_fragments(&mut self.complex_type);
         let type_ = TopLevelType::Simple(TopLevelSimpleType { root_fragment });
         self.top_level_types.insert(name.clone(), type_);
 
@@ -167,15 +169,15 @@ impl CompiledNamespace {
 
     pub fn import_top_level_complex_type(
         &mut self,
-        type_: &xs::TopLevelComplexType,
+        complex_type: &xs::ComplexType,
     ) -> Result<ExpandedName<'_>, Error> {
-        let name = type_.name.clone();
+        let name = complex_type.0.name.clone();
 
         if self.top_level_types.contains_key(&name) {
             return Err(Error::ImportOfExistingEntity);
         }
 
-        let root_fragment = type_.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = complex_type.0.to_complex_fragments(&mut self.complex_type);
 
         let type_ = TopLevelType::Complex(TopLevelComplexType { root_fragment });
         self.top_level_types.insert(name.clone(), type_);
@@ -185,65 +187,28 @@ impl CompiledNamespace {
         Ok(name)
     }
 
-    pub fn import_top_level_group(
-        &mut self,
-        type_: &xs::GroupType,
-    ) -> Result<ExpandedName<'_>, Error> {
-        let name = type_.name.clone();
-
-        if self.top_level_groups.contains_key(&name) {
-            return Err(Error::ImportOfExistingEntity);
-        }
-
-        let root_fragment = type_.to_complex_fragments(&mut self.complex_type);
-        let type_ = TopLevelGroup { root_fragment };
-        self.top_level_groups.insert(name.clone(), type_);
-
-        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
-
-        Ok(name)
-    }
-
-    pub fn import_top_level_attribute_group(
-        &mut self,
-        type_: &xs::AttributeGroupType,
-    ) -> Result<ExpandedName<'_>, Error> {
-        let name = type_.name.clone();
-
-        if self.top_level_groups.contains_key(&name) {
-            return Err(Error::ImportOfExistingEntity);
-        }
-
-        let root_fragment = type_.to_complex_fragments(&mut self.complex_type);
-        let type_ = TopLevelAttributeGroup { root_fragment };
-        self.top_level_attribute_groups.insert(name.clone(), type_);
-
-        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
-
-        Ok(name)
-    }
-
     pub fn export_top_level_complex_type(
         &self,
-        type_: &LocalName<'_>,
-    ) -> Result<Option<xs::TopLevelComplexType>, Error> {
-        let Some(TopLevelType::Complex(top_level_complex_type)) = self.top_level_types.get(type_)
+        complex_type: &LocalName<'_>,
+    ) -> Result<Option<xs::ComplexType>, Error> {
+        let Some(TopLevelType::Complex(top_level_complex_type)) =
+            self.top_level_types.get(complex_type)
         else {
             return Ok(None);
         };
 
         let fragment_id = &top_level_complex_type.root_fragment;
 
-        let top_level =
-            xs::TopLevelComplexType::from_complex_fragments(&self.complex_type, fragment_id)
+        let complex_type =
+            xs::types::TopLevelComplexType::from_complex_fragments(&self.complex_type, fragment_id)
                 .unwrap();
 
-        Ok(Some(top_level))
+        Ok(Some(xs::ComplexType(complex_type.into())))
     }
 
     pub fn import_top_level_element(
         &mut self,
-        element: &xs::TopLevelElement,
+        element: &xs::Element,
     ) -> Result<ExpandedName<'_>, Error> {
         let name = element.0.name.clone();
 
@@ -251,7 +216,7 @@ impl CompiledNamespace {
             return Err(Error::ImportOfExistingEntity);
         }
 
-        let root_fragment = element.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = element.0.to_complex_fragments(&mut self.complex_type);
 
         self.top_level_elements
             .insert(name.clone(), TopLevelElement { root_fragment });
@@ -263,34 +228,72 @@ impl CompiledNamespace {
 
     pub fn export_top_level_element(
         &self,
-        type_: &LocalName<'_>,
-    ) -> Result<Option<xs::TopLevelElement>, Error> {
-        let Some(top_level_element) = self.top_level_elements.get(type_) else {
+        element: &LocalName<'_>,
+    ) -> Result<Option<xs::Element>, Error> {
+        let Some(top_level_element) = self.top_level_elements.get(element) else {
             return Ok(None);
         };
 
         let fragment_id = &top_level_element.root_fragment;
 
-        let top_level =
-            xs::TopLevelElement::from_complex_fragments(&self.complex_type, fragment_id).unwrap();
+        let element =
+            xs::types::TopLevelElement::from_complex_fragments(&self.complex_type, fragment_id)
+                .unwrap();
 
-        Ok(Some(top_level))
+        Ok(Some(xs::Element(element.into())))
     }
 
     pub fn import_top_level_attribute(
         &mut self,
-        attribute: &xs::TopLevelAttribute,
+        attribute: &xs::Attribute,
     ) -> Result<ExpandedName<'_>, Error> {
-        let name = attribute.name.0.clone();
+        let name = attribute.0.name.clone();
 
         if self.top_level_attributes.contains_key(&name) {
             return Err(Error::ImportOfExistingEntity);
         }
 
-        let root_fragment = attribute.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = attribute.0.to_complex_fragments(&mut self.complex_type);
 
         self.top_level_attributes
             .insert(name.clone(), TopLevelAttribute { root_fragment });
+
+        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+
+        Ok(name)
+    }
+
+    pub fn import_top_level_group(&mut self, group: &xs::Group) -> Result<ExpandedName<'_>, Error> {
+        let name = group.0.name.clone();
+
+        if self.top_level_groups.contains_key(&name) {
+            return Err(Error::ImportOfExistingEntity);
+        }
+
+        let root_fragment = group.0.to_complex_fragments(&mut self.complex_type);
+        let type_ = TopLevelGroup { root_fragment };
+        self.top_level_groups.insert(name.clone(), type_);
+
+        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+
+        Ok(name)
+    }
+
+    pub fn import_top_level_attribute_group(
+        &mut self,
+        attribute_group: &xs::AttributeGroup,
+    ) -> Result<ExpandedName<'_>, Error> {
+        let name = attribute_group.0.name.clone();
+
+        if self.top_level_groups.contains_key(&name) {
+            return Err(Error::ImportOfExistingEntity);
+        }
+
+        let root_fragment = attribute_group
+            .0
+            .to_complex_fragments(&mut self.complex_type);
+        let type_ = TopLevelAttributeGroup { root_fragment };
+        self.top_level_attribute_groups.insert(name.clone(), type_);
 
         let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
 

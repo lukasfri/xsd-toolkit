@@ -10,7 +10,7 @@ use crate::{
     Result, ToIdentTypesExt, TypeType,
 };
 
-use xsd::schema::MaxOccursValue;
+use xsd::xs::types::AllNNI;
 use xsd_type_compiler::complex::{self as cx};
 
 use super::{Context, Scope, ToTypeTemplate, ToTypeTemplateData};
@@ -109,7 +109,7 @@ pub enum LocalElementFragmentTemplate {
     ElementRecord {
         template: ElementRecord,
         min_occurs: usize,
-        max_occurs: MaxOccursValue,
+        max_occurs: AllNNI,
     },
     Item(ItemFieldItem),
 }
@@ -122,8 +122,8 @@ impl ToTypeTemplate for cx::LocalElementFragment {
         context: &C,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
-        let max_occurs = self.max_occurs.unwrap_or(MaxOccursValue::Bounded(1));
+        let min_occurs = self.min_occurs.unwrap_or(1);
+        let max_occurs = self.max_occurs.unwrap_or(AllNNI::Bounded(1));
 
         match &self.type_ {
             cx::LocalElementFragmentType::Local(local) => {
@@ -207,8 +207,8 @@ mod tests {
 
     use syn::parse_quote;
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
-    use xsd::schema as xs;
-    use xsd::schema_names as xsn;
+    use xsd::xsn as xsn;
+    use xsd::xs;
     use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
     use crate::misc::TypeReference;
@@ -225,7 +225,7 @@ mod tests {
                         xs::ComplexContent::builder()
                             .content(
                                 xs::ComplexRestrictionType::builder()
-                                    .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                    .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                                     .particle(
                                         xs::SequenceType::builder().content(vec![]).build().into(),
                                     )
@@ -288,18 +288,22 @@ mod tests {
                             xs::ComplexContent::builder()
                                 .content(
                                     xs::ComplexRestrictionType::builder()
-                                        .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                        .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                                         .particle(
                                             xs::SequenceType::builder()
                                                 .content(vec![
                                                     xs::LocalElement::builder()
                                                         .name(LocalName::new_dangerous("a"))
-                                                        .type_(xs::QName(xsn::INTEGER.clone()))
+                                                        .type_(xs::types::QName(
+                                                            xsn::INTEGER.clone(),
+                                                        ))
                                                         .build()
                                                         .into(),
                                                     xs::LocalElement::builder()
                                                         .name(LocalName::new_dangerous("b"))
-                                                        .type_(xs::QName(xsn::STRING.clone()))
+                                                        .type_(xs::types::QName(
+                                                            xsn::STRING.clone(),
+                                                        ))
                                                         .build()
                                                         .into(),
                                                 ])
@@ -372,7 +376,7 @@ mod tests {
                             xs::ComplexContent::builder()
                                 .content(
                                     xs::ComplexRestrictionType::builder()
-                                        .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                        .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                                         .particle(
                                             xs::SequenceType::builder()
                                                 .content(vec![])
@@ -384,13 +388,17 @@ mod tests {
                                                 .declarations(vec![
                                                     xs::LocalAttribute::builder()
                                                         .name(LocalName::new_dangerous("a"))
-                                                        .type_(xs::QName(xsn::INTEGER.clone()))
+                                                        .type_(xs::types::QName(
+                                                            xsn::INTEGER.clone(),
+                                                        ))
                                                         .use_(xs::AttributeUseType::Required)
                                                         .build()
                                                         .into(),
                                                     xs::LocalAttribute::builder()
                                                         .name(LocalName::new_dangerous("b"))
-                                                        .type_(xs::QName(xsn::STRING.clone()))
+                                                        .type_(xs::types::QName(
+                                                            xsn::STRING.clone(),
+                                                        ))
                                                         .use_(xs::AttributeUseType::Required)
                                                         .build()
                                                         .into(),
@@ -462,7 +470,7 @@ mod tests {
                         xs::ComplexContent::builder()
                             .content(
                                 xs::ComplexRestrictionType::builder()
-                                    .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                    .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                                     .particle(
                                         xs::SequenceType::builder()
                                             .content(vec![
@@ -470,12 +478,16 @@ mod tests {
                                                     .content(vec![
                                                         xs::LocalElement::builder()
                                                             .name(LocalName::new_dangerous("a"))
-                                                            .type_(xs::QName(xsn::INTEGER.clone()))
+                                                            .type_(xs::types::QName(
+                                                                xsn::INTEGER.clone(),
+                                                            ))
                                                             .build()
                                                             .into(),
                                                         xs::LocalElement::builder()
                                                             .name(LocalName::new_dangerous("b"))
-                                                            .type_(xs::QName(xsn::STRING.clone()))
+                                                            .type_(xs::types::QName(
+                                                                xsn::STRING.clone(),
+                                                            ))
                                                             .build()
                                                             .into(),
                                                     ])
@@ -483,7 +495,7 @@ mod tests {
                                                     .into(),
                                                 xs::LocalElement::builder()
                                                     .name(LocalName::new_dangerous("c"))
-                                                    .type_(xs::QName(xsn::STRING.clone()))
+                                                    .type_(xs::types::QName(xsn::STRING.clone()))
                                                     .build()
                                                     .into(),
                                             ])
@@ -566,18 +578,18 @@ mod tests {
                         xs::ComplexContent::builder()
                             .content(
                                 xs::ComplexRestrictionType::builder()
-                                    .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                    .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                                     .particle(
                                         xs::SequenceType::builder()
                                             .content(vec![
                                                 xs::LocalElement::builder()
                                                     .name(LocalName::new_dangerous("a"))
-                                                    .type_(xs::QName(xsn::INTEGER.clone()))
+                                                    .type_(xs::types::QName(xsn::INTEGER.clone()))
                                                     .build()
                                                     .into(),
                                                 xs::LocalElement::builder()
                                                     .name(LocalName::new_dangerous("b"))
-                                                    .type_(xs::QName(xsn::STRING.clone()))
+                                                    .type_(xs::types::QName(xsn::STRING.clone()))
                                                     .build()
                                                     .into(),
                                             ])
@@ -589,13 +601,13 @@ mod tests {
                                             .declarations(vec![
                                                 xs::LocalAttribute::builder()
                                                     .name(LocalName::new_dangerous("c"))
-                                                    .type_(xs::QName(xsn::INTEGER.clone()))
+                                                    .type_(xs::types::QName(xsn::INTEGER.clone()))
                                                     .use_(xs::AttributeUseType::Required)
                                                     .build()
                                                     .into(),
                                                 xs::LocalAttribute::builder()
                                                     .name(LocalName::new_dangerous("d"))
-                                                    .type_(xs::QName(xsn::STRING.clone()))
+                                                    .type_(xs::types::QName(xsn::STRING.clone()))
                                                     .use_(xs::AttributeUseType::Required)
                                                     .build()
                                                     .into(),
@@ -676,12 +688,14 @@ mod tests {
                         xs::ComplexContent::builder()
                             .content(
                                 xs::ComplexRestrictionType::builder()
-                                    .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                    .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                                     .particle(
                                         xs::SequenceType::builder()
                                             .content(vec![xs::LocalElement::builder()
                                                 .name(LocalName::new_dangerous("a"))
-                                                .type_(xs::QName(child_type_expanded_name.clone()))
+                                                .type_(xs::types::QName(
+                                                    child_type_expanded_name.clone(),
+                                                ))
                                                 .build()
                                                 .into()])
                                             .build()
@@ -751,7 +765,7 @@ mod tests {
     fn simple_reference_type_top_level_element() {
         let sequence = xs::types::TopLevelElement::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
-            .type_(xs::QName(xsn::STRING.clone()))
+            .type_attribute(xs::types::QName(xsn::STRING.clone()))
             .build()
             .into();
 
@@ -802,7 +816,7 @@ mod tests {
 
         let sequence = xs::types::TopLevelElement::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
-            .type_(xs::QName(child_type_expanded_name.clone()))
+            .type_attribute(xs::types::QName(child_type_expanded_name.clone()))
             .build()
             .into();
 
@@ -867,11 +881,11 @@ mod tests {
                         xs::ComplexContent::builder()
                             .content(
                                 xs::ComplexRestrictionType::builder()
-                                    .base(xs::QName(xsn::ANY_TYPE.clone()))
+                                    .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                                     .particle(
                                         xs::SequenceType::builder()
                                             .content(vec![xs::LocalElement::builder()
-                                                .ref_(xs::QName(
+                                                .ref_(xs::types::QName(
                                                     child_element_expanded_name.clone(),
                                                 ))
                                                 .build()

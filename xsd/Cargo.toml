@@ -13,6 +13,8 @@ xmlity-quick-xml.workspace = true
 bon = "3.6.3"
 derive_more = { version = "2.0.1", features = ["full"] }
 
+
 [dev-dependencies]
 rstest.workspace = true
-pretty_assertions = "^1.4.1"
+pretty_assertions.workspace = true
+ntest.workspace = true

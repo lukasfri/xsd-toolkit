@@ -92,10 +92,10 @@ impl BuildEngine {
 
     pub fn read_xsd_file<P: AsRef<Path>>(
         path: P,
-    ) -> Result<XmlRoot<xsd::schema::Schema>, FileErrorKind> {
+    ) -> Result<XmlRoot<xsd::xs::Schema>, FileErrorKind> {
         let xml = std::fs::read_to_string(path.as_ref()).map_err(FileErrorKind::Io)?;
 
-        let xsd = xmlity_quick_xml::from_str::<XmlRoot<xsd::schema::Schema>>(&xml)
+        let xsd = xmlity_quick_xml::from_str::<XmlRoot<xsd::xs::Schema>>(&xml)
             .map_err(FileErrorKind::XmlityQuickXml)?;
 
         Ok(xsd)
@@ -169,8 +169,14 @@ impl StartedBuildEngine {
                     None
                 }) as Box<dyn ItemAugmentation>,
                 Box::new(Some(AdditionalDerives {
-                    structs: vec![parse_quote!(::core::cmp::PartialEq)],
-                    enums: vec![parse_quote!(::core::cmp::PartialEq)],
+                    structs: vec![
+                        parse_quote!(::core::cmp::PartialEq),
+                        parse_quote!(::core::clone::Clone),
+                    ],
+                    enums: vec![
+                        parse_quote!(::core::cmp::PartialEq),
+                        parse_quote!(::core::clone::Clone),
+                    ],
                     ..Default::default()
                 })) as Box<dyn ItemAugmentation>,
             ],

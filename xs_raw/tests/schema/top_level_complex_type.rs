@@ -860,7 +860,7 @@ fn xsd_any_type() -> xs::ComplexType {
                                 .nested_particle(vec![Box::new(
                                     xs::Any::builder()
                                         .min_occurs(0)
-                                        .max_occurs("unbounded".to_string())
+                                        .max_occurs(xs::types::AllNNI::Unbounded)
                                         .process_contents(
                                             "lax".to_string(), // xs::ProcessContentsType::Lax
                                         )

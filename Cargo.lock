@@ -716,6 +716,7 @@ version = "0.0.0"
 dependencies = [
  "bon",
  "derive_more",
+ "ntest",
  "pretty_assertions",
  "rstest",
  "xmlity",

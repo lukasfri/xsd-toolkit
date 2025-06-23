@@ -1,7 +1,7 @@
 use xmlity::types::utils::{XmlRoot, XmlRootTop};
-use xsd::schema::{self as xs};
+use xsd::xs;
 
-pub mod top_level_element;
+// pub mod top_level_element;
 
 #[test]
 fn schema_deserialize() {

@@ -14,7 +14,7 @@ use crate::{
 
 use quote::format_ident;
 use syn::{parse_quote, Item, Path};
-use xsd::schema::MaxOccursValue;
+use xsd::xs::types::AllNNI;
 use xsd_type_compiler::complex as cx;
 
 use super::{
@@ -126,7 +126,7 @@ impl ToTypeTemplate for cx::AllFragment {
 
         let mod_path: syn::Path = parse_quote!(#mod_name);
 
-        let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
+        let min_occurs = self.min_occurs.unwrap_or(1);
         let max_occurs = self.max_occurs.unwrap_or_default();
 
         let template = ItemOrTemplate::new(
@@ -162,20 +162,20 @@ impl<T> ItemOrTemplate<T> {
         template: T,
         template_to_item: impl FnOnce(T) -> syn::Item,
         min_occurs: usize,
-        max_occurs: MaxOccursValue,
+        max_occurs: AllNNI,
         scope: &mut S,
     ) -> Result<Self> {
         match (min_occurs, max_occurs) {
-            (1, MaxOccursValue::Bounded(1)) => Ok(Self::Template(template)),
+            (1, AllNNI::Bounded(1)) => Ok(Self::Template(template)),
             (min, max) => {
                 let ty = scope.add_item(template_to_item(template))?;
 
                 match (min, max) {
-                    (0, MaxOccursValue::Bounded(1)) => Ok(Self::Item(ItemFieldItem {
+                    (0, AllNNI::Bounded(1)) => Ok(Self::Item(ItemFieldItem {
                         ty: ty.wrap(TypeReference::option_wrapper),
                         default: true,
                     })),
-                    (1, MaxOccursValue::Bounded(1)) => unreachable!(),
+                    (1, AllNNI::Bounded(1)) => unreachable!(),
                     _ => Ok(Self::Item(ItemFieldItem {
                         ty: ty.wrap(TypeReference::vec_wrapper),
                         default: true,
@@ -247,7 +247,7 @@ impl ToTypeTemplate for cx::SequenceFragment {
 
         let mod_path: syn::Path = parse_quote!(#mod_name);
 
-        let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
+        let min_occurs = self.min_occurs.unwrap_or(1);
         let max_occurs = self.max_occurs.unwrap_or_default();
 
         let template = ItemOrTemplate::new(
@@ -335,10 +335,10 @@ impl ToTypeTemplate for cx::ChoiceFragment {
             .map(|a| scope.add_item(a))
             .transpose()?;
 
-        let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
-        let max_occurs = self.max_occurs.unwrap_or(MaxOccursValue::Bounded(1));
+        let min_occurs = self.min_occurs.unwrap_or(1);
+        let max_occurs = self.max_occurs.unwrap_or(AllNNI::Bounded(1));
 
-        let template = if min_occurs != 1 || max_occurs != MaxOccursValue::Bounded(1) {
+        let template = if min_occurs != 1 || max_occurs != AllNNI::Bounded(1) {
             let item = template.to_enum(&ident, None);
 
             let ty = scope.add_item(item)?;
@@ -383,7 +383,7 @@ impl ToTypeTemplate for cx::GroupRefFragment {
         context: &C,
         _scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let min_occurs = self.min_occurs.map(|a| a.0).unwrap_or(1);
+        let min_occurs = self.min_occurs.unwrap_or(1);
         let max_occurs = self.max_occurs.unwrap_or_default();
 
         //TODO: Should not wrap in box if we also wrap it in Vec.
@@ -411,7 +411,7 @@ pub enum GroupTypeContentTemplate {
     ElementRecord {
         record: ElementRecord,
         min_occurs: usize,
-        max_occurs: MaxOccursValue,
+        max_occurs: AllNNI,
     },
     Item(ItemFieldItem),
 }
@@ -430,7 +430,7 @@ impl GroupTypeContentTemplate {
                 min_occurs,
                 max_occurs,
             } => {
-                if min_occurs == 1 && max_occurs == MaxOccursValue::Bounded(1) {
+                if min_occurs == 1 && max_occurs == AllNNI::Bounded(1) {
                     Ok(ChoiceVariantType::Element(record))
                 } else {
                     let ty = scope.add_item(record.to_struct(ident, path))?;
@@ -474,7 +474,7 @@ impl GroupTypeContentTemplate {
                 min_occurs,
                 max_occurs,
             } => {
-                let record = if max_occurs == MaxOccursValue::Bounded(1) {
+                let record = if max_occurs == AllNNI::Bounded(1) {
                     let optional = min_occurs == 0;
                     let res = record.try_into_compact_item_field(optional);
 
@@ -530,7 +530,7 @@ impl From<LocalElementFragmentTemplate> for GroupTypeContentTemplate {
     }
 }
 
-impl ToTypeTemplate for cx::GroupTypeContentId {
+impl ToTypeTemplate for cx::NestedParticleId {
     type TypeTemplate = GroupTypeContentTemplate;
 
     fn to_type_template<C: Context, S: Scope>(
@@ -539,44 +539,44 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let template = match self {
-            cx::GroupTypeContentId::Element(fragment_idx) => context
+            cx::NestedParticleId::Element(fragment_idx) => context
                 .resolve_fragment_id(fragment_idx, scope)
                 .map(|res| ToTypeTemplateData {
                     ident: res.ident,
                     template: res.template.into(),
                 })?,
-            cx::GroupTypeContentId::Group(fragment_idx) => context
+            cx::NestedParticleId::Group(fragment_idx) => context
                 .resolve_fragment_id(fragment_idx, scope)
                 .map(|res| ToTypeTemplateData {
                     ident: res.ident,
                     template: GroupTypeContentTemplate::Item(res.template),
                 })?,
-            cx::GroupTypeContentId::All(fragment_idx) => {
-                let record = context.resolve_fragment_id(fragment_idx, scope)?;
+            // cx::NestedParticleId::All(fragment_idx) => {
+            //     let record = context.resolve_fragment_id(fragment_idx, scope)?;
 
-                let ident = record
-                    .ident
-                    .unwrap_or_else(|| context.suggested_ident().clone());
+            //     let ident = record
+            //         .ident
+            //         .unwrap_or_else(|| context.suggested_ident().clone());
 
-                let item = match record.template {
-                    ItemOrTemplate::Template(record) => {
-                        let item = record.to_struct(&ident, None);
+            //     let item = match record.template {
+            //         ItemOrTemplate::Template(record) => {
+            //             let item = record.to_struct(&ident, None);
 
-                        let ty = scope.add_item(item)?;
+            //             let ty = scope.add_item(item)?;
 
-                        ItemFieldItem { ty, default: false }
-                    }
-                    ItemOrTemplate::Item(item) => item,
-                };
+            //             ItemFieldItem { ty, default: false }
+            //         }
+            //         ItemOrTemplate::Item(item) => item,
+            //     };
 
-                let template = GroupTypeContentTemplate::Item(item);
+            //     let template = GroupTypeContentTemplate::Item(item);
 
-                ToTypeTemplateData {
-                    ident: Some(ident),
-                    template,
-                }
-            }
-            cx::GroupTypeContentId::Choice(fragment_idx) => {
+            //     ToTypeTemplateData {
+            //         ident: Some(ident),
+            //         template,
+            //     }
+            // }
+            cx::NestedParticleId::Choice(fragment_idx) => {
                 let record = context.resolve_fragment_id(fragment_idx, scope)?;
 
                 let ident = record
@@ -601,7 +601,7 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
                     template,
                 }
             }
-            cx::GroupTypeContentId::Sequence(fragment_idx) => {
+            cx::NestedParticleId::Sequence(fragment_idx) => {
                 let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
                 let mod_name = format_ident!("{}_items", context.suggested_ident().to_path_ident());
@@ -641,7 +641,7 @@ impl ToTypeTemplate for cx::GroupTypeContentId {
                     template,
                 }
             }
-            cx::GroupTypeContentId::Any(fragment_idx) => {
+            cx::NestedParticleId::Any(fragment_idx) => {
                 let template = context.resolve_fragment_id(fragment_idx, scope)?;
 
                 let ty = template.template;
@@ -852,7 +852,7 @@ mod tests {
     use syn::parse_quote;
     use xmlity::{LocalName, XmlNamespace};
     use xsd::schema as xs;
-    use xsd::schema_names as xsn;
+    use xsd::xsn as xsn;
     use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
     use crate::Generator;
@@ -880,7 +880,7 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                             .particle(
                                 xs::SequenceType::builder()
                                     .content(vec![
@@ -889,14 +889,16 @@ mod tests {
                                                 xs::SequenceType::builder()
                                                     .content(vec![xs::LocalElement::builder()
                                                         .name(LocalName::new_dangerous("a"))
-                                                        .type_(xs::QName(xsn::INTEGER.clone()))
+                                                        .type_(xs::types::QName(
+                                                            xsn::INTEGER.clone(),
+                                                        ))
                                                         .build()
                                                         .into()])
                                                     .build()
                                                     .into(),
                                                 xs::LocalElement::builder()
                                                     .name(LocalName::new_dangerous("b"))
-                                                    .type_(xs::QName(xsn::STRING.clone()))
+                                                    .type_(xs::types::QName(xsn::STRING.clone()))
                                                     .build()
                                                     .into(),
                                             ])
@@ -904,7 +906,7 @@ mod tests {
                                             .into(),
                                         xs::LocalElement::builder()
                                             .name(LocalName::new_dangerous("c"))
-                                            .type_(xs::QName(xsn::STRING.clone()))
+                                            .type_(xs::types::QName(xsn::STRING.clone()))
                                             .build()
                                             .into(),
                                     ])
@@ -994,7 +996,7 @@ mod tests {
                 xs::ComplexContent::builder()
                     .content(
                         xs::ComplexRestrictionType::builder()
-                            .base(xs::QName(xsn::ANY_TYPE.clone()))
+                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                             .particle(
                                 xs::SequenceType::builder()
                                     .content(vec![
@@ -1002,13 +1004,13 @@ mod tests {
                                             .content(vec![
                                                 xs::LocalElement::builder()
                                                     .name(LocalName::new_dangerous("a"))
-                                                    .type_(xs::QName(xsn::INTEGER.clone()))
+                                                    .type_(xs::types::QName(xsn::INTEGER.clone()))
                                                     .min_occurs(xs::MinOccurs(0))
                                                     .build()
                                                     .into(),
                                                 xs::LocalElement::builder()
                                                     .name(LocalName::new_dangerous("b"))
-                                                    .type_(xs::QName(xsn::STRING.clone()))
+                                                    .type_(xs::types::QName(xsn::STRING.clone()))
                                                     .build()
                                                     .into(),
                                             ])
@@ -1017,7 +1019,7 @@ mod tests {
                                             .into(),
                                         xs::LocalElement::builder()
                                             .name(LocalName::new_dangerous("c"))
-                                            .type_(xs::QName(xsn::STRING.clone()))
+                                            .type_(xs::types::QName(xsn::STRING.clone()))
                                             .build()
                                             .into(),
                                     ])

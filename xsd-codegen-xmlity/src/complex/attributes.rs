@@ -7,7 +7,7 @@ use std::sync::LazyLock;
 
 use quote::ToTokens;
 use syn::parse_quote;
-use xmlity::ExpandedName;
+use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_type_compiler::{
     complex::{self as cx, AttributeUse},
     simple, NamedOrAnonymous,
@@ -36,7 +36,7 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
 
                 static SIMPLE_ANY_TYPE_NAMED: LazyLock<NamedOrAnonymous<simple::FragmentId>> =
                     LazyLock::new(|| {
-                        NamedOrAnonymous::Named(xsd::schema_names::SIMPLE_ANY_TYPE.clone())
+                        NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone())
                     });
 
                 let ty = match local
@@ -46,6 +46,7 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
                 {
                     NamedOrAnonymous::Named(name) => {
                         let bound_type = context.resolve_named_type(name)?;
+
                         assert_eq!(
                             bound_type.ty_type,
                             TypeType::Simple,
@@ -126,7 +127,7 @@ impl ToTypeTemplate for cx::TopLevelAttributeFragment {
         let ident = self.name.to_item_ident();
 
         static SIMPLE_ANY_TYPE_NAMED: LazyLock<NamedOrAnonymous<simple::FragmentId>> =
-            LazyLock::new(|| NamedOrAnonymous::Named(xsd::schema_names::SIMPLE_ANY_TYPE.clone()));
+            LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone()));
 
         let ty = match self
             .type_
@@ -181,7 +182,7 @@ mod tests {
     fn simple_attribute() {
         let attribute = xs::TopLevelAttribute::builder()
             .name(xs::NameAttr(LocalName::new_dangerous("SimpleAttribute")))
-            .type_(xs::Type(xs::QName(ExpandedName::new(
+            .type_(xs::Type(xs::types::QName(ExpandedName::new(
                 LocalName::new_dangerous("string"),
                 XmlNamespace::XS.into(),
             ))))

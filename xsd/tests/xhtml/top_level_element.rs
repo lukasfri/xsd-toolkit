@@ -1,6 +1,6 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd::schema as xs;
 use xsd::schema_names as xsn;
+use xsd::xs;
 
 const XHTML_HTML: &str = r###"
 <xs:element xmlns="http://www.w3.org/1999/xhtml" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xml="http://www.w3.org/XML/1998/namespace" name="html">
