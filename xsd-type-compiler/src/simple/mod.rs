@@ -404,7 +404,7 @@ impl ToSimpleFragments for xs::List {
     }
 }
 
-impl ToSimpleFragments for xs::union__items::SimpleType {
+impl ToSimpleFragments for xs::union_items::SimpleType {
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(&self, compiler: T) -> FragmentId {
         self.0.to_simple_fragments(compiler)
     }

@@ -35,9 +35,7 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
                 let ident = local.name.to_item_ident();
 
                 static SIMPLE_ANY_TYPE_NAMED: LazyLock<NamedOrAnonymous<simple::FragmentId>> =
-                    LazyLock::new(|| {
-                        NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone())
-                    });
+                    LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone()));
 
                 let ty = match local
                     .type_
@@ -173,20 +171,21 @@ mod tests {
 
     use syn::{parse_quote, Item};
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
-    use xsd::schema as xs;
+    use xsd::xs;
     use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
     use crate::Generator;
 
     #[test]
     fn simple_attribute() {
-        let attribute = xs::TopLevelAttribute::builder()
-            .name(xs::NameAttr(LocalName::new_dangerous("SimpleAttribute")))
-            .type_(xs::Type(xs::types::QName(ExpandedName::new(
+        let attribute = xs::types::TopLevelAttribute::builder()
+            .name(LocalName::new_dangerous("SimpleAttribute"))
+            .type_(xs::types::QName(ExpandedName::new(
                 LocalName::new_dangerous("string"),
                 XmlNamespace::XS.into(),
-            ))))
-            .build();
+            )))
+            .build()
+            .into();
 
         let namespace = XmlNamespace::new_dangerous("http://example.com");
 

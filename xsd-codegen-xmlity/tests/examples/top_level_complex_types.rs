@@ -1,8 +1,7 @@
 use pretty_assertions::assert_eq;
 use syn::parse_quote;
 use xmlity::{LocalName, XmlNamespace};
-use xsd::schema as xs;
-use xsd::xsn as xsn;
+use xsd::{xs, xsn};
 use xsd_codegen_xmlity::Generator;
 use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 

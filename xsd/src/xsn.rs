@@ -22,3 +22,6 @@ pub static STRING: LazyLock<ExpandedName<'static>> = LazyLock::new(|| xs_name!("
 pub static NMTOKEN: LazyLock<ExpandedName<'static>> = LazyLock::new(|| xs_name!("NMTOKEN"));
 
 pub static ID: LazyLock<ExpandedName<'static>> = LazyLock::new(|| xs_name!("ID"));
+
+pub static NON_NEGATIVE_INTEGER: LazyLock<ExpandedName<'static>> =
+    LazyLock::new(|| xs_name!("nonNegativeInteger"));

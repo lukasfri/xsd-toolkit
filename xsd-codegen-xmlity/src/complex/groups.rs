@@ -851,8 +851,8 @@ mod tests {
 
     use syn::parse_quote;
     use xmlity::{LocalName, XmlNamespace};
-    use xsd::schema as xs;
-    use xsd::xsn as xsn;
+    use xsd::xs;
+    use xsd::xsn;
     use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
     use crate::Generator;
@@ -874,52 +874,68 @@ mod tests {
 
     #[test]
     fn three_choice_sequence_deep_top_level_type() {
-        let sequence = xs::TopLevelComplexType::builder()
+        let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
-            .content(
+            .complex_type_model(
+                Box::new(
                 xs::ComplexContent::builder()
-                    .content(
-                        xs::ComplexRestrictionType::builder()
+                    .child_1(
+                        xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .particle(
-                                xs::SequenceType::builder()
-                                    .content(vec![
-                                        xs::ChoiceType::builder()
-                                            .content(vec![
-                                                xs::SequenceType::builder()
-                                                    .content(vec![xs::LocalElement::builder()
-                                                        .name(LocalName::new_dangerous("a"))
-                                                        .type_(xs::types::QName(
-                                                            xsn::INTEGER.clone(),
+                            .variant_0(
+                                xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                                .type_def_particle(
+                                    Box::new(
+                                xs::Sequence(
+                                    xs::types::ExplicitGroup::builder()
+                                        .nested_particle(vec![
+                                            Box::new(xs::Choice(xs::types::ExplicitGroup::builder()
+                                                .nested_particle(vec![
+                                                    Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
+                                                        .nested_particle(vec![Box::new(xs::types::LocalElement::builder()
+                                                            .name(LocalName::new_dangerous("a"))
+                                                            .type_attribute(xs::types::QName(
+                                                                xsn::INTEGER.clone(),
+                                                            ))
+                                                            .build()
+                                                            .into())])
+                                                        .build()
+                                                        .into()).into()),
+                                                    Box::new(xs::types::LocalElement::builder()
+                                                        .name(LocalName::new_dangerous("b"))
+                                                        .type_attribute(xs::types::QName(
+                                                            xsn::STRING.clone(),
                                                         ))
                                                         .build()
-                                                        .into()])
-                                                    .build()
-                                                    .into(),
-                                                xs::LocalElement::builder()
-                                                    .name(LocalName::new_dangerous("b"))
-                                                    .type_(xs::types::QName(xsn::STRING.clone()))
-                                                    .build()
-                                                    .into(),
-                                            ])
-                                            .build()
-                                            .into(),
-                                        xs::LocalElement::builder()
-                                            .name(LocalName::new_dangerous("c"))
-                                            .type_(xs::types::QName(xsn::STRING.clone()))
-                                            .build()
-                                            .into(),
-                                    ])
-                                    .build()
-                                    .into(),
+                                                        .into()),
+                                                ])
+                                                .build()
+                                                .into()).into()),
+                                                Box::new(
+                                            xs::types::LocalElement::builder()
+                                                .name(LocalName::new_dangerous("c"))
+                                                .type_attribute(xs::types::QName(xsn::STRING.clone()))
+                                                .build()
+                                                .into()),
+                                        ])
+                                        .build()
+                                        .into(),
+                                )
+                                .into())
+                                ).build()
+                                .into(),
                             )
+                                    .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                                    .assertions(xs::groups::Assertions::builder().build().into())
                             .build()
                             .into(),
                     )
                     .build()
                     .into(),
+                )
             )
-            .build();
+            .build()
+            .into();
 
         let namespace = XmlNamespace::new_dangerous("http://example.com");
 
@@ -990,49 +1006,75 @@ mod tests {
 
     #[test]
     fn two_sequence_deep_top_level_type() {
-        let sequence = xs::TopLevelComplexType::builder()
+        let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
-            .content(
+            .complex_type_model(
+                Box::new(
                 xs::ComplexContent::builder()
-                    .content(
-                        xs::ComplexRestrictionType::builder()
+                    .child_1(
+                        xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .particle(
-                                xs::SequenceType::builder()
-                                    .content(vec![
-                                        xs::SequenceType::builder()
-                                            .content(vec![
-                                                xs::LocalElement::builder()
-                                                    .name(LocalName::new_dangerous("a"))
-                                                    .type_(xs::types::QName(xsn::INTEGER.clone()))
-                                                    .min_occurs(xs::MinOccurs(0))
+                            .variant_0(
+                                xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                                .type_def_particle(
+                                    Box::new(
+                                xs::Sequence(xs::types::ExplicitGroup::builder()
+                                    .nested_particle(vec![
+                                        Box::new(
+                                            xs::Sequence(
+                                                xs::types::ExplicitGroup::builder()
+                                                    .nested_particle(vec![
+                                                        Box::new(
+                                                            xs::types::LocalElement::builder()
+                                                                .name(LocalName::new_dangerous("a"))
+                                                                .type_attribute(xs::types::QName(
+                                                                    xsn::INTEGER.clone(),
+                                                                ))
+                                                                .min_occurs(0)
+                                                                .build()
+                                                                .into(),
+                                                        ),
+                                                        Box::new(
+                                                            xs::types::LocalElement::builder()
+                                                                .name(LocalName::new_dangerous("b"))
+                                                                .type_attribute(xs::types::QName(
+                                                                    xsn::STRING.clone(),
+                                                                ))
+                                                                .build()
+                                                                .into(),
+                                                        ),
+                                                    ])
+                                                    .min_occurs(0)
                                                     .build()
                                                     .into(),
-                                                xs::LocalElement::builder()
-                                                    .name(LocalName::new_dangerous("b"))
-                                                    .type_(xs::types::QName(xsn::STRING.clone()))
-                                                    .build()
-                                                    .into(),
-                                            ])
-                                            .min_occurs(xs::MinOccurs(0))
-                                            .build()
+                                            )
                                             .into(),
-                                        xs::LocalElement::builder()
-                                            .name(LocalName::new_dangerous("c"))
-                                            .type_(xs::types::QName(xsn::STRING.clone()))
-                                            .build()
-                                            .into(),
+                                        ),
+                                        Box::new(
+                                            xs::types::LocalElement::builder()
+                                                .name(LocalName::new_dangerous("c"))
+                                                .type_attribute(xs::types::QName(
+                                                    xsn::STRING.clone(),
+                                                ))
+                                                .build()
+                                                .into(),
+                                        ),
                                     ])
                                     .build()
-                                    .into(),
+                                    .into()).into())
+                                    ).build().into(),
                             )
+                                    .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                                    .assertions(xs::groups::Assertions::builder().build().into())
                             .build()
                             .into(),
                     )
                     .build()
-                    .into(),
+                    .into()
+            ),
             )
-            .build();
+            .build()
+            .into();
 
         let namespace = XmlNamespace::new_dangerous("http://example.com");
 

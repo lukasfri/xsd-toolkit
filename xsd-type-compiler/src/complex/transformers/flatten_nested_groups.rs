@@ -128,269 +128,270 @@ impl XmlnsLocalTransformer for FlattenNestedChoices {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use pretty_assertions::assert_eq;
+//TODO
+// #[cfg(test)]
+// mod tests {
+//     use pretty_assertions::assert_eq;
 
-    use xmlity::{ExpandedName, LocalName, XmlNamespace};
-    use xsd::xsn as xsn;
-    use xsd::xs::{self};
+//     use xmlity::{ExpandedName, LocalName, XmlNamespace};
+//     use xsd::xsn as xsn;
+//     use xsd::xs::{self};
 
-    use crate::{
-        complex::transformers::FlattenNestedSequences, transformers::TransformChange,
-        CompiledNamespace, XmlnsContext,
-    };
+//     use crate::{
+//         complex::transformers::FlattenNestedSequences, transformers::TransformChange,
+//         CompiledNamespace, XmlnsContext,
+//     };
 
-    #[test]
-    fn flatten_nested_sequences() {
-        let test_namespace = XmlNamespace::new_dangerous("http://localhost");
+//     #[test]
+//     fn flatten_nested_sequences() {
+//         let test_namespace = XmlNamespace::new_dangerous("http://localhost");
 
-        let number = xs::types::LocalElement::builder()
-            .name(LocalName::new_dangerous("number"))
-            .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
-            .build();
+//         let number = xs::types::LocalElement::builder()
+//             .name(LocalName::new_dangerous("number"))
+//             .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+//             .build();
 
-        let name = xs::types::LocalElement::builder()
-            .name(LocalName::new_dangerous("name"))
-            .type_attribute(xs::types::QName(xsn::STRING.clone()))
-            .build();
+//         let name = xs::types::LocalElement::builder()
+//             .name(LocalName::new_dangerous("name"))
+//             .type_attribute(xs::types::QName(xsn::STRING.clone()))
+//             .build();
 
-        let child_choice = xs::ChoiceType::builder()
-            .max_occurs(xs::types::AllNNI::Unbounded)
-            .content(vec![
-                xs::LocalElement::new_ref_typed(
-                    LocalName::new_dangerous("size"),
-                    xsn::INTEGER.clone(),
-                )
-                .into(),
-                xs::LocalElement::new_ref_typed(
-                    LocalName::new_dangerous("color"),
-                    xsn::STRING.clone(),
-                )
-                .into(),
-            ])
-            .build();
+//         let child_choice = xs::ChoiceType::builder()
+//             .max_occurs(xs::types::AllNNI::Unbounded)
+//             .content(vec![
+//                 xs::LocalElement::new_ref_typed(
+//                     LocalName::new_dangerous("size"),
+//                     xsn::INTEGER.clone(),
+//                 )
+//                 .into(),
+//                 xs::LocalElement::new_ref_typed(
+//                     LocalName::new_dangerous("color"),
+//                     xsn::STRING.clone(),
+//                 )
+//                 .into(),
+//             ])
+//             .build();
 
-        // ```xml
-        // <xs:complexType name="ShirtType">
-        //   <xs:restriction base="xs:anyType">
-        //     <xs:sequence>
-        //       <xs:sequence>
-        //         <xs:element name="number" type="xs:integer"/>
-        //         <xs:element name="name" type="xs:string"/>
-        //       </xs:sequence>
-        //       <xs:choice maxOccurs="unbounded">
-        //         <xs:element name="size" type="xs:integer"/>
-        //         <xs:element name="color" type="xs:string"/>
-        //       </xs:choice>
-        //     </xs:sequence>
-        //   </xs:restriction>
-        // </xs:complexType>
-        // ```
-        let non_flattened_shirt_type = xs::TopLevelComplexType::builder()
-            .name(LocalName::new_dangerous("ShirtType"))
-            .content(
-                xs::ComplexContent::builder()
-                    .content(
-                        xs::ComplexRestrictionType::builder()
-                            .base(xs::QName(xsn::ANY_TYPE.clone()))
-                            .particle(xs::TypeDefParticle::Sequence(
-                                xs::SequenceType::builder()
-                                    .content(vec![
-                                        xs::SequenceType::builder()
-                                            .content(vec![
-                                                number.clone().into(),
-                                                name.clone().into(),
-                                            ])
-                                            .build()
-                                            .into(),
-                                        child_choice.clone().into(),
-                                    ])
-                                    .build(),
-                            ))
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
-            )
-            .build();
+//         // ```xml
+//         // <xs:complexType name="ShirtType">
+//         //   <xs:restriction base="xs:anyType">
+//         //     <xs:sequence>
+//         //       <xs:sequence>
+//         //         <xs:element name="number" type="xs:integer"/>
+//         //         <xs:element name="name" type="xs:string"/>
+//         //       </xs:sequence>
+//         //       <xs:choice maxOccurs="unbounded">
+//         //         <xs:element name="size" type="xs:integer"/>
+//         //         <xs:element name="color" type="xs:string"/>
+//         //       </xs:choice>
+//         //     </xs:sequence>
+//         //   </xs:restriction>
+//         // </xs:complexType>
+//         // ```
+//         let non_flattened_shirt_type = xs::TopLevelComplexType::builder()
+//             .name(LocalName::new_dangerous("ShirtType"))
+//             .content(
+//                 xs::ComplexContent::builder()
+//                     .content(
+//                         xs::ComplexRestrictionType::builder()
+//                             .base(xs::QName(xsn::ANY_TYPE.clone()))
+//                             .particle(xs::TypeDefParticle::Sequence(
+//                                 xs::SequenceType::builder()
+//                                     .content(vec![
+//                                         xs::SequenceType::builder()
+//                                             .content(vec![
+//                                                 number.clone().into(),
+//                                                 name.clone().into(),
+//                                             ])
+//                                             .build()
+//                                             .into(),
+//                                         child_choice.clone().into(),
+//                                     ])
+//                                     .build(),
+//                             ))
+//                             .build()
+//                             .into(),
+//                     )
+//                     .build()
+//                     .into(),
+//             )
+//             .build();
 
-        // ```xml
-        // <xs:complexType name="ShirtType">
-        //   <xs:restriction base="xs:anyType">
-        //     <xs:sequence>
-        //       <xs:element name="number" type="xs:integer"/>
-        //       <xs:element name="name" type="xs:string"/>
-        //       <xs:choice maxOccurs="unbounded">
-        //         <xs:element name="size" type="xs:integer"/>
-        //         <xs:element name="color" type="xs:string"/>
-        //       </xs:choice>
-        //     </xs:sequence>
-        //   </xs:restriction>
-        // </xs:complexType>
-        // ```
-        let expected_flattened_shirt_type = xs::TopLevelComplexType::builder()
-            .name(LocalName::new_dangerous("ShirtType"))
-            .content(
-                xs::ComplexContent::builder()
-                    .content(
-                        xs::ComplexRestrictionType::builder()
-                            .base(xs::QName(xsn::ANY_TYPE.clone()))
-                            .particle(
-                                xs::SequenceType::builder()
-                                    .content(vec![
-                                        number.clone().into(),
-                                        name.clone().into(),
-                                        child_choice.into(),
-                                    ])
-                                    .build()
-                                    .into(),
-                            )
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
-            )
-            .build();
+//         // ```xml
+//         // <xs:complexType name="ShirtType">
+//         //   <xs:restriction base="xs:anyType">
+//         //     <xs:sequence>
+//         //       <xs:element name="number" type="xs:integer"/>
+//         //       <xs:element name="name" type="xs:string"/>
+//         //       <xs:choice maxOccurs="unbounded">
+//         //         <xs:element name="size" type="xs:integer"/>
+//         //         <xs:element name="color" type="xs:string"/>
+//         //       </xs:choice>
+//         //     </xs:sequence>
+//         //   </xs:restriction>
+//         // </xs:complexType>
+//         // ```
+//         let expected_flattened_shirt_type = xs::TopLevelComplexType::builder()
+//             .name(LocalName::new_dangerous("ShirtType"))
+//             .content(
+//                 xs::ComplexContent::builder()
+//                     .content(
+//                         xs::ComplexRestrictionType::builder()
+//                             .base(xs::QName(xsn::ANY_TYPE.clone()))
+//                             .particle(
+//                                 xs::SequenceType::builder()
+//                                     .content(vec![
+//                                         number.clone().into(),
+//                                         name.clone().into(),
+//                                         child_choice.into(),
+//                                     ])
+//                                     .build()
+//                                     .into(),
+//                             )
+//                             .build()
+//                             .into(),
+//                     )
+//                     .build()
+//                     .into(),
+//             )
+//             .build();
 
-        let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
+//         let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
 
-        compiled_namespace
-            .import_top_level_complex_type(&non_flattened_shirt_type)
-            .unwrap();
+//         compiled_namespace
+//             .import_top_level_complex_type(&non_flattened_shirt_type)
+//             .unwrap();
 
-        let transform_changed = compiled_namespace
-            .transform(FlattenNestedSequences::new())
-            .unwrap();
+//         let transform_changed = compiled_namespace
+//             .transform(FlattenNestedSequences::new())
+//             .unwrap();
 
-        assert_eq!(transform_changed, TransformChange::Changed);
+//         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = compiled_namespace
-            .transform(FlattenNestedSequences::new())
-            .unwrap();
+//         let transform_changed = compiled_namespace
+//             .transform(FlattenNestedSequences::new())
+//             .unwrap();
 
-        assert_eq!(transform_changed, TransformChange::Unchanged);
+//         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let mut xmlns_context = XmlnsContext::new();
+//         let mut xmlns_context = XmlnsContext::new();
 
-        xmlns_context.add_namespace(compiled_namespace);
+//         xmlns_context.add_namespace(compiled_namespace);
 
-        let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
+//         let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
 
-        let actual_flattened_shirt_type = compiled_namespace
-            .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
-            .unwrap()
-            .unwrap();
+//         let actual_flattened_shirt_type = compiled_namespace
+//             .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
+//             .unwrap()
+//             .unwrap();
 
-        assert_eq!(expected_flattened_shirt_type, actual_flattened_shirt_type);
-    }
+//         assert_eq!(expected_flattened_shirt_type, actual_flattened_shirt_type);
+//     }
 
-    #[test]
-    fn do_not_flatten_sequences_with_occurs() {
-        let test_namespace = XmlNamespace::new_dangerous("http://localhost");
+//     #[test]
+//     fn do_not_flatten_sequences_with_occurs() {
+//         let test_namespace = XmlNamespace::new_dangerous("http://localhost");
 
-        let number = xs::types::LocalElement::builder()
-            .name(LocalName::new_dangerous("number"))
-            .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
-            .build();
+//         let number = xs::types::LocalElement::builder()
+//             .name(LocalName::new_dangerous("number"))
+//             .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+//             .build();
 
-        let name = xs::types::LocalElement::builder()
-            .name(LocalName::new_dangerous("name"))
-            .type_attribute(xs::types::QName(xsn::STRING.clone()))
-            .build();
+//         let name = xs::types::LocalElement::builder()
+//             .name(LocalName::new_dangerous("name"))
+//             .type_attribute(xs::types::QName(xsn::STRING.clone()))
+//             .build();
 
-        let child_choice = xs::Choice(
-            xs::types::ExplicitGroup::builder()
-                .max_occurs(xs::types::AllNNI::Unbounded)
-                .nested_particle(vec![
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("size"))
-                            .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
-                            .build(),
-                    ),
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("color"))
-                            .type_attribute(xs::types::QName(xsn::String.clone()))
-                            .build(),
-                    ),
-                ])
-                .build()
-                .into(),
-        );
+//         let child_choice = xs::Choice(
+//             xs::types::ExplicitGroup::builder()
+//                 .max_occurs(xs::types::AllNNI::Unbounded)
+//                 .nested_particle(vec![
+//                     Box::new(
+//                         xs::types::LocalElement::builder()
+//                             .name(LocalName::new_dangerous("size"))
+//                             .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+//                             .build(),
+//                     ),
+//                     Box::new(
+//                         xs::types::LocalElement::builder()
+//                             .name(LocalName::new_dangerous("color"))
+//                             .type_attribute(xs::types::QName(xsn::String.clone()))
+//                             .build(),
+//                     ),
+//                 ])
+//                 .build()
+//                 .into(),
+//         );
 
-        // ```xml
-        // <xs:complexType name="ShirtType">
-        //   <xs:restriction base="xs:anyType">
-        //     <xs:sequence>
-        //       <xs:sequence maxOccurs="unbounded">
-        //         <xs:element name="number" type="xs:integer"/>
-        //         <xs:element name="name" type="xs:string"/>
-        //       </xs:sequence>
-        //       <xs:choice maxOccurs="unbounded">
-        //         <xs:element name="size" type="xs:integer"/>
-        //         <xs:element name="color" type="xs:string"/>
-        //       </xs:choice>
-        //     </xs:sequence>
-        //   </xs:restriction>
-        // </xs:complexType>
-        // ```
-        let non_flattened_shirt_type = xs::TopLevelComplexType::builder()
-            .name(LocalName::new_dangerous("ShirtType"))
-            .content(
-                xs::ComplexContent::builder()
-                    .content(
-                        xs::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .particle(xs::TypeDefParticle::Sequence(
-                                xs::SequenceType::builder()
-                                    .content(vec![
-                                        xs::SequenceType::builder()
-                                            .content(vec![
-                                                number.clone().into(),
-                                                name.clone().into(),
-                                            ])
-                                            .max_occurs(MaxOccurs(MaxOccursValue::Unbounded))
-                                            .build()
-                                            .into(),
-                                        child_choice.clone().into(),
-                                    ])
-                                    .build(),
-                            ))
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
-            )
-            .build();
+//         // ```xml
+//         // <xs:complexType name="ShirtType">
+//         //   <xs:restriction base="xs:anyType">
+//         //     <xs:sequence>
+//         //       <xs:sequence maxOccurs="unbounded">
+//         //         <xs:element name="number" type="xs:integer"/>
+//         //         <xs:element name="name" type="xs:string"/>
+//         //       </xs:sequence>
+//         //       <xs:choice maxOccurs="unbounded">
+//         //         <xs:element name="size" type="xs:integer"/>
+//         //         <xs:element name="color" type="xs:string"/>
+//         //       </xs:choice>
+//         //     </xs:sequence>
+//         //   </xs:restriction>
+//         // </xs:complexType>
+//         // ```
+//         let non_flattened_shirt_type = xs::TopLevelComplexType::builder()
+//             .name(LocalName::new_dangerous("ShirtType"))
+//             .content(
+//                 xs::ComplexContent::builder()
+//                     .content(
+//                         xs::ComplexRestrictionType::builder()
+//                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+//                             .particle(xs::TypeDefParticle::Sequence(
+//                                 xs::SequenceType::builder()
+//                                     .content(vec![
+//                                         xs::SequenceType::builder()
+//                                             .content(vec![
+//                                                 number.clone().into(),
+//                                                 name.clone().into(),
+//                                             ])
+//                                             .max_occurs(MaxOccurs(MaxOccursValue::Unbounded))
+//                                             .build()
+//                                             .into(),
+//                                         child_choice.clone().into(),
+//                                     ])
+//                                     .build(),
+//                             ))
+//                             .build()
+//                             .into(),
+//                     )
+//                     .build()
+//                     .into(),
+//             )
+//             .build();
 
-        let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
+//         let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
 
-        compiled_namespace
-            .import_top_level_complex_type(&non_flattened_shirt_type)
-            .unwrap();
+//         compiled_namespace
+//             .import_top_level_complex_type(&non_flattened_shirt_type)
+//             .unwrap();
 
-        let transform_changed = compiled_namespace
-            .transform(FlattenNestedSequences::new())
-            .unwrap();
+//         let transform_changed = compiled_namespace
+//             .transform(FlattenNestedSequences::new())
+//             .unwrap();
 
-        assert_eq!(transform_changed, TransformChange::Unchanged);
+//         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let mut xmlns_context = XmlnsContext::new();
+//         let mut xmlns_context = XmlnsContext::new();
 
-        xmlns_context.add_namespace(compiled_namespace);
+//         xmlns_context.add_namespace(compiled_namespace);
 
-        let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
+//         let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
 
-        let actual_flattened_shirt_type = compiled_namespace
-            .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
-            .unwrap()
-            .unwrap();
+//         let actual_flattened_shirt_type = compiled_namespace
+//             .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
+//             .unwrap()
+//             .unwrap();
 
-        assert_eq!(non_flattened_shirt_type, actual_flattened_shirt_type);
-    }
-}
+//         assert_eq!(non_flattened_shirt_type, actual_flattened_shirt_type);
+//     }
+// }

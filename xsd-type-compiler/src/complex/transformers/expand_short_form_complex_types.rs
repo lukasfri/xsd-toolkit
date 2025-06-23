@@ -100,11 +100,8 @@ impl XmlnsLocalTransformer for ExpandShortFormComplexTypes {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use xmlity::{ExpandedName, LocalName, XmlNamespace};
-    use xsd::schema::{
-        self as xs, ComplexContent, ComplexRestrictionType, ComplexTypeModel, LocalElement, QName,
-        SequenceType, TopLevelComplexType, TypeDefParticle,
-    };
+    use xmlity::{LocalName, XmlNamespace};
+    use xsd::xs;
     use xsd::xsn;
 
     use crate::{
@@ -118,26 +115,27 @@ mod tests {
         let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
 
         // Common for both
-        let sequence = SequenceType::builder()
-            .content(vec![
-                LocalElement::builder()
-                    .name(LocalName::new_dangerous("size"))
-                    .type_(QName(ExpandedName::new(
-                        LocalName::new_dangerous("nonNegativeInteger"),
-                        Some(XmlNamespace::XS),
-                    )))
-                    .build()
-                    .into(),
-                LocalElement::builder()
-                    .name(LocalName::new_dangerous("unit"))
-                    .type_(QName(ExpandedName::new(
-                        LocalName::new_dangerous("NMTOKEN"),
-                        Some(XmlNamespace::XS),
-                    )))
-                    .build()
-                    .into(),
-            ])
-            .build();
+        let sequence = xs::Sequence(
+            xs::types::ExplicitGroup::builder()
+                .nested_particle(vec![
+                    Box::new(
+                        xs::types::LocalElement::builder()
+                            .name(LocalName::new_dangerous("size"))
+                            .type_attribute(xs::types::QName(xsn::NON_NEGATIVE_INTEGER.clone()))
+                            .build()
+                            .into(),
+                    ),
+                    Box::new(
+                        xs::types::LocalElement::builder()
+                            .name(LocalName::new_dangerous("unit"))
+                            .type_attribute(xs::types::QName(xsn::NMTOKEN.clone()))
+                            .build()
+                            .into(),
+                    ),
+                ])
+                .build()
+                .into(),
+        );
 
         // <xs:complexType name="length">
         //     <xs:sequence>
@@ -145,14 +143,21 @@ mod tests {
         //         <xs:element name="unit" type="xs:NMTOKEN"/>
         //     </xs:sequence>
         // </xs:complexType>
-        let input = TopLevelComplexType::builder()
+        let input = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("length"))
-            .content(ComplexTypeModel::Other {
-                open_content: None,
-                type_def_particle: Some(TypeDefParticle::Sequence(sequence.clone())),
-                attr_decls: xs::AttrDecls::default(),
-            })
-            .build();
+            .complex_type_model(
+                Box::new(
+                xs::groups::complex_type_model_items::complex_type_model_variants::Variant2
+                ::builder()
+                .type_def_particle(Box::new(sequence.clone().into()))
+                .attr_decls(xs::groups::AttrDecls::builder().build())
+                .assertions(xs::groups::Assertions::builder().build())
+                .build()
+                .into()
+            )
+            )
+            .build()
+            .into();
 
         // <xs:complexType name="length">
         //     <xs:complexContent>
@@ -164,21 +169,28 @@ mod tests {
         //         </xs:restriction>
         //     </xs:complexContent>
         // </xs:complexType>
-        let expected_output = TopLevelComplexType::builder()
+        let expected_output: xs::ComplexType = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("length"))
-            .content(
-                ComplexContent::builder()
-                    .content(
-                        ComplexRestrictionType::builder()
-                            .base(QName(xsn::ANY_TYPE.clone()))
-                            .particle(sequence.into())
+            .complex_type_model(
+                Box::new(
+                xs::ComplexContent::builder()
+                    .child_1(
+                        xs::types::ComplexRestrictionType::builder()
+                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                            .variant_0(xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                                .type_def_particle(Box::new(sequence.clone().into()))
+                                .build().into())
+                            .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                            .assertions(xs::groups::Assertions::builder().build().into())
                             .build()
                             .into(),
                     )
                     .build()
                     .into(),
+                )
             )
-            .build();
+            .build()
+            .into();
 
         let length = compiled_namespace
             .import_top_level_complex_type(&input)
