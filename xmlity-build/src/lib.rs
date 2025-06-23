@@ -23,6 +23,8 @@ pub struct BuildEngine {
     pub bound_namespaces: Vec<(XmlNamespace<'static>, syn::Path)>,
     #[builder(default)]
     pub bound_types: Vec<(ExpandedName<'static>, BoundType)>,
+    #[builder(default)]
+    pub bound_elements: Vec<(ExpandedName<'static>, TypeReference<'static>)>,
 }
 
 #[derive(Debug, Builder)]
@@ -193,6 +195,8 @@ impl StartedBuildEngine {
             });
 
         generator.bind_types(self.engine.bound_types.iter().cloned());
+
+        generator.bind_elements(self.engine.bound_elements.iter().cloned());
 
         let items = generator
             .generate_namespace(&generate_namespace.namespace)

@@ -63,7 +63,7 @@ fn main() {
                         ExpandedName::new(LocalName::new_dangerous(name), Some(XmlNamespace::XS)),
                         BoundType {
                             ty: TypeReference::new_static(
-                                parse_quote!(crate::xs_custom::#type_ident),
+                                parse_quote!(crate::xs::types::#type_ident),
                             ),
                             ty_type: TypeType::Simple,
                             serialize_with: None,
@@ -82,6 +82,10 @@ fn main() {
                 )))
                 .collect(),
         )
+        .bound_elements(vec![(
+            ExpandedName::new(LocalName::new_dangerous("facet"), Some(XmlNamespace::XS)),
+            TypeReference::new_static(parse_quote!(crate::xs::Facet)),
+        )])
         .build();
 
     let engine = engine.start().unwrap();
@@ -111,7 +115,7 @@ fn main() {
     engine
         .generate_namespace(
             xmlity_build::GenerateNamespace::builder()
-                .output_file("xs_raw/src/xs.rs".parse().unwrap())
+                .output_file("xs_raw/src/xs_generated.rs".parse().unwrap())
                 .namespace(XmlNamespace::XS)
                 .bon_builders(true)
                 .enum_from(true)

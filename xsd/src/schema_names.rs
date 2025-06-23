@@ -12,6 +12,8 @@ macro_rules! xs_name {
 }
 
 pub static ANY_TYPE: LazyLock<ExpandedName<'static>> = LazyLock::new(|| xs_name!("anyType"));
+pub static SIMPLE_ANY_TYPE: LazyLock<ExpandedName<'static>> =
+    LazyLock::new(|| xs_name!("anySimpleType"));
 
 pub static INTEGER: LazyLock<ExpandedName<'static>> = LazyLock::new(|| xs_name!("integer"));
 

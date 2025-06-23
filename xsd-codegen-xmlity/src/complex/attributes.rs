@@ -2,13 +2,15 @@ use crate::{
     misc::TypeReference, templates::element_record::ElementFieldAttribute, Result, ToIdentTypesExt,
     TypeType,
 };
+use std::ops::Deref;
+use std::sync::LazyLock;
 
 use quote::ToTokens;
 use syn::parse_quote;
 use xmlity::ExpandedName;
 use xsd_type_compiler::{
     complex::{self as cx, AttributeUse},
-    NamedOrAnonymous,
+    simple, NamedOrAnonymous,
 };
 
 use super::{Context, Scope, ToTypeTemplate, ToTypeTemplateData};
@@ -32,8 +34,17 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
                 let name = ExpandedName::new(local.name.clone(), None);
                 let ident = local.name.to_item_ident();
 
-                let ty = match local.type_.as_ref() {
-                    Some(NamedOrAnonymous::Named(name)) => {
+                static SIMPLE_ANY_TYPE_NAMED: LazyLock<NamedOrAnonymous<simple::FragmentId>> =
+                    LazyLock::new(|| {
+                        NamedOrAnonymous::Named(xsd::schema_names::SIMPLE_ANY_TYPE.clone())
+                    });
+
+                let ty = match local
+                    .type_
+                    .as_ref()
+                    .unwrap_or_else(|| SIMPLE_ANY_TYPE_NAMED.deref())
+                {
+                    NamedOrAnonymous::Named(name) => {
                         let bound_type = context.resolve_named_type(name)?;
                         assert_eq!(
                             bound_type.ty_type,
@@ -44,11 +55,10 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
 
                         bound_type.ty.clone()
                     }
-                    Some(NamedOrAnonymous::Anonymous(_)) => {
+                    NamedOrAnonymous::Anonymous(_) => {
                         //TODO
                         TypeReference::new_static(parse_quote!(String))
                     }
-                    None => TypeReference::new_static(parse_quote!(())),
                 };
 
                 let ty = ty.wrap_if(optional, |a| parse_quote!(::core::option::Option<#a>));
@@ -115,8 +125,15 @@ impl ToTypeTemplate for cx::TopLevelAttributeFragment {
         );
         let ident = self.name.to_item_ident();
 
-        let ty = match self.type_.as_ref() {
-            Some(NamedOrAnonymous::Named(name)) => {
+        static SIMPLE_ANY_TYPE_NAMED: LazyLock<NamedOrAnonymous<simple::FragmentId>> =
+            LazyLock::new(|| NamedOrAnonymous::Named(xsd::schema_names::SIMPLE_ANY_TYPE.clone()));
+
+        let ty = match self
+            .type_
+            .as_ref()
+            .unwrap_or_else(|| SIMPLE_ANY_TYPE_NAMED.deref())
+        {
+            NamedOrAnonymous::Named(name) => {
                 let bound_type = context.resolve_named_type(name)?;
 
                 assert_eq!(
@@ -128,8 +145,10 @@ impl ToTypeTemplate for cx::TopLevelAttributeFragment {
 
                 bound_type.ty.clone()
             }
-            Some(NamedOrAnonymous::Anonymous(_)) => todo!(),
-            None => TypeReference::new_static(parse_quote!(())),
+            NamedOrAnonymous::Anonymous(_) => {
+                //TODO
+                TypeReference::new_static(parse_quote!(String))
+            }
         };
 
         let template = ElementFieldAttribute {

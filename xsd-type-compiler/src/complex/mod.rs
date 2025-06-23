@@ -249,6 +249,7 @@ pub struct ChoiceFragment {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SequenceFragment {
+    pub id: Option<String>,
     pub min_occurs: Option<xs::MinOccurs>,
     pub max_occurs: Option<xs::MaxOccursValue>,
     pub fragments: VecDeque<GroupTypeContentId>,
@@ -1097,7 +1098,8 @@ impl ComplexFragmentEquivalent for xs::SequenceType {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let all = SequenceFragment {
+        let seq = SequenceFragment {
+            id: self.id.as_ref().map(|a| a.0.clone()),
             min_occurs: self.min_occurs,
             max_occurs: self.max_occurs.map(|a| a.0),
             fragments: self
@@ -1107,7 +1109,7 @@ impl ComplexFragmentEquivalent for xs::SequenceType {
                 .collect(),
         };
 
-        compiler.push_fragment(all)
+        compiler.push_fragment(seq)
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(

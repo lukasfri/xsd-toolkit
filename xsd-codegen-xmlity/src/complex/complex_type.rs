@@ -632,7 +632,7 @@ mod tests {
                 pub mod child_0_items {
                     #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
                     #[xvalue(order = "strict")]
-                    pub struct Child0 {
+                    pub struct A {
                         #[xelement(name = "a", namespace = "http://example.com")]
                         pub a: i32,
                     }
@@ -641,7 +641,7 @@ mod tests {
                 #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
                 #[xvalue(order = "strict")]
                 pub struct Child0 {
-                    pub child_0: child_0_items::Child0,
+                    pub a: child_0_items::A,
                     #[xelement(name = "b", namespace = "http://example.com")]
                     pub b: String,
                 }

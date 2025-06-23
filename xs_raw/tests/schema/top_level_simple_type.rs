@@ -1,5 +1,5 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xs_raw::{xs, xs_custom};
+use xs_raw::xs;
 
 #[rstest::rstest]
 #[case::form_choice(XSD_FORM_CHOICE, None)]
@@ -108,29 +108,41 @@ fn xsd_type_derivation_control() -> xs::SimpleType {
         )
         .simple_derivation(Box::new(
             xs::Restriction::builder()
-                .base(xs_custom::QName(ExpandedName::new(
+                .base(xs::types::QName(ExpandedName::new(
                     LocalName::new_dangerous("derivationControl"),
                     Some(XmlNamespace::XS),
                 )))
                 .simple_restriction_model(
                     xs::groups::SimpleRestrictionModel::builder()
                         .child_1(vec![
-                            // xs::Enumeration::builder()
-                            //     .value("extension".to_string())
-                            //     .build()
-                            //     .into(),
-                            // xs::Enumeration::builder()
-                            //     .value("restriction".to_string())
-                            //     .build()
-                            //     .into(),
-                            // xs::Enumeration::builder()
-                            //     .value("list".to_string())
-                            //     .build()
-                            //     .into(),
-                            // xs::Enumeration::builder()
-                            //     .value("union".to_string())
-                            //     .build()
-                            //     .into(),
+                            xs::Facet::from(xs::Enumeration(
+                                xs::types::NoFixedFacet::builder()
+                                    .value("extension".to_string())
+                                    .build()
+                                    .into(),
+                            ))
+                            .into(),
+                            xs::Facet::from(xs::Enumeration(
+                                xs::types::NoFixedFacet::builder()
+                                    .value("restriction".to_string())
+                                    .build()
+                                    .into(),
+                            ))
+                            .into(),
+                            xs::Facet::from(xs::Enumeration(
+                                xs::types::NoFixedFacet::builder()
+                                    .value("list".to_string())
+                                    .build()
+                                    .into(),
+                            ))
+                            .into(),
+                            xs::Facet::from(xs::Enumeration(
+                                xs::types::NoFixedFacet::builder()
+                                    .value("union".to_string())
+                                    .build()
+                                    .into(),
+                            ))
+                            .into(),
                         ])
                         .build()
                         .into(),
@@ -241,17 +253,20 @@ fn xsd_block_set() -> xs::SimpleType {
                 xs::types::LocalSimpleType::builder()
                     .simple_derivation(Box::new(
                         xs::Restriction::builder()
-                            .base(xs_custom::QName(ExpandedName::new(
+                            .base(xs::types::QName(ExpandedName::new(
                                 LocalName::new_dangerous("token"),
                                 Some(XmlNamespace::XS),
                             )))
                             .simple_restriction_model(
                                 xs::groups::SimpleRestrictionModel::builder()
                                     .child_1(vec![
-                                        // xs::Enumeration::builder()
-                                        //     .value("#all".to_string())
-                                        //     .build()
-                                        //     .into(),
+                                        xs::Facet::from(xs::Enumeration(
+                                            xs::types::NoFixedFacet::builder()
+                                                .value("#all".to_string())
+                                                .build()
+                                                .into(),
+                                        ))
+                                        .into(),
                                     ])
                                     .build()
                                     .into(),
@@ -268,25 +283,34 @@ fn xsd_block_set() -> xs::SimpleType {
                             xs::types::LocalSimpleType::builder()
                             .simple_derivation(Box::new(
                                 xs::Restriction::builder()
-                                    .base(xs_custom::QName(ExpandedName::new(
+                                    .base(xs::types::QName(ExpandedName::new(
                                         LocalName::new_dangerous("derivationControl"),
                                         Some(XmlNamespace::XS),
                                     )))
                                     .simple_restriction_model(
                                         xs::groups::SimpleRestrictionModel::builder()
                                             .child_1(vec![
-                                                // xs::Enumeration::builder()
-                                                //     .value("extension".to_string())
-                                                //     .build()
-                                                //     .into(),
-                                                // xs::Enumeration::builder()
-                                                //     .value("restriction".to_string())
-                                                //     .build()
-                                                //     .into(),
-                                                // xs::Enumeration::builder()
-                                                //     .value("substitution".to_string())
-                                                //     .build()
-                                                //     .into(),
+                                                xs::Facet::from(xs::Enumeration(
+                                                    xs::types::NoFixedFacet::builder()
+                                                        .value("extension".to_string())
+                                                        .build()
+                                                        .into(),
+                                                ))
+                                                .into(),
+                                                xs::Facet::from(xs::Enumeration(
+                                                    xs::types::NoFixedFacet::builder()
+                                                        .value("restriction".to_string())
+                                                        .build()
+                                                        .into(),
+                                                ))
+                                                .into(),
+                                                xs::Facet::from(xs::Enumeration(
+                                                    xs::types::NoFixedFacet::builder()
+                                                        .value("substitution".to_string())
+                                                        .build()
+                                                        .into(),
+                                                ))
+                                                .into(),
                                             ])
                                             .build()
                                             .into(),

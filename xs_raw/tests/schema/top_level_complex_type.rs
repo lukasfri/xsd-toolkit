@@ -1,5 +1,5 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace, XmlValue};
-use xs_raw::{xs, xs_custom};
+use xs_raw::xs;
 
 #[rstest::rstest]
 #[case::open_attrs(XSD_OPEN_ATTRS, None)]
@@ -603,7 +603,7 @@ fn xsd_all() -> xs::ComplexType {
                 xs::ComplexContent::builder()
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
-                            .base(xs_custom::QName(ExpandedName::new(
+                            .base(xs::types::QName(ExpandedName::new(
                                 LocalName::new_dangerous("explicitGroup"),
                                 Some(XmlNamespace::XS),
                             )))
@@ -612,7 +612,7 @@ fn xsd_all() -> xs::ComplexType {
                               ::builder()
                               .type_def_particle(Box::new(
                                 xs::types::GroupRef::builder()
-                                    .ref_(xs_custom::QName(ExpandedName::new(
+                                    .ref_(xs::types::QName(ExpandedName::new(
                                         LocalName::new_dangerous("allModel"),
                                         Some(XmlNamespace::XS),
                                     )))
@@ -633,7 +633,7 @@ fn xsd_all() -> xs::ComplexType {
                                                     .simple_derivation(
                                                       Box::new(
                                                       xs::Restriction::builder()
-                                                            .base(xs_custom::QName(
+                                                            .base(xs::types::QName(
                                                                 ExpandedName::new(
                                                                     LocalName::new_dangerous(
                                                                         "nonNegativeInteger",
@@ -644,14 +644,20 @@ fn xsd_all() -> xs::ComplexType {
                                                             .simple_restriction_model(
                                                               xs::groups::SimpleRestrictionModel::builder()
                                                                 .child_1(vec![
-                                                                    // xs::Enumeration::builder()
-                                                                    //     .value("0".to_string())
-                                                                    //     .build()
-                                                                    //     .into(),
-                                                                    // xs::Enumeration::builder()
-                                                                    //     .value("1".to_string())
-                                                                    //     .build()
-                                                                    //     .into(),
+                                                                    xs::Facet::from(xs::Enumeration(
+                                                                        xs::types::NoFixedFacet::builder()
+                                                                            .value("0".to_string())
+                                                                            .build()
+                                                                            .into(),
+                                                                    ))
+                                                                    .into(),
+                                                                    xs::Facet::from(xs::Enumeration(
+                                                                        xs::types::NoFixedFacet::builder()
+                                                                            .value("1".to_string())
+                                                                            .build()
+                                                                            .into(),
+                                                                    ))
+                                                                    .into(),
                                                                 ])
                                                                 .build()
                                                                 .into()
@@ -674,7 +680,7 @@ fn xsd_all() -> xs::ComplexType {
                                                 xs::types::LocalSimpleType::builder()
                                                     .simple_derivation(Box::new(
                                                         xs::Restriction::builder()
-                                                            .base(xs_custom::QName(
+                                                            .base(xs::types::QName(
                                                                 ExpandedName::new(
                                                                     LocalName::new_dangerous(
                                                                         "allNNI",
@@ -685,15 +691,20 @@ fn xsd_all() -> xs::ComplexType {
                                                             .simple_restriction_model(
                                                               xs::groups::SimpleRestrictionModel::builder()
                                                               .child_1(vec![
-                                                                //TODO: Facets are fucked.
-                                                                // xs::Enumeration::builder()
-                                                                //     .value("0".to_string())
-                                                                //     .build()
-                                                                //     .into(),
-                                                                // xs::Enumeration::builder()
-                                                                //     .value("1".to_string())
-                                                                //     .build()
-                                                                //     .into(),
+                                                                  xs::Facet::from(xs::Enumeration(
+                                                                      xs::types::NoFixedFacet::builder()
+                                                                          .value("0".to_string())
+                                                                          .build()
+                                                                          .into(),
+                                                                  ))
+                                                                  .into(),
+                                                                  xs::Facet::from(xs::Enumeration(
+                                                                      xs::types::NoFixedFacet::builder()
+                                                                          .value("1".to_string())
+                                                                          .build()
+                                                                          .into(),
+                                                                  ))
+                                                                  .into(),
                                                               ])
                                                               .build()
                                                             )
@@ -708,7 +719,7 @@ fn xsd_all() -> xs::ComplexType {
                                     ])
                                     .any_attribute(
                                         xs::AnyAttribute::builder()
-                                            .namespace(xs_custom::NamespaceListType::Other)
+                                            .namespace(xs::types::NamespaceListType::Other)
                                             .process_contents(
                                                 "lax".to_string(), // xs::ProcessContentsType::Lax
                                             )
@@ -841,31 +852,39 @@ fn xsd_any_type() -> xs::ComplexType {
                     .into(),
             )
             .complex_type_model(Box::new(
-                xs::groups::complex_type_model_items::complex_type_model_variants::Variant2.into(), //    {
-                                                                                                    //     open_content: None,
-                                                                                                    //     type_def_particle: Some(
-                                                                                                    //         xs::SequenceType::builder()
-                                                                                                    //             .content(vec![xs::Any::builder()
-                                                                                                    //                 .min_occurs(0)
-                                                                                                    //                 .max_occurs("unbounded".to_string())
-                                                                                                    //                 .process_contents(
-                                                                                                    //                     "lax".to_string(), // xs::ProcessContentsType::Lax
-                                                                                                    //                 )
-                                                                                                    //                 .build()
-                                                                                                    //                 .into()])
-                                                                                                    //             .build()
-                                                                                                    //             .into(),
-                                                                                                    //     ),
-                                                                                                    //     attr_decls: xs::AttrDecls::builder()
-                                                                                                    //         .any(
-                                                                                                    //             xs::AnyAttribute::builder()
-                                                                                                    //                 .process_contents(
-                                                                                                    //                     "lax".to_string(), // xs::ProcessContentsType::Lax
-                                                                                                    //                 )
-                                                                                                    //                 .build(),
-                                                                                                    //         )
-                                                                                                    //         .build(),
-                                                                                                    // }
+                xs::groups::complex_type_model_items::complex_type_model_variants::Variant2 {
+                    open_content: None,
+                    type_def_particle: Some(Box::new(
+                        xs::Sequence(
+                            xs::types::ExplicitGroup::builder()
+                                .nested_particle(vec![Box::new(
+                                    xs::Any::builder()
+                                        .min_occurs(0)
+                                        .max_occurs("unbounded".to_string())
+                                        .process_contents(
+                                            "lax".to_string(), // xs::ProcessContentsType::Lax
+                                        )
+                                        .build()
+                                        .into(),
+                                )])
+                                .build()
+                                .into(),
+                        )
+                        .into(),
+                    )),
+                    attr_decls: xs::groups::AttrDecls::builder()
+                        .any_attribute(
+                            xs::AnyAttribute::builder()
+                                .process_contents(
+                                    "lax".to_string(), // xs::ProcessContentsType::Lax
+                                )
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                    assertions: xs::groups::Assertions::builder().build(),
+                }
+                .into(),
             ))
             .build()
             .into(),

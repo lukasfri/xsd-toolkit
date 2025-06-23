@@ -32,6 +32,7 @@ impl FlattenNestedSequences {
             };
 
             let SequenceFragment {
+                id: _,
                 fragments: sub_fragments,
                 max_occurs,
                 min_occurs,

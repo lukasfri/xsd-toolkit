@@ -949,7 +949,7 @@ mod tests {
                 pub mod child_0_variants {
                     #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
                     #[xvalue(order = "strict")]
-                    pub struct Variant0 {
+                    pub struct A {
                         #[xelement(name = "a", namespace = "http://example.com")]
                         pub a: i32,
                     }
@@ -957,7 +957,7 @@ mod tests {
 
                 #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
                 pub enum Child0 {
-                    Variant0(::std::boxed::Box<child_0_variants::Variant0>),
+                    A(::std::boxed::Box<child_0_variants::A>),
                     #[xelement(
                         name = "b",
                         namespace = "http://example.com",

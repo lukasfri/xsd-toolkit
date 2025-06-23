@@ -163,10 +163,11 @@ pub struct OtherStdXsdTypes;
 
 impl IntoIterator for OtherStdXsdTypes {
     type Item = (ExpandedName<'static>, BoundType);
-    type IntoIter = std::array::IntoIter<Self::Item, 8>;
+    type IntoIter = std::array::IntoIter<Self::Item, 9>;
 
     fn into_iter(self) -> Self::IntoIter {
         [
+            xs_bind!("anySimpleType", String),
             xs_bind!("normalizedString", String),
             xs_bind!("token", String),
             xs_bind!("language", String),

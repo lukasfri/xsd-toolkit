@@ -1,5 +1,5 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xs_raw::{xs, xs_custom};
+use xs_raw::xs;
 
 #[rstest::rstest]
 #[case::schema(XSD_SCHEMA, None)]
@@ -154,7 +154,7 @@ fn xsd_any_attribute() -> xs::Element {
         .annotation(
             xs::Annotation::builder()
                 .annotation(vec![xs::Documentation::builder()
-                    .source(xs_custom::TargetNamespace(XmlNamespace::new_dangerous(
+                    .source(xs::types::TargetNamespace(XmlNamespace::new_dangerous(
                         "../structures/structures.html#element-anyAttribute",
                     )))
                     .build()
@@ -168,7 +168,7 @@ fn xsd_any_attribute() -> xs::Element {
                     xs::ComplexContent::builder()
                         .child_1(
                             xs::types::ExtensionType::builder()
-                                .base(xs_custom::QName(ExpandedName::new(
+                                .base(xs::types::QName(ExpandedName::new(
                                     LocalName::new_dangerous("wildcard"),
                                     Some(XmlNamespace::XS),
                                 )))
@@ -176,7 +176,7 @@ fn xsd_any_attribute() -> xs::Element {
                                     xs::groups::AttrDecls::builder()
                                         .attribute(vec![xs::types::Attribute::builder()
                                             .name(LocalName::new_dangerous("notQName"))
-                                            .type_(xs_custom::QName(ExpandedName::new(
+                                            .type_(xs::types::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("qnameListA"),
                                                 Some(XmlNamespace::XS),
                                             )))
@@ -789,7 +789,7 @@ fn xsd_total_digits() -> xs::Element {
         .annotation(
             xs::Annotation::builder()
                 .annotation(vec![xs::Documentation::builder()
-                    .source(xs_custom::TargetNamespace(XmlNamespace::new_dangerous( "http://www.w3.org/TR/xmlschema11-2/#element-totalDigits")))
+                    .source(xs::types::TargetNamespace(XmlNamespace::new_dangerous( "http://www.w3.org/TR/xmlschema11-2/#element-totalDigits")))
                     .build()
                     .into()])
                 .build()
@@ -802,7 +802,7 @@ fn xsd_total_digits() -> xs::Element {
                         xs::ComplexContent::builder()
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
-                                    .base(xs_custom::QName(ExpandedName::new(
+                                    .base(xs::types::QName(ExpandedName::new(
                                         LocalName::new_dangerous("numFacet"),
                                         Some(XmlNamespace::XS),
                                     )))
@@ -813,7 +813,7 @@ fn xsd_total_digits() -> xs::Element {
                                             xs::Sequence(Box::new(
                                               xs::types::ExplicitGroup::builder()
                                             .nested_particle(vec![Box::new(xs::types::LocalElement::builder()
-                                                .ref_(xs_custom::QName(ExpandedName::new(
+                                                .ref_(xs::types::QName(ExpandedName::new(
                                                     LocalName::new_dangerous("annotation"),
                                                     Some(XmlNamespace::XS),
                                                 )))
@@ -828,7 +828,7 @@ fn xsd_total_digits() -> xs::Element {
                                         xs::groups::AttrDecls::builder()
                                             .attribute(vec![xs::types::Attribute::builder()
                                                 .name(LocalName::new_dangerous("value"))
-                                                .type_(xs_custom::QName(ExpandedName::new(
+                                                .type_(xs::types::QName(ExpandedName::new(
                                                     LocalName::new_dangerous("positiveInteger"),
                                                     Some(XmlNamespace::XS),
                                                 )))
@@ -838,7 +838,7 @@ fn xsd_total_digits() -> xs::Element {
                                                 .into()])
                                             .any_attribute(
                                                 xs::AnyAttribute::builder()
-                                                    .namespace(xs_custom::NamespaceListType::Other)
+                                                    .namespace(xs::types::NamespaceListType::Other)
                                                     .process_contents("lax".to_string())
                                                     // .process_contents(xs::ProcessContentsType::Lax)
                                                     .build().into(),
@@ -952,7 +952,7 @@ fn xsd_white_space() -> xs::Element {
             .annotation(
                 xs::Annotation::builder()
                     .annotation(vec![xs::Documentation::builder()
-                        .source(xs_custom::TargetNamespace(XmlNamespace::new_dangerous(
+                        .source(xs::types::TargetNamespace(XmlNamespace::new_dangerous(
                             "http://www.w3.org/TR/xmlschema11-2/#element-whiteSpace",
                         )))
                         .build()
@@ -967,7 +967,7 @@ fn xsd_white_space() -> xs::Element {
                             xs::ComplexContent::builder()
                                 .child_1(
                                     xs::types::ComplexRestrictionType::builder()
-                                        .base(xs_custom::QName(ExpandedName::new(
+                                        .base(xs::types::QName(ExpandedName::new(
                                             LocalName::new_dangerous("facet"),
                                             Some(XmlNamespace::XS),
                                         )))
@@ -980,7 +980,7 @@ fn xsd_white_space() -> xs::Element {
                                                     .nested_particle(vec![
                                                       Box::new(
                                                           xs::types::LocalElement::builder()
-                                                              .ref_(xs_custom::QName(ExpandedName::new(
+                                                              .ref_(xs::types::QName(ExpandedName::new(
                                                                   LocalName::new_dangerous("annotation"),
                                                                   Some(XmlNamespace::XS),
                                                               )))
@@ -1006,38 +1006,39 @@ fn xsd_white_space() -> xs::Element {
                                                         xs::types::LocalSimpleType::builder()
                                                             .simple_derivation(
                                                               Box::new(
-                                                                xs::Restriction::builder()
-                                                                .base(xs_custom::QName(ExpandedName::new(
-                                                                    LocalName::new_dangerous(
-                                                                        "NMTOKEN",
-                                                                    ),
-                                                                    Some(XmlNamespace::XS),
-                                                                )))
-                                                                .simple_restriction_model(
-                                                                  xs::groups::SimpleRestrictionModel::builder()
-                                                                  .child_1(vec![
-                                                                    //TODO: Facets
-                                                                    // xs::Enumeration::builder()
-                                                                    //     .value(
-                                                                    //         "preserve".to_string(),
-                                                                    //     )
-                                                                    //     .build()
-                                                                    //     .into(),
-                                                                    // xs::Enumeration::builder()
-                                                                    //     .value(
-                                                                    //         "replace".to_string(),
-                                                                    //     )
-                                                                    //     .build()
-                                                                    //     .into(),
-                                                                    // xs::Enumeration::builder()
-                                                                    //     .value(
-                                                                    //         "collapse".to_string(),
-                                                                    //     )
-                                                                    //     .build()
-                                                                    //     .into(),
-                                                                ]).build()
-                                                                .into()
-                                                                )
+                                                                  xs::Restriction::builder()
+                                                                  .base(xs::types::QName(ExpandedName::new(
+                                                                      LocalName::new_dangerous(
+                                                                          "NMTOKEN",
+                                                                      ),
+                                                                      Some(XmlNamespace::XS),
+                                                                  )))
+                                                                  .simple_restriction_model(
+                                                                    xs::groups::SimpleRestrictionModel::builder()
+                                                                    .child_1(vec![
+                                                                        xs::Facet::from(xs::Enumeration(
+                                                                            xs::types::NoFixedFacet::builder()
+                                                                                .value("preserve".to_string())
+                                                                                .build()
+                                                                                .into(),
+                                                                        ))
+                                                                        .into(),
+                                                                        xs::Facet::from(xs::Enumeration(
+                                                                            xs::types::NoFixedFacet::builder()
+                                                                                .value("replace".to_string())
+                                                                                .build()
+                                                                                .into(),
+                                                                        ))
+                                                                        .into(),
+                                                                        xs::Facet::from(xs::Enumeration(
+                                                                            xs::types::NoFixedFacet::builder()
+                                                                                .value("collapse".to_string())
+                                                                                .build()
+                                                                                .into(),
+                                                                        ))
+                                                                        .into(),
+                                                                    ]).build()
+                                                                .into())
                                                                 .build()
                                                                 .into())
                                                             )
@@ -1048,7 +1049,7 @@ fn xsd_white_space() -> xs::Element {
                                                     .into()])
                                                 .any_attribute(
                                                     xs::AnyAttribute::builder()
-                                                        .namespace(xs_custom::NamespaceListType::Other)
+                                                        .namespace(xs::types::NamespaceListType::Other)
                                                         .process_contents(
                                                           "lax".to_string()
                                                             // xs::ProcessContentsType::Lax,

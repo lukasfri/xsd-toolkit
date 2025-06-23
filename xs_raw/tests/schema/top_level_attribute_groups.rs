@@ -1,6 +1,5 @@
 use super::xs;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xs_raw::xs_custom;
 
 #[rstest::rstest]
 #[case::occurs(XSD_OCCURS, None)]
@@ -72,7 +71,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                     .attribute(vec![
                         xs::types::Attribute::builder()
                             .name(LocalName::new_dangerous("namespace"))
-                            .type_(xs_custom::QName(ExpandedName::new(
+                            .type_(xs::types::QName(ExpandedName::new(
                                 LocalName::new_dangerous("namespaceList"),
                                 Some(XmlNamespace::XS),
                             )))
@@ -86,21 +85,19 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                 xs::types::LocalSimpleType::builder()
                                     .simple_derivation(Box::new(
                                         xs::Restriction::builder()
-                                            .base(xs_custom::QName(ExpandedName::new(
+                                            .base(xs::types::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("basicNamespaceList"),
                                                 Some(XmlNamespace::XS),
                                             )))
                                             .simple_restriction_model(
                                                 xs::groups::SimpleRestrictionModel::builder()
-                                                    .child_1(vec![
-                                                      //TODO: Facets are fucked.
-                                                      // xs::MinLength(
-                                                      //     xs::FacetType::builder()
-                                                      //         .value("1".to_string())
-                                                      //         .build(),
-                                                      // )
-                                                      // .into()
-                                                    ])
+                                                    .child_1(vec![xs::Facet::from(xs::MinLength(
+                                                        xs::types::NumFacet::builder()
+                                                            .value(1)
+                                                            .build()
+                                                            .into(),
+                                                    ))
+                                                    .into()])
                                                     .build(),
                                             )
                                             .build()
@@ -119,26 +116,34 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                 xs::types::LocalSimpleType::builder()
                                     .simple_derivation(Box::new(
                                         xs::Restriction::builder()
-                                            .base(xs_custom::QName(ExpandedName::new(
+                                            .base(xs::types::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("NMTOKEN"),
                                                 Some(XmlNamespace::XS),
                                             )))
                                             .simple_restriction_model(
                                                 xs::groups::SimpleRestrictionModel::builder()
                                                     .child_1(vec![
-                                                        //TODO: Facets are fucked.
-                                                        // xs::Enumeration(Box:::new(xs::types::NoFixedFacet::builder().value("skip".to_string())
-                                                        //     .build()))
-
-                                                        //     .into(),
-                                                        // xs::Enumeration::builder()
-                                                        //     .value("lax".to_string())
-                                                        //     .build()
-                                                        //     .into(),
-                                                        // xs::Enumeration::builder()
-                                                        //     .value("strict".to_string())
-                                                        //     .build()
-                                                        //     .into(),
+                                                        xs::Facet::from(xs::Enumeration(
+                                                            xs::types::NoFixedFacet::builder()
+                                                                .value("skip".to_string())
+                                                                .build()
+                                                                .into(),
+                                                        ))
+                                                        .into(),
+                                                        xs::Facet::from(xs::Enumeration(
+                                                            xs::types::NoFixedFacet::builder()
+                                                                .value("lax".to_string())
+                                                                .build()
+                                                                .into(),
+                                                        ))
+                                                        .into(),
+                                                        xs::Facet::from(xs::Enumeration(
+                                                            xs::types::NoFixedFacet::builder()
+                                                                .value("strict".to_string())
+                                                                .build()
+                                                                .into(),
+                                                        ))
+                                                        .into(),
                                                     ])
                                                     .build(),
                                             )

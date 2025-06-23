@@ -477,13 +477,24 @@ impl<'a> Generator<'a> {
         &mut self,
         types: T,
     ) {
-        for (name, bound_type) in types {
+        types.into_iter().for_each(|(name, bound_type)| {
             self.bind_type(name, bound_type);
-        }
+        });
     }
 
     pub fn bind_element(&mut self, name: ExpandedName<'static>, ty: TypeReference<'static>) {
         self.bound_elements.insert(name, ty);
+    }
+
+    pub fn bind_elements<
+        T: IntoIterator<Item = (ExpandedName<'static>, TypeReference<'static>)>,
+    >(
+        &mut self,
+        types: T,
+    ) {
+        types
+            .into_iter()
+            .for_each(|(name, bound_type)| self.bind_element(name, bound_type));
     }
 
     pub fn bind_attribute(&mut self, name: ExpandedName<'static>, ty: TypeReference<'static>) {
@@ -536,10 +547,8 @@ impl<'a> Generator<'a> {
             .top_level_types
             .iter()
             .filter(|(_key, type_)| matches!(type_, TopLevelType::Complex(_)))
-            .map(|(key, _)| key)
-            .map(|local_name| {
-                let expanded_name =
-                    ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
+            .map(|(key, _)| ExpandedName::new(key.as_ref(), Some(namespace.as_ref())))
+            .map(|expanded_name| {
                 let (mut bound_type, i) = self.generate_top_level_type(&expanded_name)?;
 
                 let bound_namespace = self.bound_namespaces.get(namespace).unwrap();
@@ -574,9 +583,8 @@ impl<'a> Generator<'a> {
         let attributes_items = compiled_namespace
             .top_level_attributes
             .keys()
-            .map(|local_name| {
-                let expanded_name =
-                    ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
+            .map(|local_name| ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())))
+            .map(|expanded_name| {
                 let (mut bound_type, i) = self.generate_top_level_attribute(&expanded_name)?;
 
                 let bound_namespace = self.bound_namespaces.get(namespace).unwrap();
@@ -607,9 +615,8 @@ impl<'a> Generator<'a> {
         let group_items = compiled_namespace
             .top_level_groups
             .keys()
-            .map(|local_name| {
-                let expanded_name =
-                    ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
+            .map(|local_name| ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())))
+            .map(|expanded_name| {
                 let (mut bound_type, i) = self.generate_top_level_group(&expanded_name)?;
 
                 let bound_namespace = self.bound_namespaces.get(namespace).unwrap();
@@ -635,8 +642,14 @@ impl<'a> Generator<'a> {
 
         items.push(Item::Mod(groups_mod));
 
-        for local_name in compiled_namespace.top_level_elements.keys() {
-            let expanded_name = ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref()));
+        for expanded_name in compiled_namespace
+            .top_level_elements
+            .keys()
+            .map(|local_name| ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())))
+        {
+            if self.bound_elements.contains_key(&expanded_name) {
+                continue;
+            }
             let (mut bound_type, i) = self.generate_top_level_element(&expanded_name)?;
 
             let bound_namespace = self.bound_namespaces.get(namespace).unwrap();

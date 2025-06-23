@@ -1,5 +1,15 @@
-pub mod xs;
 pub mod xs_custom;
+pub mod xs_generated;
+
+pub mod xs {
+    pub use super::xs_custom::elements::*;
+    pub use super::xs_generated::*;
+
+    pub mod types {
+        pub use super::super::xs_custom::types::*;
+        pub use super::super::xs_generated::types::*;
+    }
+}
 
 pub mod xml {
     use xmlity::{Deserialize, SerializeAttribute, XmlNamespace};

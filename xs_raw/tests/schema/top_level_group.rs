@@ -1,5 +1,5 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace, XmlValue};
-use xs_raw::{xs, xs_custom};
+use xs_raw::xs;
 
 #[rstest::rstest]
 #[case::composition(XSD_COMPOSITION, None)]
@@ -194,7 +194,7 @@ fn xsd_all_model() -> xs::Group {
             xs::types::named_group_items::Child1::Sequence(xs::types::SimpleExplicitGroup::builder()
                 .nested_particle(vec![
                     Box::new(xs::types::LocalElement::builder()
-                        .ref_(xs_custom::QName(ExpandedName::new(
+                        .ref_(xs::types::QName(ExpandedName::new(
                             LocalName::new_dangerous("annotation"),
                             Some(XmlNamespace::XS),
                         )))
@@ -217,11 +217,11 @@ fn xsd_all_model() -> xs::Group {
                         .nested_particle(vec![
                             Box::new(xs::types::LocalElement::builder()
                                 .name(LocalName::new_dangerous("element"))
-                                .type_attribute(xs_custom::QName(ExpandedName::new(LocalName::new_dangerous("localElement"), Some(XmlNamespace::XS))))
+                                .type_attribute(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("localElement"), Some(XmlNamespace::XS))))
                                 .build()
                                 .into()),
                             Box::new(xs::types::LocalElement::builder()
-                                .ref_(xs_custom::QName(ExpandedName::new(
+                                .ref_(xs::types::QName(ExpandedName::new(
                                     LocalName::new_dangerous("any"),
                                     Some(XmlNamespace::XS),
                                 )))
@@ -235,14 +235,14 @@ fn xsd_all_model() -> xs::Group {
                                             xs::ComplexContent::builder()
                                                 .child_1(
                                                     xs::types::ComplexRestrictionType::builder()
-                                                    .base(xs_custom::QName(ExpandedName::new(LocalName::new_dangerous("groupRef"), Some(XmlNamespace::XS))))
+                                                    .base(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("groupRef"), Some(XmlNamespace::XS))))
                                                     .variant_0(
                                                       xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder().type_def_particle(
                                                         Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
                                                             .nested_particle(vec![
                                                                 Box::new(
                                                                     xs::types::LocalElement::builder()
-                                                                        .ref_(xs_custom::QName(ExpandedName::new(LocalName::new_dangerous("annotation"), Some(XmlNamespace::XS))))
+                                                                        .ref_(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("annotation"), Some(XmlNamespace::XS))))
                                                                         .min_occurs(0)
                                                                         .build().into()
                                                                 )
@@ -255,13 +255,13 @@ fn xsd_all_model() -> xs::Group {
                                                         xs::types::Attribute::builder()
                                                         .name(LocalName::new_dangerous("minOccurs"))
                                                         .fixed("1".to_string()) 
-                                                        .type_(xs_custom::QName(ExpandedName::new(LocalName::new_dangerous("nonNegativeInteger"), Some(XmlNamespace::XS))))
+                                                        .type_(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("nonNegativeInteger"), Some(XmlNamespace::XS))))
                                                         .build()
                                                         .into(),
                                                         xs::types::Attribute::builder()
                                                         .name(LocalName::new_dangerous("maxOccurs"))
                                                         .fixed("1".to_string())
-                                                        .type_(xs_custom::QName(ExpandedName::new(LocalName::new_dangerous("nonNegativeInteger"), Some(XmlNamespace::XS))))
+                                                        .type_(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("nonNegativeInteger"), Some(XmlNamespace::XS))))
                                                         .build()
                                                         .into(),
                                                     ]).build().into())

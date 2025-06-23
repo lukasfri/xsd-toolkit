@@ -242,6 +242,7 @@ impl ExpandExtensionFragments {
                 };
 
                 let new_content_fragment = SequenceFragment {
+                    id: None,
                     max_occurs: None,
                     min_occurs: None,
                     fragments: {
