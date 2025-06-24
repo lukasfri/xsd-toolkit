@@ -177,7 +177,7 @@ impl<T> ItemOrTemplate<T> {
                     })),
                     (1, AllNNI::Bounded(1)) => unreachable!(),
                     _ => Ok(Self::Item(ItemFieldItem {
-                        ty: ty.wrap(TypeReference::vec_wrapper),
+                        ty: ty.wrap(TypeReference::vec_non_boxed_wrapper),
                         default: true,
                     })),
                 }
@@ -889,34 +889,33 @@ mod tests {
                                 xs::Sequence(
                                     xs::types::ExplicitGroup::builder()
                                         .nested_particle(vec![
-                                            Box::new(xs::Choice(xs::types::ExplicitGroup::builder()
+                                            xs::Choice(xs::types::ExplicitGroup::builder()
                                                 .nested_particle(vec![
-                                                    Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
-                                                        .nested_particle(vec![Box::new(xs::types::LocalElement::builder()
+                                                    xs::Sequence(xs::types::ExplicitGroup::builder()
+                                                        .nested_particle(vec![xs::types::LocalElement::builder()
                                                             .name(LocalName::new_dangerous("a"))
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::INTEGER.clone(),
                                                             ))
                                                             .build()
-                                                            .into())])
+                                                            .into()])
                                                         .build()
-                                                        .into()).into()),
-                                                    Box::new(xs::types::LocalElement::builder()
+                                                        .into()).into(),
+                                                    xs::types::LocalElement::builder()
                                                         .name(LocalName::new_dangerous("b"))
                                                         .type_attribute(xs::types::QName(
                                                             xsn::STRING.clone(),
                                                         ))
                                                         .build()
-                                                        .into()),
+                                                        .into(),
                                                 ])
                                                 .build()
-                                                .into()).into()),
-                                                Box::new(
+                                                .into()).into(),
                                             xs::types::LocalElement::builder()
                                                 .name(LocalName::new_dangerous("c"))
                                                 .type_attribute(xs::types::QName(xsn::STRING.clone()))
                                                 .build()
-                                                .into()),
+                                                .into(),
                                         ])
                                         .build()
                                         .into(),
@@ -1020,45 +1019,37 @@ mod tests {
                                     Box::new(
                                 xs::Sequence(xs::types::ExplicitGroup::builder()
                                     .nested_particle(vec![
-                                        Box::new(
-                                            xs::Sequence(
-                                                xs::types::ExplicitGroup::builder()
-                                                    .nested_particle(vec![
-                                                        Box::new(
-                                                            xs::types::LocalElement::builder()
-                                                                .name(LocalName::new_dangerous("a"))
-                                                                .type_attribute(xs::types::QName(
-                                                                    xsn::INTEGER.clone(),
-                                                                ))
-                                                                .min_occurs(0)
-                                                                .build()
-                                                                .into(),
-                                                        ),
-                                                        Box::new(
-                                                            xs::types::LocalElement::builder()
-                                                                .name(LocalName::new_dangerous("b"))
-                                                                .type_attribute(xs::types::QName(
-                                                                    xsn::STRING.clone(),
-                                                                ))
-                                                                .build()
-                                                                .into(),
-                                                        ),
-                                                    ])
-                                                    .min_occurs(0)
-                                                    .build()
-                                                    .into(),
-                                            )
-                                            .into(),
-                                        ),
-                                        Box::new(
-                                            xs::types::LocalElement::builder()
-                                                .name(LocalName::new_dangerous("c"))
-                                                .type_attribute(xs::types::QName(
-                                                    xsn::STRING.clone(),
-                                                ))
+                                        xs::Sequence(
+                                            xs::types::ExplicitGroup::builder()
+                                                .nested_particle(vec![
+                                                    xs::types::LocalElement::builder()
+                                                        .name(LocalName::new_dangerous("a"))
+                                                        .type_attribute(xs::types::QName(
+                                                            xsn::INTEGER.clone(),
+                                                        ))
+                                                        .min_occurs(0)
+                                                        .build()
+                                                        .into(),
+                                                    xs::types::LocalElement::builder()
+                                                        .name(LocalName::new_dangerous("b"))
+                                                        .type_attribute(xs::types::QName(
+                                                            xsn::STRING.clone(),
+                                                        ))
+                                                        .build()
+                                                        .into(),
+                                                ])
+                                                .min_occurs(0)
                                                 .build()
                                                 .into(),
-                                        ),
+                                        )
+                                        .into(),
+                                        xs::types::LocalElement::builder()
+                                            .name(LocalName::new_dangerous("c"))
+                                            .type_attribute(xs::types::QName(
+                                                xsn::STRING.clone(),
+                                            ))
+                                            .build()
+                                            .into(),
                                     ])
                                     .build()
                                     .into()).into())

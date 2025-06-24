@@ -857,16 +857,14 @@ fn xsd_any_type() -> xs::ComplexType {
                     type_def_particle: Some(Box::new(
                         xs::Sequence(
                             xs::types::ExplicitGroup::builder()
-                                .nested_particle(vec![Box::new(
-                                    xs::Any::builder()
-                                        .min_occurs(0)
-                                        .max_occurs(xs::types::AllNNI::Unbounded)
-                                        .process_contents(
-                                            "lax".to_string(), // xs::ProcessContentsType::Lax
-                                        )
-                                        .build()
-                                        .into(),
-                                )])
+                                .nested_particle(vec![xs::Any::builder()
+                                    .min_occurs(0)
+                                    .max_occurs(xs::types::AllNNI::Unbounded)
+                                    .process_contents(
+                                        "lax".to_string(), // xs::ProcessContentsType::Lax
+                                    )
+                                    .build()
+                                    .into()])
                                 .build()
                                 .into(),
                         )

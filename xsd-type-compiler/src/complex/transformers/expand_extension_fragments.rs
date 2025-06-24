@@ -317,20 +317,16 @@ mod tests {
         let parent_seq = xs::Sequence(Box::new(
             xs::types::ExplicitGroup::builder()
                 .nested_particle(vec![
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("number"))
-                            .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
-                            .build()
-                            .into(),
-                    ),
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("name"))
-                            .type_attribute(xs::types::QName(xsn::STRING.clone()))
-                            .build()
-                            .into(),
-                    ),
+                    xs::types::LocalElement::builder()
+                        .name(LocalName::new_dangerous("number"))
+                        .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+                        .build()
+                        .into(),
+                    xs::types::LocalElement::builder()
+                        .name(LocalName::new_dangerous("name"))
+                        .type_attribute(xs::types::QName(xsn::STRING.clone()))
+                        .build()
+                        .into(),
                 ])
                 .build()
                 .into(),
@@ -376,20 +372,16 @@ mod tests {
             xs::types::ExplicitGroup::builder()
                 .max_occurs(xs::types::AllNNI::Unbounded)
                 .nested_particle(vec![
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("size"))
-                            .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
-                            .build()
-                            .into(),
-                    ),
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("color"))
-                            .type_attribute(xs::types::QName(xsn::STRING.clone()))
-                            .build()
-                            .into(),
-                    ),
+                    xs::types::LocalElement::builder()
+                        .name(LocalName::new_dangerous("size"))
+                        .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+                        .build()
+                        .into(),
+                    xs::types::LocalElement::builder()
+                        .name(LocalName::new_dangerous("color"))
+                        .type_attribute(xs::types::QName(xsn::STRING.clone()))
+                        .build()
+                        .into(),
                 ])
                 .build()
                 .into(),
@@ -457,7 +449,7 @@ mod tests {
 
     xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
     .type_def_particle(Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
-                                        .nested_particle(vec![Box::new(parent_seq.into()), Box::new(child_choice.into())])
+                                        .nested_particle(vec![parent_seq.into(), child_choice.into()])
                                         .build().into()).into()))
     .build()
     .into()
@@ -722,27 +714,27 @@ mod tests {
                                     .min_occurs(0)
                                     .max_occurs(xs::types::AllNNI::Unbounded)
                                     .nested_particle(vec![
-                                        Box::new(xs::types::GroupRef::builder()
+                                        xs::types::GroupRef::builder()
                                             .ref_(xs::types::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("block"),
                                                 Some(XmlNamespace::XHTML),
                                             )))
                                             .build()
-                                            .into()),
-                                        Box::new(xs::types::LocalElement::builder()
+                                            .into(),
+                                        xs::types::LocalElement::builder()
                                             .ref_(xs::types::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("form"),
                                                 Some(XmlNamespace::XHTML),
                                             )))
                                             .build()
-                                            .into()),
-                                        Box::new(xs::types::GroupRef::builder()
+                                            .into(),
+                                        xs::types::GroupRef::builder()
                                             .ref_(xs::types::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("misc"),
                                                 Some(XmlNamespace::XHTML),
                                             )))
                                             .build()
-                                            .into()),
+                                            .into(),
                                     ])
                                     .build().into())).into()))
     .build()
@@ -828,27 +820,27 @@ mod tests {
                                             .min_occurs(0)
                                             .max_occurs(xs::types::AllNNI::Unbounded)
                                             .nested_particle(vec![
-                                                Box::new(xs::types::GroupRef::builder()
+                                                xs::types::GroupRef::builder()
                                                     .ref_(xs::types::QName(ExpandedName::new(
                                                         LocalName::new_dangerous("block"),
                                                         Some(XmlNamespace::XHTML),
                                                     )))
                                                     .build()
-                                                    .into()),
-                                                Box::new(xs::types::LocalElement::builder()
+                                                    .into(),
+                                                xs::types::LocalElement::builder()
                                                     .ref_(xs::types::QName(ExpandedName::new(
                                                         LocalName::new_dangerous("form"),
                                                         Some(XmlNamespace::XHTML),
                                                     )))
                                                     .build()
-                                                    .into()),
-                                                Box::new(xs::types::GroupRef::builder()
+                                                    .into(),
+                                                xs::types::GroupRef::builder()
                                                     .ref_(xs::types::QName(ExpandedName::new(
                                                         LocalName::new_dangerous("misc"),
                                                         Some(XmlNamespace::XHTML),
                                                     )))
                                                     .build()
-                                                    .into()),
+                                                    .into(),
                                             ])
                                             .build().into())).into()))
     .build()
@@ -947,41 +939,41 @@ mod tests {
                                     .min_occurs(0)
                                     .max_occurs(xs::types::AllNNI::Unbounded)
                                     .nested_particle(vec![
-                                        Box::new(xs::types::GroupRef::builder()
+                                        xs::types::GroupRef::builder()
                                             .ref_(xs::types::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("special"),
                                                 Some(XmlNamespace::XHTML),
                                             )))
                                             .build()
-                                            .into()),
-                                        Box::new(xs::types::GroupRef::builder()
+                                            .into(),
+                                        xs::types::GroupRef::builder()
                                             .ref_(xs::types::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("fontstyle"),
                                                 Some(XmlNamespace::XHTML),
                                             )))
                                             .build()
-                                            .into()),
-                                        Box::new(xs::types::GroupRef::builder()
+                                            .into(),
+                                        xs::types::GroupRef::builder()
                                             .ref_(xs::types::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("phrase"),
                                                 Some(XmlNamespace::XHTML),
                                             )))
                                             .build()
-                                            .into()),
-                                        Box::new(xs::types::GroupRef::builder()
+                                            .into(),
+                                        xs::types::GroupRef::builder()
                                             .ref_(xs::types::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("inline.forms"),
                                                 Some(XmlNamespace::XHTML),
                                             )))
                                             .build()
-                                            .into()),
-                                        Box::new(xs::types::GroupRef::builder()
+                                            .into(),
+                                        xs::types::GroupRef::builder()
                                             .ref_(xs::types::QName(ExpandedName::new(
                                                 LocalName::new_dangerous("misc.inline"),
                                                 Some(XmlNamespace::XHTML),
                                             )))
                                             .build()
-                                            .into()),
+                                            .into(),
                                     ])
                                     .build().into())).into()))
     .build()
@@ -1142,42 +1134,41 @@ mod tests {
                                             .min_occurs(0)
                                             .max_occurs(xs::types::AllNNI::Unbounded)
                                             .nested_particle(vec![
-                                                Box::new(
                                                 xs::types::GroupRef::builder()
                                                     .ref_(xs::types::QName(ExpandedName::new(
                                                         LocalName::new_dangerous("special"),
                                                         Some(XmlNamespace::XHTML),
                                                     )))
                                                     .build()
-                                                    .into()),
-                                                Box::new(xs::types::GroupRef::builder()
+                                                    .into(),
+                                                xs::types::GroupRef::builder()
                                                     .ref_(xs::types::QName(ExpandedName::new(
                                                         LocalName::new_dangerous("fontstyle"),
                                                         Some(XmlNamespace::XHTML),
                                                     )))
                                                     .build()
-                                                    .into()),
-                                                Box::new(xs::types::GroupRef::builder()
+                                                    .into(),
+                                                xs::types::GroupRef::builder()
                                                     .ref_(xs::types::QName(ExpandedName::new(
                                                         LocalName::new_dangerous("phrase"),
                                                         Some(XmlNamespace::XHTML),
                                                     )))
                                                     .build()
-                                                    .into()),
-                                                Box::new(xs::types::GroupRef::builder()
+                                                    .into(),
+                                                xs::types::GroupRef::builder()
                                                     .ref_(xs::types::QName(ExpandedName::new(
                                                         LocalName::new_dangerous("inline.forms"),
                                                         Some(XmlNamespace::XHTML),
                                                     )))
                                                     .build()
-                                                    .into()),
-                                                Box::new(xs::types::GroupRef::builder()
+                                                    .into(),
+                                                xs::types::GroupRef::builder()
                                                     .ref_(xs::types::QName(ExpandedName::new(
                                                         LocalName::new_dangerous("misc.inline"),
                                                         Some(XmlNamespace::XHTML),
                                                     )))
                                                     .build()
-                                                    .into()),
+                                                    .into(),
                                             ])
                                             .build().into()).into()))
     .build()

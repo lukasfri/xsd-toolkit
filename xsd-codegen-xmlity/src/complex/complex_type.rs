@@ -323,24 +323,20 @@ mod tests {
                                 xs::Sequence(
                                     xs::types::ExplicitGroup::builder()
                                         .nested_particle(vec![
-                                            Box::new(
-                                                xs::types::LocalElement::builder()
-                                                    .name(LocalName::new_dangerous("a"))
-                                                    .type_attribute(xs::types::QName(
-                                                        xsn::INTEGER.clone(),
-                                                    ))
-                                                    .build()
-                                                    .into(),
-                                            ),
-                                            Box::new(
-                                                xs::types::LocalElement::builder()
-                                                    .name(LocalName::new_dangerous("b"))
-                                                    .type_attribute(xs::types::QName(
-                                                        xsn::STRING.clone(),
-                                                    ))
-                                                    .build()
-                                                    .into(),
-                                            ),
+                                            xs::types::LocalElement::builder()
+                                                .name(LocalName::new_dangerous("a"))
+                                                .type_attribute(xs::types::QName(
+                                                    xsn::INTEGER.clone(),
+                                                ))
+                                                .build()
+                                                .into(),
+                                            xs::types::LocalElement::builder()
+                                                .name(LocalName::new_dangerous("b"))
+                                                .type_attribute(xs::types::QName(
+                                                    xsn::STRING.clone(),
+                                                ))
+                                                .build()
+                                                .into(),
                                         ])
                                         .build()
                                         .into(),
@@ -519,33 +515,33 @@ mod tests {
                                 xs::Sequence(
                                     xs::types::ExplicitGroup::builder()
                                         .nested_particle(vec![
-                                            Box::new(xs::Sequence(
+                                            xs::Sequence(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
-                                                        Box::new(
+                                                        
                                                         xs::types::LocalElement::builder()
                                                             .name(LocalName::new_dangerous("a"))
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::INTEGER.clone(),
                                                             ))
                                                             .build()
-                                                            .into()),
-                                                        Box::new(xs::types::LocalElement::builder()
+                                                            .into(),
+                                                        xs::types::LocalElement::builder()
                                                             .name(LocalName::new_dangerous("b"))
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::STRING.clone(),
                                                             ))
                                                             .build()
-                                                            .into()),
+                                                            .into(),
                                                     ])
                                                     .build()
                                                     .into(),
-                                            ).into()),
-                                            Box::new(xs::types::LocalElement::builder()
+                                            ).into(),
+                                            xs::types::LocalElement::builder()
                                                 .name(LocalName::new_dangerous("c"))
                                                 .type_attribute(xs::types::QName(xsn::STRING.clone()))
                                                 .build()
-                                                .into()),
+                                                .into(),
                                         ])
                                         .build()
                                         .into(),
@@ -639,34 +635,34 @@ mod tests {
                                 xs::Sequence(
                                 xs::types::ExplicitGroup::builder()
                                     .nested_particle(vec![
-                                        Box::new(
                                         xs::Sequence(xs::types::ExplicitGroup::builder()
                                             .nested_particle(vec![
-                                                Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
+                                                xs::Sequence(xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
-                                                        Box::new(xs::types::LocalElement::builder()
-                                                        .name(LocalName::new_dangerous("a"))
-                                                        .type_attribute(xs::types::QName(
-                                                            xsn::INTEGER.clone(),
-                                                        ))
-                                                        .build()
-                                                        .into())])
+                                                        xs::types::LocalElement::builder()
+                                                            .name(LocalName::new_dangerous("a"))
+                                                            .type_attribute(xs::types::QName(
+                                                                xsn::INTEGER.clone(),
+                                                            ))
+                                                            .build()
+                                                            .into()
+                                                    ])
                                                     .build()
                                                     .into())
-                                                .into()),
-                                                Box::new(xs::types::LocalElement::builder()
+                                                .into(),
+                                                xs::types::LocalElement::builder()
                                                     .name(LocalName::new_dangerous("b"))
                                                     .type_attribute(xs::types::QName(xsn::STRING.clone()))
                                                     .build()
-                                                    .into()),
+                                                    .into(),
                                             ])
                                             .build()
-                                            .into()).into()),
-                                        Box::new(xs::types::LocalElement::builder()
+                                            .into()).into(),
+                                        xs::types::LocalElement::builder()
                                             .name(LocalName::new_dangerous("c"))
                                             .type_attribute(xs::types::QName(xsn::STRING.clone()))
                                             .build()
-                                            .into()),
+                                            .into(),
                                     ])
                                     .build()
                                     .into(),

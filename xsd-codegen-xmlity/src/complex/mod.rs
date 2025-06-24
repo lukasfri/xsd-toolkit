@@ -99,6 +99,6 @@ fn min_max_occurs_type(
     match (min_occurs, max_occurs) {
         (1, AllNNI::Bounded(1)) => (type_, false),
         (0, AllNNI::Bounded(1)) => (type_.wrap(TypeReference::option_wrapper), true),
-        (_, _) => (type_.wrap(TypeReference::vec_wrapper), true),
+        (_, _) => (type_.wrap(TypeReference::vec_non_boxed_wrapper), true),
     }
 }

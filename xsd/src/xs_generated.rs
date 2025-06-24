@@ -10,10 +10,6 @@ pub mod types {
     pub struct All {
         #[xattribute(name = "id", optional, default)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "minOccurs", optional, default)]
-        pub min_occurs: ::core::option::Option<usize>,
-        #[xattribute(name = "maxOccurs", optional, default)]
-        pub max_occurs: ::core::option::Option<crate::xs::types::AllNNI>,
         pub all_model: ::std::boxed::Box<crate::xs::groups::AllModel>,
     }
     pub mod alt_type_items {
@@ -390,9 +386,7 @@ pub mod types {
         pub alternative: ::std::vec::Vec<element_items::Alternative>,
         #[xvalue(default)]
         #[builder(default)]
-        pub identity_constraint: ::std::vec::Vec<
-            ::std::boxed::Box<crate::xs::groups::IdentityConstraint>,
-        >,
+        pub identity_constraint: ::std::vec::Vec<crate::xs::groups::IdentityConstraint>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -414,9 +408,7 @@ pub mod types {
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
         #[xvalue(default)]
         #[builder(default)]
-        pub nested_particle: ::std::vec::Vec<
-            ::std::boxed::Box<crate::xs::groups::NestedParticle>,
-        >,
+        pub nested_particle: ::std::vec::Vec<crate::xs::groups::NestedParticle>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -488,7 +480,7 @@ pub mod types {
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
         #[xvalue(default)]
         #[builder(default)]
-        pub particle: ::std::vec::Vec<::std::boxed::Box<crate::xs::groups::Particle>>,
+        pub particle: ::std::vec::Vec<crate::xs::groups::Particle>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -544,7 +536,7 @@ pub mod types {
             pub selector: ::std::boxed::Box<crate::xs::Selector>,
             #[xvalue(default)]
             #[builder(default)]
-            pub field: ::std::vec::Vec<::std::boxed::Box<crate::xs::Field>>,
+            pub field: ::std::vec::Vec<crate::xs::Field>,
         }
     }
     #[derive(
@@ -685,9 +677,7 @@ pub mod types {
         pub alternative: ::std::vec::Vec<local_element_items::Alternative>,
         #[xvalue(default)]
         #[builder(default)]
-        pub identity_constraint: ::std::vec::Vec<
-            ::std::boxed::Box<crate::xs::groups::IdentityConstraint>,
-        >,
+        pub identity_constraint: ::std::vec::Vec<crate::xs::groups::IdentityConstraint>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -979,9 +969,7 @@ pub mod types {
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
         #[xvalue(default)]
         #[builder(default)]
-        pub nested_particle: ::std::vec::Vec<
-            ::std::boxed::Box<crate::xs::groups::NestedParticle>,
-        >,
+        pub nested_particle: ::std::vec::Vec<crate::xs::groups::NestedParticle>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -1202,9 +1190,7 @@ pub mod types {
         pub alternative: ::std::vec::Vec<top_level_element_items::Alternative>,
         #[xvalue(default)]
         #[builder(default)]
-        pub identity_constraint: ::std::vec::Vec<
-            ::std::boxed::Box<crate::xs::groups::IdentityConstraint>,
-        >,
+        pub identity_constraint: ::std::vec::Vec<crate::xs::groups::IdentityConstraint>,
     }
     #[derive(
         ::core::fmt::Debug,

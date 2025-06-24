@@ -193,15 +193,15 @@ fn xsd_all_model() -> xs::Group {
         .child_1(
             xs::types::named_group_items::Child1::Sequence(xs::types::SimpleExplicitGroup::builder()
                 .nested_particle(vec![
-                    Box::new(xs::types::LocalElement::builder()
+                    xs::types::LocalElement::builder()
                         .ref_(xs::types::QName(ExpandedName::new(
                             LocalName::new_dangerous("annotation"),
                             Some(XmlNamespace::XS),
                         )))
                         .min_occurs(0)
                         .build()
-                        .into()),
-                    Box::new(xs::Choice( xs::types::ExplicitGroup::builder()
+                        .into(),
+                    xs::Choice( xs::types::ExplicitGroup::builder()
                         .min_occurs(0)
                         .max_occurs(xs::types::AllNNI::Unbounded)
                         .annotation(
@@ -215,19 +215,19 @@ fn xsd_all_model() -> xs::Group {
                             ]).build().into()
                         )
                         .nested_particle(vec![
-                            Box::new(xs::types::LocalElement::builder()
+                            xs::types::LocalElement::builder()
                                 .name(LocalName::new_dangerous("element"))
                                 .type_attribute(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("localElement"), Some(XmlNamespace::XS))))
                                 .build()
-                                .into()),
-                            Box::new(xs::types::LocalElement::builder()
+                                .into(),
+                            xs::types::LocalElement::builder()
                                 .ref_(xs::types::QName(ExpandedName::new(
                                     LocalName::new_dangerous("any"),
                                     Some(XmlNamespace::XS),
                                 )))
                                 .build()
-                                .into()),
-                            Box::new(xs::types::LocalElement::builder()
+                                .into(),
+                            xs::types::LocalElement::builder()
                                 .name(LocalName::new_dangerous("group"))
                                 .type_(
                                     xs::types::LocalComplexType::builder()
@@ -240,12 +240,12 @@ fn xsd_all_model() -> xs::Group {
                                                       xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder().type_def_particle(
                                                         Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
                                                             .nested_particle(vec![
-                                                                Box::new(
+                                                                
                                                                     xs::types::LocalElement::builder()
                                                                         .ref_(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("annotation"), Some(XmlNamespace::XS))))
                                                                         .min_occurs(0)
                                                                         .build().into()
-                                                                )
+                                                                
                                                             ])
                                                             .build()
                                                             .into()).into())
@@ -278,10 +278,10 @@ fn xsd_all_model() -> xs::Group {
                                 )
                                 .build()
                                 .into(),
-                              )
+                              
                         ])
                         .build()
-                        .into()).into()),
+                        .into()).into(),
                 ])
                 .build()
                 .into(),

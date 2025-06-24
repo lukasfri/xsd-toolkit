@@ -77,13 +77,22 @@ impl<'a> TypeReference<'a> {
         syn::parse_quote! { ::std::vec::Vec<#ty> }
     }
 
+    pub fn vec_non_boxed_wrapper(ty: Type) -> Type {
+        let ty = match &ty {
+            Type::Path(path) => Some(path),
+            _ => None,
+        }
+        .and_then(|a| unbox_type(a))
+        .unwrap_or_else(|| ty);
+
+        Self::vec_wrapper(ty)
+    }
+
     pub fn box_wrapper(ty: Type) -> Type {
         syn::parse_quote! { ::std::boxed::Box<#ty> }
     }
 
     pub fn box_non_boxed_wrapper(ty: Type) -> Type {
-        //TODO: This is a hack. We should use a better solution later.
-
         if match &ty {
             Type::Path(path) => Some(path),
             _ => None,

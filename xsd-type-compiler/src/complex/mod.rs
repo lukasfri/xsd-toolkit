@@ -1073,8 +1073,8 @@ impl ComplexFragmentEquivalent for xs::All {
         let mut compiler = compiler.as_mut();
 
         let all = AllFragment {
-            min_occurs: self.0.min_occurs,
-            max_occurs: self.0.max_occurs,
+            min_occurs: None,
+            max_occurs: None,
             fragments: self
                 .0
                 .all_model
@@ -1137,7 +1137,6 @@ impl ComplexFragmentEquivalent for xs::Choice {
                         .iter()
                         .map(|fragment| {
                             xs::groups::NestedParticle::from_complex_fragments(compiler, fragment)
-                                .map(Box::new)
                         })
                         .collect::<Result<_, _>>()?,
                 )
@@ -1188,7 +1187,6 @@ impl ComplexFragmentEquivalent for xs::Sequence {
                         .iter()
                         .map(|fragment| {
                             xs::groups::NestedParticle::from_complex_fragments(compiler, fragment)
-                                .map(Box::new)
                         })
                         .collect::<Result<_, _>>()?,
                 )

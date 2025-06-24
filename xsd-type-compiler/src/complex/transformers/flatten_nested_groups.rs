@@ -1,9 +1,7 @@
 use std::collections::VecDeque;
 use std::convert::Infallible;
 
-use crate::complex::{
-    ChoiceFragment, FragmentIdx, NestedParticleId, SequenceFragment,
-};
+use crate::complex::{ChoiceFragment, FragmentIdx, NestedParticleId, SequenceFragment};
 
 use crate::transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
 
@@ -132,7 +130,7 @@ impl XmlnsLocalTransformer for FlattenNestedChoices {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use xmlity::{ LocalName, XmlNamespace};
+    use xmlity::{LocalName, XmlNamespace};
     use xsd::xs::{self};
     use xsd::xsn;
 
@@ -159,20 +157,16 @@ mod tests {
             xs::types::ExplicitGroup::builder()
                 .max_occurs(xs::types::AllNNI::Unbounded)
                 .nested_particle(vec![
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("size"))
-                            .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
-                            .build()
-                            .into(),
-                    ),
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("color"))
-                            .type_attribute(xs::types::QName(xsn::STRING.clone()))
-                            .build()
-                            .into(),
-                    ),
+                    xs::types::LocalElement::builder()
+                        .name(LocalName::new_dangerous("size"))
+                        .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+                        .build()
+                        .into(),
+                    xs::types::LocalElement::builder()
+                        .name(LocalName::new_dangerous("color"))
+                        .type_attribute(xs::types::QName(xsn::STRING.clone()))
+                        .build()
+                        .into(),
                 ])
                 .build()
                 .into(),
@@ -202,27 +196,26 @@ mod tests {
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                             .variant_0(
-
-    xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
-    .type_def_particle(Box::new(xs::Sequence(Box::new(
-        xs::types::ExplicitGroup::builder()
+                                xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                                .type_def_particle(Box::new(xs::Sequence(Box::new(
+                                    xs::types::ExplicitGroup::builder()
                                     .nested_particle(vec![
-                                        Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
+                                        xs::Sequence(xs::types::ExplicitGroup::builder()
                                             .nested_particle(vec![
-                                                Box::new(number.clone().into()),
-                                                Box::new(name.clone().into()),
+                                                number.clone().into(),
+                                                name.clone().into(),
                                             ])
                                             .build()
-                                            .into()).into()),
-                                        Box::new(child_choice.clone().into()),
+                                            .into()).into(),
+                                        child_choice.clone().into(),
                                     ])
                                     .build().into()
-    )).into()))
-    .build()
-    .into()
+                                )).into()))
+                                .build()
+                                .into()
                             )
-    .attr_decls(xs::groups::AttrDecls::builder().build().into())
-    .assertions(xs::groups::Assertions::builder().build().into())
+                            .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                            .assertions(xs::groups::Assertions::builder().build().into())
                             .build()
                             .into(),
                     )
@@ -254,21 +247,20 @@ mod tests {
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                             .variant_0(
-
-    xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
-    .type_def_particle(Box::new(xs::Sequence(Box::new(xs::types::ExplicitGroup::builder()
+                                xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                                .type_def_particle(Box::new(xs::Sequence(Box::new(xs::types::ExplicitGroup::builder()
                                     .nested_particle(vec![
-                                        Box::new(number.clone().into()),
-                                        Box::new(name.clone().into()),
-                                        Box::new(child_choice.into()),
+                                        number.clone().into(),
+                                        name.clone().into(),
+                                        child_choice.into(),
                                     ])
                                     .build()
                                     .into())).into()))
-    .build()
-    .into()
+                                .build()
+                                .into()
                             )
-    .attr_decls(xs::groups::AttrDecls::builder().build().into())
-    .assertions(xs::groups::Assertions::builder().build().into())
+                            .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                            .assertions(xs::groups::Assertions::builder().build().into())
                             .build()
                             .into(),
                     )
@@ -328,20 +320,16 @@ mod tests {
             xs::types::ExplicitGroup::builder()
                 .max_occurs(xs::types::AllNNI::Unbounded)
                 .nested_particle(vec![
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("size"))
-                            .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
-                            .build()
-                            .into(),
-                    ),
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("color"))
-                            .type_attribute(xs::types::QName(xsn::STRING.clone()))
-                            .build()
-                            .into(),
-                    ),
+                    xs::types::LocalElement::builder()
+                        .name(LocalName::new_dangerous("size"))
+                        .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+                        .build()
+                        .into(),
+                    xs::types::LocalElement::builder()
+                        .name(LocalName::new_dangerous("color"))
+                        .type_attribute(xs::types::QName(xsn::STRING.clone()))
+                        .build()
+                        .into(),
                 ])
                 .build()
                 .into(),
@@ -371,27 +359,25 @@ mod tests {
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                             .variant_0(
-
-    xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
-    .type_def_particle(Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
+                                xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                                    .type_def_particle(Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
                                     .nested_particle(vec![
-                                        Box::new(xs::Sequence(Box::new(xs::types::ExplicitGroup::builder()
+                                        xs::Sequence(Box::new(xs::types::ExplicitGroup::builder()
                                             .nested_particle(vec![
-                                                Box::new(number.clone().into()),
-                                                Box::new(name.clone().into()),
+                                                number.clone().into(),
+                                                name.clone().into(),
                                             ])
                                             .max_occurs(xs::types::AllNNI::Unbounded)
                                             .build()
-                                            .into())).into()),
-                                        Box::new(child_choice.clone().into()),
+                                            .into())).into(),
+                                        child_choice.clone().into(),
                                     ])
                                     .build().into()).into()))
-    .build()
-    .into()
+                                    .build()
+                                    .into()
                             )
-    .attr_decls(xs::groups::AttrDecls::builder().build().into())
-    .assertions(xs::groups::Assertions::builder().build().into())
-                            
+                            .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                            .assertions(xs::groups::Assertions::builder().build().into())
                             .build()
                             .into(),
                     )

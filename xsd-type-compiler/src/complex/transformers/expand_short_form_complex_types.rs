@@ -118,20 +118,16 @@ mod tests {
         let sequence = xs::Sequence(
             xs::types::ExplicitGroup::builder()
                 .nested_particle(vec![
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("size"))
-                            .type_attribute(xs::types::QName(xsn::NON_NEGATIVE_INTEGER.clone()))
-                            .build()
-                            .into(),
-                    ),
-                    Box::new(
-                        xs::types::LocalElement::builder()
-                            .name(LocalName::new_dangerous("unit"))
-                            .type_attribute(xs::types::QName(xsn::NMTOKEN.clone()))
-                            .build()
-                            .into(),
-                    ),
+                    xs::types::LocalElement::builder()
+                        .name(LocalName::new_dangerous("size"))
+                        .type_attribute(xs::types::QName(xsn::NON_NEGATIVE_INTEGER.clone()))
+                        .build()
+                        .into(),
+                    xs::types::LocalElement::builder()
+                        .name(LocalName::new_dangerous("unit"))
+                        .type_attribute(xs::types::QName(xsn::NMTOKEN.clone()))
+                        .build()
+                        .into(),
                 ])
                 .build()
                 .into(),

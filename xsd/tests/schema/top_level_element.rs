@@ -812,14 +812,14 @@ fn xsd_total_digits() -> xs::Element {
                                         Box::new(
                                             xs::Sequence(Box::new(
                                               xs::types::ExplicitGroup::builder()
-                                            .nested_particle(vec![Box::new(xs::types::LocalElement::builder()
+                                            .nested_particle(vec![xs::types::LocalElement::builder()
                                                 .ref_(xs::types::QName(ExpandedName::new(
                                                     LocalName::new_dangerous("annotation"),
                                                     Some(XmlNamespace::XS),
                                                 )))
                                                 .min_occurs(0)
                                                 .build()
-                                                .into())])
+                                                .into()])
                                             .build())
                                             .into()).into())
                                           ).build().into(),
@@ -978,16 +978,14 @@ fn xsd_white_space() -> xs::Element {
                                                 xs::Sequence(
                                                   xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
-                                                      Box::new(
-                                                          xs::types::LocalElement::builder()
-                                                              .ref_(xs::types::QName(ExpandedName::new(
-                                                                  LocalName::new_dangerous("annotation"),
-                                                                  Some(XmlNamespace::XS),
-                                                              )))
-                                                              .min_occurs(0)
-                                                              .build()
-                                                              .into()
-                                                      )
+                                                      xs::types::LocalElement::builder()
+                                                          .ref_(xs::types::QName(ExpandedName::new(
+                                                              LocalName::new_dangerous("annotation"),
+                                                              Some(XmlNamespace::XS),
+                                                          )))
+                                                          .min_occurs(0)
+                                                          .build()
+                                                          .into()
                                                     ])
                                                     .build()
                                                     .into()
