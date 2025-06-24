@@ -17,7 +17,8 @@ use xsd_type_compiler::{
     complex::{
         transformers::{
             ExpandAttributeDeclarations, ExpandExtensionFragments, ExpandRestrictionFragments,
-            FlattenNestedChoices, FlattenNestedSequences, RemoveProhibitedAttributes,
+            ExpandShortFormComplexTypes, FlattenNestedChoices, FlattenNestedSequences,
+            RemoveProhibitedAttributes, SingleChoiceToSequence,
         },
         ComplexTypeFragmentCompiler, FragmentAccess,
     },
@@ -50,6 +51,16 @@ impl XmlnsLocalTransformer for XmlityCodegenTransformer {
     ) -> std::result::Result<TransformChange, Self::Error> {
         for i in 0..100 {
             let mut total_change = TransformChange::Unchanged;
+
+            total_change |= context
+                .current_namespace_mut()
+                .transform(ExpandShortFormComplexTypes::new())
+                .unwrap();
+
+            total_change |= context
+                .current_namespace_mut()
+                .transform(SingleChoiceToSequence::new())
+                .unwrap();
 
             total_change |= context
                 .current_namespace_mut()

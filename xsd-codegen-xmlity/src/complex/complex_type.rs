@@ -244,8 +244,8 @@ mod tests {
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .variant_0(
-                                xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                            .child_1(
+                                xs::types::complex_restriction_type_items::Child1::builder()
                                 .type_def_particle(Box::new(
                                     xs::Sequence(xs::types::ExplicitGroup::builder()
                                         .nested_particle(vec![])
@@ -316,8 +316,8 @@ mod tests {
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .variant_0(
-                                xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                            .child_1(
+                                xs::types::complex_restriction_type_items::Child1::builder()
                                 .type_def_particle(
                                     Box::new(
                                 xs::Sequence(
@@ -411,8 +411,8 @@ mod tests {
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .variant_0(
-                                xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                            .child_1(
+                                xs::types::complex_restriction_type_items::Child1::builder()
                                 .type_def_particle(
                                     Box::new(
                                     xs::Sequence(
@@ -508,8 +508,8 @@ mod tests {
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .variant_0(
-                                xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                            .child_1(
+                                xs::types::complex_restriction_type_items::Child1::builder()
                                 .type_def_particle(
                                     Box::new(
                                 xs::Sequence(
@@ -628,8 +628,8 @@ mod tests {
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .variant_0(
-                                xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                            .child_1(
+                                xs::types::complex_restriction_type_items::Child1::builder()
                                 .type_def_particle(
                                     Box::new(
                                 xs::Sequence(

@@ -12,3 +12,5 @@ mod expand_attribute_declarations;
 pub use expand_attribute_declarations::ExpandAttributeDeclarations;
 mod remove_prohibited_attributes;
 pub use remove_prohibited_attributes::RemoveProhibitedAttributes;
+mod single_choice_to_sequence;
+pub use single_choice_to_sequence::SingleChoiceToSequence;

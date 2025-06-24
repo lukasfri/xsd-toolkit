@@ -226,40 +226,21 @@ pub mod types {
         pub complex_type_model: ::std::boxed::Box<crate::xs::groups::ComplexTypeModel>,
     }
     pub mod complex_restriction_type_items {
-        pub mod variant_0_variants {
-            #[derive(
-                ::core::fmt::Debug,
-                ::xmlity::Serialize,
-                ::xmlity::Deserialize,
-                ::bon::Builder,
-                ::core::cmp::PartialEq,
-                ::core::clone::Clone
-            )]
-            #[xvalue(order = "strict")]
-            pub struct Variant0 {
-                #[xvalue(default)]
-                pub open_content: ::core::option::Option<
-                    ::std::boxed::Box<crate::xs::OpenContent>,
-                >,
-                pub type_def_particle: ::std::boxed::Box<
-                    crate::xs::groups::TypeDefParticle,
-                >,
-            }
-        }
-        impl ::core::convert::From<variant_0_variants::Variant0> for Variant0 {
-            fn from(value: variant_0_variants::Variant0) -> Self {
-                Variant0::Variant0(::std::boxed::Box::new(value))
-            }
-        }
         #[derive(
             ::core::fmt::Debug,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
+            ::bon::Builder,
             ::core::cmp::PartialEq,
             ::core::clone::Clone
         )]
-        pub enum Variant0 {
-            Variant0(::std::boxed::Box<variant_0_variants::Variant0>),
+        #[xvalue(order = "strict")]
+        pub struct Child1 {
+            #[xvalue(default)]
+            pub open_content: ::core::option::Option<
+                ::std::boxed::Box<crate::xs::OpenContent>,
+            >,
+            pub type_def_particle: ::std::boxed::Box<crate::xs::groups::TypeDefParticle>,
         }
     }
     #[derive(
@@ -279,7 +260,7 @@ pub mod types {
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
         #[xvalue(default)]
-        pub variant_0: ::core::option::Option<complex_restriction_type_items::Variant0>,
+        pub child_1: ::core::option::Option<complex_restriction_type_items::Child1>,
         pub attr_decls: ::std::boxed::Box<crate::xs::groups::AttrDecls>,
         pub assertions: ::std::boxed::Box<crate::xs::groups::Assertions>,
     }
@@ -991,25 +972,19 @@ pub mod types {
         pub assertions: ::std::boxed::Box<crate::xs::groups::Assertions>,
     }
     pub mod simple_restriction_type_items {
-        impl ::core::convert::From<crate::xs::groups::SimpleRestrictionModel>
-        for SimpleRestrictionModel {
-            fn from(value: crate::xs::groups::SimpleRestrictionModel) -> Self {
-                SimpleRestrictionModel::SimpleRestrictionModel(
-                    ::std::boxed::Box::new(value),
-                )
-            }
-        }
         #[derive(
             ::core::fmt::Debug,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
+            ::bon::Builder,
             ::core::cmp::PartialEq,
             ::core::clone::Clone
         )]
-        pub enum SimpleRestrictionModel {
-            SimpleRestrictionModel(
-                ::std::boxed::Box<crate::xs::groups::SimpleRestrictionModel>,
-            ),
+        #[xvalue(order = "strict")]
+        pub struct SimpleRestrictionModel {
+            pub simple_restriction_model: ::std::boxed::Box<
+                crate::xs::groups::SimpleRestrictionModel,
+            >,
         }
     }
     #[derive(
@@ -1946,7 +1921,7 @@ pub struct Appinfo {
     pub source: ::core::option::Option<crate::xs::types::TargetNamespace>,
     #[xvalue(default)]
     #[builder(default)]
-    pub particle: ::std::vec::Vec<appinfo_items::Child0>,
+    pub child_0: ::std::vec::Vec<appinfo_items::Child0>,
 }
 #[derive(
     ::core::fmt::Debug,
@@ -2166,7 +2141,7 @@ pub struct Documentation {
     pub attribute_1: ::core::option::Option<crate::xml::Lang>,
     #[xvalue(default)]
     #[builder(default)]
-    pub particle: ::std::vec::Vec<documentation_items::Child0>,
+    pub child_0: ::std::vec::Vec<documentation_items::Child0>,
 }
 #[derive(
     ::core::fmt::Debug,

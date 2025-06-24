@@ -208,7 +208,7 @@ fn xsd_all_model() -> xs::Group {
                             xs::Annotation::builder()
                             .annotation(vec![
                               xs::Documentation::builder()
-                                .particle(vec![xs::documentation_items::Child0 {
+                                .child_0(vec![xs::documentation_items::Child0 {
                                   child_0: XmlValue::Text(xmlity::xml!("This choice with min/max is here to\n                        avoid a pblm with the Elt:All/Choice/Seq\n                        Particle derivation constraint"))}])
                                 .build()
                                 .into()
@@ -236,8 +236,8 @@ fn xsd_all_model() -> xs::Group {
                                                 .child_1(
                                                     xs::types::ComplexRestrictionType::builder()
                                                     .base(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("groupRef"), Some(XmlNamespace::XS))))
-                                                    .variant_0(
-                                                      xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder().type_def_particle(
+                                                    .child_1(
+                                                      xs::types::complex_restriction_type_items::Child1::builder().type_def_particle(
                                                         Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
                                                             .nested_particle(vec![
                                                                 

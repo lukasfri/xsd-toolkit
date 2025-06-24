@@ -149,9 +149,10 @@ impl ToSimpleFragments for xs::types::SimpleRestrictionType {
 
         let base = self.base.0.clone();
 
-        let simple_restriction_model = self.simple_restriction_model.as_ref().map(|a| match a {
-            xs::types::simple_restriction_type_items::SimpleRestrictionModel::SimpleRestrictionModel(a) => a,
-        });
+        let simple_restriction_model = self
+            .simple_restriction_model
+            .as_ref()
+            .map(|a| &a.simple_restriction_model);
 
         let content_fragment = simple_restriction_model
             .and_then(|a| a.simple_type.as_ref())

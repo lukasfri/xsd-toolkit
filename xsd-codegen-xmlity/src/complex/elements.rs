@@ -221,16 +221,23 @@ mod tests {
             .name(LocalName::new_dangerous("SimpleSequence"))
             .type_(
                 xs::types::LocalComplexType::builder()
-                    .complex_type_model(
-                        Box::new(
+                    .complex_type_model(Box::new(
                         xs::ComplexContent::builder()
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                                    .variant_0(
-                                        xs::types::complex_restriction_type_items::variant_0_variants::Variant0
-                                        ::builder()
-                                        .type_def_particle(Box::new(xs::Sequence(xs::types::ExplicitGroup::builder().nested_particle(vec![]).build().into()).into()))
+                                    .child_1(
+                                        xs::types::complex_restriction_type_items::Child1::builder(
+                                        )
+                                        .type_def_particle(Box::new(
+                                            xs::Sequence(
+                                                xs::types::ExplicitGroup::builder()
+                                                    .nested_particle(vec![])
+                                                    .build()
+                                                    .into(),
+                                            )
+                                            .into(),
+                                        ))
                                         .build()
                                         .into(),
                                     )
@@ -240,8 +247,8 @@ mod tests {
                                     .into(),
                             )
                             .build()
-                            .into()),
-                    )
+                            .into(),
+                    ))
                     .build()
                     .into(),
             )
@@ -295,31 +302,36 @@ mod tests {
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                                    .variant_0(
-                                        xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                                    .child_1(
+                                        xs::types::complex_restriction_type_items::Child1::builder(
+                                        )
                                         .type_def_particle(Box::new(
-                                        xs::Sequence(
-                                        xs::types::ExplicitGroup::builder()
-                                            .nested_particle(vec![
-                                                xs::types::LocalElement::builder()
-                                                    .name(LocalName::new_dangerous("a"))
-                                                    .type_attribute(xs::types::QName(
-                                                        xsn::INTEGER.clone(),
-                                                    ))
+                                            xs::Sequence(
+                                                xs::types::ExplicitGroup::builder()
+                                                    .nested_particle(vec![
+                                                        xs::types::LocalElement::builder()
+                                                            .name(LocalName::new_dangerous("a"))
+                                                            .type_attribute(xs::types::QName(
+                                                                xsn::INTEGER.clone(),
+                                                            ))
+                                                            .build()
+                                                            .into(),
+                                                        xs::types::LocalElement::builder()
+                                                            .name(LocalName::new_dangerous("b"))
+                                                            .type_attribute(xs::types::QName(
+                                                                xsn::STRING.clone(),
+                                                            ))
+                                                            .build()
+                                                            .into(),
+                                                    ])
                                                     .build()
                                                     .into(),
-                                                xs::types::LocalElement::builder()
-                                                    .name(LocalName::new_dangerous("b"))
-                                                    .type_attribute(xs::types::QName(
-                                                        xsn::STRING.clone(),
-                                                    ))
-                                                    .build()
-                                                    .into(),
-                                            ])
-                                            .build()
+                                            )
                                             .into(),
-                                    ).into())).build().into()
-                                )
+                                        ))
+                                        .build()
+                                        .into(),
+                                    )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
                                     .build()
@@ -389,8 +401,8 @@ mod tests {
                                 .child_1(
                                     xs::types::ComplexRestrictionType::builder()
                                         .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                                        .variant_0(
-                                            xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                                        .child_1(
+                                            xs::types::complex_restriction_type_items::Child1::builder()
                                             .type_def_particle(Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
                                                 .nested_particle(vec![])
                                                 .build()
@@ -485,20 +497,21 @@ mod tests {
             .name(LocalName::new_dangerous("SimpleSequence"))
             .type_(
                 xs::types::LocalComplexType::builder()
-                    .complex_type_model(
-                        Box::new(
+                    .complex_type_model(Box::new(
                         xs::ComplexContent::builder()
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                                    .variant_0(
-                                        xs::types::complex_restriction_type_items::variant_0_variants::Variant0 ::builder().type_def_particle(Box::new(
-                                        xs::Sequence(
-                                            xs::types::ExplicitGroup::builder()
-                                                .nested_particle(vec![
-                                                    xs::Sequence(
-                                                        xs::types::ExplicitGroup::builder()
-                                                        .nested_particle(vec![
+                                    .child_1(
+                                        xs::types::complex_restriction_type_items::Child1::builder(
+                                        )
+                                        .type_def_particle(Box::new(
+                                            xs::Sequence(
+                                                xs::types::ExplicitGroup::builder()
+                                                    .nested_particle(vec![
+                                                        xs::Sequence(
+                                                            xs::types::ExplicitGroup::builder()
+                                                                .nested_particle(vec![
                                                             xs::types::LocalElement::builder()
                                                                 .name(LocalName::new_dangerous("a"))
                                                                 .type_attribute(xs::types::QName(
@@ -514,19 +527,25 @@ mod tests {
                                                                 .build()
                                                                 .into(),
                                                         ])
-                                                        .build()
-                                                        .into()).into(),
-                                                    xs::types::LocalElement::builder()
-                                                        .name(LocalName::new_dangerous("c"))
-                                                        .type_attribute(xs::types::QName(
-                                                            xsn::STRING.clone(),
-                                                        ))
-                                                        .build()
+                                                                .build()
+                                                                .into(),
+                                                        )
                                                         .into(),
-                                                ])
-                                                .build()
-                                                .into(),
-                                        ).into())).build().into(),
+                                                        xs::types::LocalElement::builder()
+                                                            .name(LocalName::new_dangerous("c"))
+                                                            .type_attribute(xs::types::QName(
+                                                                xsn::STRING.clone(),
+                                                            ))
+                                                            .build()
+                                                            .into(),
+                                                    ])
+                                                    .build()
+                                                    .into(),
+                                            )
+                                            .into(),
+                                        ))
+                                        .build()
+                                        .into(),
                                     )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
@@ -534,9 +553,8 @@ mod tests {
                                     .into(),
                             )
                             .build()
-                            .into()
-                    ),
-                    )
+                            .into(),
+                    ))
                     .build()
                     .into(),
             )
@@ -608,30 +626,35 @@ mod tests {
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                                    .variant_0(
-                                        xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
+                                    .child_1(
+                                        xs::types::complex_restriction_type_items::Child1::builder(
+                                        )
                                         .type_def_particle(Box::new(
-                                        xs::Sequence(xs::types::ExplicitGroup::builder()
-                                            .nested_particle(vec![
-                                                xs::types::LocalElement::builder()
-                                                    .name(LocalName::new_dangerous("a"))
-                                                    .type_attribute(xs::types::QName(
-                                                        xsn::INTEGER.clone(),
-                                                    ))
+                                            xs::Sequence(
+                                                xs::types::ExplicitGroup::builder()
+                                                    .nested_particle(vec![
+                                                        xs::types::LocalElement::builder()
+                                                            .name(LocalName::new_dangerous("a"))
+                                                            .type_attribute(xs::types::QName(
+                                                                xsn::INTEGER.clone(),
+                                                            ))
+                                                            .build()
+                                                            .into(),
+                                                        xs::types::LocalElement::builder()
+                                                            .name(LocalName::new_dangerous("b"))
+                                                            .type_attribute(xs::types::QName(
+                                                                xsn::STRING.clone(),
+                                                            ))
+                                                            .build()
+                                                            .into(),
+                                                    ])
                                                     .build()
                                                     .into(),
-                                                xs::types::LocalElement::builder()
-                                                    .name(LocalName::new_dangerous("b"))
-                                                    .type_attribute(xs::types::QName(
-                                                        xsn::STRING.clone(),
-                                                    ))
-                                                    .build()
-                                                    .into(),
-                                            ])
-                                            .build()
+                                            )
                                             .into(),
-                                        ).into())).build()
-                                        .into()
+                                        ))
+                                        .build()
+                                        .into(),
                                     )
                                     .attr_decls(
                                         xs::groups::AttrDecls::builder()
@@ -651,7 +674,8 @@ mod tests {
                                                     .build()
                                                     .into(),
                                             ])
-                                            .build().into(),
+                                            .build()
+                                            .into(),
                                     )
                                     .assertions(xs::groups::Assertions::builder().build().into())
                                     .build()
@@ -729,24 +753,28 @@ mod tests {
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                                    .variant_0(
-                                        xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
-                                        .type_def_particle(
-                                            Box::new(
+                                    .child_1(
+                                        xs::types::complex_restriction_type_items::Child1::builder(
+                                        )
+                                        .type_def_particle(Box::new(
                                             xs::Sequence(
                                                 xs::types::ExplicitGroup::builder()
-                                                    .nested_particle(vec![xs::types::LocalElement::builder()
-                                                        .name(LocalName::new_dangerous("a"))
-                                                        .type_attribute(xs::types::QName(
-                                                            child_type_expanded_name.clone(),
-                                                        ))
-                                                        .build()
-                                                        .into()])
+                                                    .nested_particle(vec![
+                                                        xs::types::LocalElement::builder()
+                                                            .name(LocalName::new_dangerous("a"))
+                                                            .type_attribute(xs::types::QName(
+                                                                child_type_expanded_name.clone(),
+                                                            ))
+                                                            .build()
+                                                            .into(),
+                                                    ])
                                                     .build()
                                                     .into(),
-                                            ).into()
                                             )
-                                        ).build().into()
+                                            .into(),
+                                        ))
+                                        .build()
+                                        .into(),
                                     )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
@@ -926,17 +954,16 @@ mod tests {
             .name(LocalName::new_dangerous("SimpleSequence"))
             .type_(
                 xs::types::LocalComplexType::builder()
-                    .complex_type_model(
-                        Box::new(
+                    .complex_type_model(Box::new(
                         xs::ComplexContent::builder()
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                                    .variant_0(
-                                        xs::types::complex_restriction_type_items::variant_0_variants::Variant0::builder()
-                                        .type_def_particle(
-                                            Box::new(
-                                                xs::Sequence(
+                                    .child_1(
+                                        xs::types::complex_restriction_type_items::Child1::builder(
+                                        )
+                                        .type_def_particle(Box::new(
+                                            xs::Sequence(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
                                                         xs::types::LocalElement::builder()
@@ -948,18 +975,20 @@ mod tests {
                                                     ])
                                                     .build()
                                                     .into(),
-                                                ).into()
                                             )
-                                        ).build().into())
+                                            .into(),
+                                        ))
+                                        .build()
+                                        .into(),
+                                    )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
                                     .build()
                                     .into(),
                             )
                             .build()
-                            .into()
-                    ),
-                    )
+                            .into(),
+                    ))
                     .build()
                     .into(),
             )

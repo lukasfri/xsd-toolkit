@@ -1309,17 +1309,11 @@ impl ComplexFragmentEquivalent for xs::types::ComplexRestrictionType {
 
         let base = self.base.0.clone();
 
-        let content_fragment = self
-            .variant_0
-            .as_ref()
-            .map(|a| match a {
-                xs::types::complex_restriction_type_items::Variant0::Variant0(a) => a,
-            })
-            .map(|particle| {
-                particle
-                    .type_def_particle
-                    .to_complex_fragments(&mut compiler)
-            });
+        let content_fragment = self.child_1.as_ref().map(|particle| {
+            particle
+                .type_def_particle
+                .to_complex_fragments(&mut compiler)
+        });
 
         let attribute_declarations = self.attr_decls.to_complex_fragments(&mut compiler);
 
@@ -1352,8 +1346,8 @@ impl ComplexFragmentEquivalent for xs::types::ComplexRestrictionType {
 
         Ok(xs::types::ComplexRestrictionType::builder()
             .base(xs::types::QName(fragment.base.clone()))
-            .maybe_variant_0(particle.map(|particle| {
-                xs::types::complex_restriction_type_items::variant_0_variants::Variant0 {
+            .maybe_child_1(particle.map(|particle| {
+                xs::types::complex_restriction_type_items::Child1 {
                     open_content: None,
                     type_def_particle: Box::new(particle),
                 }
