@@ -1,7 +1,7 @@
 use std::convert::Infallible;
 
 use crate::{
-    complex::{
+    fragments::complex::{
         ComplexContentChildId, ComplexTypeModelId, ComplexTypeRootFragment, FragmentAccess,
         FragmentIdx, RestrictionFragment,
     },
@@ -69,10 +69,11 @@ impl ExpandShortFormComplexTypes {
             attribute_declarations,
         });
 
-        let complex_content = compiler.push_fragment(crate::complex::ComplexContentFragment {
-            content_fragment: ComplexContentChildId::Restriction(complex_content),
-            mixed: None,
-        });
+        let complex_content =
+            compiler.push_fragment(crate::fragments::complex::ComplexContentFragment {
+                content_fragment: ComplexContentChildId::Restriction(complex_content),
+                mixed: None,
+            });
 
         let root_fragment = ctx.get_complex_fragment_mut(fragment_id).unwrap();
 
@@ -105,7 +106,7 @@ mod tests {
     use xsd::xsn;
 
     use crate::{
-        complex::transformers::expand_short_form_complex_types::ExpandShortFormComplexTypes,
+        fragments::complex::transformers::expand_short_form_complex_types::ExpandShortFormComplexTypes,
         transformers::TransformChange, CompiledNamespace, XmlnsContext,
     };
 

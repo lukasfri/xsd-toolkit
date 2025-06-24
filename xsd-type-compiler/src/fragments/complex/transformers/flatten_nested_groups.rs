@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::convert::Infallible;
 
-use crate::complex::{ChoiceFragment, FragmentIdx, NestedParticleId, SequenceFragment};
+use crate::fragments::complex::{ChoiceFragment, FragmentIdx, NestedParticleId, SequenceFragment};
 
 use crate::transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
 
@@ -135,7 +135,7 @@ mod tests {
     use xsd::xsn;
 
     use crate::{
-        complex::transformers::FlattenNestedSequences, transformers::TransformChange,
+        fragments::complex::transformers::FlattenNestedSequences, transformers::TransformChange,
         CompiledNamespace, XmlnsContext,
     };
 

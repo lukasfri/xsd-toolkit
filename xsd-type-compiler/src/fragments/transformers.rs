@@ -1,6 +1,7 @@
-use crate::complex::{self, ComplexTypeRootFragment, FragmentAccess};
-use crate::simple::{FragmentId as SimpleFragmentId, SimpleTypeFragment};
-use crate::{CompiledNamespace, ComplexTypeIdent};
+use super::complex::{self, ComplexTypeRootFragment};
+use super::FragmentAccess;
+use crate::fragments::{simple, FragmentIdx};
+use crate::{CompiledNamespace, NamedOrAnonymous};
 
 use xmlity::ExpandedName;
 
@@ -97,55 +98,55 @@ impl XmlnsLocalTransformerContext<'_> {
         self.namespace
     }
 
-    pub fn iter_complex_fragment_ids<F: 'static>(&self) -> Vec<complex::FragmentIdx<F>>
+    pub fn iter_complex_fragment_ids<F: 'static>(&self) -> Vec<FragmentIdx<F>>
     where
-        complex::ComplexTypeFragmentCompiler: complex::FragmentAccess<F>,
+        complex::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace().complex_type.iter_fragment_ids()
     }
 
-    pub fn get_complex_fragment<F>(&self, fragment_idx: &complex::FragmentIdx<F>) -> Option<&F>
+    pub fn get_complex_fragment<F>(&self, fragment_idx: &FragmentIdx<F>) -> Option<&F>
     where
-        complex::ComplexTypeFragmentCompiler: complex::FragmentAccess<F>,
+        complex::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace()
             .complex_type
             .get_fragment(fragment_idx)
     }
 
-    pub fn get_complex_fragment_mut<F>(
-        &mut self,
-        fragment_idx: &complex::FragmentIdx<F>,
-    ) -> Option<&mut F>
+    pub fn get_complex_fragment_mut<F>(&mut self, fragment_idx: &FragmentIdx<F>) -> Option<&mut F>
     where
-        complex::ComplexTypeFragmentCompiler: complex::FragmentAccess<F>,
+        complex::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace_mut()
             .complex_type
             .get_fragment_mut(fragment_idx)
     }
 
-    pub fn iter_simple_fragment_ids(&self) -> impl Iterator<Item = SimpleFragmentId> {
+    pub fn iter_simple_fragment_ids<F: 'static>(&self) -> Vec<FragmentIdx<F>>
+    where
+        simple::SimpleTypeFragmentCompiler: FragmentAccess<F>,
+    {
         self.current_namespace()
             .complex_type
             .simple_type_fragments
             .iter_fragment_ids()
     }
 
-    pub fn get_simple_fragment(
-        &self,
-        fragment_idx: &SimpleFragmentId,
-    ) -> Option<&SimpleTypeFragment> {
+    pub fn get_simple_fragment<F>(&self, fragment_idx: &FragmentIdx<F>) -> Option<&F>
+    where
+        simple::SimpleTypeFragmentCompiler: FragmentAccess<F>,
+    {
         self.current_namespace()
             .complex_type
             .simple_type_fragments
             .get_fragment(fragment_idx)
     }
 
-    pub fn simple_fragment_mut(
-        &mut self,
-        fragment_idx: &SimpleFragmentId,
-    ) -> Option<&mut SimpleTypeFragment> {
+    pub fn get_simple_fragment_mut<F>(&mut self, fragment_idx: &FragmentIdx<F>) -> Option<&mut F>
+    where
+        simple::SimpleTypeFragmentCompiler: FragmentAccess<F>,
+    {
         self.current_namespace_mut()
             .complex_type
             .simple_type_fragments
@@ -172,19 +173,19 @@ impl XmlnsLocalTransformerContext<'_> {
 
     pub fn get_complex_fragment_from_ident<'a, F>(
         &'a self,
-        name: &'a ComplexTypeIdent,
+        name: &'a NamedOrAnonymous<FragmentIdx<ComplexTypeRootFragment>>,
     ) -> Option<&'a ComplexTypeRootFragment>
     where
-        complex::ComplexTypeFragmentCompiler: complex::FragmentAccess<F>,
+        complex::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         let fragment_id = match name {
-            ComplexTypeIdent::Named(expanded_name) => {
+            NamedOrAnonymous::Named(expanded_name) => {
                 match self.get_named_type(expanded_name).unwrap() {
                     crate::TopLevelType::Complex(complex) => &complex.root_fragment,
                     crate::TopLevelType::Simple(_) => unreachable!(),
                 }
             }
-            ComplexTypeIdent::Anonymous(fragment_id) => fragment_id,
+            NamedOrAnonymous::Anonymous(fragment_id) => fragment_id,
         };
 
         self.get_complex_fragment::<ComplexTypeRootFragment>(fragment_id)

@@ -1,15 +1,14 @@
 use std::collections::BTreeMap;
 use std::ops::Deref;
 
-use complex::ComplexFragmentEquivalent;
-use simple::ToSimpleFragments;
 use transformers::TransformChange;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::xs;
-pub mod transformers;
 
-pub mod complex;
-pub mod simple;
+use crate::fragments::{transformers, FragmentIdx};
+pub mod fragments;
+use crate::fragments::complex::ComplexFragmentEquivalent;
+use crate::fragments::simple::SimpleFragmentEquivalent;
 
 #[derive(Debug)]
 pub enum Error {
@@ -54,7 +53,7 @@ impl Default for XmlnsContext {
 #[derive(Debug)]
 pub struct CompiledNamespace {
     pub namespace: XmlNamespace<'static>,
-    pub complex_type: complex::ComplexTypeFragmentCompiler,
+    pub complex_type: fragments::complex::ComplexTypeFragmentCompiler,
     pub top_level_types: BTreeMap<LocalName<'static>, TopLevelType>,
     pub top_level_elements: BTreeMap<LocalName<'static>, TopLevelElement>,
     pub top_level_attributes: BTreeMap<LocalName<'static>, TopLevelAttribute>,
@@ -63,34 +62,19 @@ pub struct CompiledNamespace {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ComplexTypeIdent {
-    Named(ExpandedName<'static>),
-    Anonymous(complex::FragmentIdx<complex::ComplexTypeRootFragment>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum NamedOrAnonymous<T> {
     Named(ExpandedName<'static>),
     Anonymous(T),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum SimpleTypeIdent {
-    Named(ExpandedName<'static>),
-    Anonymous(simple::FragmentId),
-}
-
-impl From<ExpandedName<'static>> for ComplexTypeIdent {
-    fn from(value: ExpandedName<'static>) -> Self {
-        Self::Named(value)
-    }
-}
-
 impl CompiledNamespace {
     pub fn new(namespace: XmlNamespace<'static>) -> Self {
-        let simple_type_compiler = simple::SimpleTypeFragmentCompiler::new(namespace.clone());
-        let complex_type_compiler =
-            complex::ComplexTypeFragmentCompiler::new(namespace.clone(), simple_type_compiler);
+        let simple_type_compiler =
+            fragments::simple::SimpleTypeFragmentCompiler::new(namespace.clone());
+        let complex_type_compiler = fragments::complex::ComplexTypeFragmentCompiler::new(
+            namespace.clone(),
+            simple_type_compiler,
+        );
 
         Self {
             namespace,
@@ -303,12 +287,12 @@ impl CompiledNamespace {
 
 #[derive(Debug)]
 pub struct TopLevelSimpleType {
-    pub root_fragment: simple::FragmentId,
+    pub root_fragment: fragments::FragmentIdx<fragments::simple::SimpleTypeRootFragment>,
 }
 
 #[derive(Debug)]
 pub struct TopLevelComplexType {
-    pub root_fragment: complex::FragmentIdx<complex::ComplexTypeRootFragment>,
+    pub root_fragment: FragmentIdx<fragments::complex::ComplexTypeRootFragment>,
 }
 
 #[derive(Debug)]
@@ -319,20 +303,20 @@ pub enum TopLevelType {
 
 #[derive(Debug)]
 pub struct TopLevelElement {
-    pub root_fragment: complex::FragmentIdx<complex::TopLevelElementFragment>,
+    pub root_fragment: FragmentIdx<fragments::complex::TopLevelElementFragment>,
 }
 
 #[derive(Debug)]
 pub struct TopLevelAttribute {
-    pub root_fragment: complex::FragmentIdx<complex::TopLevelAttributeFragment>,
+    pub root_fragment: FragmentIdx<fragments::complex::TopLevelAttributeFragment>,
 }
 
 #[derive(Debug)]
 pub struct TopLevelGroup {
-    pub root_fragment: complex::FragmentIdx<complex::TopLevelGroupFragment>,
+    pub root_fragment: FragmentIdx<fragments::complex::TopLevelGroupFragment>,
 }
 
 #[derive(Debug)]
 pub struct TopLevelAttributeGroup {
-    pub root_fragment: complex::FragmentIdx<complex::TopLevelAttributeGroupFragment>,
+    pub root_fragment: FragmentIdx<fragments::complex::TopLevelAttributeGroupFragment>,
 }

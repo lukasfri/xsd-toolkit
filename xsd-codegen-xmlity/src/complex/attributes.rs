@@ -9,16 +9,20 @@ use quote::ToTokens;
 use syn::parse_quote;
 use xmlity::ExpandedName;
 use xsd_type_compiler::{
-    complex::{self as cx, AttributeUse},
-    simple, NamedOrAnonymous,
+    fragments::{
+        complex::{self as cx, AttributeUse},
+        simple::{self as sm},
+        FragmentIdx,
+    },
+    NamedOrAnonymous,
 };
 
-use super::{Context, Scope, ToTypeTemplate, ToTypeTemplateData};
+use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 
-impl ToTypeTemplate for cx::LocalAttributeFragment {
+impl ComplexToTypeTemplate for cx::LocalAttributeFragment {
     type TypeTemplate = ElementFieldAttribute;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         _scope: &mut S,
@@ -34,8 +38,9 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
                 let name = ExpandedName::new(local.name.clone(), None);
                 let ident = local.name.to_item_ident();
 
-                static SIMPLE_ANY_TYPE_NAMED: LazyLock<NamedOrAnonymous<simple::FragmentId>> =
-                    LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone()));
+                static SIMPLE_ANY_TYPE_NAMED: LazyLock<
+                    NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>>,
+                > = LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone()));
 
                 let ty = match local
                     .type_
@@ -93,10 +98,10 @@ impl ToTypeTemplate for cx::LocalAttributeFragment {
     }
 }
 
-impl ToTypeTemplate for cx::AttributeDeclarationId {
+impl ComplexToTypeTemplate for cx::AttributeDeclarationId {
     type TypeTemplate = ElementFieldAttribute;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -110,10 +115,10 @@ impl ToTypeTemplate for cx::AttributeDeclarationId {
     }
 }
 
-impl ToTypeTemplate for cx::TopLevelAttributeFragment {
+impl ComplexToTypeTemplate for cx::TopLevelAttributeFragment {
     type TypeTemplate = ElementFieldAttribute;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         _scope: &mut S,
@@ -124,8 +129,9 @@ impl ToTypeTemplate for cx::TopLevelAttributeFragment {
         );
         let ident = self.name.to_item_ident();
 
-        static SIMPLE_ANY_TYPE_NAMED: LazyLock<NamedOrAnonymous<simple::FragmentId>> =
-            LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone()));
+        static SIMPLE_ANY_TYPE_NAMED: LazyLock<
+            NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>>,
+        > = LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone()));
 
         let ty = match self
             .type_

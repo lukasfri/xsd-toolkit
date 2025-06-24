@@ -11,14 +11,14 @@ use crate::{
 };
 
 use xsd::xs::types::AllNNI;
-use xsd_type_compiler::complex::{self as cx};
+use xsd_type_compiler::fragments::complex::{self as cx};
 
-use super::{Context, Scope, ToTypeTemplate, ToTypeTemplateData};
+use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 
-impl ToTypeTemplate for cx::ElementTypeContentId {
+impl ComplexToTypeTemplate for cx::ElementTypeContentId {
     type TypeTemplate = GroupRecord;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -47,10 +47,10 @@ fn type_to_element_field(
     }
 }
 
-impl ToTypeTemplate for cx::DeclaredElementFragment {
+impl ComplexToTypeTemplate for cx::DeclaredElementFragment {
     type TypeTemplate = templates::element_record::ElementRecord;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -86,10 +86,10 @@ impl ToTypeTemplate for cx::DeclaredElementFragment {
     }
 }
 
-impl ToTypeTemplate for cx::ReferenceElementFragment {
+impl ComplexToTypeTemplate for cx::ReferenceElementFragment {
     type TypeTemplate = ItemFieldItem;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         _scope: &mut S,
@@ -114,10 +114,10 @@ pub enum LocalElementFragmentTemplate {
     Item(ItemFieldItem),
 }
 
-impl ToTypeTemplate for cx::LocalElementFragment {
+impl ComplexToTypeTemplate for cx::LocalElementFragment {
     type TypeTemplate = LocalElementFragmentTemplate;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -158,10 +158,10 @@ impl ToTypeTemplate for cx::LocalElementFragment {
     }
 }
 
-impl ToTypeTemplate for cx::TopLevelElementFragment {
+impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
     type TypeTemplate = templates::element_record::ElementRecord;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,

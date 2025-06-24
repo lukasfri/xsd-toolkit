@@ -3,15 +3,15 @@ use std::collections::VecDeque;
 use std::convert::Infallible;
 use std::ops::Deref;
 
-use crate::complex::AttributeDeclarationId;
-use crate::complex::AttributeDeclarationsFragment;
-use crate::complex::ComplexContentChildId;
-use crate::complex::ComplexTypeModelId;
-use crate::complex::ComplexTypeRootFragment;
-use crate::complex::FragmentIdx;
-use crate::complex::LocalAttributeFragment;
-use crate::complex::LocalAttributeFragmentTypeMode;
-use crate::complex::RestrictionFragment;
+use crate::fragments::complex::AttributeDeclarationId;
+use crate::fragments::complex::AttributeDeclarationsFragment;
+use crate::fragments::complex::ComplexContentChildId;
+use crate::fragments::complex::ComplexTypeModelId;
+use crate::fragments::complex::ComplexTypeRootFragment;
+use crate::fragments::complex::FragmentIdx;
+use crate::fragments::complex::LocalAttributeFragment;
+use crate::fragments::complex::LocalAttributeFragmentTypeMode;
+use crate::fragments::complex::RestrictionFragment;
 use crate::transformers::TransformChange;
 use crate::transformers::XmlnsLocalTransformer;
 use crate::transformers::XmlnsLocalTransformerContext;
@@ -226,8 +226,8 @@ mod tests {
     use xsd::{xs, xsn};
 
     use crate::{
-        complex::transformers::ExpandRestrictionFragments, transformers::TransformChange,
-        CompiledNamespace, XmlnsContext,
+        fragments::complex::transformers::ExpandRestrictionFragments,
+        transformers::TransformChange, CompiledNamespace, XmlnsContext,
     };
 
     #[test]

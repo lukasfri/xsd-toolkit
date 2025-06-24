@@ -10,14 +10,14 @@ use crate::{
 };
 
 use quote::format_ident;
-use xsd_type_compiler::complex::{self as cx};
+use xsd_type_compiler::fragments::complex::{self as cx};
 
-use super::{groups::TypeDefParticleTemplate, Context, Scope, ToTypeTemplate, ToTypeTemplateData};
+use super::{groups::TypeDefParticleTemplate, ComplexContext, Scope, ComplexToTypeTemplate, ToTypeTemplateData};
 
-impl ToTypeTemplate for cx::AttributeDeclarationsFragment {
+impl ComplexToTypeTemplate for cx::AttributeDeclarationsFragment {
     type TypeTemplate = Vec<(syn::Ident, ElementField)>;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -74,10 +74,10 @@ fn dedup_attribute_field_idents<T, E>(
         .collect()
 }
 
-impl ToTypeTemplate for cx::RestrictionFragment {
+impl ComplexToTypeTemplate for cx::RestrictionFragment {
     type TypeTemplate = templates::group_record::GroupRecord;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -138,10 +138,10 @@ impl ToTypeTemplate for cx::RestrictionFragment {
     }
 }
 
-impl ToTypeTemplate for cx::ComplexContentFragment {
+impl ComplexToTypeTemplate for cx::ComplexContentFragment {
     type TypeTemplate = templates::group_record::GroupRecord;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -160,10 +160,10 @@ impl ToTypeTemplate for cx::ComplexContentFragment {
     }
 }
 
-impl ToTypeTemplate for cx::ComplexTypeModelId {
+impl ComplexToTypeTemplate for cx::ComplexTypeModelId {
     type TypeTemplate = GroupRecord;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -202,10 +202,10 @@ impl ToTypeTemplate for cx::ComplexTypeModelId {
     }
 }
 
-impl ToTypeTemplate for cx::ComplexTypeRootFragment {
+impl ComplexToTypeTemplate for cx::ComplexTypeRootFragment {
     type TypeTemplate = GroupRecord;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,

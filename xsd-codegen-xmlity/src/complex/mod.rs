@@ -3,13 +3,15 @@ pub mod complex_type;
 pub mod elements;
 pub mod groups;
 
-use crate::{augments::ItemAugmentation, misc::TypeReference, BoundType, Result};
+use crate::{misc::TypeReference, BoundType, Result, Scope, ToTypeTemplateData};
 
 use quote::format_ident;
 use syn::Ident;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::xs::types::AllNNI;
-use xsd_type_compiler::complex::{ComplexTypeFragmentCompiler, FragmentAccess, FragmentIdx};
+use xsd_type_compiler::fragments::{
+    complex::ComplexTypeFragmentCompiler, FragmentAccess, FragmentIdx,
+};
 
 fn dedup_field_idents<T>(
     fields: impl IntoIterator<Item = (syn::Ident, T)>,
@@ -34,8 +36,8 @@ fn dedup_field_idents<T>(
     deduped_fields
 }
 
-pub trait Context {
-    type SubContext: Context;
+pub trait ComplexContext {
+    type SubContext: ComplexContext;
 
     fn namespace(&self) -> &XmlNamespace<'_>;
 
@@ -43,13 +45,13 @@ pub trait Context {
 
     fn suggested_ident(&self) -> &Ident;
 
-    fn resolve_fragment<F: ToTypeTemplate, S: Scope>(
+    fn resolve_fragment<F: ComplexToTypeTemplate, S: Scope>(
         &self,
         fragment: &F,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<F::TypeTemplate>>;
 
-    fn resolve_fragment_id<F: ToTypeTemplate, S: Scope>(
+    fn resolve_fragment_id<F: ComplexToTypeTemplate, S: Scope>(
         &self,
         fragment_id: &FragmentIdx<F>,
         scope: &mut S,
@@ -68,23 +70,10 @@ pub trait Context {
     fn to_expanded_name(&self, name: LocalName<'static>) -> ExpandedName<'static>;
 }
 
-pub trait Scope {
-    fn add_item<I: Into<syn::Item>>(&mut self, item: I) -> Result<TypeReference<'static>>;
-
-    fn add_raw_items<I: IntoIterator<Item = J>, J: Into<syn::Item>>(&mut self, items: I);
-
-    fn augmenter(&self) -> &dyn ItemAugmentation;
-}
-
-pub struct ToTypeTemplateData<T> {
-    pub ident: Option<Ident>,
-    pub template: T,
-}
-
-pub trait ToTypeTemplate {
+pub trait ComplexToTypeTemplate {
     type TypeTemplate;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,

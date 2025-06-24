@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, convert::Infallible};
 
 use crate::{
-    complex::{
+    fragments::complex::{
         AttributeDeclarationId, AttributeDeclarationsFragment, AttributeGroupRefFragment,
         FragmentIdx, LocalAttributeFragment, LocalAttributeFragmentTypeMode,
     },

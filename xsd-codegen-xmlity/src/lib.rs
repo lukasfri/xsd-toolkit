@@ -7,22 +7,25 @@ pub mod templates;
 
 use std::{collections::BTreeMap, convert::Infallible, ops::Deref};
 
-use complex::{Scope, ToTypeTemplate, ToTypeTemplateData};
+use complex::ComplexToTypeTemplate;
 use inflector::Inflector;
 use misc::TypeReference;
 use quote::format_ident;
 use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_type_compiler::{
-    complex::{
-        transformers::{
-            ExpandAttributeDeclarations, ExpandExtensionFragments, ExpandRestrictionFragments,
-            ExpandShortFormComplexTypes, FlattenNestedChoices, FlattenNestedSequences,
-            RemoveProhibitedAttributes, SingleChoiceToSequence,
+    fragments::{
+        complex::{
+            transformers::{
+                ExpandAttributeDeclarations, ExpandExtensionFragments, ExpandRestrictionFragments,
+                ExpandShortFormComplexTypes, FlattenNestedChoices, FlattenNestedSequences,
+                RemoveProhibitedAttributes, SingleChoiceToSequence,
+            },
+            ComplexTypeFragmentCompiler,
         },
-        ComplexTypeFragmentCompiler, FragmentAccess,
+        transformers::{TransformChange, XmlnsLocalTransformer},
+        FragmentAccess,
     },
-    transformers::{TransformChange, XmlnsLocalTransformer},
     CompiledNamespace, TopLevelType,
 };
 
@@ -47,7 +50,7 @@ impl XmlnsLocalTransformer for XmlityCodegenTransformer {
     type Error = Infallible;
     fn transform(
         self,
-        mut context: xsd_type_compiler::transformers::XmlnsLocalTransformerContext<'_>,
+        mut context: xsd_type_compiler::fragments::transformers::XmlnsLocalTransformerContext<'_>,
     ) -> std::result::Result<TransformChange, Self::Error> {
         for i in 0..100 {
             let mut total_change = TransformChange::Unchanged;
@@ -184,6 +187,14 @@ impl ToIdentTypesExt for Ident {
     }
 }
 
+pub trait Scope {
+    fn add_item<I: Into<syn::Item>>(&mut self, item: I) -> Result<TypeReference<'static>>;
+
+    fn add_raw_items<I: IntoIterator<Item = J>, J: Into<syn::Item>>(&mut self, items: I);
+
+    fn augmenter(&self) -> &dyn ItemAugmentation;
+}
+
 #[derive(Debug)]
 struct GeneratorContext<'a> {
     generator: &'a Generator<'a>,
@@ -213,7 +224,7 @@ impl<'a> GeneratorContext<'a> {
     }
 }
 
-impl<'c> complex::Context for GeneratorContext<'c> {
+impl<'c> complex::ComplexContext for GeneratorContext<'c> {
     type SubContext = GeneratorContext<'c>;
 
     fn namespace(&self) -> &XmlNamespace<'_> {
@@ -228,7 +239,7 @@ impl<'c> complex::Context for GeneratorContext<'c> {
         &self.suggested_ident
     }
 
-    fn resolve_fragment<F: ToTypeTemplate, S: Scope>(
+    fn resolve_fragment<F: ComplexToTypeTemplate, S: Scope>(
         &self,
         fragment: &F,
         scope: &mut S,
@@ -236,9 +247,9 @@ impl<'c> complex::Context for GeneratorContext<'c> {
         fragment.to_type_template(self, scope)
     }
 
-    fn resolve_fragment_id<F: ToTypeTemplate, S: Scope>(
+    fn resolve_fragment_id<F: ComplexToTypeTemplate, S: Scope>(
         &self,
-        fragment_id: &xsd_type_compiler::complex::FragmentIdx<F>,
+        fragment_id: &xsd_type_compiler::fragments::FragmentIdx<F>,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
     where
@@ -380,8 +391,12 @@ struct GeneratorScope<'a> {
     items: Vec<Item>,
     augmentation: &'a dyn augments::ItemAugmentation,
 }
+pub struct ToTypeTemplateData<T> {
+    pub ident: Option<Ident>,
+    pub template: T,
+}
 
-impl complex::Scope for GeneratorScope<'_> {
+impl Scope for GeneratorScope<'_> {
     fn add_item<I: Into<Item>>(&mut self, item: I) -> Result<TypeReference<'static>> {
         let mut item: Item = item.into();
 

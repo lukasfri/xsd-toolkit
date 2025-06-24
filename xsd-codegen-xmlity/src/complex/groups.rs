@@ -15,10 +15,11 @@ use crate::{
 use quote::format_ident;
 use syn::{parse_quote, Item, Path};
 use xsd::xs::types::AllNNI;
-use xsd_type_compiler::complex as cx;
+use xsd_type_compiler::fragments::complex as cx;
 
 use super::{
-    elements::LocalElementFragmentTemplate, Context, Scope, ToTypeTemplate, ToTypeTemplateData,
+    elements::LocalElementFragmentTemplate, ComplexContext, ComplexToTypeTemplate, Scope,
+    ToTypeTemplateData,
 };
 
 // Tries to find a common name between a list of strings.
@@ -65,10 +66,10 @@ fn common_name<'a, I: IntoIterator<Item = T>, T: AsRef<str>>(
 
 const GROUP_COMMON_NAME_MIN_LENGTH: usize = 4;
 
-impl ToTypeTemplate for cx::AllFragment {
+impl ComplexToTypeTemplate for cx::AllFragment {
     type TypeTemplate = ItemOrTemplate<ItemRecord>;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -186,10 +187,10 @@ impl<T> ItemOrTemplate<T> {
     }
 }
 
-impl ToTypeTemplate for cx::SequenceFragment {
+impl ComplexToTypeTemplate for cx::SequenceFragment {
     type TypeTemplate = ItemOrTemplate<ItemRecord>;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -273,10 +274,10 @@ impl ToTypeTemplate for cx::SequenceFragment {
     }
 }
 
-impl ToTypeTemplate for cx::ChoiceFragment {
+impl ComplexToTypeTemplate for cx::ChoiceFragment {
     type TypeTemplate = ItemOrTemplate<templates::choice::Choice>;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -360,10 +361,10 @@ impl ToTypeTemplate for cx::ChoiceFragment {
     }
 }
 
-impl ToTypeTemplate for cx::AnyFragment {
+impl ComplexToTypeTemplate for cx::AnyFragment {
     type TypeTemplate = TypeReference<'static>;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         _scope: &mut S,
@@ -375,10 +376,10 @@ impl ToTypeTemplate for cx::AnyFragment {
     }
 }
 
-impl ToTypeTemplate for cx::GroupRefFragment {
+impl ComplexToTypeTemplate for cx::GroupRefFragment {
     type TypeTemplate = ItemFieldItem;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         _scope: &mut S,
@@ -417,7 +418,7 @@ pub enum GroupTypeContentTemplate {
 }
 
 impl GroupTypeContentTemplate {
-    fn into_variant<C: Context, S: Scope>(
+    fn into_variant<C: ComplexContext, S: Scope>(
         self,
         _context: &C,
         scope: &mut S,
@@ -461,7 +462,7 @@ impl GroupTypeContentTemplate {
         }
     }
 
-    fn into_item<C: Context, S: Scope>(
+    fn into_item<C: ComplexContext, S: Scope>(
         self,
         _context: &C,
         scope: &mut S,
@@ -530,10 +531,10 @@ impl From<LocalElementFragmentTemplate> for GroupTypeContentTemplate {
     }
 }
 
-impl ToTypeTemplate for cx::NestedParticleId {
+impl ComplexToTypeTemplate for cx::NestedParticleId {
     type TypeTemplate = GroupTypeContentTemplate;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -679,10 +680,10 @@ impl TypeDefParticleTemplate {
     }
 }
 
-impl ToTypeTemplate for cx::TypeDefParticleId {
+impl ComplexToTypeTemplate for cx::TypeDefParticleId {
     type TypeTemplate = TypeDefParticleTemplate;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -746,10 +747,10 @@ impl ToTypeTemplate for cx::TypeDefParticleId {
     }
 }
 
-impl ToTypeTemplate for cx::NamedGroupTypeContentId {
+impl ComplexToTypeTemplate for cx::NamedGroupTypeContentId {
     type TypeTemplate = TypeDefParticleTemplate;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
@@ -814,10 +815,10 @@ impl TopLevelGroupTemplate {
     }
 }
 
-impl ToTypeTemplate for cx::TopLevelGroupFragment {
+impl ComplexToTypeTemplate for cx::TopLevelGroupFragment {
     type TypeTemplate = TopLevelGroupTemplate;
 
-    fn to_type_template<C: Context, S: Scope>(
+    fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,

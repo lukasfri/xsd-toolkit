@@ -1,7 +1,9 @@
 use std::convert::Infallible;
 
 use crate::{
-    complex::{AttributeDeclarationId, AttributeDeclarationsFragment, AttributeUse, FragmentIdx},
+    fragments::complex::{
+        AttributeDeclarationId, AttributeDeclarationsFragment, AttributeUse, FragmentIdx,
+    },
     transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
 };
 
@@ -29,7 +31,7 @@ impl RemoveProhibitedAttributes {
             .filter_map(|a| match a {
                 AttributeDeclarationId::Attribute(fragment_idx) => {
                     let fragment = context
-                        .get_complex_fragment::<crate::complex::LocalAttributeFragment>(
+                        .get_complex_fragment::<crate::fragments::complex::LocalAttributeFragment>(
                             &fragment_idx,
                         )
                         .unwrap();
