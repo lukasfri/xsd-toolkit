@@ -318,10 +318,7 @@ mod tests {
                                 xs::types::ExplicitGroup::builder()
                                     .nested_particle(vec![Box::new(xs::types::LocalElement::builder()
                                             .name(LocalName::new_dangerous("number"))
-                                            .type_attribute(xs::types::QName(ExpandedName::new(
-                                                LocalName::new_dangerous("integer"),
-                                                XmlNamespace::XS.into(),
-                                            )))
+                                            .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
                                             .build()
                                     .into())])
                                     .build()
@@ -367,10 +364,7 @@ mod tests {
                                     .nested_particle(vec![Box::new(
                                         xs::types::LocalElement::builder()
                                             .name(LocalName::new_dangerous("number"))
-                                            .type_attribute(xs::types::QName(ExpandedName::new(
-                                                LocalName::new_dangerous("integer"),
-                                                XmlNamespace::XS.into(),
-                                            )))
+                                            .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
                                             .build()
                                             .into(),
                                     )])

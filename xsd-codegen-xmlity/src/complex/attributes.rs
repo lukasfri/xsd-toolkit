@@ -7,7 +7,7 @@ use std::sync::LazyLock;
 
 use quote::ToTokens;
 use syn::parse_quote;
-use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xmlity::ExpandedName;
 use xsd_type_compiler::{
     complex::{self as cx, AttributeUse},
     simple, NamedOrAnonymous,
@@ -170,8 +170,8 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use syn::{parse_quote, Item};
-    use xmlity::{ExpandedName, LocalName, XmlNamespace};
-    use xsd::xs;
+    use xmlity::{LocalName, XmlNamespace};
+    use xsd::{xs, xsn};
     use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
     use crate::Generator;
@@ -180,10 +180,7 @@ mod tests {
     fn simple_attribute() {
         let attribute = xs::types::TopLevelAttribute::builder()
             .name(LocalName::new_dangerous("SimpleAttribute"))
-            .type_(xs::types::QName(ExpandedName::new(
-                LocalName::new_dangerous("string"),
-                XmlNamespace::XS.into(),
-            )))
+            .type_(xs::types::QName(xsn::STRING.clone()))
             .build()
             .into();
 

@@ -193,331 +193,354 @@ impl XmlnsLocalTransformer for ExpandAttributeDeclarations {
     }
 }
 
-//TODO
-// #[cfg(test)]
-// mod tests {
-//     use crate::{CompiledNamespace, XmlnsContext};
+#[cfg(test)]
+mod tests {
+    use crate::{CompiledNamespace, XmlnsContext};
 
-//     use super::*;
-//     use pretty_assertions::assert_eq;
-//     use xmlity::{ExpandedName, LocalName, XmlNamespace};
-//     use xsd::xs;
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use xmlity::{ExpandedName, LocalName, XmlNamespace};
+    use xsd::{xs, xsn};
 
-//     #[test]
-//     fn one_attribute_group() {
-//         const TEST_NAMESPACE: XmlNamespace<'static> =
-//             XmlNamespace::new_dangerous("http://example.com/test");
+    #[test]
+    fn one_attribute_group() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com/test");
 
-//         const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
-//             LocalName::new_dangerous("test-attr-group");
+        const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
+            LocalName::new_dangerous("test-attr-group");
 
-//         const TEST_ATTRIBUTE_NAME: LocalName<'static> = LocalName::new_dangerous("test-attr");
+        const TEST_ATTRIBUTE_NAME: LocalName<'static> = LocalName::new_dangerous("test-attr");
 
-//         let attribute_group = xs::AttributeGroupType::builder()
-//             .name(TEST_ATTRIBUTE_GROUP_NAME)
-//             .attr_decls(
-//                 xs::AttrDecls::builder()
-//                     .declarations(vec![xs::LocalAttribute::builder()
-//                         .name(TEST_ATTRIBUTE_NAME)
-//                         .type_(xs::QName(xsn::STRING.clone()))
-//                         .build()
-//                         .into()])
-//                     .build(),
-//             )
-//             .build();
+        let attribute_group = xs::types::NamedAttributeGroup::builder()
+            .name(TEST_ATTRIBUTE_GROUP_NAME)
+            .attr_decls(
+                xs::groups::AttrDecls::builder()
+                    .attribute(vec![xs::types::Attribute::builder()
+                        .name(TEST_ATTRIBUTE_NAME)
+                        .type_(xs::types::QName(xsn::STRING.clone()))
+                        .build()
+                        .into()])
+                    .build()
+                    .into(),
+            )
+            .build()
+            .into();
 
-//         const TOP_LEVEL_COMPLEX_TYPE_NAME: LocalName<'static> = LocalName::new_dangerous("test");
+        const TOP_LEVEL_COMPLEX_TYPE_NAME: LocalName<'static> = LocalName::new_dangerous("test");
 
-//         let input = xs::TopLevelComplexType::builder()
-//             .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
-//             .content(
-//                 xs::ComplexContent::builder()
-//                     .content(
-//                         xs::ComplexRestrictionType::builder()
-//                             .base(xs::QName(xsn::ANY_TYPE.clone()))
-//                             .attr_decls(
-//                                 xs::AttrDecls::builder()
-//                                     .declarations(vec![xs::AttributeGroupRefType::builder()
-//                                         .ref_(xs::QName(ExpandedName::new(
-//                                             TEST_ATTRIBUTE_GROUP_NAME,
-//                                             Some(TEST_NAMESPACE),
-//                                         )))
-//                                         .build()
-//                                         .into()])
-//                                     .build(),
-//                             )
-//                             .build()
-//                             .into(),
-//                     )
-//                     .build()
-//                     .into(),
-//             )
-//             .build();
+        let input: xs::ComplexType = xs::types::TopLevelComplexType::builder()
+            .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .complex_type_model(Box::new(
+                xs::ComplexContent::builder()
+                    .child_1(
+                        xs::types::ComplexRestrictionType::builder()
+                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::groups::AttrDecls::builder()
+                                    .attribute(vec![xs::types::AttributeGroupRef::builder()
+                                        .ref_(xs::types::QName(ExpandedName::new(
+                                            TEST_ATTRIBUTE_GROUP_NAME,
+                                            Some(TEST_NAMESPACE),
+                                        )))
+                                        .build()
+                                        .into()])
+                                    .build()
+                                    .into(),
+                            )
+                            .assertions(xs::groups::Assertions::builder().build().into())
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            ))
+            .build()
+            .into();
 
-//         let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
+        let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
 
-//         ns.import_top_level_attribute_group(&attribute_group)
-//             .unwrap();
-//         ns.import_top_level_complex_type(&input).unwrap();
+        ns.import_top_level_attribute_group(&attribute_group)
+            .unwrap();
+        ns.import_top_level_complex_type(&input).unwrap();
 
-//         let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
+        let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
 
-//         assert_eq!(transform_changed, TransformChange::Changed);
+        assert_eq!(transform_changed, TransformChange::Changed);
 
-//         let mut ctx = XmlnsContext::new();
+        let mut ctx = XmlnsContext::new();
 
-//         ctx.add_namespace(ns);
+        ctx.add_namespace(ns);
 
-//         let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
 
-//         let actual = ns
-//             .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
-//             .unwrap()
-//             .unwrap();
+        let actual = ns
+            .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .unwrap()
+            .unwrap();
 
-//         let expected = xs::TopLevelComplexType::builder()
-//             .name(LocalName::new_dangerous("test"))
-//             .content(
-//                 xs::ComplexContent::builder()
-//                     .content(
-//                         xs::ComplexRestrictionType::builder()
-//                             .base(xs::QName(xsn::ANY_TYPE.clone()))
-//                             .attr_decls(
-//                                 xs::AttrDecls::builder()
-//                                     .declarations(vec![xs::LocalAttribute::builder()
-//                                         .name(LocalName::new_dangerous("test-attr"))
-//                                         .type_(xs::QName(xsn::STRING.clone()))
-//                                         .build()
-//                                         .into()])
-//                                     .build(),
-//                             )
-//                             .build()
-//                             .into(),
-//                     )
-//                     .build()
-//                     .into(),
-//             )
-//             .build();
+        let expected: xs::ComplexType = xs::types::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("test"))
+            .complex_type_model(Box::new(
+                xs::ComplexContent::builder()
+                    .child_1(
+                        xs::types::ComplexRestrictionType::builder()
+                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::groups::AttrDecls::builder()
+                                    .attribute(vec![xs::types::Attribute::builder()
+                                        .name(LocalName::new_dangerous("test-attr"))
+                                        .type_(xs::types::QName(xsn::STRING.clone()))
+                                        .build()
+                                        .into()])
+                                    .build()
+                                    .into(),
+                            )
+                            .assertions(xs::groups::Assertions::builder().build().into())
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            ))
+            .build()
+            .into();
 
-//         assert_eq!(actual, expected);
-//     }
+        assert_eq!(actual, expected);
+    }
 
-//     #[test]
-//     fn same_attribute_overwrites_values_1() {
-//         const TEST_NAMESPACE: XmlNamespace<'static> =
-//             XmlNamespace::new_dangerous("http://example.com/test");
+    #[test]
+    fn same_attribute_overwrites_values_1() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com/test");
 
-//         const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
-//             LocalName::new_dangerous("test-attr-group");
+        const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
+            LocalName::new_dangerous("test-attr-group");
 
-//         const TEST_ATTRIBUTE_NAME: LocalName<'static> = LocalName::new_dangerous("test-attr");
+        const TEST_ATTRIBUTE_NAME: LocalName<'static> = LocalName::new_dangerous("test-attr");
 
-//         let attribute_group = xs::AttributeGroupType::builder()
-//             .name(TEST_ATTRIBUTE_GROUP_NAME)
-//             .attr_decls(
-//                 xs::AttrDecls::builder()
-//                     .declarations(vec![xs::LocalAttribute::builder()
-//                         .name(TEST_ATTRIBUTE_NAME)
-//                         .type_(xs::QName(xsn::STRING.clone()))
-//                         .use_(xs::AttributeUseType::Prohibited)
-//                         .build()
-//                         .into()])
-//                     .build(),
-//             )
-//             .build();
+        let attribute_group = xs::types::NamedAttributeGroup::builder()
+            .name(TEST_ATTRIBUTE_GROUP_NAME)
+            .attr_decls(
+                xs::groups::AttrDecls::builder()
+                    .attribute(vec![xs::types::Attribute::builder()
+                        .name(TEST_ATTRIBUTE_NAME)
+                        .type_(xs::types::QName(xsn::STRING.clone()))
+                        .use_(xs::types::AttributeUseType::Prohibited.to_string())
+                        .build()
+                        .into()])
+                    .build()
+                    .into(),
+            )
+            .build()
+            .into();
 
-//         const TOP_LEVEL_COMPLEX_TYPE_NAME: LocalName<'static> = LocalName::new_dangerous("test");
+        const TOP_LEVEL_COMPLEX_TYPE_NAME: LocalName<'static> = LocalName::new_dangerous("test");
 
-//         let input = xs::TopLevelComplexType::builder()
-//             .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
-//             .content(
-//                 xs::ComplexContent::builder()
-//                     .content(
-//                         xs::ComplexRestrictionType::builder()
-//                             .base(xs::QName(xsn::ANY_TYPE.clone()))
-//                             .attr_decls(
-//                                 xs::AttrDecls::builder()
-//                                     .declarations(vec![
-//                                         xs::AttributeGroupRefType::builder()
-//                                             .ref_(xs::QName(ExpandedName::new(
-//                                                 TEST_ATTRIBUTE_GROUP_NAME,
-//                                                 Some(TEST_NAMESPACE),
-//                                             )))
-//                                             .build()
-//                                             .into(),
-//                                         xs::LocalAttribute::builder()
-//                                             .name(TEST_ATTRIBUTE_NAME)
-//                                             .type_(xs::QName(xsn::STRING.clone()))
-//                                             .use_(xs::AttributeUseType::Optional)
-//                                             .build()
-//                                             .into(),
-//                                     ])
-//                                     .build(),
-//                             )
-//                             .build()
-//                             .into(),
-//                     )
-//                     .build()
-//                     .into(),
-//             )
-//             .build();
+        let input = xs::types::TopLevelComplexType::builder()
+            .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .complex_type_model(Box::new(
+                xs::ComplexContent::builder()
+                    .child_1(
+                        xs::types::ComplexRestrictionType::builder()
+                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::groups::AttrDecls::builder()
+                                    .attribute(vec![
+                                        xs::types::AttributeGroupRef::builder()
+                                            .ref_(xs::types::QName(ExpandedName::new(
+                                                TEST_ATTRIBUTE_GROUP_NAME,
+                                                Some(TEST_NAMESPACE),
+                                            )))
+                                            .build()
+                                            .into(),
+                                        xs::types::Attribute::builder()
+                                            .name(TEST_ATTRIBUTE_NAME)
+                                            .type_(xs::types::QName(xsn::STRING.clone()))
+                                            .use_(xs::types::AttributeUseType::Optional.to_string())
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .build()
+                                    .into(),
+                            )
+                            .assertions(xs::groups::Assertions::builder().build().into())
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            ))
+            .build()
+            .into();
 
-//         let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
+        let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
 
-//         ns.import_top_level_attribute_group(&attribute_group)
-//             .unwrap();
-//         ns.import_top_level_complex_type(&input).unwrap();
+        ns.import_top_level_attribute_group(&attribute_group)
+            .unwrap();
+        ns.import_top_level_complex_type(&input).unwrap();
 
-//         let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
+        let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
 
-//         assert_eq!(transform_changed, TransformChange::Changed);
+        assert_eq!(transform_changed, TransformChange::Changed);
 
-//         let mut ctx = XmlnsContext::new();
+        let mut ctx = XmlnsContext::new();
 
-//         ctx.add_namespace(ns);
+        ctx.add_namespace(ns);
 
-//         let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
 
-//         let actual = ns
-//             .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
-//             .unwrap()
-//             .unwrap();
+        let actual = ns
+            .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .unwrap()
+            .unwrap();
 
-//         let expected = xs::TopLevelComplexType::builder()
-//             .name(LocalName::new_dangerous("test"))
-//             .content(
-//                 xs::ComplexContent::builder()
-//                     .content(
-//                         xs::ComplexRestrictionType::builder()
-//                             .base(xs::QName(xsn::ANY_TYPE.clone()))
-//                             .attr_decls(
-//                                 xs::AttrDecls::builder()
-//                                     .declarations(vec![xs::LocalAttribute::builder()
-//                                         .name(LocalName::new_dangerous("test-attr"))
-//                                         .type_(xs::QName(xsn::STRING.clone()))
-//                                         .use_(xs::AttributeUseType::Optional)
-//                                         .build()
-//                                         .into()])
-//                                     .build(),
-//                             )
-//                             .build()
-//                             .into(),
-//                     )
-//                     .build()
-//                     .into(),
-//             )
-//             .build();
+        let expected: xs::ComplexType = xs::types::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("test"))
+            .complex_type_model(Box::new(
+                xs::ComplexContent::builder()
+                    .child_1(
+                        xs::types::ComplexRestrictionType::builder()
+                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::groups::AttrDecls::builder()
+                                    .attribute(vec![xs::types::Attribute::builder()
+                                        .name(LocalName::new_dangerous("test-attr"))
+                                        .type_(xs::types::QName(xsn::STRING.clone()))
+                                        .use_(xs::types::AttributeUseType::Optional.to_string())
+                                        .build()
+                                        .into()])
+                                    .build()
+                                    .into(),
+                            )
+                            .assertions(xs::groups::Assertions::builder().build().into())
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            ))
+            .build()
+            .into();
 
-//         assert_eq!(actual, expected);
-//     }
+        assert_eq!(actual, expected);
+    }
 
-//     // The order is different from `same_attribute_overwrites_values_2`, with the group's attribute overwriting the top-level attribute.
-//     #[test]
-//     fn same_attribute_overwrites_values_2() {
-//         const TEST_NAMESPACE: XmlNamespace<'static> =
-//             XmlNamespace::new_dangerous("http://example.com/test");
+    // The order is different from `same_attribute_overwrites_values_2`, with the group's attribute overwriting the top-level attribute.
+    #[test]
+    fn same_attribute_overwrites_values_2() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com/test");
 
-//         const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
-//             LocalName::new_dangerous("test-attr-group");
+        const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
+            LocalName::new_dangerous("test-attr-group");
 
-//         const TEST_ATTRIBUTE_NAME: LocalName<'static> = LocalName::new_dangerous("test-attr");
+        const TEST_ATTRIBUTE_NAME: LocalName<'static> = LocalName::new_dangerous("test-attr");
 
-//         let attribute_group = xs::AttributeGroupType::builder()
-//             .name(TEST_ATTRIBUTE_GROUP_NAME)
-//             .attr_decls(
-//                 xs::AttrDecls::builder()
-//                     .declarations(vec![xs::LocalAttribute::builder()
-//                         .name(TEST_ATTRIBUTE_NAME)
-//                         .type_(xs::QName(xsn::STRING.clone()))
-//                         .use_(xs::AttributeUseType::Prohibited)
-//                         .build()
-//                         .into()])
-//                     .build(),
-//             )
-//             .build();
+        let attribute_group = xs::types::NamedAttributeGroup::builder()
+            .name(TEST_ATTRIBUTE_GROUP_NAME)
+            .attr_decls(
+                xs::groups::AttrDecls::builder()
+                    .attribute(vec![xs::types::Attribute::builder()
+                        .name(TEST_ATTRIBUTE_NAME)
+                        .type_(xs::types::QName(xsn::STRING.clone()))
+                        .use_(xs::types::AttributeUseType::Prohibited.to_string())
+                        .build()
+                        .into()])
+                    .build()
+                    .into(),
+            )
+            .build()
+            .into();
 
-//         const TOP_LEVEL_COMPLEX_TYPE_NAME: LocalName<'static> = LocalName::new_dangerous("test");
+        const TOP_LEVEL_COMPLEX_TYPE_NAME: LocalName<'static> = LocalName::new_dangerous("test");
 
-//         let input = xs::TopLevelComplexType::builder()
-//             .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
-//             .content(
-//                 xs::ComplexContent::builder()
-//                     .content(
-//                         xs::ComplexRestrictionType::builder()
-//                             .base(xs::QName(xsn::ANY_TYPE.clone()))
-//                             .attr_decls(
-//                                 xs::AttrDecls::builder()
-//                                     .declarations(vec![
-//                                         xs::LocalAttribute::builder()
-//                                             .name(TEST_ATTRIBUTE_NAME)
-//                                             .type_(xs::QName(xsn::STRING.clone()))
-//                                             .use_(xs::AttributeUseType::Optional)
-//                                             .build()
-//                                             .into(),
-//                                         xs::AttributeGroupRefType::builder()
-//                                             .ref_(xs::QName(ExpandedName::new(
-//                                                 TEST_ATTRIBUTE_GROUP_NAME,
-//                                                 Some(TEST_NAMESPACE),
-//                                             )))
-//                                             .build()
-//                                             .into(),
-//                                     ])
-//                                     .build(),
-//                             )
-//                             .build()
-//                             .into(),
-//                     )
-//                     .build()
-//                     .into(),
-//             )
-//             .build();
+        let input = xs::types::TopLevelComplexType::builder()
+            .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .complex_type_model(Box::new(
+                xs::ComplexContent::builder()
+                    .child_1(
+                        xs::types::ComplexRestrictionType::builder()
+                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::groups::AttrDecls::builder()
+                                    .attribute(vec![
+                                        xs::types::Attribute::builder()
+                                            .name(TEST_ATTRIBUTE_NAME)
+                                            .type_(xs::types::QName(xsn::STRING.clone()))
+                                            .use_(xs::types::AttributeUseType::Optional.to_string())
+                                            .build()
+                                            .into(),
+                                        xs::types::AttributeGroupRef::builder()
+                                            .ref_(xs::types::QName(ExpandedName::new(
+                                                TEST_ATTRIBUTE_GROUP_NAME,
+                                                Some(TEST_NAMESPACE),
+                                            )))
+                                            .build()
+                                            .into(),
+                                    ])
+                                    .build()
+                                    .into(),
+                            )
+                            .assertions(xs::groups::Assertions::builder().build().into())
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            ))
+            .build()
+            .into();
 
-//         let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
+        let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
 
-//         ns.import_top_level_attribute_group(&attribute_group)
-//             .unwrap();
-//         ns.import_top_level_complex_type(&input).unwrap();
+        ns.import_top_level_attribute_group(&attribute_group)
+            .unwrap();
+        ns.import_top_level_complex_type(&input).unwrap();
 
-//         let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
+        let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
 
-//         assert_eq!(transform_changed, TransformChange::Changed);
+        assert_eq!(transform_changed, TransformChange::Changed);
 
-//         let mut ctx = XmlnsContext::new();
+        let mut ctx = XmlnsContext::new();
 
-//         ctx.add_namespace(ns);
+        ctx.add_namespace(ns);
 
-//         let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
 
-//         let actual = ns
-//             .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
-//             .unwrap()
-//             .unwrap();
+        let actual = ns
+            .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
+            .unwrap()
+            .unwrap();
 
-//         let expected = xs::TopLevelComplexType::builder()
-//             .name(LocalName::new_dangerous("test"))
-//             .content(
-//                 xs::ComplexContent::builder()
-//                     .content(
-//                         xs::ComplexRestrictionType::builder()
-//                             .base(xs::QName(xsn::ANY_TYPE.clone()))
-//                             .attr_decls(
-//                                 xs::AttrDecls::builder()
-//                                     .declarations(vec![xs::LocalAttribute::builder()
-//                                         .name(LocalName::new_dangerous("test-attr"))
-//                                         .type_(xs::QName(xsn::STRING.clone()))
-//                                         .use_(xs::AttributeUseType::Prohibited)
-//                                         .build()
-//                                         .into()])
-//                                     .build(),
-//                             )
-//                             .build()
-//                             .into(),
-//                     )
-//                     .build()
-//                     .into(),
-//             )
-//             .build();
+        let expected: xs::ComplexType = xs::types::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("test"))
+            .complex_type_model(Box::new(
+                xs::ComplexContent::builder()
+                    .child_1(
+                        xs::types::ComplexRestrictionType::builder()
+                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                            .attr_decls(
+                                xs::groups::AttrDecls::builder()
+                                    .attribute(vec![xs::types::Attribute::builder()
+                                        .name(LocalName::new_dangerous("test-attr"))
+                                        .type_(xs::types::QName(xsn::STRING.clone()))
+                                        .use_(xs::types::AttributeUseType::Prohibited.to_string())
+                                        .build()
+                                        .into()])
+                                    .build()
+                                    .into(),
+                            )
+                            .assertions(xs::groups::Assertions::builder().build().into())
+                            .build()
+                            .into(),
+                    )
+                    .build()
+                    .into(),
+            ))
+            .build()
+            .into();
 
-//         assert_eq!(actual, expected);
-//     }
-// }
+        assert_eq!(actual, expected);
+    }
+}
