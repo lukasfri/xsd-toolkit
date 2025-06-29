@@ -1,11 +1,13 @@
-pub mod element_record;
 use proc_macro2::Span;
 use syn::{LitStr, Token};
 
 pub mod choice;
-
+pub mod element_record;
 pub mod group_record;
+pub mod specific_enum;
+pub mod text;
 pub mod value_record;
+pub mod wrapper_struct;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ItemOrder {

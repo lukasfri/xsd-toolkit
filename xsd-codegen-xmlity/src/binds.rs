@@ -56,6 +56,17 @@ impl IntoIterator for PrimitiveStdXsdTypes {
     }
 }
 
+pub struct NonZeroStdXsdTypes;
+
+impl IntoIterator for NonZeroStdXsdTypes {
+    type Item = (ExpandedName<'static>, BoundType);
+    type IntoIter = std::array::IntoIter<Self::Item, 1>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        [xs_bind!("positiveInteger", ::core::num::NonZeroUsize)].into_iter()
+    }
+}
+
 pub struct TimeStdXsdTypes;
 
 impl IntoIterator for TimeStdXsdTypes {
@@ -206,6 +217,7 @@ impl IntoIterator for StdXsdTypes {
     fn into_iter(self) -> Self::IntoIter {
         None.into_iter()
             .chain(PrimitiveStdXsdTypes)
+            .chain(NonZeroStdXsdTypes)
             .chain(TimeStdXsdTypes)
             .chain(BinaryStdXsdTypes)
             .chain(UrlStdXsdTypes)

@@ -21,11 +21,23 @@ impl AdditionalDerives {
             _ => panic!("Expected a list"),
         };
 
+        let existing_tokens = list.tokens.clone();
+
         // list.tokens.extend(quote::quote! {, ::bon::Builder });
-        list.tokens.extend(paths.iter().map(|path| {
-            let path = path.to_token_stream();
-            quote::quote! {, #path }
-        }));
+        list.tokens.extend(
+            paths
+                .iter()
+                .filter(|path| {
+                    // Filter out paths that are already present in the derive list
+                    !existing_tokens
+                        .to_string()
+                        .contains(&path.to_token_stream().to_string())
+                })
+                .map(|path| {
+                    let path = path.to_token_stream();
+                    quote::quote! {, #path }
+                }),
+        );
     }
 }
 

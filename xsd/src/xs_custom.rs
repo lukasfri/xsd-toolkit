@@ -134,7 +134,69 @@ macro_rules! impl_to_string_serialize  {
 }
 
 pub mod types {
+    use xmlity::DeserializeOwned;
+
     use super::*;
+
+    #[derive(Debug, Clone, Eq, PartialEq, Default)]
+    pub struct List<T>(pub Vec<T>);
+
+    impl<T: Display> Display for List<T> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "{}",
+                self.0
+                    .iter()
+                    .map(|a| a.to_string())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            )
+        }
+    }
+
+    impl<'de, T: DeserializeOwned> Deserialize<'de> for List<T> {
+        fn deserialize<D: xmlity::Deserializer<'de>>(reader: D) -> Result<Self, D::Error> {
+            struct ListVisitor<T> {
+                _marker: std::marker::PhantomData<T>,
+            }
+
+            impl<'de, T: DeserializeOwned> xmlity::de::Visitor<'de> for ListVisitor<T> {
+                type Value = List<T>;
+                fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                    formatter.write_str("a List of items")
+                }
+
+                fn visit_text<E, V>(self, value: V) -> Result<Self::Value, E>
+                where
+                    E: xmlity::de::Error,
+                    V: xmlity::de::XmlText<'de>,
+                {
+                    value
+                        .as_str()
+                        .split([' ', '|', ',', ';'])
+                        .map(|s| {
+                            T::deserialize(SubStrDeserializer::new(s, &value.namespace_context()))
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                        .map(List)
+                }
+            }
+
+            reader.deserialize_any(ListVisitor {
+                _marker: std::marker::PhantomData,
+            })
+        }
+    }
+
+    impl<T: Display> Serialize for List<T> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: xmlity::Serializer,
+        {
+            serializer.serialize_text(&self.to_string())
+        }
+    }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct QName(pub ExpandedName<'static>);

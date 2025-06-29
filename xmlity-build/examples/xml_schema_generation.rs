@@ -99,7 +99,7 @@ fn main() {
     engine
         .generate_namespace(
             xmlity_build::GenerateNamespace::builder()
-                .output_file("xsd/src/xs_generated.rs".parse().unwrap())
+                .output_file("xs_raw/src/xs_generated.rs".parse().unwrap())
                 .namespace(XmlNamespace::XS)
                 .bon_builders(true)
                 .enum_from(true)

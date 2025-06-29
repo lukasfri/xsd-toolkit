@@ -1,45 +1,64 @@
 use std::collections::VecDeque;
 use std::convert::Infallible;
 
-use crate::transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
+use crate::{
+    fragments::{
+        simple::{SimpleDerivation, UnionFragment},
+        FragmentIdx,
+    },
+    transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
+};
 
 pub struct FlattenNestedUnions;
 
-// impl XmlnsLocalTransformer for FlattenNestedUnions {
-//     type Error = Infallible;
+impl FlattenNestedUnions {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self {}
+    }
 
-//     fn transform(
-//         self,
-//         mut ctx: XmlnsLocalTransformerContext<'_>,
-//     ) -> Result<TransformChange, Self::Error> {
-//         for fragment_idx in ctx.iter_simple_fragment_ids() {
-//             let fragment = ctx.get_simple_fragment(&fragment_idx).unwrap();
-//             let SimpleTypeFragment::Union { fragments } = fragment else {
-//                 continue;
-//             };
+    fn flatten_union(
+        ctx: &mut XmlnsLocalTransformerContext,
+        fragment_idx: &FragmentIdx<UnionFragment>,
+    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
+        let UnionFragment { simple_types, .. } = ctx.get_simple_fragment(fragment_idx).unwrap();
 
-//             let mut new_fragments = VecDeque::new();
+        let mut flattened = TransformChange::default();
 
-//             for fragment_id in fragments {
-//                 let fragment: &SimpleTypeFragment = ctx.get_simple_fragment(fragment_id).unwrap();
-//                 let SimpleTypeFragment::Union {
-//                     fragments: sub_fragments,
-//                 } = fragment
-//                 //TODO: Review when to NOT flatten choices
-//                 else {
-//                     new_fragments.push_back(fragment_id.clone());
-//                     continue;
-//                 };
-//                 new_fragments.extend(sub_fragments.iter().cloned());
-//             }
+        let mut new_simple_types = VecDeque::new();
+        for fragment_id in simple_types {
+            let simple_type = ctx.get_simple_fragment(fragment_id).unwrap();
 
-//             let fragment = ctx.simple_fragment_mut(&fragment_idx).unwrap();
-//             let SimpleTypeFragment::Union { fragments } = fragment else {
-//                 unreachable!()
-//             };
-//             *fragments = new_fragments;
-//         }
+            let SimpleDerivation::Union(union_fragment_id) = simple_type.simple_derivation else {
+                new_simple_types.push_back(fragment_id.clone());
+                continue;
+            };
 
-//         todo!()
-//     }
-// }
+            let UnionFragment {
+                simple_types: sub_simple_types,
+            } = ctx.get_simple_fragment(&union_fragment_id).unwrap();
+
+            new_simple_types.extend(sub_simple_types.iter().cloned());
+            flattened = TransformChange::Changed;
+        }
+
+        let fragment = ctx.get_simple_fragment_mut(fragment_idx).unwrap();
+        fragment.simple_types = new_simple_types;
+
+        Ok(flattened)
+    }
+}
+
+impl XmlnsLocalTransformer for FlattenNestedUnions {
+    type Error = Infallible;
+
+    fn transform(
+        self,
+        mut ctx: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
+        ctx.iter_simple_fragment_ids()
+            .into_iter()
+            .map(|f| Self::flatten_union(&mut ctx, &f))
+            .collect()
+    }
+}

@@ -1,21 +1,11 @@
 use crate::{
-    misc::TypeReference, templates::element_record::ElementFieldAttribute, Result, ToIdentTypesExt,
-    TypeType,
+    simple::SimpleContext, templates::element_record::ElementFieldAttribute, Result,
+    ToIdentTypesExt,
 };
-use std::ops::Deref;
-use std::sync::LazyLock;
-
-use quote::ToTokens;
+use quote::format_ident;
 use syn::parse_quote;
 use xmlity::ExpandedName;
-use xsd_type_compiler::{
-    fragments::{
-        complex::{self as cx, AttributeUse},
-        simple::{self as sm},
-        FragmentIdx,
-    },
-    NamedOrAnonymous,
-};
+use xsd_type_compiler::fragments::complex::{self as cx, AttributeUse};
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 
@@ -25,7 +15,7 @@ impl ComplexToTypeTemplate for cx::LocalAttributeFragment {
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
-        _scope: &mut S,
+        scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let optional = match self.use_.unwrap_or_default() {
             AttributeUse::Optional => true,
@@ -38,32 +28,11 @@ impl ComplexToTypeTemplate for cx::LocalAttributeFragment {
                 let name = ExpandedName::new(local.name.clone(), None);
                 let ident = local.name.to_item_ident();
 
-                static SIMPLE_ANY_TYPE_NAMED: LazyLock<
-                    NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>>,
-                > = LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone()));
-
-                let ty = match local
-                    .type_
-                    .as_ref()
-                    .unwrap_or_else(|| SIMPLE_ANY_TYPE_NAMED.deref())
-                {
-                    NamedOrAnonymous::Named(name) => {
-                        let bound_type = context.resolve_named_type(name)?;
-
-                        assert_eq!(
-                            bound_type.ty_type,
-                            TypeType::Simple,
-                            "{} is not a simple type, but is used as an attribute value",
-                            bound_type.ty.to_type(None).to_token_stream()
-                        );
-
-                        bound_type.ty.clone()
-                    }
-                    NamedOrAnonymous::Anonymous(_) => {
-                        //TODO
-                        TypeReference::new_static(parse_quote!(String))
-                    }
-                };
+                let ty = context
+                    .simple_context()
+                    .sub_context(format_ident!("{}Value", ident))
+                    .resolve_fragment(&local.type_, scope)?
+                    .template;
 
                 let ty = ty.wrap_if(optional, |a| parse_quote!(::core::option::Option<#a>));
 
@@ -121,7 +90,7 @@ impl ComplexToTypeTemplate for cx::TopLevelAttributeFragment {
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
-        _scope: &mut S,
+        scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let name = ExpandedName::new(
             self.name.clone(),
@@ -129,32 +98,10 @@ impl ComplexToTypeTemplate for cx::TopLevelAttributeFragment {
         );
         let ident = self.name.to_item_ident();
 
-        static SIMPLE_ANY_TYPE_NAMED: LazyLock<
-            NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>>,
-        > = LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone()));
-
-        let ty = match self
-            .type_
-            .as_ref()
-            .unwrap_or_else(|| SIMPLE_ANY_TYPE_NAMED.deref())
-        {
-            NamedOrAnonymous::Named(name) => {
-                let bound_type = context.resolve_named_type(name)?;
-
-                assert_eq!(
-                    bound_type.ty_type,
-                    TypeType::Simple,
-                    "{} is not a simple type, but is used as an attribute value",
-                    bound_type.ty.to_type(None).to_token_stream()
-                );
-
-                bound_type.ty.clone()
-            }
-            NamedOrAnonymous::Anonymous(_) => {
-                //TODO
-                TypeReference::new_static(parse_quote!(String))
-            }
-        };
+        let ty = context
+            .simple_context()
+            .resolve_fragment(&self.type_, scope)?
+            .template;
 
         let template = ElementFieldAttribute {
             name: Some(name),

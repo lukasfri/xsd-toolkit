@@ -1,7 +1,6 @@
 use crate::{
-    complex::dedup_field_idents,
     finish_mod,
-    misc::TypeReference,
+    misc::{common_name, dedup_field_idents, TypeReference, COMMON_NAME_MIN_LENGTH},
     templates::{
         self,
         choice::{self, ChoiceVariantType},
@@ -21,50 +20,6 @@ use super::{
     elements::LocalElementFragmentTemplate, ComplexContext, ComplexToTypeTemplate, Scope,
     ToTypeTemplateData,
 };
-
-// Tries to find a common name between a list of strings.
-// ["SimpleType", "ComplexType"] becomes Some("Type")
-// ["One", "Two"] becomes None
-fn common_name<'a, I: IntoIterator<Item = T>, T: AsRef<str>>(
-    names: I,
-    min_length: usize,
-) -> Option<String> {
-    let names: Vec<String> = names.into_iter().map(|s| s.as_ref().to_string()).collect();
-    if names.is_empty() {
-        return None;
-    }
-    if names.len() == 1 {
-        return Some(names[0].clone());
-    }
-
-    let min_len = names.iter().map(|s| s.len()).min().unwrap();
-    let first = &names[0];
-
-    for len in (min_length.max(1)..=min_len).rev() {
-        let mut candidates = Vec::new();
-
-        for start in 0..=(first.len() - len) {
-            let substring = &first[start..start + len];
-            if names.iter().skip(1).all(|s| s.contains(substring)) {
-                candidates.push(substring.to_string());
-            }
-        }
-
-        // First find if there is a type if a capital letter start, otherwise, pick the last.
-        let candidate_index = candidates
-            .iter()
-            .position(|a| a.chars().next().unwrap().is_ascii_uppercase())
-            .or_else(|| (!candidates.is_empty()).then(|| candidates.len() - 1));
-
-        if let Some(candidate_index) = candidate_index {
-            return candidates.into_iter().nth(candidate_index);
-        }
-    }
-
-    None
-}
-
-const GROUP_COMMON_NAME_MIN_LENGTH: usize = 4;
 
 impl ComplexToTypeTemplate for cx::AllFragment {
     type TypeTemplate = ItemOrTemplate<ItemRecord>;
@@ -102,10 +57,7 @@ impl ComplexToTypeTemplate for cx::AllFragment {
 
         let (fields, names) = fields.into_iter().unzip::<_, _, Vec<_>, Vec<_>>();
 
-        let common_name = common_name(
-            names.iter().map(|a| a.to_string()),
-            GROUP_COMMON_NAME_MIN_LENGTH,
-        );
+        let common_name = common_name(names.iter().map(|a| a.to_string()), COMMON_NAME_MIN_LENGTH);
 
         let ident = common_name
             .map(|a| format_ident!("{a}"))
@@ -223,10 +175,7 @@ impl ComplexToTypeTemplate for cx::SequenceFragment {
 
         let (fields, names) = fields.into_iter().unzip::<_, _, Vec<_>, Vec<_>>();
 
-        let common_name = common_name(
-            names.iter().map(|a| a.to_string()),
-            GROUP_COMMON_NAME_MIN_LENGTH,
-        );
+        let common_name = common_name(names.iter().map(|a| a.to_string()), COMMON_NAME_MIN_LENGTH);
 
         let ident = common_name
             .map(|a| format_ident!("{a}"))
@@ -284,7 +233,6 @@ impl ComplexToTypeTemplate for cx::ChoiceFragment {
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
-        // Struct with strict order
         let variants = self
             .fragments
             .iter()
@@ -303,10 +251,7 @@ impl ComplexToTypeTemplate for cx::ChoiceFragment {
 
         let (variants, names) = variants.into_iter().unzip::<_, _, Vec<_>, Vec<_>>();
 
-        let common_name = common_name(
-            names.iter().map(|a| a.to_string()),
-            GROUP_COMMON_NAME_MIN_LENGTH,
-        );
+        let common_name = common_name(names.iter().map(|a| a.to_string()), COMMON_NAME_MIN_LENGTH);
 
         let ident = common_name
             .map(|a| format_ident!("{a}"))
@@ -857,21 +802,6 @@ mod tests {
     use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
 
     use crate::Generator;
-
-    #[test]
-    fn common_name() {
-        assert_eq!(
-            super::common_name(["SimpleType", "ComplexType"], 3),
-            Some("Type".to_string())
-        );
-        assert_eq!(
-            super::common_name(["SimpleType", "ComplexType"], 4),
-            Some("Type".to_string())
-        );
-        assert_eq!(super::common_name(["SimpleType", "ComplexType"], 5), None);
-
-        assert_eq!(super::common_name(["One", "Two"], 1), None);
-    }
 
     #[test]
     fn three_choice_sequence_deep_top_level_type() {

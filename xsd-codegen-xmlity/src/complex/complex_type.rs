@@ -1,12 +1,10 @@
 use crate::{
-    complex::dedup_field_idents,
-    templates::{
+    misc::dedup_field_idents, templates::{
         self,
         element_record::{ElementField, ElementFieldType},
         group_record::GroupRecord,
         value_record::ItemFieldItem,
-    },
-    Result, ToIdentTypesExt,
+    }, Result, ToIdentTypesExt
 };
 
 use quote::format_ident;
@@ -138,6 +136,19 @@ impl ComplexToTypeTemplate for cx::RestrictionFragment {
     }
 }
 
+
+impl ComplexToTypeTemplate for cx::SimpleContentFragment {
+    type TypeTemplate = templates::group_record::GroupRecord;
+
+    fn to_type_template<C: ComplexContext, S: Scope>(
+        &self,
+        context: &C,
+        scope: &mut S,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        unimplemented!()
+    }
+}
+
 impl ComplexToTypeTemplate for cx::ComplexContentFragment {
     type TypeTemplate = templates::group_record::GroupRecord;
 
@@ -169,7 +180,9 @@ impl ComplexToTypeTemplate for cx::ComplexTypeModelId {
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match self {
-            cx::ComplexTypeModelId::SimpleContent(_fragment_idx) => todo!(),
+            cx::ComplexTypeModelId::SimpleContent(fragment_idx) => {
+                context.resolve_fragment_id(fragment_idx, scope)
+            },
             cx::ComplexTypeModelId::ComplexContent(fragment_idx) => {
                 context.resolve_fragment_id(fragment_idx, scope)
             }

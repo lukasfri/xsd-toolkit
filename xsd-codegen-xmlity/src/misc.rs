@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use dyn_clone::DynClone;
-use quote::ToTokens;
+use quote::{format_ident, ToTokens};
 use syn::{Path, Type, TypePath};
 
 pub trait TypeReferenceTrait: FnOnce(Option<&Path>) -> Type + DynClone {}
@@ -230,6 +230,73 @@ pub fn unvec_type(ty: &syn::TypePath) -> Option<syn::Type> {
     }
 }
 
+pub const COMMON_NAME_MIN_LENGTH: usize = 4;
+
+// Tries to find a common name between a list of strings.
+// ["SimpleType", "ComplexType"] becomes Some("Type")
+// ["One", "Two"] becomes None
+pub fn common_name<'a, I: IntoIterator<Item = T>, T: AsRef<str>>(
+    names: I,
+    min_length: usize,
+) -> Option<String> {
+    let names: Vec<String> = names.into_iter().map(|s| s.as_ref().to_string()).collect();
+    if names.is_empty() {
+        return None;
+    }
+    if names.len() == 1 {
+        return Some(names[0].clone());
+    }
+
+    let min_len = names.iter().map(|s| s.len()).min().unwrap();
+    let first = &names[0];
+
+    for len in (min_length.max(1)..=min_len).rev() {
+        let mut candidates = Vec::new();
+
+        for start in 0..=(first.len() - len) {
+            let substring = &first[start..start + len];
+            if names.iter().skip(1).all(|s| s.contains(substring)) {
+                candidates.push(substring.to_string());
+            }
+        }
+
+        // First find if there is a type if a capital letter start, otherwise, pick the last.
+        let candidate_index = candidates
+            .iter()
+            .position(|a| a.chars().next().unwrap().is_ascii_uppercase())
+            .or_else(|| (!candidates.is_empty()).then(|| candidates.len() - 1));
+
+        if let Some(candidate_index) = candidate_index {
+            return candidates.into_iter().nth(candidate_index);
+        }
+    }
+
+    None
+}
+
+pub fn dedup_field_idents<T>(
+    fields: impl IntoIterator<Item = (syn::Ident, T)>,
+) -> Vec<(syn::Ident, T)> {
+    //This function in case of multiple fields having the same ident (ex. "field") should name them field_0, field_1, etc. Order must be preserved.
+    let mut seen_idents = std::collections::HashSet::new();
+    let mut deduped_fields = Vec::new();
+
+    for (ident, value) in fields {
+        let mut new_ident = ident.clone();
+        let mut counter = 0;
+
+        while seen_idents.contains(&new_ident) {
+            new_ident = format_ident!("{}_{}", ident, counter.to_string());
+            counter += 1;
+        }
+
+        seen_idents.insert(new_ident.clone());
+        deduped_fields.push((new_ident, value));
+    }
+
+    deduped_fields
+}
+
 #[cfg(test)]
 mod tests {
     use syn::parse_quote;
@@ -255,5 +322,20 @@ mod tests {
             unvec_type(&parse_quote!(::std::vec::Vec<documentation_items::Child0>)),
             Option::<syn::Type>::Some(parse_quote!(documentation_items::Child0))
         );
+    }
+
+    #[test]
+    fn common_name() {
+        assert_eq!(
+            super::common_name(["SimpleType", "ComplexType"], 3),
+            Some("Type".to_string())
+        );
+        assert_eq!(
+            super::common_name(["SimpleType", "ComplexType"], 4),
+            Some("Type".to_string())
+        );
+        assert_eq!(super::common_name(["SimpleType", "ComplexType"], 5), None);
+
+        assert_eq!(super::common_name(["One", "Two"], 1), None);
     }
 }

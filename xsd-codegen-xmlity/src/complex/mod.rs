@@ -3,9 +3,10 @@ pub mod complex_type;
 pub mod elements;
 pub mod groups;
 
-use crate::{misc::TypeReference, BoundType, Result, Scope, ToTypeTemplateData};
+use crate::{
+    misc::TypeReference, simple::SimpleContext, BoundType, Result, Scope, ToTypeTemplateData,
+};
 
-use quote::format_ident;
 use syn::Ident;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::xs::types::AllNNI;
@@ -13,37 +14,19 @@ use xsd_type_compiler::fragments::{
     complex::ComplexTypeFragmentCompiler, FragmentAccess, FragmentIdx,
 };
 
-fn dedup_field_idents<T>(
-    fields: impl IntoIterator<Item = (syn::Ident, T)>,
-) -> Vec<(syn::Ident, T)> {
-    //This function in case of multiple fields having the same ident (ex. "field") should name them field_0, field_1, etc. Order must be preserved.
-    let mut seen_idents = std::collections::HashSet::new();
-    let mut deduped_fields = Vec::new();
-
-    for (ident, value) in fields {
-        let mut new_ident = ident.clone();
-        let mut counter = 0;
-
-        while seen_idents.contains(&new_ident) {
-            new_ident = format_ident!("{}_{}", ident, counter.to_string());
-            counter += 1;
-        }
-
-        seen_idents.insert(new_ident.clone());
-        deduped_fields.push((new_ident, value));
-    }
-
-    deduped_fields
-}
-
 pub trait ComplexContext {
+    type SimpleContext: SimpleContext;
     type SubContext: ComplexContext;
 
-    fn namespace(&self) -> &XmlNamespace<'_>;
+    fn simple_context(&self) -> &Self::SimpleContext;
 
     fn sub_context(&self, suggested_ident: Ident) -> Self::SubContext;
 
     fn suggested_ident(&self) -> &Ident;
+
+    fn namespace(&self) -> &XmlNamespace<'_>;
+
+    fn to_expanded_name(&self, name: LocalName<'static>) -> ExpandedName<'static>;
 
     fn resolve_fragment<F: ComplexToTypeTemplate, S: Scope>(
         &self,
@@ -66,8 +49,6 @@ pub trait ComplexContext {
     fn resolve_named_attribute(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>>;
 
     fn resolve_named_group(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>>;
-
-    fn to_expanded_name(&self, name: LocalName<'static>) -> ExpandedName<'static>;
 }
 
 pub trait ComplexToTypeTemplate {

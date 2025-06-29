@@ -23,13 +23,17 @@ use xsd_type_compiler::{
             },
             ComplexTypeFragmentCompiler,
         },
+        simple::SimpleTypeFragmentCompiler,
         transformers::{TransformChange, XmlnsLocalTransformer},
         FragmentAccess,
     },
     CompiledNamespace, TopLevelType,
 };
 
-use crate::augments::{ItemAugmentation, ItemAugmentationExt};
+use crate::{
+    augments::{ItemAugmentation, ItemAugmentationExt},
+    simple::SimpleToTypeTemplate,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {}
@@ -224,11 +228,15 @@ impl<'a> GeneratorContext<'a> {
     }
 }
 
-impl<'c> complex::ComplexContext for GeneratorContext<'c> {
+impl<'c> simple::SimpleContext for GeneratorContext<'c> {
     type SubContext = GeneratorContext<'c>;
 
     fn namespace(&self) -> &XmlNamespace<'_> {
         self.namespace
+    }
+
+    fn to_expanded_name(&self, local_name: xmlity::LocalName<'static>) -> ExpandedName<'static> {
+        ExpandedName::new(local_name, Some(self.namespace().clone().into_owned()))
     }
 
     fn sub_context(&self, suggested_ident: Ident) -> Self::SubContext {
@@ -239,7 +247,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         &self.suggested_ident
     }
 
-    fn resolve_fragment<F: ComplexToTypeTemplate, S: Scope>(
+    fn resolve_fragment<F: SimpleToTypeTemplate, S: Scope>(
         &self,
         fragment: &F,
         scope: &mut S,
@@ -247,19 +255,31 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         fragment.to_type_template(self, scope)
     }
 
-    fn resolve_fragment_id<F: ComplexToTypeTemplate, S: Scope>(
+    fn get_fragment<F, S: Scope>(
+        &self,
+        fragment_id: &xsd_type_compiler::fragments::FragmentIdx<F>,
+        _: &mut S,
+    ) -> Result<&F>
+    where
+        SimpleTypeFragmentCompiler: FragmentAccess<F>,
+    {
+        Ok(self
+            .current_namespace()
+            .complex_type
+            .simple_type_fragments
+            .get_fragment(fragment_id)
+            .unwrap())
+    }
+
+    fn resolve_fragment_id<F: SimpleToTypeTemplate, S: Scope>(
         &self,
         fragment_id: &xsd_type_compiler::fragments::FragmentIdx<F>,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
     where
-        ComplexTypeFragmentCompiler: FragmentAccess<F>,
+        SimpleTypeFragmentCompiler: FragmentAccess<F>,
     {
-        let fragment = self
-            .current_namespace()
-            .complex_type
-            .get_fragment(fragment_id)
-            .unwrap();
+        let fragment = self.get_fragment(fragment_id, scope)?;
 
         fragment.to_type_template(self, scope)
     }
@@ -295,6 +315,60 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
             serialize_with: None,
             deserialize_with: None,
         })
+    }
+}
+
+impl<'c> complex::ComplexContext for GeneratorContext<'c> {
+    type SimpleContext = GeneratorContext<'c>;
+    type SubContext = GeneratorContext<'c>;
+
+    fn simple_context(&self) -> &Self::SimpleContext {
+        self
+    }
+
+    fn sub_context(&self, suggested_ident: Ident) -> Self::SubContext {
+        Self::new(self.generator, self.namespace, suggested_ident)
+    }
+
+    fn suggested_ident(&self) -> &Ident {
+        <Self as simple::SimpleContext>::suggested_ident(self)
+    }
+
+    fn namespace(&self) -> &XmlNamespace<'_> {
+        <Self as simple::SimpleContext>::namespace(self)
+    }
+
+    fn to_expanded_name(&self, name: LocalName<'static>) -> ExpandedName<'static> {
+        <Self as simple::SimpleContext>::to_expanded_name(self, name)
+    }
+
+    fn resolve_fragment<F: ComplexToTypeTemplate, S: Scope>(
+        &self,
+        fragment: &F,
+        scope: &mut S,
+    ) -> Result<ToTypeTemplateData<F::TypeTemplate>> {
+        fragment.to_type_template(self, scope)
+    }
+
+    fn resolve_fragment_id<F: ComplexToTypeTemplate, S: Scope>(
+        &self,
+        fragment_id: &xsd_type_compiler::fragments::FragmentIdx<F>,
+        scope: &mut S,
+    ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
+    where
+        ComplexTypeFragmentCompiler: FragmentAccess<F>,
+    {
+        let fragment = self
+            .current_namespace()
+            .complex_type
+            .get_fragment(fragment_id)
+            .unwrap();
+
+        fragment.to_type_template(self, scope)
+    }
+
+    fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<BoundType> {
+        <Self as simple::SimpleContext>::resolve_named_type(self, name)
     }
 
     fn resolve_named_element(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
@@ -350,10 +424,6 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         let ty = TypeReference::new_static(ty).wrap(TypeReference::box_wrapper);
 
         Ok(ty)
-    }
-
-    fn to_expanded_name(&self, local_name: xmlity::LocalName<'static>) -> ExpandedName<'static> {
-        ExpandedName::new(local_name, Some(self.namespace().clone().into_owned()))
     }
 
     fn resolve_named_group(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {

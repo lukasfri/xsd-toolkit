@@ -1,13 +1,16 @@
 pub mod transformers;
 
+use std::num::NonZeroUsize;
+use std::str::FromStr;
 use xsd::xs;
 
-use xmlity::{ExpandedName, XmlNamespace};
+use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
 use crate::{
     fragments::{FragmentAccess, FragmentCollection, FragmentIdx, HasFragmentCollection},
     NamedOrAnonymous,
 };
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExtensionFragment {
@@ -23,17 +26,18 @@ pub struct RestrictionFragment {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleTypeRootFragment {
+    pub name: Option<LocalName<'static>>,
     pub simple_derivation: SimpleDerivation,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ListFragment {
-    item_type: NamedOrAnonymous<FragmentIdx<SimpleTypeRootFragment>>,
+    pub item_type: NamedOrAnonymous<FragmentIdx<SimpleTypeRootFragment>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnionFragment {
-    pub fragments: Vec<FragmentIdx<SimpleTypeRootFragment>>,
+    pub simple_types: VecDeque<FragmentIdx<SimpleTypeRootFragment>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -51,21 +55,70 @@ pub struct GroupRefFragment {
 // }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct Value(pub String);
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Pattern(pub String);
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum WhiteSpaceValue {
+    Preserve,
+    Replace,
+    Collapse,
+}
+
+impl FromStr for WhiteSpaceValue {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "preserve" => Ok(WhiteSpaceValue::Preserve),
+            "replace" => Ok(WhiteSpaceValue::Replace),
+            "collapse" => Ok(WhiteSpaceValue::Collapse),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ExplicitTimezoneValue {
+    Required,
+    Prohibited,
+    Optional,
+}
+
+impl FromStr for ExplicitTimezoneValue {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "required" => Ok(ExplicitTimezoneValue::Required),
+            "prohibited" => Ok(ExplicitTimezoneValue::Prohibited),
+            "optional" => Ok(ExplicitTimezoneValue::Optional),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Assertion(pub String);
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum FacetFragment {
-    MinExclusive { value: String },
-    MinInclusive { value: String },
-    MaxExclusive { value: String },
-    MaxInclusive { value: String },
-    Enumeration { value: String },
-    TotalDigits { value: usize },
-    FractionDigits { value: usize },
     Length { value: usize },
     MinLength { value: usize },
     MaxLength { value: usize },
-    WhiteSpace { value: String },
-    Pattern { value: String },
-    Assertion { test: Option<String> },
-    ExplicitTimezone { value: String },
+    MinExclusive { value: Value },
+    MinInclusive { value: Value },
+    MaxExclusive { value: Value },
+    MaxInclusive { value: Value },
+    Enumeration { value: Value },
+    TotalDigits { value: NonZeroUsize },
+    FractionDigits { value: usize },
+    WhiteSpace { value: WhiteSpaceValue },
+    Pattern { value: Pattern },
+    Assertion { test: Option<Assertion> },
+    ExplicitTimezone { value: ExplicitTimezoneValue },
 }
 
 #[derive(Debug, Clone)]
@@ -214,7 +267,10 @@ impl SimpleFragmentEquivalent for xs::types::TopLevelSimpleType {
 
         let simple_derivation = self.simple_derivation.to_simple_fragments(&mut compiler);
 
-        compiler.push_fragment(SimpleTypeRootFragment { simple_derivation })
+        compiler.push_fragment(SimpleTypeRootFragment {
+            name: Some(self.name.clone()),
+            simple_derivation,
+        })
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
@@ -236,7 +292,10 @@ impl SimpleFragmentEquivalent for xs::types::LocalSimpleType {
 
         let simple_derivation = self.simple_derivation.to_simple_fragments(&mut compiler);
 
-        compiler.push_fragment(SimpleTypeRootFragment { simple_derivation })
+        compiler.push_fragment(SimpleTypeRootFragment {
+            name: None,
+            simple_derivation,
+        })
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
@@ -342,7 +401,7 @@ impl SimpleFragmentEquivalent for xs::MinExclusive {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::MinExclusive {
-            value: self.0.value.clone(),
+            value: Value(self.0.value.clone()),
         })
     }
 
@@ -364,7 +423,7 @@ impl SimpleFragmentEquivalent for xs::MinInclusive {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::MinInclusive {
-            value: self.0.value.clone(),
+            value: Value(self.0.value.clone()),
         })
     }
 
@@ -386,7 +445,7 @@ impl SimpleFragmentEquivalent for xs::MaxExclusive {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::MaxExclusive {
-            value: self.0.value.clone(),
+            value: Value(self.0.value.clone()),
         })
     }
 
@@ -408,7 +467,7 @@ impl SimpleFragmentEquivalent for xs::MaxInclusive {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::MaxInclusive {
-            value: self.0.value.clone(),
+            value: Value(self.0.value.clone()),
         })
     }
 
@@ -430,7 +489,7 @@ impl SimpleFragmentEquivalent for xs::Enumeration {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::Enumeration {
-            value: self.0.value.clone(),
+            value: Value(self.0.value.clone()),
         })
     }
 
@@ -452,7 +511,8 @@ impl SimpleFragmentEquivalent for xs::TotalDigits {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::TotalDigits {
-            value: self.value.clone(),
+            //TODO
+            value: NonZeroUsize::new(self.value).unwrap(),
         })
     }
 
@@ -562,7 +622,8 @@ impl SimpleFragmentEquivalent for xs::WhiteSpace {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::WhiteSpace {
-            value: self.value.clone(),
+            // TODO
+            value: self.value.parse().unwrap(),
         })
     }
 
@@ -584,7 +645,7 @@ impl SimpleFragmentEquivalent for xs::Pattern {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::Pattern {
-            value: self.value.clone(),
+            value: Pattern(self.value.clone()),
         })
     }
 
@@ -606,7 +667,7 @@ impl SimpleFragmentEquivalent for xs::Assertion {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::Assertion {
-            test: self.0.test.clone(),
+            test: self.0.test.clone().map(Assertion),
         })
     }
 
@@ -628,7 +689,8 @@ impl SimpleFragmentEquivalent for xs::ExplicitTimezone {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::ExplicitTimezone {
-            value: self.value.clone(),
+            //TODO
+            value: self.value.parse().unwrap(),
         })
     }
 
@@ -695,13 +757,13 @@ impl SimpleFragmentEquivalent for xs::Union {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let fragments = self
+        let simple_types = self
             .simple_type
             .iter()
             .map(|simple_type| simple_type.to_simple_fragments(&mut compiler))
             .collect();
 
-        compiler.push_fragment(UnionFragment { fragments })
+        compiler.push_fragment(UnionFragment { simple_types })
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
