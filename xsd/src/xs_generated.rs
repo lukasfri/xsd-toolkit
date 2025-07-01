@@ -1,4 +1,450 @@
 pub mod types {
+    pub mod derivation_control_items {
+        #[derive(
+            ::core::fmt::Debug,
+            ::core::clone::Clone,
+            ::core::marker::Copy,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq
+        )]
+        #[xvalue(with = derivation_control_with)]
+        pub enum DerivationControl {
+            Substitution,
+            Extension,
+            Restriction,
+            List,
+            Union,
+        }
+        pub mod derivation_control_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::DerivationControl, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: ::std::string::String = text
+                    .parse()
+                    .map_err(::xmlity::de::Error::custom)?;
+                super::DerivationControl::try_from(value)
+                    .map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::DerivationControl,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                    .into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug)]
+        pub enum DerivationControlParseError {
+            NonExistent { value: ::std::string::String },
+        }
+        impl ::core::fmt::Display for DerivationControlParseError {
+            fn fmt(
+                &self,
+                f: &mut ::core::fmt::Formatter<'_>,
+            ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                match self {
+                    DerivationControlParseError::NonExistent { value } => {
+                        write!(
+                            f, "Value '{:?}' does not exist in the enumeration", value
+                        )
+                    }
+                }
+            }
+        }
+        impl ::core::convert::TryFrom<::std::string::String> for DerivationControl {
+            type Error = DerivationControlParseError;
+            fn try_from(
+                value: ::std::string::String,
+            ) -> ::core::result::Result<Self, Self::Error> {
+                match ::std::string::String::as_str(&value) {
+                    "substitution" => Ok(DerivationControl::Substitution),
+                    "extension" => Ok(DerivationControl::Extension),
+                    "restriction" => Ok(DerivationControl::Restriction),
+                    "list" => Ok(DerivationControl::List),
+                    "union" => Ok(DerivationControl::Union),
+                    _ => {
+                        Err(DerivationControlParseError::NonExistent {
+                            value,
+                        })
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<DerivationControl> for ::std::string::String {
+            fn from(value: DerivationControl) -> Self {
+                match value {
+                    DerivationControl::Substitution => {
+                        ::std::string::String::from("substitution")
+                    }
+                    DerivationControl::Extension => {
+                        ::std::string::String::from("extension")
+                    }
+                    DerivationControl::Restriction => {
+                        ::std::string::String::from("restriction")
+                    }
+                    DerivationControl::List => ::std::string::String::from("list"),
+                    DerivationControl::Union => ::std::string::String::from("union"),
+                }
+            }
+        }
+    }
+    pub mod public_items {
+        impl ::core::convert::From<::std::string::String> for Public {
+            fn from(value: ::std::string::String) -> Self {
+                Public(value)
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        #[xvalue(with = public_with)]
+        pub struct Public(pub ::std::string::String);
+        pub mod public_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::Public, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: ::std::string::String = text
+                    .parse()
+                    .map_err(::xmlity::de::Error::custom)?;
+                super::Public::try_from(value).map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::Public,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                    .into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug, ::core::cmp::PartialEq, ::core::clone::Clone)]
+        pub enum PublicParseError {}
+        impl ::core::convert::From<Public> for ::std::string::String {
+            fn from(value: Public) -> Self {
+                value.0
+            }
+        }
+    }
+    pub mod simple_derivation_set_items {
+        pub mod variant_variants {
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_0_with)]
+            pub enum Variant0 {
+                All,
+            }
+            pub mod variant_0_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant0, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant0,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant0ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant0ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant0ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+                type Error = Variant0ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "#all" => Ok(Variant0::All),
+                        _ => {
+                            Err(Variant0ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant0> for ::std::string::String {
+                fn from(value: Variant0) -> Self {
+                    match value {
+                        Variant0::All => ::std::string::String::from("#all"),
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<variant_variants::Variant0> for SimpleDerivationSet {
+            fn from(value: variant_variants::Variant0) -> Self {
+                SimpleDerivationSet::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<crate::xs::types::List<::std::string::String>>
+        for SimpleDerivationSet {
+            fn from(value: crate::xs::types::List<::std::string::String>) -> Self {
+                SimpleDerivationSet::Variant1(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum SimpleDerivationSet {
+            Variant0(::std::boxed::Box<variant_variants::Variant0>),
+            Variant1(::std::boxed::Box<crate::xs::types::List<::std::string::String>>),
+        }
+    }
+    pub mod special_namespace_list_items {
+        #[derive(
+            ::core::fmt::Debug,
+            ::core::clone::Clone,
+            ::core::marker::Copy,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq
+        )]
+        #[xvalue(with = special_namespace_list_with)]
+        pub enum SpecialNamespaceList {
+            Any,
+            Other,
+        }
+        pub mod special_namespace_list_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::SpecialNamespaceList, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: ::std::string::String = text
+                    .parse()
+                    .map_err(::xmlity::de::Error::custom)?;
+                super::SpecialNamespaceList::try_from(value)
+                    .map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::SpecialNamespaceList,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                    .into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug)]
+        pub enum SpecialNamespaceListParseError {
+            NonExistent { value: ::std::string::String },
+        }
+        impl ::core::fmt::Display for SpecialNamespaceListParseError {
+            fn fmt(
+                &self,
+                f: &mut ::core::fmt::Formatter<'_>,
+            ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                match self {
+                    SpecialNamespaceListParseError::NonExistent { value } => {
+                        write!(
+                            f, "Value '{:?}' does not exist in the enumeration", value
+                        )
+                    }
+                }
+            }
+        }
+        impl ::core::convert::TryFrom<::std::string::String> for SpecialNamespaceList {
+            type Error = SpecialNamespaceListParseError;
+            fn try_from(
+                value: ::std::string::String,
+            ) -> ::core::result::Result<Self, Self::Error> {
+                match ::std::string::String::as_str(&value) {
+                    "##any" => Ok(SpecialNamespaceList::Any),
+                    "##other" => Ok(SpecialNamespaceList::Other),
+                    _ => {
+                        Err(SpecialNamespaceListParseError::NonExistent {
+                            value,
+                        })
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<SpecialNamespaceList> for ::std::string::String {
+            fn from(value: SpecialNamespaceList) -> Self {
+                match value {
+                    SpecialNamespaceList::Any => ::std::string::String::from("##any"),
+                    SpecialNamespaceList::Other => ::std::string::String::from("##other"),
+                }
+            }
+        }
+    }
+    pub mod all_items {
+        #[derive(
+            ::core::fmt::Debug,
+            ::core::clone::Clone,
+            ::core::marker::Copy,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq
+        )]
+        #[xvalue(with = test_enum_with)]
+        #[repr(usize)]
+        pub enum MinOccursValue {
+            U0 = 0usize,
+            U1 = 1usize,
+        }
+        pub mod test_enum_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::MinOccursValue, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: usize = text.parse().map_err(::xmlity::de::Error::custom)?;
+                super::MinOccursValue::try_from(value)
+                    .map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::MinOccursValue,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: usize = ::core::clone::Clone::clone(value).into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug)]
+        pub enum TestEnumParseError {
+            NonExistent { value: usize },
+        }
+        impl ::core::fmt::Display for TestEnumParseError {
+            fn fmt(
+                &self,
+                f: &mut ::core::fmt::Formatter<'_>,
+            ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                match self {
+                    TestEnumParseError::NonExistent { value } => {
+                        write!(
+                            f, "Value '{:?}' does not exist in the enumeration", value
+                        )
+                    }
+                }
+            }
+        }
+        impl ::core::convert::TryFrom<usize> for MinOccursValue {
+            type Error = TestEnumParseError;
+            fn try_from(value: usize) -> ::core::result::Result<Self, Self::Error> {
+                match value {
+                    0usize => Ok(MinOccursValue::U0),
+                    1usize => Ok(MinOccursValue::U1),
+                    _ => {
+                        Err(TestEnumParseError::NonExistent {
+                            value,
+                        })
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<MinOccursValue> for usize {
+            fn from(value: MinOccursValue) -> Self {
+                match value {
+                    MinOccursValue::U0 => 0usize,
+                    MinOccursValue::U1 => 1usize,
+                }
+            }
+        }
+    }
     #[derive(
         ::core::fmt::Debug,
         ::xmlity::SerializationGroup,
@@ -10,6 +456,10 @@ pub mod types {
     pub struct All {
         #[xattribute(name = "id", optional, default)]
         pub id: ::core::option::Option<String>,
+        #[xattribute(name = "minOccurs", optional, default)]
+        pub min_occurs: ::core::option::Option<all_items::MinOccursValue>,
+        #[xattribute(name = "maxOccurs", optional, default)]
+        pub max_occurs: ::core::option::Option<::std::string::String>,
         pub all_model: ::std::boxed::Box<crate::xs::groups::AllModel>,
     }
     pub mod alt_type_items {
@@ -118,6 +568,98 @@ pub mod types {
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
     }
+    pub mod attribute_items {
+        #[derive(
+            ::core::fmt::Debug,
+            ::core::clone::Clone,
+            ::core::marker::Copy,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq
+        )]
+        #[xvalue(with = use_value_with)]
+        pub enum UseValue {
+            Prohibited,
+            Optional,
+            Required,
+        }
+        pub mod use_value_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::UseValue, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: ::std::string::String = text
+                    .parse()
+                    .map_err(::xmlity::de::Error::custom)?;
+                super::UseValue::try_from(value).map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::UseValue,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                    .into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug)]
+        pub enum UseValueParseError {
+            NonExistent { value: ::std::string::String },
+        }
+        impl ::core::fmt::Display for UseValueParseError {
+            fn fmt(
+                &self,
+                f: &mut ::core::fmt::Formatter<'_>,
+            ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                match self {
+                    UseValueParseError::NonExistent { value } => {
+                        write!(
+                            f, "Value '{:?}' does not exist in the enumeration", value
+                        )
+                    }
+                }
+            }
+        }
+        impl ::core::convert::TryFrom<::std::string::String> for UseValue {
+            type Error = UseValueParseError;
+            fn try_from(
+                value: ::std::string::String,
+            ) -> ::core::result::Result<Self, Self::Error> {
+                match ::std::string::String::as_str(&value) {
+                    "prohibited" => Ok(UseValue::Prohibited),
+                    "optional" => Ok(UseValue::Optional),
+                    "required" => Ok(UseValue::Required),
+                    _ => {
+                        Err(UseValueParseError::NonExistent {
+                            value,
+                        })
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<UseValue> for ::std::string::String {
+            fn from(value: UseValue) -> Self {
+                match value {
+                    UseValue::Prohibited => ::std::string::String::from("prohibited"),
+                    UseValue::Optional => ::std::string::String::from("optional"),
+                    UseValue::Required => ::std::string::String::from("required"),
+                }
+            }
+        }
+    }
     #[derive(
         ::core::fmt::Debug,
         ::xmlity::SerializationGroup,
@@ -137,7 +679,7 @@ pub mod types {
         #[xattribute(name = "type", optional, default)]
         pub type_: ::core::option::Option<crate::xs::types::QName>,
         #[xattribute(name = "use", optional, default)]
-        pub use_: ::core::option::Option<String>,
+        pub use_: ::core::option::Option<attribute_items::UseValue>,
         #[xattribute(name = "default", optional, default)]
         pub default: ::core::option::Option<String>,
         #[xattribute(name = "fixed", optional, default)]
@@ -337,7 +879,9 @@ pub mod types {
         #[xattribute(name = "type", optional, default)]
         pub type_attribute: ::core::option::Option<crate::xs::types::QName>,
         #[xattribute(name = "substitutionGroup", optional, default)]
-        pub substitution_group: ::core::option::Option<String>,
+        pub substitution_group: ::core::option::Option<
+            crate::xs::types::List<crate::xs::types::QName>,
+        >,
         #[xattribute(name = "minOccurs", optional, default)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional, default)]
@@ -927,7 +1471,11 @@ pub mod types {
         #[xattribute(name = "id", optional, default)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "final", optional, default)]
-        pub final_: ::core::option::Option<String>,
+        pub final_: ::core::option::Option<
+            ::std::boxed::Box<
+                crate::xs::types::simple_derivation_set_items::SimpleDerivationSet,
+            >,
+        >,
         #[xattribute(name = "name", optional, default)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
         #[xvalue(default)]
@@ -1143,7 +1691,9 @@ pub mod types {
         #[xattribute(name = "type", optional, default)]
         pub type_attribute: ::core::option::Option<crate::xs::types::QName>,
         #[xattribute(name = "substitutionGroup", optional, default)]
-        pub substitution_group: ::core::option::Option<String>,
+        pub substitution_group: ::core::option::Option<
+            crate::xs::types::List<crate::xs::types::QName>,
+        >,
         #[xattribute(name = "default", optional, default)]
         pub default: ::core::option::Option<String>,
         #[xattribute(name = "fixed", optional, default)]
@@ -1180,12 +1730,109 @@ pub mod types {
         #[xattribute(name = "id", optional, default)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "final", optional, default)]
-        pub final_: ::core::option::Option<String>,
+        pub final_: ::core::option::Option<
+            ::std::boxed::Box<
+                crate::xs::types::simple_derivation_set_items::SimpleDerivationSet,
+            >,
+        >,
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
         pub simple_derivation: ::std::boxed::Box<crate::xs::groups::SimpleDerivation>,
+    }
+    pub mod wildcard_items {
+        #[derive(
+            ::core::fmt::Debug,
+            ::core::clone::Clone,
+            ::core::marker::Copy,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq
+        )]
+        #[xvalue(with = process_contents_value_with)]
+        pub enum ProcessContentsValue {
+            Skip,
+            Lax,
+            Strict,
+        }
+        pub mod process_contents_value_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::ProcessContentsValue, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: ::std::string::String = text
+                    .parse()
+                    .map_err(::xmlity::de::Error::custom)?;
+                super::ProcessContentsValue::try_from(value)
+                    .map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::ProcessContentsValue,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                    .into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug)]
+        pub enum ProcessContentsValueParseError {
+            NonExistent { value: ::std::string::String },
+        }
+        impl ::core::fmt::Display for ProcessContentsValueParseError {
+            fn fmt(
+                &self,
+                f: &mut ::core::fmt::Formatter<'_>,
+            ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                match self {
+                    ProcessContentsValueParseError::NonExistent { value } => {
+                        write!(
+                            f, "Value '{:?}' does not exist in the enumeration", value
+                        )
+                    }
+                }
+            }
+        }
+        impl ::core::convert::TryFrom<::std::string::String> for ProcessContentsValue {
+            type Error = ProcessContentsValueParseError;
+            fn try_from(
+                value: ::std::string::String,
+            ) -> ::core::result::Result<Self, Self::Error> {
+                match ::std::string::String::as_str(&value) {
+                    "skip" => Ok(ProcessContentsValue::Skip),
+                    "lax" => Ok(ProcessContentsValue::Lax),
+                    "strict" => Ok(ProcessContentsValue::Strict),
+                    _ => {
+                        Err(ProcessContentsValueParseError::NonExistent {
+                            value,
+                        })
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<ProcessContentsValue> for ::std::string::String {
+            fn from(value: ProcessContentsValue) -> Self {
+                match value {
+                    ProcessContentsValue::Skip => ::std::string::String::from("skip"),
+                    ProcessContentsValue::Lax => ::std::string::String::from("lax"),
+                    ProcessContentsValue::Strict => ::std::string::String::from("strict"),
+                }
+            }
+        }
     }
     #[derive(
         ::core::fmt::Debug,
@@ -1202,9 +1849,11 @@ pub mod types {
         #[xattribute(name = "namespace", optional, default)]
         pub namespace: ::core::option::Option<crate::xs::types::NamespaceListType>,
         #[xattribute(name = "notNamespace", optional, default)]
-        pub not_namespace: ::core::option::Option<String>,
+        pub not_namespace: ::core::option::Option<::std::string::String>,
         #[xattribute(name = "processContents", optional, default)]
-        pub process_contents: ::core::option::Option<String>,
+        pub process_contents: ::core::option::Option<
+            wildcard_items::ProcessContentsValue,
+        >,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
     }
@@ -1832,6 +2481,96 @@ pub struct Annotation {
     #[builder(default)]
     pub annotation: ::std::vec::Vec<annotation_items::Annotation>,
 }
+pub mod any_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::core::clone::Clone,
+        ::core::marker::Copy,
+        ::xmlity::Serialize,
+        ::xmlity::Deserialize,
+        ::core::cmp::PartialEq
+    )]
+    #[xvalue(with = process_contents_value_with)]
+    pub enum ProcessContentsValue {
+        Skip,
+        Lax,
+        Strict,
+    }
+    pub mod process_contents_value_with {
+        pub fn deserialize<'de, D>(
+            deserializer: D,
+        ) -> ::core::result::Result<super::ProcessContentsValue, D::Error>
+        where
+            D: ::xmlity::Deserializer<'de>,
+        {
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                deserializer,
+            )?;
+            let value: ::std::string::String = text
+                .parse()
+                .map_err(::xmlity::de::Error::custom)?;
+            super::ProcessContentsValue::try_from(value)
+                .map_err(::xmlity::de::Error::custom)
+        }
+        pub fn serialize<S>(
+            value: &super::ProcessContentsValue,
+            serializer: S,
+        ) -> ::core::result::Result<S::Ok, S::Error>
+        where
+            S: ::xmlity::Serializer,
+        {
+            let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
+            ::xmlity::Serialize::serialize(
+                ::std::string::String::as_str(
+                    &::std::string::ToString::to_string(&value),
+                ),
+                serializer,
+            )
+        }
+    }
+    #[derive(::core::fmt::Debug)]
+    pub enum ProcessContentsValueParseError {
+        NonExistent { value: ::std::string::String },
+    }
+    impl ::core::fmt::Display for ProcessContentsValueParseError {
+        fn fmt(
+            &self,
+            f: &mut ::core::fmt::Formatter<'_>,
+        ) -> ::core::result::Result<(), ::core::fmt::Error> {
+            match self {
+                ProcessContentsValueParseError::NonExistent { value } => {
+                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                }
+            }
+        }
+    }
+    impl ::core::convert::TryFrom<::std::string::String> for ProcessContentsValue {
+        type Error = ProcessContentsValueParseError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::core::result::Result<Self, Self::Error> {
+            match ::std::string::String::as_str(&value) {
+                "skip" => Ok(ProcessContentsValue::Skip),
+                "lax" => Ok(ProcessContentsValue::Lax),
+                "strict" => Ok(ProcessContentsValue::Strict),
+                _ => {
+                    Err(ProcessContentsValueParseError::NonExistent {
+                        value,
+                    })
+                }
+            }
+        }
+    }
+    impl ::core::convert::From<ProcessContentsValue> for ::std::string::String {
+        fn from(value: ProcessContentsValue) -> Self {
+            match value {
+                ProcessContentsValue::Skip => ::std::string::String::from("skip"),
+                ProcessContentsValue::Lax => ::std::string::String::from("lax"),
+                ProcessContentsValue::Strict => ::std::string::String::from("strict"),
+            }
+        }
+    }
+}
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
@@ -1852,9 +2591,9 @@ pub struct Any {
     #[xattribute(name = "namespace", optional, default)]
     pub namespace: ::core::option::Option<crate::xs::types::NamespaceListType>,
     #[xattribute(name = "notNamespace", optional, default)]
-    pub not_namespace: ::core::option::Option<String>,
+    pub not_namespace: ::core::option::Option<::std::string::String>,
     #[xattribute(name = "processContents", optional, default)]
-    pub process_contents: ::core::option::Option<String>,
+    pub process_contents: ::core::option::Option<any_items::ProcessContentsValue>,
     #[xattribute(name = "notQName", optional, default)]
     pub not_q_name: ::core::option::Option<crate::xs::types::QnameListType>,
     #[xattribute(name = "minOccurs", optional, default)]
@@ -1863,6 +2602,96 @@ pub struct Any {
     pub max_occurs: ::core::option::Option<crate::xs::types::AllNNI>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
+}
+pub mod any_attribute_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::core::clone::Clone,
+        ::core::marker::Copy,
+        ::xmlity::Serialize,
+        ::xmlity::Deserialize,
+        ::core::cmp::PartialEq
+    )]
+    #[xvalue(with = process_contents_value_with)]
+    pub enum ProcessContentsValue {
+        Skip,
+        Lax,
+        Strict,
+    }
+    pub mod process_contents_value_with {
+        pub fn deserialize<'de, D>(
+            deserializer: D,
+        ) -> ::core::result::Result<super::ProcessContentsValue, D::Error>
+        where
+            D: ::xmlity::Deserializer<'de>,
+        {
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                deserializer,
+            )?;
+            let value: ::std::string::String = text
+                .parse()
+                .map_err(::xmlity::de::Error::custom)?;
+            super::ProcessContentsValue::try_from(value)
+                .map_err(::xmlity::de::Error::custom)
+        }
+        pub fn serialize<S>(
+            value: &super::ProcessContentsValue,
+            serializer: S,
+        ) -> ::core::result::Result<S::Ok, S::Error>
+        where
+            S: ::xmlity::Serializer,
+        {
+            let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
+            ::xmlity::Serialize::serialize(
+                ::std::string::String::as_str(
+                    &::std::string::ToString::to_string(&value),
+                ),
+                serializer,
+            )
+        }
+    }
+    #[derive(::core::fmt::Debug)]
+    pub enum ProcessContentsValueParseError {
+        NonExistent { value: ::std::string::String },
+    }
+    impl ::core::fmt::Display for ProcessContentsValueParseError {
+        fn fmt(
+            &self,
+            f: &mut ::core::fmt::Formatter<'_>,
+        ) -> ::core::result::Result<(), ::core::fmt::Error> {
+            match self {
+                ProcessContentsValueParseError::NonExistent { value } => {
+                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                }
+            }
+        }
+    }
+    impl ::core::convert::TryFrom<::std::string::String> for ProcessContentsValue {
+        type Error = ProcessContentsValueParseError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::core::result::Result<Self, Self::Error> {
+            match ::std::string::String::as_str(&value) {
+                "skip" => Ok(ProcessContentsValue::Skip),
+                "lax" => Ok(ProcessContentsValue::Lax),
+                "strict" => Ok(ProcessContentsValue::Strict),
+                _ => {
+                    Err(ProcessContentsValueParseError::NonExistent {
+                        value,
+                    })
+                }
+            }
+        }
+    }
+    impl ::core::convert::From<ProcessContentsValue> for ::std::string::String {
+        fn from(value: ProcessContentsValue) -> Self {
+            match value {
+                ProcessContentsValue::Skip => ::std::string::String::from("skip"),
+                ProcessContentsValue::Lax => ::std::string::String::from("lax"),
+                ProcessContentsValue::Strict => ::std::string::String::from("strict"),
+            }
+        }
+    }
 }
 #[derive(
     ::core::fmt::Debug,
@@ -1883,9 +2712,11 @@ pub struct AnyAttribute {
     #[xattribute(name = "namespace", optional, default)]
     pub namespace: ::core::option::Option<crate::xs::types::NamespaceListType>,
     #[xattribute(name = "notNamespace", optional, default)]
-    pub not_namespace: ::core::option::Option<String>,
+    pub not_namespace: ::core::option::Option<::std::string::String>,
     #[xattribute(name = "processContents", optional, default)]
-    pub process_contents: ::core::option::Option<String>,
+    pub process_contents: ::core::option::Option<
+        any_attribute_items::ProcessContentsValue,
+    >,
     #[xattribute(name = "notQName", optional, default)]
     pub not_q_name: ::core::option::Option<crate::xs::types::QnameListAType>,
 }
@@ -2081,6 +2912,92 @@ impl ::core::convert::From<crate::xs::types::TopLevelComplexType> for ComplexTyp
         ComplexType(::std::boxed::Box::new(value))
     }
 }
+pub mod default_open_content_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::core::clone::Clone,
+        ::core::marker::Copy,
+        ::xmlity::Serialize,
+        ::xmlity::Deserialize,
+        ::core::cmp::PartialEq
+    )]
+    #[xvalue(with = mode_value_with)]
+    pub enum ModeValue {
+        Interleave,
+        Suffix,
+    }
+    pub mod mode_value_with {
+        pub fn deserialize<'de, D>(
+            deserializer: D,
+        ) -> ::core::result::Result<super::ModeValue, D::Error>
+        where
+            D: ::xmlity::Deserializer<'de>,
+        {
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                deserializer,
+            )?;
+            let value: ::std::string::String = text
+                .parse()
+                .map_err(::xmlity::de::Error::custom)?;
+            super::ModeValue::try_from(value).map_err(::xmlity::de::Error::custom)
+        }
+        pub fn serialize<S>(
+            value: &super::ModeValue,
+            serializer: S,
+        ) -> ::core::result::Result<S::Ok, S::Error>
+        where
+            S: ::xmlity::Serializer,
+        {
+            let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
+            ::xmlity::Serialize::serialize(
+                ::std::string::String::as_str(
+                    &::std::string::ToString::to_string(&value),
+                ),
+                serializer,
+            )
+        }
+    }
+    #[derive(::core::fmt::Debug)]
+    pub enum ModeValueParseError {
+        NonExistent { value: ::std::string::String },
+    }
+    impl ::core::fmt::Display for ModeValueParseError {
+        fn fmt(
+            &self,
+            f: &mut ::core::fmt::Formatter<'_>,
+        ) -> ::core::result::Result<(), ::core::fmt::Error> {
+            match self {
+                ModeValueParseError::NonExistent { value } => {
+                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                }
+            }
+        }
+    }
+    impl ::core::convert::TryFrom<::std::string::String> for ModeValue {
+        type Error = ModeValueParseError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::core::result::Result<Self, Self::Error> {
+            match ::std::string::String::as_str(&value) {
+                "interleave" => Ok(ModeValue::Interleave),
+                "suffix" => Ok(ModeValue::Suffix),
+                _ => {
+                    Err(ModeValueParseError::NonExistent {
+                        value,
+                    })
+                }
+            }
+        }
+    }
+    impl ::core::convert::From<ModeValue> for ::std::string::String {
+        fn from(value: ModeValue) -> Self {
+            match value {
+                ModeValue::Interleave => ::std::string::String::from("interleave"),
+                ModeValue::Suffix => ::std::string::String::from("suffix"),
+            }
+        }
+    }
+}
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
@@ -2101,7 +3018,7 @@ pub struct DefaultOpenContent {
     #[xattribute(name = "appliesToEmpty", optional, default)]
     pub applies_to_empty: ::core::option::Option<bool>,
     #[xattribute(name = "mode", optional, default)]
-    pub mode: ::core::option::Option<String>,
+    pub mode: ::core::option::Option<default_open_content_items::ModeValue>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
     #[xelement(name = "any", namespace = "http://www.w3.org/2001/XMLSchema", group)]
@@ -2179,6 +3096,95 @@ impl ::core::convert::From<crate::xs::types::NoFixedFacet> for Enumeration {
         Enumeration(::std::boxed::Box::new(value))
     }
 }
+pub mod explicit_timezone_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::core::clone::Clone,
+        ::core::marker::Copy,
+        ::xmlity::Serialize,
+        ::xmlity::Deserialize,
+        ::core::cmp::PartialEq
+    )]
+    #[xvalue(with = value_value_with)]
+    pub enum ValueValue {
+        Optional,
+        Required,
+        Prohibited,
+    }
+    pub mod value_value_with {
+        pub fn deserialize<'de, D>(
+            deserializer: D,
+        ) -> ::core::result::Result<super::ValueValue, D::Error>
+        where
+            D: ::xmlity::Deserializer<'de>,
+        {
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                deserializer,
+            )?;
+            let value: ::std::string::String = text
+                .parse()
+                .map_err(::xmlity::de::Error::custom)?;
+            super::ValueValue::try_from(value).map_err(::xmlity::de::Error::custom)
+        }
+        pub fn serialize<S>(
+            value: &super::ValueValue,
+            serializer: S,
+        ) -> ::core::result::Result<S::Ok, S::Error>
+        where
+            S: ::xmlity::Serializer,
+        {
+            let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
+            ::xmlity::Serialize::serialize(
+                ::std::string::String::as_str(
+                    &::std::string::ToString::to_string(&value),
+                ),
+                serializer,
+            )
+        }
+    }
+    #[derive(::core::fmt::Debug)]
+    pub enum ValueValueParseError {
+        NonExistent { value: ::std::string::String },
+    }
+    impl ::core::fmt::Display for ValueValueParseError {
+        fn fmt(
+            &self,
+            f: &mut ::core::fmt::Formatter<'_>,
+        ) -> ::core::result::Result<(), ::core::fmt::Error> {
+            match self {
+                ValueValueParseError::NonExistent { value } => {
+                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                }
+            }
+        }
+    }
+    impl ::core::convert::TryFrom<::std::string::String> for ValueValue {
+        type Error = ValueValueParseError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::core::result::Result<Self, Self::Error> {
+            match ::std::string::String::as_str(&value) {
+                "optional" => Ok(ValueValue::Optional),
+                "required" => Ok(ValueValue::Required),
+                "prohibited" => Ok(ValueValue::Prohibited),
+                _ => {
+                    Err(ValueValueParseError::NonExistent {
+                        value,
+                    })
+                }
+            }
+        }
+    }
+    impl ::core::convert::From<ValueValue> for ::std::string::String {
+        fn from(value: ValueValue) -> Self {
+            match value {
+                ValueValue::Optional => ::std::string::String::from("optional"),
+                ValueValue::Required => ::std::string::String::from("required"),
+                ValueValue::Prohibited => ::std::string::String::from("prohibited"),
+            }
+        }
+    }
+}
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
@@ -2197,11 +3203,65 @@ pub struct ExplicitTimezone {
     #[xattribute(name = "id", optional, default)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "value")]
-    pub value: String,
+    pub value: explicit_timezone_items::ValueValue,
     #[xattribute(name = "fixed", optional, default)]
     pub fixed: ::core::option::Option<bool>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
+}
+pub mod field_items {
+    impl ::core::convert::From<::std::string::String> for XpathValue {
+        fn from(value: ::std::string::String) -> Self {
+            XpathValue(value)
+        }
+    }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::Serialize,
+        ::xmlity::Deserialize,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xvalue(with = xpath_value_with)]
+    pub struct XpathValue(pub ::std::string::String);
+    pub mod xpath_value_with {
+        pub fn deserialize<'de, D>(
+            deserializer: D,
+        ) -> ::core::result::Result<super::XpathValue, D::Error>
+        where
+            D: ::xmlity::Deserializer<'de>,
+        {
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                deserializer,
+            )?;
+            let value: ::std::string::String = text
+                .parse()
+                .map_err(::xmlity::de::Error::custom)?;
+            super::XpathValue::try_from(value).map_err(::xmlity::de::Error::custom)
+        }
+        pub fn serialize<S>(
+            value: &super::XpathValue,
+            serializer: S,
+        ) -> ::core::result::Result<S::Ok, S::Error>
+        where
+            S: ::xmlity::Serializer,
+        {
+            let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
+            ::xmlity::Serialize::serialize(
+                ::std::string::String::as_str(
+                    &::std::string::ToString::to_string(&value),
+                ),
+                serializer,
+            )
+        }
+    }
+    #[derive(::core::fmt::Debug, ::core::cmp::PartialEq, ::core::clone::Clone)]
+    pub enum XpathValueParseError {}
+    impl ::core::convert::From<XpathValue> for ::std::string::String {
+        fn from(value: XpathValue) -> Self {
+            value.0
+        }
+    }
 }
 #[derive(
     ::core::fmt::Debug,
@@ -2221,7 +3281,7 @@ pub struct Field {
     #[xattribute(name = "id", optional, default)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "xpath")]
-    pub xpath: String,
+    pub xpath: field_items::XpathValue,
     #[xattribute(name = "xpathDefaultNamespace", optional, default)]
     pub xpath_default_namespace: ::core::option::Option<
         crate::xs::types::XpathDefaultNamespaceType,
@@ -2551,11 +3611,102 @@ pub struct Notation {
     #[xattribute(name = "name")]
     pub name: ::xmlity::LocalName<'static>,
     #[xattribute(name = "public", optional, default)]
-    pub public: ::core::option::Option<String>,
+    pub public: ::core::option::Option<
+        ::std::boxed::Box<crate::xs::types::public_items::Public>,
+    >,
     #[xattribute(name = "system", optional, default)]
     pub system: ::core::option::Option<crate::xs::types::TargetNamespace>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
+}
+pub mod open_content_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::core::clone::Clone,
+        ::core::marker::Copy,
+        ::xmlity::Serialize,
+        ::xmlity::Deserialize,
+        ::core::cmp::PartialEq
+    )]
+    #[xvalue(with = mode_value_with)]
+    pub enum ModeValue {
+        None,
+        Interleave,
+        Suffix,
+    }
+    pub mod mode_value_with {
+        pub fn deserialize<'de, D>(
+            deserializer: D,
+        ) -> ::core::result::Result<super::ModeValue, D::Error>
+        where
+            D: ::xmlity::Deserializer<'de>,
+        {
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                deserializer,
+            )?;
+            let value: ::std::string::String = text
+                .parse()
+                .map_err(::xmlity::de::Error::custom)?;
+            super::ModeValue::try_from(value).map_err(::xmlity::de::Error::custom)
+        }
+        pub fn serialize<S>(
+            value: &super::ModeValue,
+            serializer: S,
+        ) -> ::core::result::Result<S::Ok, S::Error>
+        where
+            S: ::xmlity::Serializer,
+        {
+            let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
+            ::xmlity::Serialize::serialize(
+                ::std::string::String::as_str(
+                    &::std::string::ToString::to_string(&value),
+                ),
+                serializer,
+            )
+        }
+    }
+    #[derive(::core::fmt::Debug)]
+    pub enum ModeValueParseError {
+        NonExistent { value: ::std::string::String },
+    }
+    impl ::core::fmt::Display for ModeValueParseError {
+        fn fmt(
+            &self,
+            f: &mut ::core::fmt::Formatter<'_>,
+        ) -> ::core::result::Result<(), ::core::fmt::Error> {
+            match self {
+                ModeValueParseError::NonExistent { value } => {
+                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                }
+            }
+        }
+    }
+    impl ::core::convert::TryFrom<::std::string::String> for ModeValue {
+        type Error = ModeValueParseError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::core::result::Result<Self, Self::Error> {
+            match ::std::string::String::as_str(&value) {
+                "none" => Ok(ModeValue::None),
+                "interleave" => Ok(ModeValue::Interleave),
+                "suffix" => Ok(ModeValue::Suffix),
+                _ => {
+                    Err(ModeValueParseError::NonExistent {
+                        value,
+                    })
+                }
+            }
+        }
+    }
+    impl ::core::convert::From<ModeValue> for ::std::string::String {
+        fn from(value: ModeValue) -> Self {
+            match value {
+                ModeValue::None => ::std::string::String::from("none"),
+                ModeValue::Interleave => ::std::string::String::from("interleave"),
+                ModeValue::Suffix => ::std::string::String::from("suffix"),
+            }
+        }
+    }
 }
 #[derive(
     ::core::fmt::Debug,
@@ -2575,7 +3726,7 @@ pub struct OpenContent {
     #[xattribute(name = "id", optional, default)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "mode", optional, default)]
-    pub mode: ::core::option::Option<String>,
+    pub mode: ::core::option::Option<open_content_items::ModeValue>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
     #[xelement(
@@ -2779,6 +3930,60 @@ pub struct Schema {
     #[builder(default)]
     pub child_2: ::std::vec::Vec<schema_items::Child2>,
 }
+pub mod selector_items {
+    impl ::core::convert::From<::std::string::String> for XpathValue {
+        fn from(value: ::std::string::String) -> Self {
+            XpathValue(value)
+        }
+    }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::Serialize,
+        ::xmlity::Deserialize,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xvalue(with = xpath_value_with)]
+    pub struct XpathValue(pub ::std::string::String);
+    pub mod xpath_value_with {
+        pub fn deserialize<'de, D>(
+            deserializer: D,
+        ) -> ::core::result::Result<super::XpathValue, D::Error>
+        where
+            D: ::xmlity::Deserializer<'de>,
+        {
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                deserializer,
+            )?;
+            let value: ::std::string::String = text
+                .parse()
+                .map_err(::xmlity::de::Error::custom)?;
+            super::XpathValue::try_from(value).map_err(::xmlity::de::Error::custom)
+        }
+        pub fn serialize<S>(
+            value: &super::XpathValue,
+            serializer: S,
+        ) -> ::core::result::Result<S::Ok, S::Error>
+        where
+            S: ::xmlity::Serializer,
+        {
+            let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
+            ::xmlity::Serialize::serialize(
+                ::std::string::String::as_str(
+                    &::std::string::ToString::to_string(&value),
+                ),
+                serializer,
+            )
+        }
+    }
+    #[derive(::core::fmt::Debug, ::core::cmp::PartialEq, ::core::clone::Clone)]
+    pub enum XpathValueParseError {}
+    impl ::core::convert::From<XpathValue> for ::std::string::String {
+        fn from(value: XpathValue) -> Self {
+            value.0
+        }
+    }
+}
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
@@ -2797,7 +4002,7 @@ pub struct Selector {
     #[xattribute(name = "id", optional, default)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "xpath")]
-    pub xpath: String,
+    pub xpath: selector_items::XpathValue,
     #[xattribute(name = "xpathDefaultNamespace", optional, default)]
     pub xpath_default_namespace: ::core::option::Option<
         crate::xs::types::XpathDefaultNamespaceType,
@@ -2919,7 +4124,7 @@ pub struct TotalDigits {
     #[xattribute(name = "id", optional, default)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "value")]
-    pub value: usize,
+    pub value: ::core::num::NonZeroUsize,
     #[xattribute(name = "fixed", optional, default)]
     pub fixed: ::core::option::Option<bool>,
     #[xvalue(default)]
@@ -2966,7 +4171,9 @@ pub struct Union {
     #[xattribute(name = "id", optional, default)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "memberTypes", optional, default)]
-    pub member_types: ::core::option::Option<String>,
+    pub member_types: ::core::option::Option<
+        crate::xs::types::List<crate::xs::types::QName>,
+    >,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
     #[xvalue(default)]
@@ -2991,6 +4198,95 @@ impl ::core::convert::From<crate::xs::types::Keybase> for Unique {
         Unique(::std::boxed::Box::new(value))
     }
 }
+pub mod white_space_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::core::clone::Clone,
+        ::core::marker::Copy,
+        ::xmlity::Serialize,
+        ::xmlity::Deserialize,
+        ::core::cmp::PartialEq
+    )]
+    #[xvalue(with = value_value_with)]
+    pub enum ValueValue {
+        Preserve,
+        Replace,
+        Collapse,
+    }
+    pub mod value_value_with {
+        pub fn deserialize<'de, D>(
+            deserializer: D,
+        ) -> ::core::result::Result<super::ValueValue, D::Error>
+        where
+            D: ::xmlity::Deserializer<'de>,
+        {
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                deserializer,
+            )?;
+            let value: ::std::string::String = text
+                .parse()
+                .map_err(::xmlity::de::Error::custom)?;
+            super::ValueValue::try_from(value).map_err(::xmlity::de::Error::custom)
+        }
+        pub fn serialize<S>(
+            value: &super::ValueValue,
+            serializer: S,
+        ) -> ::core::result::Result<S::Ok, S::Error>
+        where
+            S: ::xmlity::Serializer,
+        {
+            let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
+            ::xmlity::Serialize::serialize(
+                ::std::string::String::as_str(
+                    &::std::string::ToString::to_string(&value),
+                ),
+                serializer,
+            )
+        }
+    }
+    #[derive(::core::fmt::Debug)]
+    pub enum ValueValueParseError {
+        NonExistent { value: ::std::string::String },
+    }
+    impl ::core::fmt::Display for ValueValueParseError {
+        fn fmt(
+            &self,
+            f: &mut ::core::fmt::Formatter<'_>,
+        ) -> ::core::result::Result<(), ::core::fmt::Error> {
+            match self {
+                ValueValueParseError::NonExistent { value } => {
+                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                }
+            }
+        }
+    }
+    impl ::core::convert::TryFrom<::std::string::String> for ValueValue {
+        type Error = ValueValueParseError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::core::result::Result<Self, Self::Error> {
+            match ::std::string::String::as_str(&value) {
+                "preserve" => Ok(ValueValue::Preserve),
+                "replace" => Ok(ValueValue::Replace),
+                "collapse" => Ok(ValueValue::Collapse),
+                _ => {
+                    Err(ValueValueParseError::NonExistent {
+                        value,
+                    })
+                }
+            }
+        }
+    }
+    impl ::core::convert::From<ValueValue> for ::std::string::String {
+        fn from(value: ValueValue) -> Self {
+            match value {
+                ValueValue::Preserve => ::std::string::String::from("preserve"),
+                ValueValue::Replace => ::std::string::String::from("replace"),
+                ValueValue::Collapse => ::std::string::String::from("collapse"),
+            }
+        }
+    }
+}
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
@@ -3009,7 +4305,7 @@ pub struct WhiteSpace {
     #[xattribute(name = "id", optional, default)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "value")]
-    pub value: String,
+    pub value: white_space_items::ValueValue,
     #[xattribute(name = "fixed", optional, default)]
     pub fixed: ::core::option::Option<bool>,
     #[xvalue(default)]

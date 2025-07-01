@@ -533,13 +533,13 @@ mod tests {
                                         xs::types::Attribute::builder()
                                             .name(LocalName::new_dangerous("number"))
                                             .type_(xs::types::QName(xsn::INTEGER.clone()))
-                                            .use_(xs::types::AttributeUseType::Required.to_string())
+                                            .use_(xs::types::attribute_items::UseValue::Required)
                                             .build()
                                             .into(),
                                         xs::types::Attribute::builder()
                                             .name(LocalName::new_dangerous("name"))
                                             .type_(xs::types::QName(xsn::STRING.clone()))
-                                            .use_(xs::types::AttributeUseType::Required.to_string())
+                                            .use_(xs::types::attribute_items::UseValue::Required)
                                             .build()
                                             .into(),
                                     ])
@@ -580,13 +580,13 @@ mod tests {
                                         xs::types::Attribute::builder()
                                             .name(LocalName::new_dangerous("number"))
                                             .type_(xs::types::QName(xsn::INTEGER.clone()))
-                                            .use_(xs::types::AttributeUseType::Optional.to_string())
+                                            .use_(xs::types::attribute_items::UseValue::Optional)
                                             .build()
                                             .into(),
                                         xs::types::Attribute::builder()
                                             .name(LocalName::new_dangerous("color"))
                                             .type_(xs::types::QName(xsn::STRING.clone()))
-                                            .use_(xs::types::AttributeUseType::Required.to_string())
+                                            .use_(xs::types::attribute_items::UseValue::Required)
                                             .build()
                                             .into(),
                                     ])
@@ -627,8 +627,7 @@ mod tests {
                                                 .name(LocalName::new_dangerous("number"))
                                                 .type_(xs::types::QName(xsn::INTEGER.clone()))
                                                 .use_(
-                                                    xs::types::AttributeUseType::Optional
-                                                        .to_string(),
+                                                    xs::types::attribute_items::UseValue::Optional,
                                                 )
                                                 .build()
                                                 .into(),
@@ -636,8 +635,7 @@ mod tests {
                                                 .name(LocalName::new_dangerous("name"))
                                                 .type_(xs::types::QName(xsn::STRING.clone()))
                                                 .use_(
-                                                    xs::types::AttributeUseType::Required
-                                                        .to_string(),
+                                                    xs::types::attribute_items::UseValue::Required,
                                                 )
                                                 .build()
                                                 .into(),
@@ -645,8 +643,7 @@ mod tests {
                                                 .name(LocalName::new_dangerous("color"))
                                                 .type_(xs::types::QName(xsn::STRING.clone()))
                                                 .use_(
-                                                    xs::types::AttributeUseType::Required
-                                                        .to_string(),
+                                                    xs::types::attribute_items::UseValue::Required,
                                                 )
                                                 .build()
                                                 .into(),

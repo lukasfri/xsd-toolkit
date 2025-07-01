@@ -418,7 +418,7 @@ mod tests {
                                                         .type_(xs::types::QName(
                                                             xsn::INTEGER.clone(),
                                                         ))
-                                                        .use_("required".to_string())
+                                                        .use_(xs::types::attribute_items::UseValue::Required)
                                                         // .use_(xs::types::AttributeUseType::Required)
                                                         .build()
                                                         .into(),
@@ -427,7 +427,7 @@ mod tests {
                                                         .type_(xs::types::QName(
                                                             xsn::STRING.clone(),
                                                         ))
-                                                        .use_("required".to_string())
+                                                        .use_(xs::types::attribute_items::UseValue::Required)
                                                         // .use_(xs::types::AttributeUseType::Required)
                                                         .build()
                                                         .into(),
@@ -663,14 +663,14 @@ mod tests {
                                                     .name(LocalName::new_dangerous("c"))
                                                     .type_(xs::types::QName(xsn::INTEGER.clone()))
                                                     // .use_(xs::AttributeUseType::Required)
-                                                    .use_("required".to_string())
+                                                    .use_(xs::types::attribute_items::UseValue::Required)
                                                     .build()
                                                     .into(),
                                                 xs::types::Attribute::builder()
                                                     .name(LocalName::new_dangerous("d"))
                                                     .type_(xs::types::QName(xsn::STRING.clone()))
                                                     // .use_(xs::AttributeUseType::Required)
-                                                    .use_("required".to_string())
+                                                    .use_(xs::types::attribute_items::UseValue::Required)
                                                     .build()
                                                     .into(),
                                             ])

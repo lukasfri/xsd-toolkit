@@ -1298,11 +1298,10 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
         let use_ = self
             .use_
             .as_ref()
-            .map(|a| a.parse().unwrap())
             .map(|a| match a {
-                xs::types::AttributeUseType::Prohibited => AttributeUse::Prohibited,
-                xs::types::AttributeUseType::Optional => AttributeUse::Optional,
-                xs::types::AttributeUseType::Required => AttributeUse::Required,
+                xs::types::attribute_items::UseValue::Prohibited => AttributeUse::Prohibited,
+                xs::types::attribute_items::UseValue::Optional => AttributeUse::Optional,
+                xs::types::attribute_items::UseValue::Required => AttributeUse::Required,
             });
 
         let type_mode = if let Some(ref ref_) = self.ref_ {
@@ -1354,11 +1353,10 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
                 let use_ = fragment
                     .use_
                     .map(|a| match a {
-                        AttributeUse::Required => xs::types::AttributeUseType::Required,
-                        AttributeUse::Optional => xs::types::AttributeUseType::Optional,
-                        AttributeUse::Prohibited => xs::types::AttributeUseType::Prohibited,
-                    })
-                    .map(|a| a.to_string());
+                        AttributeUse::Required => xs::types::attribute_items::UseValue::Required,
+                        AttributeUse::Optional => xs::types::attribute_items::UseValue::Optional,
+                        AttributeUse::Prohibited => xs::types::attribute_items::UseValue::Prohibited,
+                    });
                 Ok(xs::types::Attribute::builder()
                     .name(name)
                     .maybe_type_(type_)

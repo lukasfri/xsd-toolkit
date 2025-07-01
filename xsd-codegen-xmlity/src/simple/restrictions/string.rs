@@ -129,13 +129,13 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: StringBaseValue> Restr
             };
 
             let struct_item = struct_def.to_struct();
-            let (err, try_from_impl) = struct_def.try_from_impl(&error_ident);
+            let err = struct_def.try_from_impl(&error_ident);
             let into_impl = struct_def.into_impl();
             let with_mod = struct_def.with_mod();
             let enum_ty = scope.add_item(struct_item)?;
             scope.add_item(with_mod)?;
             scope.add_item(err)?;
-            scope.add_raw_items([try_from_impl, into_impl]);
+            scope.add_raw_items([into_impl]);
 
             Ok(crate::ToTypeTemplateData {
                 ident: Some(ident),

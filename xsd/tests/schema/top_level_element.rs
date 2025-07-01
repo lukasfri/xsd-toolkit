@@ -181,7 +181,7 @@ fn xsd_any_attribute() -> xs::Element {
                                                 Some(XmlNamespace::XS),
                                             )))
                                             // .use_(xs::AttributeUseType::Optional)
-                                            .use_("optional".to_string())
+                                            .use_(xs::types::attribute_items::UseValue::Optional)
                                             .build()
                                             .into()])
                                         .build()
@@ -785,7 +785,12 @@ fn xsd_total_digits() -> xs::Element {
     xs::types::TopLevelElement::builder()
         .name(LocalName::new_dangerous("totalDigits"))
         .id("totalDigits".to_string())
-        .substitution_group("xs:facet".to_string())
+        .substitution_group(xs::types::List(vec![
+          xs::types::QName(ExpandedName::new(
+            LocalName::new_dangerous("facet"),
+            Some(XmlNamespace::XS),
+          )),
+        ]))
         .annotation(
             xs::Annotation::builder()
                 .annotation(vec![xs::Documentation::builder()
@@ -845,13 +850,13 @@ fn xsd_total_digits() -> xs::Element {
                                                 Some(XmlNamespace::XS),
                                             )))
                                             // .use_(xs::AttributeUseType::Required)
-                                            .use_("required".to_string())
+                                            .use_(xs::types::attribute_items::UseValue::Required)
                                             .build()
                                             .into()])
                                         .any_attribute(
                                             xs::AnyAttribute::builder()
                                                 .namespace(xs::types::NamespaceListType::Other)
-                                                .process_contents("lax".to_string())
+                                                .process_contents(xs::any_attribute_items::ProcessContentsValue::Lax)
                                                 // .process_contents(xs::ProcessContentsType::Lax)
                                                 .build()
                                                 .into(),
@@ -961,7 +966,12 @@ fn xsd_white_space() -> xs::Element {
         xs::types::TopLevelElement::builder()
             .name(LocalName::new_dangerous("whiteSpace"))
             .id("whiteSpace".to_string())
-            .substitution_group("xs:facet".to_string())
+            .substitution_group(xs::types::List(vec![
+          xs::types::QName(ExpandedName::new(
+            LocalName::new_dangerous("facet"),
+            Some(XmlNamespace::XS),
+          )),
+        ]))
             .annotation(
                 xs::Annotation::builder()
                     .annotation(vec![xs::Documentation::builder()
@@ -1012,7 +1022,7 @@ fn xsd_white_space() -> xs::Element {
                                                 .attribute(vec![xs::types::Attribute::builder()
                                                     .name(LocalName::new_dangerous("value"))
                                                     // .use_(xs::AttributeUseType::Required)
-                                                    .use_("required".to_string())
+                                                    .use_(xs::types::attribute_items::UseValue::Required)
                                                     .simple_type(
                                                         xs::types::LocalSimpleType::builder()
                                                             .simple_derivation(
@@ -1062,8 +1072,7 @@ fn xsd_white_space() -> xs::Element {
                                                     xs::AnyAttribute::builder()
                                                         .namespace(xs::types::NamespaceListType::Other)
                                                         .process_contents(
-                                                          "lax".to_string()
-                                                            // xs::ProcessContentsType::Lax,
+                                                          xs::any_attribute_items::ProcessContentsValue::Lax
                                                         )
                                                         .build()
                                                         .into(),

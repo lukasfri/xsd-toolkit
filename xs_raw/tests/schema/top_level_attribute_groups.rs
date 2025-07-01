@@ -75,12 +75,12 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                 LocalName::new_dangerous("namespaceList"),
                                 Some(XmlNamespace::XS),
                             )))
-                            .use_("optional".to_string())
+                            .use_(xs::types::attribute_items::UseValue::Optional)
                             .build()
                             .into(),
                         xs::types::Attribute::builder()
                             .name(LocalName::new_dangerous("notNamespace"))
-                            .use_("optional".to_string())
+                            .use_(xs::types::attribute_items::UseValue::Optional)
                             .simple_type(
                                 xs::types::LocalSimpleType::builder()
                                     .simple_derivation(Box::new(
@@ -111,7 +111,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                         xs::types::Attribute::builder()
                             .name(LocalName::new_dangerous("processContents"))
                             .default("strict".to_string())
-                            .use_("optional".to_string())
+                            .use_(xs::types::attribute_items::UseValue::Optional)
                             .simple_type(
                                 xs::types::LocalSimpleType::builder()
                                     .simple_derivation(Box::new(
@@ -132,7 +132,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                                         .into(),
                                                         xs::Facet::from(xs::Enumeration(
                                                             xs::types::NoFixedFacet::builder()
-                                                                .value("lax".to_string())
+                                                                .value(xs::any_attribute_items::ProcessContentsValue::Lax)
                                                                 .build()
                                                                 .into(),
                                                         ))

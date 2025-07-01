@@ -67,15 +67,12 @@ pub enum WhiteSpaceValue {
     Collapse,
 }
 
-impl FromStr for WhiteSpaceValue {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "preserve" => Ok(WhiteSpaceValue::Preserve),
-            "replace" => Ok(WhiteSpaceValue::Replace),
-            "collapse" => Ok(WhiteSpaceValue::Collapse),
-            _ => Err(()),
+impl From<xs::white_space_items::ValueValue> for WhiteSpaceValue {
+    fn from(value: xs::white_space_items::ValueValue) -> Self {
+        match value {
+            xs::white_space_items::ValueValue::Preserve => WhiteSpaceValue::Preserve,
+            xs::white_space_items::ValueValue::Replace => WhiteSpaceValue::Replace,
+            xs::white_space_items::ValueValue::Collapse => WhiteSpaceValue::Collapse,
         }
     }
 }
@@ -87,15 +84,14 @@ pub enum ExplicitTimezoneValue {
     Optional,
 }
 
-impl FromStr for ExplicitTimezoneValue {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "required" => Ok(ExplicitTimezoneValue::Required),
-            "prohibited" => Ok(ExplicitTimezoneValue::Prohibited),
-            "optional" => Ok(ExplicitTimezoneValue::Optional),
-            _ => Err(()),
+impl From<xs::explicit_timezone_items::ValueValue> for ExplicitTimezoneValue {
+    fn from(value: xs::explicit_timezone_items::ValueValue) -> Self {
+        match value {
+            xs::explicit_timezone_items::ValueValue::Required => ExplicitTimezoneValue::Required,
+            xs::explicit_timezone_items::ValueValue::Prohibited => {
+                ExplicitTimezoneValue::Prohibited
+            }
+            xs::explicit_timezone_items::ValueValue::Optional => ExplicitTimezoneValue::Optional,
         }
     }
 }
@@ -512,7 +508,7 @@ impl SimpleFragmentEquivalent for xs::TotalDigits {
 
         compiler.push_fragment(FacetFragment::TotalDigits {
             //TODO
-            value: NonZeroUsize::new(self.value).unwrap(),
+            value: self.value,
         })
     }
 
@@ -623,7 +619,7 @@ impl SimpleFragmentEquivalent for xs::WhiteSpace {
 
         compiler.push_fragment(FacetFragment::WhiteSpace {
             // TODO
-            value: self.value.parse().unwrap(),
+            value: self.value.into(),
         })
     }
 
@@ -690,7 +686,7 @@ impl SimpleFragmentEquivalent for xs::ExplicitTimezone {
 
         compiler.push_fragment(FacetFragment::ExplicitTimezone {
             //TODO
-            value: self.value.parse().unwrap(),
+            value: self.value.into(),
         })
     }
 

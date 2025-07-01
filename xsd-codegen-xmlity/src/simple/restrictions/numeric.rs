@@ -54,11 +54,13 @@ impl NumericBaseValue for rust_decimal::Decimal {
     }
 
     fn to_value_expr(&self) -> syn::Expr {
-        // In code: ::rust_decimal::dec!(123.456)
-        let val_string = proc_macro2::Literal::from_str(&self.to_string())
-            .expect("Failed to convert Decimal to literal");
+        let mantissa = self.mantissa();
+        let scale = self.scale();
 
-        parse_quote!(::rust_decimal::dec!(#val_string))
+        let mantissa = proc_macro2::Literal::i128_suffixed(mantissa);
+        let scale = proc_macro2::Literal::u32_suffixed(scale);
+
+        parse_quote!(::rust_decimal::Decimal::from_i128_with_scale(#mantissa, #scale))
     }
 
     fn repr_type() -> syn::Type {
@@ -468,13 +470,13 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: NumericBaseValue> Rest
             };
 
             let struct_item = struct_def.to_struct();
-            let (err, try_from_impl) = struct_def.try_from_impl(&error_ident);
+            let err = struct_def.try_from_impl(&error_ident);
             let into_impl = struct_def.into_impl();
             let with_mod = struct_def.with_mod();
             let enum_ty = scope.add_item(struct_item)?;
             scope.add_item(with_mod)?;
             scope.add_item(err)?;
-            scope.add_raw_items([try_from_impl, into_impl]);
+            scope.add_raw_items([into_impl]);
 
             Ok(crate::ToTypeTemplateData {
                 ident: Some(ident),

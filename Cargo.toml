@@ -5,7 +5,7 @@ members = [
   "xsd-codegen-xmlity",
   "xsd-type-compiler",
   "xmlity-build",
-  "xs_raw",
+  # "xs_raw",
 ]
 
 [workspace.package]
@@ -20,8 +20,8 @@ license = "MIT OR Apache-2.0"
 thiserror = "^2.0.4"
 pretty_assertions = "^1.4.1"
 rstest = "^0.25.0"
-xmlity = { version = "0.0.6", features = [
+xmlity = { version = "0.0.7", features = [
   "derive",
-], git = "https://github.com/lukasfri/xmlity.git", rev = "4e59e1acbcfa7ab9b4024de9d9c6cbe50481c3bb" }
-xmlity-quick-xml = { version = "0.0.6", git = "https://github.com/lukasfri/xmlity.git", rev = "4e59e1acbcfa7ab9b4024de9d9c6cbe50481c3bb" }
+], git = "https://github.com/lukasfri/xmlity.git", rev = "7c0e7c4eaf685af03d40bce42c53e4984b9a1cf3" }
+xmlity-quick-xml = { version = "0.0.7", git = "https://github.com/lukasfri/xmlity.git", rev = "7c0e7c4eaf685af03d40bce42c53e4984b9a1cf3" }
 ntest = "0.9.3"

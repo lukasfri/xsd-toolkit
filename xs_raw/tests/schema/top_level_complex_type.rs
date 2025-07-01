@@ -627,7 +627,7 @@ fn xsd_all() -> xs::ComplexType {
                                             .name(LocalName::new_dangerous("minOccurs"))
                                             .default("1".to_string())
                                             // .use_(xs::AttributeUseType::Optional)
-                                            .use_("optional".to_string())
+                                            .use_(xs::types::attribute_items::UseValue::Optional)
                                             .simple_type(
                                                 xs::types::LocalSimpleType::builder()
                                                     .simple_derivation(
@@ -674,7 +674,7 @@ fn xsd_all() -> xs::ComplexType {
                                         xs::types::Attribute::builder()
                                             .name(LocalName::new_dangerous("maxOccurs"))
                                             .default("1".to_string())
-                                            .use_("optional".to_string())
+                                            .use_(xs::types::attribute_items::UseValue::Optional)
                                             // .use_(xs::AttributeUseType::Optional)
                                             .simple_type(
                                                 xs::types::LocalSimpleType::builder()
@@ -721,7 +721,7 @@ fn xsd_all() -> xs::ComplexType {
                                         xs::AnyAttribute::builder()
                                             .namespace(xs::types::NamespaceListType::Other)
                                             .process_contents(
-                                                "lax".to_string(), // xs::ProcessContentsType::Lax
+                                                xs::any_attribute_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
                                             )
                                             .build().into(),
                                     )
@@ -862,7 +862,7 @@ fn xsd_any_type() -> xs::ComplexType {
                                         .min_occurs(0)
                                         .max_occurs(xs::types::AllNNI::Unbounded)
                                         .process_contents(
-                                            "lax".to_string(), // xs::ProcessContentsType::Lax
+                                            xs::any_attribute_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
                                         )
                                         .build()
                                         .into(),
@@ -876,7 +876,7 @@ fn xsd_any_type() -> xs::ComplexType {
                         .any_attribute(
                             xs::AnyAttribute::builder()
                                 .process_contents(
-                                    "lax".to_string(), // xs::ProcessContentsType::Lax
+                                    xs::any_attribute_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
                                 )
                                 .build()
                                 .into(),

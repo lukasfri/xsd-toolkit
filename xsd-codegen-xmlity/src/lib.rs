@@ -10,7 +10,7 @@ use std::{collections::BTreeMap, convert::Infallible, ops::Deref};
 use complex::ComplexToTypeTemplate;
 use inflector::Inflector;
 use misc::TypeReference;
-use quote::format_ident;
+use quote::{format_ident, ToTokens};
 use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_type_compiler::{
@@ -779,8 +779,39 @@ impl<'a> Generator<'a> {
             }); // TODO: handle this error properly with a better error message
 
         match type_ {
-            xsd_type_compiler::TopLevelType::Simple(_type_) => {
-                let ty = TypeReference::new_static(parse_quote!(String));
+            xsd_type_compiler::TopLevelType::Simple(type_) => {
+                println!(
+                    "Generating simple type: {} in namespace: {}",
+                    name.local_name(),
+                    name.namespace().unwrap()
+                );
+                let fragment = compiled_namespace
+                    .complex_type
+                    .simple_type_fragments
+                    .get_fragment(&type_.root_fragment)
+                    .unwrap();
+
+                let item_name = name.local_name().to_item_ident();
+                let module_name = format_ident!("{}Items", item_name).to_path_ident();
+                let context =
+                    GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
+                let mut scope = GeneratorScope::new(self.augmenter.deref());
+
+                let type_ = fragment.to_type_template(&context, &mut scope)?;
+
+                let mut items = Vec::new();
+
+                items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
+
+                let ty = type_
+                    .template
+                    .prefix(parse_quote!(#module_name))
+                    .wrap(TypeReference::box_non_boxed_wrapper);
+
+                println!(
+                    "TY: {:?}",
+                    ty.clone().into_type(None).to_token_stream().to_string()
+                );
 
                 let bound_type = BoundType {
                     ty,
@@ -789,7 +820,7 @@ impl<'a> Generator<'a> {
                     deserialize_with: None,
                 };
 
-                Ok((bound_type, Vec::new()))
+                Ok((bound_type, items))
             }
             xsd_type_compiler::TopLevelType::Complex(type_) => {
                 let fragment = compiled_namespace

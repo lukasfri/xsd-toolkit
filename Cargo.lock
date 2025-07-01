@@ -1075,8 +1075,8 @@ dependencies = [
 
 [[package]]
 name = "xmlity"
-version = "0.0.6"
-source = "git+https://github.com/lukasfri/xmlity.git?rev=4e59e1acbcfa7ab9b4024de9d9c6cbe50481c3bb#4e59e1acbcfa7ab9b4024de9d9c6cbe50481c3bb"
+version = "0.0.7"
+source = "git+https://github.com/lukasfri/xmlity.git?rev=7c0e7c4eaf685af03d40bce42c53e4984b9a1cf3#7c0e7c4eaf685af03d40bce42c53e4984b9a1cf3"
 dependencies = [
  "thiserror",
  "xmlity-derive",
@@ -1105,8 +1105,8 @@ dependencies = [
 
 [[package]]
 name = "xmlity-derive"
-version = "0.0.6"
-source = "git+https://github.com/lukasfri/xmlity.git?rev=4e59e1acbcfa7ab9b4024de9d9c6cbe50481c3bb#4e59e1acbcfa7ab9b4024de9d9c6cbe50481c3bb"
+version = "0.0.7"
+source = "git+https://github.com/lukasfri/xmlity.git?rev=7c0e7c4eaf685af03d40bce42c53e4984b9a1cf3#7c0e7c4eaf685af03d40bce42c53e4984b9a1cf3"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -1116,26 +1116,12 @@ dependencies = [
 
 [[package]]
 name = "xmlity-quick-xml"
-version = "0.0.6"
-source = "git+https://github.com/lukasfri/xmlity.git?rev=4e59e1acbcfa7ab9b4024de9d9c6cbe50481c3bb#4e59e1acbcfa7ab9b4024de9d9c6cbe50481c3bb"
+version = "0.0.7"
+source = "git+https://github.com/lukasfri/xmlity.git?rev=7c0e7c4eaf685af03d40bce42c53e4984b9a1cf3#7c0e7c4eaf685af03d40bce42c53e4984b9a1cf3"
 dependencies = [
  "quick-xml",
  "thiserror",
  "xmlity",
-]
-
-[[package]]
-name = "xs_raw"
-version = "0.0.0"
-dependencies = [
- "bon",
- "derive_more",
- "ntest",
- "pretty_assertions",
- "rstest",
- "thiserror",
- "xmlity",
- "xmlity-quick-xml",
 ]
 
 [[package]]

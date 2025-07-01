@@ -15,18 +15,18 @@ impl TryFromStruct<'_> {
         )
     }
 
-    pub fn to_impl(&self, enum_type: &syn::Type, error_path: &syn::Type) -> syn::ItemImpl {
-        let repr_type = &self.repr_type;
-        parse_quote!(
-            impl ::core::convert::TryFrom<#repr_type> for #enum_type {
-                type Error = #error_path;
+    // pub fn to_impl(&self, enum_type: &syn::Type, error_path: &syn::Type) -> syn::ItemImpl {
+    //     let repr_type = &self.repr_type;
+    //     parse_quote!(
+    //         impl ::core::convert::TryFrom<#repr_type> for #enum_type {
+    //             type Error = #error_path;
 
-                fn try_from(value: #repr_type) -> ::core::result::Result<Self, Self::Error> {
-                    Ok(Self(value))
-                }
-            }
-        )
-    }
+    //             fn try_from(value: #repr_type) -> ::core::result::Result<Self, Self::Error> {
+    //                 Ok(Self(value))
+    //             }
+    //         }
+    //     )
+    // }
 }
 
 pub struct StructInto<'a> {
@@ -80,17 +80,19 @@ impl WrapperStruct {
         )
     }
 
-    pub fn try_from_impl(&self, error_ident: &Ident) -> (syn::ItemEnum, syn::ItemImpl) {
+    pub fn try_from_impl(&self, error_ident: &Ident) -> syn::ItemEnum {
         let impl_ = TryFromStruct {
             repr_type: &self.repr_type,
         };
 
-        let enum_ident = &self.struct_ident;
+        impl_.to_error_type(error_ident)
 
-        (
-            impl_.to_error_type(error_ident),
-            impl_.to_impl(&parse_quote!(#enum_ident), &parse_quote!(#error_ident)),
-        )
+        // let enum_ident = &self.struct_ident;
+
+        // (
+        //     impl_.to_error_type(error_ident),
+        //     impl_.to_impl(&parse_quote!(#enum_ident), &parse_quote!(#error_ident)),
+        // )
     }
 
     pub fn into_impl(&self) -> syn::ItemImpl {

@@ -181,7 +181,7 @@ fn xsd_any_attribute() -> xs::Element {
                                                 Some(XmlNamespace::XS),
                                             )))
                                             // .use_(xs::AttributeUseType::Optional)
-                                            .use_("optional".to_string())
+                                            .use_(xs::types::attribute_items::UseValue::Optional)
                                             .build()
                                             .into()])
                                         .build()
@@ -839,7 +839,7 @@ fn xsd_total_digits() -> xs::Element {
                                             .any_attribute(
                                                 xs::AnyAttribute::builder()
                                                     .namespace(xs::types::NamespaceListType::Other)
-                                                    .process_contents("lax".to_string())
+                                                    .process_contents(xs::any_attribute_items::ProcessContentsValue::Lax)
                                                     // .process_contents(xs::ProcessContentsType::Lax)
                                                     .build().into(),
                                             )
@@ -1051,7 +1051,7 @@ fn xsd_white_space() -> xs::Element {
                                                     xs::AnyAttribute::builder()
                                                         .namespace(xs::types::NamespaceListType::Other)
                                                         .process_contents(
-                                                          "lax".to_string()
+                                                          xs::any_attribute_items::ProcessContentsValue::Lax
                                                             // xs::ProcessContentsType::Lax,
                                                         )
                                                         .build()

@@ -152,7 +152,11 @@ impl<'a, T: IntoIterator<Item = (&'a Ident, &'a syn::Pat)>, F: FnOnce(&syn::Expr
                     &self,
                     f: &mut ::core::fmt::Formatter<'_>,
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
-                    todo!("Implement Display");
+                    match self {
+                        #ident::NonExistent { value } => {
+                            write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                        }
+                    }
                 }
             }
         );
@@ -303,7 +307,7 @@ impl IntoSerializeWith<'_> {
             where
                 S: ::xmlity::Serializer,
             {
-                let value: #repr_type = (*value).into();
+                let value: #repr_type = ::core::clone::Clone::clone(value).into();
 
                 ::xmlity::Serialize::serialize(::std::string::String::as_str(&::std::string::ToString::to_string(&value)), serializer)
             }
