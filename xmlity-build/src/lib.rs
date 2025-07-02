@@ -177,7 +177,6 @@ impl StartedBuildEngine {
                         parse_quote!(::core::cmp::PartialEq),
                         parse_quote!(::core::clone::Clone),
                     ],
-                    ..Default::default()
                 })) as Box<dyn ItemAugmentation>,
             ],
         );

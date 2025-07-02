@@ -82,7 +82,7 @@ impl SimpleToTypeTemplate for sm::UnionFragment {
                     .sub_context(suggested_ident.clone())
                     .resolve_fragment_id(fragment_id, &mut sub_scope)?;
 
-                let ident = res.ident.unwrap_or_else(|| suggested_ident);
+                let ident = res.ident.unwrap_or(suggested_ident);
 
                 Ok(((ident.to_variant_ident(), res.template), ident))
             })

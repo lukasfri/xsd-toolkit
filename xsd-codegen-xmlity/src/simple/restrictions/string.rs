@@ -52,9 +52,7 @@ impl StringBaseValue for String {
             .chars()
             .take(MAX_IDENT_LENGTH)
             .collect::<String>()
-            .replace('-', "_")
-            .replace(' ', "_")
-            .replace('.', "_");
+            .replace(['-', ' ', '.'], "_");
 
         format_ident!("{}", a)
     }

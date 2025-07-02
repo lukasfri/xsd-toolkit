@@ -516,8 +516,7 @@ impl Scope for GeneratorScope<'_> {
     }
 
     fn add_raw_items<I: IntoIterator<Item = J>, J: Into<syn::Item>>(&mut self, items: I) {
-        self.items
-            .extend(items.into_iter().map(Into::into).map(|item| item));
+        self.items.extend(items.into_iter().map(Into::into));
     }
 
     fn augmenter(&self) -> &dyn augments::ItemAugmentation {
@@ -825,7 +824,7 @@ impl<'a> Generator<'a> {
 
                 let mut items = Vec::new();
 
-                items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
+                items.extend(scope.finish_mod(&module_name).map(Item::Mod));
 
                 let ty = type_.template.into_type(Some(&parse_quote!(#module_name)));
 
@@ -869,7 +868,7 @@ impl<'a> Generator<'a> {
 
                 let augment_items = self.augmenter.augment_struct(&mut item);
 
-                items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
+                items.extend(scope.finish_mod(&module_name).map(Item::Mod));
 
                 items.push(Item::Struct(item));
 
@@ -926,7 +925,7 @@ impl<'a> Generator<'a> {
 
         let augment_items = self.augmenter.augment_struct(&mut item);
 
-        items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
+        items.extend(scope.finish_mod(&module_name).map(Item::Mod));
 
         items.push(Item::Struct(item));
 
@@ -973,7 +972,7 @@ impl<'a> Generator<'a> {
 
         let augment_items = self.augmenter.augment_struct(&mut item);
 
-        items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
+        items.extend(scope.finish_mod(&module_name).map(Item::Mod));
 
         items.push(Item::Struct(item));
 

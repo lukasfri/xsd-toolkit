@@ -8,6 +8,7 @@ use crate::{augments::ItemAugmentation, misc::unbox_type};
 pub struct EnumFromAugmentation {}
 
 impl EnumFromAugmentation {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         EnumFromAugmentation {}
     }
@@ -60,7 +61,7 @@ impl ItemAugmentation for EnumFromAugmentation {
             };
 
             // Then, if field_ty is a boxed type, we want to create a From impl for the inner type instead of the boxed type.
-            let impl_: syn::ItemImpl = if let Some(field_ty) = unbox_type(&field_ty) {
+            let impl_: syn::ItemImpl = if let Some(field_ty) = unbox_type(field_ty) {
                 syn::parse_quote! {
                     impl ::core::convert::From<#field_ty> for #item_ident {
                         fn from(value: #field_ty) -> Self {

@@ -6,6 +6,7 @@ use crate::{augments::ItemAugmentation, misc::unvec_type};
 pub struct BonAugmentation {}
 
 impl BonAugmentation {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         BonAugmentation {}
     }

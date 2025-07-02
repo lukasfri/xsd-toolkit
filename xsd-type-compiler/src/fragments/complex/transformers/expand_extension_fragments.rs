@@ -87,7 +87,7 @@ impl ExpandExtensionFragments {
             .declarations
             .iter()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (a.clone(), resolve_attr_name(ctx, a)),
+                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
             .collect::<BTreeMap<_, _>>();
@@ -95,7 +95,7 @@ impl ExpandExtensionFragments {
             .declarations
             .iter()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (a.clone(), resolve_attr_name(ctx, a)),
+                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(ctx, a)),
                 AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
             })
             .collect::<BTreeMap<_, _>>();
@@ -207,9 +207,9 @@ impl ExpandExtensionFragments {
                                 .get_complex_fragment::<ExtensionFragment>(&fragment_idx)
                                 .unwrap();
                             (
-                                base_extension_fragment.content_fragment.clone(),
+                                base_extension_fragment.content_fragment,
                                 base_extension_fragment.base.clone(),
-                                base_extension_fragment.attribute_declarations.clone(),
+                                base_extension_fragment.attribute_declarations,
                             )
                         }
                         ComplexContentChildId::Restriction(fragment_idx) => {
@@ -222,16 +222,16 @@ impl ExpandExtensionFragments {
                             }
 
                             (
-                                base_restriction_fragment.content_fragment.clone(),
+                                base_restriction_fragment.content_fragment,
                                 base_restriction_fragment.base.clone(),
-                                base_restriction_fragment.attribute_declarations.clone(),
+                                base_restriction_fragment.attribute_declarations,
                             )
                         }
                     }
                 }
             };
 
-        let child_attributes = child_fragment.attribute_declarations.clone();
+        let child_attributes = child_fragment.attribute_declarations;
 
         let new_content_fragment = child_fragment
             .content_fragment

@@ -10,7 +10,7 @@ pub struct AdditionalDerives {
 }
 
 impl AdditionalDerives {
-    pub fn augment_attributes(attrs: &mut Vec<syn::Attribute>, paths: &[syn::Path]) {
+    pub fn augment_attributes(attrs: &mut [syn::Attribute], paths: &[syn::Path]) {
         let derive_attribute = attrs
             .iter_mut()
             .find(|attr| attr.path().is_ident("derive"))

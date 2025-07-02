@@ -328,7 +328,7 @@ impl<'a> TryFromIntoWithMod<'a> {
         text_checks: impl for<'b> FnOnce(&'b syn::Expr) -> Vec<syn::Stmt>,
     ) -> syn::ItemFn {
         TryFromDeserializeWith {
-            repr_type: &self.repr_type,
+            repr_type: self.repr_type,
             final_type: self.destination_type,
         }
         .deserialize_with_fn(fn_ident, text_checks)
@@ -337,7 +337,7 @@ impl<'a> TryFromIntoWithMod<'a> {
     fn serialize_with_fn(&self, fn_ident: &Ident) -> syn::ItemFn {
         IntoSerializeWith {
             origin_type: self.destination_type,
-            repr_type: &self.repr_type,
+            repr_type: self.repr_type,
         }
         .serialize_with_fn(fn_ident)
     }

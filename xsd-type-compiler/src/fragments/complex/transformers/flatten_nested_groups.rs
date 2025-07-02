@@ -25,7 +25,7 @@ impl FlattenNestedSequences {
         let mut new_fragments = VecDeque::new();
         for fragment_id in fragments {
             let NestedParticleId::Sequence(seq_fragment_id) = fragment_id else {
-                new_fragments.push_back(fragment_id.clone());
+                new_fragments.push_back(*fragment_id);
                 continue;
             };
 
@@ -37,7 +37,7 @@ impl FlattenNestedSequences {
             } = ctx.get_complex_fragment(seq_fragment_id).unwrap();
 
             if max_occurs.is_some() || min_occurs.is_some() {
-                new_fragments.push_back(fragment_id.clone());
+                new_fragments.push_back(*fragment_id);
                 continue;
             }
 
@@ -86,7 +86,7 @@ impl FlattenNestedChoices {
         let mut new_fragments = VecDeque::new();
         for fragment_id in fragments {
             let NestedParticleId::Choice(choice_fragment_id) = fragment_id else {
-                new_fragments.push_back(fragment_id.clone());
+                new_fragments.push_back(*fragment_id);
                 continue;
             };
 
@@ -97,7 +97,7 @@ impl FlattenNestedChoices {
             } = ctx.get_complex_fragment(choice_fragment_id).unwrap();
 
             if max_occurs.is_some() || min_occurs.is_some() {
-                new_fragments.push_back(fragment_id.clone());
+                new_fragments.push_back(*fragment_id);
                 continue;
             }
 

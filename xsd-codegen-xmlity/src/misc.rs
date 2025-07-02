@@ -82,8 +82,8 @@ impl<'a> TypeReference<'a> {
             Type::Path(path) => Some(path),
             _ => None,
         }
-        .and_then(|a| unbox_type(a))
-        .unwrap_or_else(|| ty);
+        .and_then(unbox_type)
+        .unwrap_or(ty);
 
         Self::vec_wrapper(ty)
     }
@@ -97,7 +97,7 @@ impl<'a> TypeReference<'a> {
             Type::Path(path) => Some(path),
             _ => None,
         }
-        .and_then(|a| unbox_type(a))
+        .and_then(unbox_type)
         .is_some()
         {
             ty
@@ -235,7 +235,7 @@ pub const COMMON_NAME_MIN_LENGTH: usize = 4;
 // Tries to find a common name between a list of strings.
 // ["SimpleType", "ComplexType"] becomes Some("Type")
 // ["One", "Two"] becomes None
-pub fn common_name<'a, I: IntoIterator<Item = T>, T: AsRef<str>>(
+pub fn common_name<I: IntoIterator<Item = T>, T: AsRef<str>>(
     names: I,
     min_length: usize,
 ) -> Option<String> {

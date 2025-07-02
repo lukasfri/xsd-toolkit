@@ -4,10 +4,7 @@
 
 pub mod transformers;
 
-use std::{
-    collections::{ VecDeque},
-    ops::Deref,
-};
+use std::{collections::VecDeque, ops::Deref};
 
 use crate::{
     fragments::{
@@ -210,7 +207,6 @@ pub struct ChoiceFragment {
     pub fragments: VecDeque<NestedParticleId>,
 }
 
-
 /// Represents the maximum occurrence of types or elements
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum AllNNI {
@@ -232,7 +228,9 @@ impl From<xs::types::AllNNI> for AllNNI {
         match value {
             xs::types::all_nni_items::AllNNI::Variant0(a) => Self::Bounded(*a),
             xs::types::all_nni_items::AllNNI::Variant0_0(variant0) => match *variant0 {
-                xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded => Self::Unbounded,
+                xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded => {
+                    Self::Unbounded
+                }
             },
         }
     }
@@ -241,9 +239,9 @@ impl From<xs::types::AllNNI> for AllNNI {
 impl From<AllNNI> for xs::types::AllNNI {
     fn from(value: AllNNI) -> Self {
         match value {
-            AllNNI::Unbounded => xs::types::AllNNI::Variant0_0(
-                Box::new(xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded)
-            ),
+            AllNNI::Unbounded => xs::types::AllNNI::Variant0_0(Box::new(
+                xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded,
+            )),
             AllNNI::Bounded(a) => xs::types::AllNNI::Variant0(Box::new(a)),
         }
     }
@@ -1276,7 +1274,6 @@ impl ComplexFragmentEquivalent for xs::types::ComplexRestrictionType {
                     open_content: None,
                     type_def_particle: Box::new(particle),
                 }
-                .into()
             }))
             .attr_decls(attr_decls.into())
             .assertions(xs::groups::Assertions::builder().build().into())
@@ -1333,14 +1330,11 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let use_ = self
-            .use_
-            .as_ref()
-            .map(|a| match a {
-                xs::types::attribute_items::UseValue::Prohibited => AttributeUse::Prohibited,
-                xs::types::attribute_items::UseValue::Optional => AttributeUse::Optional,
-                xs::types::attribute_items::UseValue::Required => AttributeUse::Required,
-            });
+        let use_ = self.use_.as_ref().map(|a| match a {
+            xs::types::attribute_items::UseValue::Prohibited => AttributeUse::Prohibited,
+            xs::types::attribute_items::UseValue::Optional => AttributeUse::Optional,
+            xs::types::attribute_items::UseValue::Required => AttributeUse::Required,
+        });
 
         let type_mode = if let Some(ref ref_) = self.ref_ {
             LocalAttributeFragmentTypeMode::Reference(ReferenceAttributeFragment {
@@ -1388,13 +1382,11 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
                     NamedOrAnonymous::Named(ref_) => Some(xs::types::QName(ref_.clone())),
                     NamedOrAnonymous::Anonymous(_) => None,
                 };
-                let use_ = fragment
-                    .use_
-                    .map(|a| match a {
-                        AttributeUse::Required => xs::types::attribute_items::UseValue::Required,
-                        AttributeUse::Optional => xs::types::attribute_items::UseValue::Optional,
-                        AttributeUse::Prohibited => xs::types::attribute_items::UseValue::Prohibited,
-                    });
+                let use_ = fragment.use_.map(|a| match a {
+                    AttributeUse::Required => xs::types::attribute_items::UseValue::Required,
+                    AttributeUse::Optional => xs::types::attribute_items::UseValue::Optional,
+                    AttributeUse::Prohibited => xs::types::attribute_items::UseValue::Prohibited,
+                });
                 Ok(xs::types::Attribute::builder()
                     .name(name)
                     .maybe_type_(type_)
@@ -1655,9 +1647,8 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelComplexType {
             xs::groups::ComplexTypeModel::from_complex_fragments(compiler, &fragment.content)?;
 
         Ok(Self::builder()
-            .name(fragment.name.clone().ok_or_else(|| 
-                //TODO
-                Error)?)
+            //TODO
+            .name(fragment.name.clone().ok_or(Error)?)
             .maybe_mixed(fragment.mixed)
             .complex_type_model(complex_type_model.into())
             .build())
@@ -1843,7 +1834,7 @@ impl ComplexFragmentEquivalent for xs::types::NamedGroup {
 
         Ok(Self::builder()
             .name(fragment.name.clone())
-            .child_1(content.into())
+            .child_1(content)
             .build())
     }
 }

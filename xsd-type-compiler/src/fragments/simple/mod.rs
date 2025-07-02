@@ -521,7 +521,7 @@ impl SimpleFragmentEquivalent for xs::FractionDigits {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::FractionDigits {
-            value: self.0.value.clone(),
+            value: self.0.value,
         })
     }
 
@@ -543,7 +543,7 @@ impl SimpleFragmentEquivalent for xs::Length {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::Length {
-            value: self.0.value.clone(),
+            value: self.0.value,
         })
     }
 
@@ -565,7 +565,7 @@ impl SimpleFragmentEquivalent for xs::MinLength {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::MinLength {
-            value: self.0.value.clone(),
+            value: self.0.value,
         })
     }
 
@@ -587,7 +587,7 @@ impl SimpleFragmentEquivalent for xs::MaxLength {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::MaxLength {
-            value: self.0.value.clone(),
+            value: self.0.value,
         })
     }
 

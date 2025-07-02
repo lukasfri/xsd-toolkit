@@ -100,7 +100,7 @@ impl SingleChoiceToSequence {
         Self {}
     }
 
-    fn single_choice_to_sequence(
+    fn convert_choice(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: FragmentIdx<ChoiceFragment>,
     ) -> Result<ChoiceToSequence, <Self as XmlnsLocalTransformer>::Error> {
@@ -132,7 +132,7 @@ impl SingleChoiceToSequence {
             return Ok(fragment_id);
         };
 
-        match Self::single_choice_to_sequence(ctx, choice)? {
+        match Self::convert_choice(ctx, choice)? {
             ChoiceToSequence::Sequence(sequence) => Ok(NestedParticleId::Sequence(sequence)),
             ChoiceToSequence::Choice(choice) => Ok(NestedParticleId::Choice(choice)),
         }
@@ -146,7 +146,7 @@ impl SingleChoiceToSequence {
             return Ok(fragment_id);
         };
 
-        match Self::single_choice_to_sequence(ctx, choice)? {
+        match Self::convert_choice(ctx, choice)? {
             ChoiceToSequence::Sequence(sequence) => Ok(TypeDefParticleId::Sequence(sequence)),
             ChoiceToSequence::Choice(choice) => Ok(TypeDefParticleId::Choice(choice)),
         }

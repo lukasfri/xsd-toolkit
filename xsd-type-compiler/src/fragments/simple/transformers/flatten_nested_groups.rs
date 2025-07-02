@@ -35,7 +35,7 @@ impl FlattenNestedUnions {
             let simple_type = ctx.get_simple_fragment(fragment_id).unwrap();
 
             let SimpleDerivation::Union(union_fragment_id) = simple_type.simple_derivation else {
-                new_simple_types.push_back(fragment_id.clone());
+                new_simple_types.push_back(*fragment_id);
                 continue;
             };
 

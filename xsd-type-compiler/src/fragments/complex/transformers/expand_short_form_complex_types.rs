@@ -59,7 +59,7 @@ impl ExpandShortFormComplexTypes {
             return Ok(TransformChange::Unchanged);
         };
         let content_fragment = *particle;
-        let attribute_declarations = attr_decls.clone();
+        let attribute_declarations = *attr_decls;
 
         let compiler = &mut ctx.current_namespace_mut().complex_type;
 

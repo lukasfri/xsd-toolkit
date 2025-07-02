@@ -99,4 +99,10 @@ impl NoopAugmentation {
     }
 }
 
+impl Default for NoopAugmentation {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ItemAugmentation for NoopAugmentation {}
