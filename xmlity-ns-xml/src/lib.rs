@@ -8,7 +8,7 @@ pub mod attributes {
         ::core::clone::Clone
     )]
     #[xattribute(name = "base", namespace = "http://www.w3.org/XML/1998/namespace")]
-    pub struct Base(String);
+    pub struct Base(pub String);
     impl ::core::convert::From<String> for Base {
         fn from(value: String) -> Self {
             Base(value)

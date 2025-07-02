@@ -649,7 +649,13 @@ impl<'a> Generator<'a> {
                     Err(err) => return Some(Err(err)),
                 };
 
-                let bound_namespace = self.bound_namespaces.get(namespace).unwrap();
+                let bound_namespace = self.bound_namespaces.get(namespace).unwrap_or_else(|| {
+                    todo!(
+                        "Namespace not bound: {} for type {}",
+                        namespace,
+                        expanded_name
+                    )
+                });
 
                 let path: syn::Path = parse_quote!(#bound_namespace::#types_module_name);
 

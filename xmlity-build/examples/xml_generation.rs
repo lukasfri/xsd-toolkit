@@ -24,7 +24,7 @@ fn main() {
         .generate_namespace(
             xmlity_build::GenerateNamespace::builder()
                 .output_file("xmlity-ns-xml/src/lib.rs".parse().unwrap())
-                .namespace(XmlNamespace::XS)
+                .namespace(XmlNamespace::XML)
                 .bon_builders(true)
                 .enum_from(true)
                 .struct_from(true)
