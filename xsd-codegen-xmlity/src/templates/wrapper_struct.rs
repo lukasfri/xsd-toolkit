@@ -70,7 +70,7 @@ impl WrapperStruct {
         let attr = self.value_attr();
         let repr_attr = self
             .repr
-            .then(|| -> syn::Attribute { parse_quote!(#[repr(#repr_type)]) });
+            .then(|| -> syn::Attribute { parse_quote!(#[repr(transparent)]) });
 
         parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]

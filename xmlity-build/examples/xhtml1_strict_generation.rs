@@ -10,10 +10,7 @@ fn main() {
     let engine = xmlity_build::BuildEngine::builder()
         .glob_patterns(vec!["./schemas/**/*.xsd".to_string()])
         .url_net_resolution(true)
-        .bound_namespaces(vec![
-            (XmlNamespace::XML, parse_quote!(crate::xml)),
-            (XmlNamespace::XS, parse_quote!(crate::xs)),
-        ])
+        .bound_namespaces(vec![(XmlNamespace::XHTML, parse_quote!(crate::xhtml))])
         .bound_types(vec![
             (
                 ExpandedName::new(LocalName::new_dangerous("QName"), Some(XmlNamespace::XS)),
@@ -60,9 +57,9 @@ fn main() {
     engine
         .generate_namespace(
             xmlity_build::GenerateNamespace::builder()
-                .output_file("xmlity-ns-xs/src/xs_generated.rs".parse().unwrap())
-                .namespace(XmlNamespace::XS)
-                .bon_builders(true)
+                .output_file("xmlity-ns-xhtml/src/xhtml.rs".parse().unwrap())
+                .namespace(XmlNamespace::XHTML)
+                // .bon_builders(true)
                 .enum_from(true)
                 .struct_from(true)
                 .build(),

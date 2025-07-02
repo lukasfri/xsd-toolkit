@@ -4149,7 +4149,7 @@ pub struct Documentation {
     #[xattribute(name = "source", optional, default)]
     pub source: ::core::option::Option<crate::xs::types::TargetNamespace>,
     #[xattribute(deferred = true, optional, default)]
-    pub attribute_1: ::core::option::Option<crate::xml::Lang>,
+    pub attribute_1: ::core::option::Option<xmlity_ns_xml::attributes::Lang>,
     #[xvalue(default)]
     #[builder(default)]
     pub child_0: ::std::vec::Vec<documentation_items::Child0>,
@@ -5020,7 +5020,7 @@ pub struct Schema {
     #[xattribute(name = "id", optional, default)]
     pub id: ::core::option::Option<String>,
     #[xattribute(deferred = true, optional, default)]
-    pub attribute_9: ::core::option::Option<crate::xml::Lang>,
+    pub attribute_9: ::core::option::Option<xmlity_ns_xml::attributes::Lang>,
     #[xvalue(default)]
     #[builder(default)]
     pub composition: ::std::vec::Vec<crate::xs::groups::Composition>,

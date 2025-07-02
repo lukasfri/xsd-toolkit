@@ -1,33 +1,7 @@
 use std::ops::Deref;
 
-pub mod builtin;
-
-mod xs_custom;
-mod xs_generated;
+pub use xmlity_ns_xs::xs;
 pub mod xsn;
-
-pub mod xs {
-    pub use super::xs_custom::elements::Facet;
-    pub use super::xs_generated::*;
-
-    pub mod types {
-        pub use super::super::xs_custom::types::{List, QName, TargetNamespace};
-        // pub use super::super::xs_custom::types::*;
-        pub use super::super::xs_generated::types::*;
-    }
-}
-
-pub mod xml {
-    use xmlity::{Deserialize, SerializeAttribute, XmlNamespace};
-
-    #[derive(Debug, Clone, SerializeAttribute, Deserialize, PartialEq)]
-    #[xattribute(name = "space", namespace_expr = XmlNamespace::XML)]
-    pub struct Space(pub String);
-
-    #[derive(Debug, Clone, SerializeAttribute, Deserialize, PartialEq)]
-    #[xattribute(name = "lang", namespace_expr = XmlNamespace::XML)]
-    pub struct Lang(pub String);
-}
 
 pub struct XmlSchema {
     pub underlying_schema: xs::Schema,

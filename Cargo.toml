@@ -5,7 +5,9 @@ members = [
   "xsd-codegen-xmlity",
   "xsd-type-compiler",
   "xmlity-build",
-  # "xs_raw",
+  "xmlity-ns-xhtml",
+  "xmlity-ns-xs",
+  "xmlity-ns-xml",
 ]
 
 [workspace.package]

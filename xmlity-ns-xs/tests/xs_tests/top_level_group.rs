@@ -1,5 +1,5 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace, XmlValue};
-use xs_raw::xs;
+use xmlity_ns_xs::xs;
 
 #[rstest::rstest]
 #[case::composition(XSD_COMPOSITION, None)]

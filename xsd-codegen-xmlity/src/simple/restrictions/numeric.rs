@@ -430,7 +430,9 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: NumericBaseValue> Rest
                 sm::FacetFragment::Enumeration { value } => {
                     enumerations.push(value.0.trim());
                 }
-                sm::FacetFragment::TotalDigits { value } => todo!(),
+                sm::FacetFragment::TotalDigits { value: _ } => {
+                    //TODO: Handle TotalDigits facet
+                }
                 sm::FacetFragment::FractionDigits { value } => {
                     if T::supports_fraction_digits() {
                         assert_eq!(
@@ -439,8 +441,12 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: NumericBaseValue> Rest
                         );
                     }
                 }
-                sm::FacetFragment::Pattern { value } => todo!(),
-                sm::FacetFragment::Assertion { test } => todo!(),
+                sm::FacetFragment::Pattern { value: _ } => {
+                    //TODO: Handle Pattern facet
+                }
+                sm::FacetFragment::Assertion { test: _ } => {
+                    //TODO: Handle Assertion facet
+                }
                 sm::FacetFragment::WhiteSpace { .. }
                 | sm::FacetFragment::ExplicitTimezone { .. }
                 | sm::FacetFragment::Length { .. }

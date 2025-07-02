@@ -54,6 +54,10 @@ impl StringBaseValue for String {
             .collect::<String>()
             .replace(['-', ' ', '.'], "_");
 
+        if a.is_empty() {
+            return format_ident!("Empty");
+        }
+
         format_ident!("{}", a)
     }
 }
@@ -103,8 +107,12 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: StringBaseValue> Restr
                 sm::FacetFragment::MaxLength { value } => {
                     max_length = Some(value);
                 }
-                sm::FacetFragment::Pattern { value } => todo!(),
-                sm::FacetFragment::Assertion { test } => todo!(),
+                sm::FacetFragment::Pattern { value: _ } => {
+                    //TODO: Handle pattern facet
+                }
+                sm::FacetFragment::Assertion { test: _ } => {
+                    //TODO: Handle assertion facet
+                }
                 sm::FacetFragment::MinExclusive { .. }
                 | sm::FacetFragment::MinInclusive { .. }
                 | sm::FacetFragment::MaxExclusive { .. }

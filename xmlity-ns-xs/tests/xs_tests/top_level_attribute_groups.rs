@@ -1,5 +1,5 @@
-use super::xs;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xmlity_ns_xs::xs;
 
 #[rstest::rstest]
 #[case::occurs(XSD_OCCURS, None)]
