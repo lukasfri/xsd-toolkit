@@ -22,6 +22,6 @@ pretty_assertions = "^1.4.1"
 rstest = "^0.25.0"
 xmlity = { version = "0.0.7", features = [
   "derive",
-], git = "https://github.com/lukasfri/xmlity.git", rev = "7c0e7c4eaf685af03d40bce42c53e4984b9a1cf3" }
-xmlity-quick-xml = { version = "0.0.7", git = "https://github.com/lukasfri/xmlity.git", rev = "7c0e7c4eaf685af03d40bce42c53e4984b9a1cf3" }
+], git = "https://github.com/lukasfri/xmlity.git", rev = "cf150b55365433aa713187ebf7ffdf783dafd8b4" }
+xmlity-quick-xml = { version = "0.0.7", git = "https://github.com/lukasfri/xmlity.git", rev = "cf150b55365433aa713187ebf7ffdf783dafd8b4" }
 ntest = "0.9.3"

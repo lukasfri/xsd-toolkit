@@ -1,4 +1,4 @@
-use quote::{format_ident, ToTokens};
+use quote::format_ident;
 use syn::{parse_quote, Ident};
 
 pub enum BoundEdge {

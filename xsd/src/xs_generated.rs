@@ -1,4 +1,343 @@
 pub mod types {
+    pub mod all_nni_items {
+        pub mod variant_0_variants {
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_0_with)]
+            pub enum Variant0 {
+                Unbounded,
+            }
+            pub mod variant_0_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant0, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant0,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant0ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant0ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant0ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+                type Error = Variant0ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "unbounded" => Ok(Variant0::Unbounded),
+                        _ => {
+                            Err(Variant0ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant0> for ::std::string::String {
+                fn from(value: Variant0) -> Self {
+                    match value {
+                        Variant0::Unbounded => ::std::string::String::from("unbounded"),
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<usize> for AllNNI {
+            fn from(value: usize) -> Self {
+                AllNNI::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<variant_0_variants::Variant0> for AllNNI {
+            fn from(value: variant_0_variants::Variant0) -> Self {
+                AllNNI::Variant0_0(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum AllNNI {
+            Variant0(::std::boxed::Box<usize>),
+            Variant0_0(::std::boxed::Box<variant_0_variants::Variant0>),
+        }
+    }
+    pub type AllNNI = all_nni_items::AllNNI;
+    pub mod basic_namespace_list_items {
+        pub mod variant_0_variants {
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_0_with)]
+            pub enum Variant0 {
+                TargetNamespace,
+                Local,
+            }
+            pub mod variant_0_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant0, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant0,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant0ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant0ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant0ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+                type Error = Variant0ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "##targetNamespace" => Ok(Variant0::TargetNamespace),
+                        "##local" => Ok(Variant0::Local),
+                        _ => {
+                            Err(Variant0ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant0> for ::std::string::String {
+                fn from(value: Variant0) -> Self {
+                    match value {
+                        Variant0::TargetNamespace => {
+                            ::std::string::String::from("##targetNamespace")
+                        }
+                        Variant0::Local => ::std::string::String::from("##local"),
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<crate::xs::types::TargetNamespace>
+        for BasicNamespaceList {
+            fn from(value: crate::xs::types::TargetNamespace) -> Self {
+                BasicNamespaceList::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<variant_0_variants::Variant0> for BasicNamespaceList {
+            fn from(value: variant_0_variants::Variant0) -> Self {
+                BasicNamespaceList::Variant0_0(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum BasicNamespaceList {
+            Variant0(::std::boxed::Box<crate::xs::types::TargetNamespace>),
+            Variant0_0(::std::boxed::Box<variant_0_variants::Variant0>),
+        }
+    }
+    pub type BasicNamespaceList = crate::xs::types::List<
+        basic_namespace_list_items::BasicNamespaceList,
+    >;
+    pub mod block_set_items {
+        pub mod variant_variants {
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_0_with)]
+            pub enum Variant0 {
+                All,
+            }
+            pub mod variant_0_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant0, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant0,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant0ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant0ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant0ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+                type Error = Variant0ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "#all" => Ok(Variant0::All),
+                        _ => {
+                            Err(Variant0ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant0> for ::std::string::String {
+                fn from(value: Variant0) -> Self {
+                    match value {
+                        Variant0::All => ::std::string::String::from("#all"),
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<variant_variants::Variant0> for BlockSet {
+            fn from(value: variant_variants::Variant0) -> Self {
+                BlockSet::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<crate::xs::types::List<::std::string::String>>
+        for BlockSet {
+            fn from(value: crate::xs::types::List<::std::string::String>) -> Self {
+                BlockSet::Variant1(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum BlockSet {
+            Variant0(::std::boxed::Box<variant_variants::Variant0>),
+            Variant1(::std::boxed::Box<crate::xs::types::List<::std::string::String>>),
+        }
+    }
+    pub type BlockSet = block_set_items::BlockSet;
     pub mod derivation_control_items {
         #[derive(
             ::core::fmt::Debug,
@@ -104,6 +443,371 @@ pub mod types {
             }
         }
     }
+    pub type DerivationControl = derivation_control_items::DerivationControl;
+    pub mod derivation_set_items {
+        pub mod variant_variants {
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_0_with)]
+            pub enum Variant0 {
+                All,
+            }
+            pub mod variant_0_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant0, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant0,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant0ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant0ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant0ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+                type Error = Variant0ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "#all" => Ok(Variant0::All),
+                        _ => {
+                            Err(Variant0ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant0> for ::std::string::String {
+                fn from(value: Variant0) -> Self {
+                    match value {
+                        Variant0::All => ::std::string::String::from("#all"),
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<variant_variants::Variant0> for DerivationSet {
+            fn from(value: variant_variants::Variant0) -> Self {
+                DerivationSet::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<
+            crate::xs::types::List<
+                ::std::boxed::Box<crate::xs::types::ReducedDerivationControl>,
+            >,
+        > for DerivationSet {
+            fn from(
+                value: crate::xs::types::List<
+                    ::std::boxed::Box<crate::xs::types::ReducedDerivationControl>,
+                >,
+            ) -> Self {
+                DerivationSet::Variant1(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum DerivationSet {
+            Variant0(::std::boxed::Box<variant_variants::Variant0>),
+            Variant1(
+                ::std::boxed::Box<
+                    crate::xs::types::List<
+                        ::std::boxed::Box<crate::xs::types::ReducedDerivationControl>,
+                    >,
+                >,
+            ),
+        }
+    }
+    pub type DerivationSet = derivation_set_items::DerivationSet;
+    pub mod form_choice_items {
+        #[derive(
+            ::core::fmt::Debug,
+            ::core::clone::Clone,
+            ::core::marker::Copy,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq
+        )]
+        #[xvalue(with = form_choice_with)]
+        pub enum FormChoice {
+            Qualified,
+            Unqualified,
+        }
+        pub mod form_choice_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::FormChoice, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: ::std::string::String = text
+                    .parse()
+                    .map_err(::xmlity::de::Error::custom)?;
+                super::FormChoice::try_from(value).map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::FormChoice,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                    .into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug)]
+        pub enum FormChoiceParseError {
+            NonExistent { value: ::std::string::String },
+        }
+        impl ::core::fmt::Display for FormChoiceParseError {
+            fn fmt(
+                &self,
+                f: &mut ::core::fmt::Formatter<'_>,
+            ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                match self {
+                    FormChoiceParseError::NonExistent { value } => {
+                        write!(
+                            f, "Value '{:?}' does not exist in the enumeration", value
+                        )
+                    }
+                }
+            }
+        }
+        impl ::core::convert::TryFrom<::std::string::String> for FormChoice {
+            type Error = FormChoiceParseError;
+            fn try_from(
+                value: ::std::string::String,
+            ) -> ::core::result::Result<Self, Self::Error> {
+                match ::std::string::String::as_str(&value) {
+                    "qualified" => Ok(FormChoice::Qualified),
+                    "unqualified" => Ok(FormChoice::Unqualified),
+                    _ => {
+                        Err(FormChoiceParseError::NonExistent {
+                            value,
+                        })
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<FormChoice> for ::std::string::String {
+            fn from(value: FormChoice) -> Self {
+                match value {
+                    FormChoice::Qualified => ::std::string::String::from("qualified"),
+                    FormChoice::Unqualified => ::std::string::String::from("unqualified"),
+                }
+            }
+        }
+    }
+    pub type FormChoice = form_choice_items::FormChoice;
+    pub mod full_derivation_set_items {
+        pub mod variant_variants {
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_0_with)]
+            pub enum Variant0 {
+                All,
+            }
+            pub mod variant_0_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant0, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant0,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant0ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant0ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant0ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+                type Error = Variant0ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "#all" => Ok(Variant0::All),
+                        _ => {
+                            Err(Variant0ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant0> for ::std::string::String {
+                fn from(value: Variant0) -> Self {
+                    match value {
+                        Variant0::All => ::std::string::String::from("#all"),
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<variant_variants::Variant0> for FullDerivationSet {
+            fn from(value: variant_variants::Variant0) -> Self {
+                FullDerivationSet::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<
+            crate::xs::types::List<
+                ::std::boxed::Box<crate::xs::types::TypeDerivationControl>,
+            >,
+        > for FullDerivationSet {
+            fn from(
+                value: crate::xs::types::List<
+                    ::std::boxed::Box<crate::xs::types::TypeDerivationControl>,
+                >,
+            ) -> Self {
+                FullDerivationSet::Variant1(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum FullDerivationSet {
+            Variant0(::std::boxed::Box<variant_variants::Variant0>),
+            Variant1(
+                ::std::boxed::Box<
+                    crate::xs::types::List<
+                        ::std::boxed::Box<crate::xs::types::TypeDerivationControl>,
+                    >,
+                >,
+            ),
+        }
+    }
+    pub type FullDerivationSet = full_derivation_set_items::FullDerivationSet;
+    pub mod namespace_list_items {
+        impl ::core::convert::From<crate::xs::types::SpecialNamespaceList>
+        for NamespaceList {
+            fn from(value: crate::xs::types::SpecialNamespaceList) -> Self {
+                NamespaceList::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<crate::xs::types::BasicNamespaceList>
+        for NamespaceList {
+            fn from(value: crate::xs::types::BasicNamespaceList) -> Self {
+                NamespaceList::Variant1(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum NamespaceList {
+            Variant0(::std::boxed::Box<crate::xs::types::SpecialNamespaceList>),
+            Variant1(::std::boxed::Box<crate::xs::types::BasicNamespaceList>),
+        }
+    }
+    pub type NamespaceList = namespace_list_items::NamespaceList;
     pub mod public_items {
         impl ::core::convert::From<::std::string::String> for Public {
             fn from(value: ::std::string::String) -> Self {
@@ -159,6 +863,233 @@ pub mod types {
             }
         }
     }
+    pub type Public = public_items::Public;
+    pub mod qname_list_items {
+        pub mod variant_0_variants {
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_0_with)]
+            pub enum Variant0 {
+                Defined,
+                DefinedSibling,
+            }
+            pub mod variant_0_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant0, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant0,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant0ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant0ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant0ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+                type Error = Variant0ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "##defined" => Ok(Variant0::Defined),
+                        "##definedSibling" => Ok(Variant0::DefinedSibling),
+                        _ => {
+                            Err(Variant0ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant0> for ::std::string::String {
+                fn from(value: Variant0) -> Self {
+                    match value {
+                        Variant0::Defined => ::std::string::String::from("##defined"),
+                        Variant0::DefinedSibling => {
+                            ::std::string::String::from("##definedSibling")
+                        }
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<crate::xs::types::QName> for QnameList {
+            fn from(value: crate::xs::types::QName) -> Self {
+                QnameList::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<variant_0_variants::Variant0> for QnameList {
+            fn from(value: variant_0_variants::Variant0) -> Self {
+                QnameList::Variant0_0(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum QnameList {
+            Variant0(::std::boxed::Box<crate::xs::types::QName>),
+            Variant0_0(::std::boxed::Box<variant_0_variants::Variant0>),
+        }
+    }
+    pub type QnameList = crate::xs::types::List<qname_list_items::QnameList>;
+    pub mod qname_list_a_items {
+        pub mod variant_0_variants {
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_0_with)]
+            pub enum Variant0 {
+                Defined,
+            }
+            pub mod variant_0_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant0, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant0,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant0ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant0ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant0ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+                type Error = Variant0ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "##defined" => Ok(Variant0::Defined),
+                        _ => {
+                            Err(Variant0ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant0> for ::std::string::String {
+                fn from(value: Variant0) -> Self {
+                    match value {
+                        Variant0::Defined => ::std::string::String::from("##defined"),
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<crate::xs::types::QName> for QnameListA {
+            fn from(value: crate::xs::types::QName) -> Self {
+                QnameListA::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<variant_0_variants::Variant0> for QnameListA {
+            fn from(value: variant_0_variants::Variant0) -> Self {
+                QnameListA::Variant0_0(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum QnameListA {
+            Variant0(::std::boxed::Box<crate::xs::types::QName>),
+            Variant0_0(::std::boxed::Box<variant_0_variants::Variant0>),
+        }
+    }
+    pub type QnameListA = crate::xs::types::List<qname_list_a_items::QnameListA>;
+    pub type ReducedDerivationControl = ::std::string::String;
     pub mod simple_derivation_set_items {
         pub mod variant_variants {
             #[derive(
@@ -269,6 +1200,7 @@ pub mod types {
             Variant1(::std::boxed::Box<crate::xs::types::List<::std::string::String>>),
         }
     }
+    pub type SimpleDerivationSet = simple_derivation_set_items::SimpleDerivationSet;
     pub mod special_namespace_list_items {
         #[derive(
             ::core::fmt::Debug,
@@ -359,6 +1291,130 @@ pub mod types {
             }
         }
     }
+    pub type SpecialNamespaceList = special_namespace_list_items::SpecialNamespaceList;
+    pub type TypeDerivationControl = ::std::string::String;
+    pub mod xpath_default_namespace_items {
+        pub mod variant_0_variants {
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_0_with)]
+            pub enum Variant0 {
+                DefaultNamespace,
+                TargetNamespace,
+                Local,
+            }
+            pub mod variant_0_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant0, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant0,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant0ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant0ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant0ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+                type Error = Variant0ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "##defaultNamespace" => Ok(Variant0::DefaultNamespace),
+                        "##targetNamespace" => Ok(Variant0::TargetNamespace),
+                        "##local" => Ok(Variant0::Local),
+                        _ => {
+                            Err(Variant0ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant0> for ::std::string::String {
+                fn from(value: Variant0) -> Self {
+                    match value {
+                        Variant0::DefaultNamespace => {
+                            ::std::string::String::from("##defaultNamespace")
+                        }
+                        Variant0::TargetNamespace => {
+                            ::std::string::String::from("##targetNamespace")
+                        }
+                        Variant0::Local => ::std::string::String::from("##local"),
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<crate::xs::types::TargetNamespace>
+        for XpathDefaultNamespace {
+            fn from(value: crate::xs::types::TargetNamespace) -> Self {
+                XpathDefaultNamespace::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<variant_0_variants::Variant0>
+        for XpathDefaultNamespace {
+            fn from(value: variant_0_variants::Variant0) -> Self {
+                XpathDefaultNamespace::Variant0_0(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum XpathDefaultNamespace {
+            Variant0(::std::boxed::Box<crate::xs::types::TargetNamespace>),
+            Variant0_0(::std::boxed::Box<variant_0_variants::Variant0>),
+        }
+    }
+    pub type XpathDefaultNamespace = xpath_default_namespace_items::XpathDefaultNamespace;
     pub mod all_items {
         #[derive(
             ::core::fmt::Debug,
@@ -513,7 +1569,7 @@ pub mod types {
         pub type_attribute: ::core::option::Option<crate::xs::types::QName>,
         #[xattribute(name = "xpathDefaultNamespace", optional, default)]
         pub xpath_default_namespace: ::core::option::Option<
-            crate::xs::types::XpathDefaultNamespaceType,
+            ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
         >,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -563,7 +1619,7 @@ pub mod types {
         pub test: ::core::option::Option<String>,
         #[xattribute(name = "xpathDefaultNamespace", optional, default)]
         pub xpath_default_namespace: ::core::option::Option<
-            crate::xs::types::XpathDefaultNamespaceType,
+            ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
         >,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -685,7 +1741,9 @@ pub mod types {
         #[xattribute(name = "fixed", optional, default)]
         pub fixed: ::core::option::Option<String>,
         #[xattribute(name = "form", optional, default)]
-        pub form: ::core::option::Option<crate::xs::types::FormChoiceType>,
+        pub form: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::FormChoice>,
+        >,
         #[xattribute(name = "targetNamespace", optional, default)]
         pub target_namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
         #[xattribute(name = "inheritable", optional, default)]
@@ -758,9 +1816,13 @@ pub mod types {
         #[xattribute(name = "abstract", optional, default)]
         pub abstract_: ::core::option::Option<bool>,
         #[xattribute(name = "final", optional, default)]
-        pub final_: ::core::option::Option<crate::xs::types::DerivationSetType>,
+        pub final_: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+        >,
         #[xattribute(name = "block", optional, default)]
-        pub block: ::core::option::Option<crate::xs::types::DerivationSetType>,
+        pub block: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+        >,
         #[xattribute(name = "defaultAttributesApply", optional, default)]
         pub default_attributes_apply: ::core::option::Option<bool>,
         #[xvalue(default)]
@@ -885,7 +1947,9 @@ pub mod types {
         #[xattribute(name = "minOccurs", optional, default)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional, default)]
-        pub max_occurs: ::core::option::Option<crate::xs::types::AllNNI>,
+        pub max_occurs: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::AllNNI>,
+        >,
         #[xattribute(name = "default", optional, default)]
         pub default: ::core::option::Option<String>,
         #[xattribute(name = "fixed", optional, default)]
@@ -895,11 +1959,15 @@ pub mod types {
         #[xattribute(name = "abstract", optional, default)]
         pub abstract_: ::core::option::Option<bool>,
         #[xattribute(name = "final", optional, default)]
-        pub final_: ::core::option::Option<crate::xs::types::DerivationSetType>,
+        pub final_: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+        >,
         #[xattribute(name = "block", optional, default)]
-        pub block: ::core::option::Option<crate::xs::types::BlockSetType>,
+        pub block: ::core::option::Option<::std::boxed::Box<crate::xs::types::BlockSet>>,
         #[xattribute(name = "form", optional, default)]
-        pub form: ::core::option::Option<crate::xs::types::FormChoiceType>,
+        pub form: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::FormChoice>,
+        >,
         #[xattribute(name = "targetNamespace", optional, default)]
         pub target_namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
         #[xvalue(default)]
@@ -928,7 +1996,9 @@ pub mod types {
         #[xattribute(name = "minOccurs", optional, default)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional, default)]
-        pub max_occurs: ::core::option::Option<crate::xs::types::AllNNI>,
+        pub max_occurs: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::AllNNI>,
+        >,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
         #[xvalue(default)]
@@ -1000,7 +2070,9 @@ pub mod types {
         #[xattribute(name = "minOccurs", optional, default)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional, default)]
-        pub max_occurs: ::core::option::Option<crate::xs::types::AllNNI>,
+        pub max_occurs: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::AllNNI>,
+        >,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
         #[xvalue(default)]
@@ -1024,7 +2096,9 @@ pub mod types {
         #[xattribute(name = "minOccurs", optional, default)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional, default)]
-        pub max_occurs: ::core::option::Option<crate::xs::types::AllNNI>,
+        pub max_occurs: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::AllNNI>,
+        >,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
     }
@@ -1180,7 +2254,9 @@ pub mod types {
         #[xattribute(name = "minOccurs", optional, default)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional, default)]
-        pub max_occurs: ::core::option::Option<crate::xs::types::AllNNI>,
+        pub max_occurs: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::AllNNI>,
+        >,
         #[xattribute(name = "default", optional, default)]
         pub default: ::core::option::Option<String>,
         #[xattribute(name = "fixed", optional, default)]
@@ -1188,9 +2264,11 @@ pub mod types {
         #[xattribute(name = "nillable", optional, default)]
         pub nillable: ::core::option::Option<bool>,
         #[xattribute(name = "block", optional, default)]
-        pub block: ::core::option::Option<crate::xs::types::BlockSetType>,
+        pub block: ::core::option::Option<::std::boxed::Box<crate::xs::types::BlockSet>>,
         #[xattribute(name = "form", optional, default)]
-        pub form: ::core::option::Option<crate::xs::types::FormChoiceType>,
+        pub form: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::FormChoice>,
+        >,
         #[xattribute(name = "targetNamespace", optional, default)]
         pub target_namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
         #[xvalue(default)]
@@ -1258,7 +2336,9 @@ pub mod types {
                 #[xattribute(name = "minOccurs", optional, default)]
                 min_occurs: ::core::option::Option<usize>,
                 #[xattribute(name = "maxOccurs", optional, default)]
-                max_occurs: ::core::option::Option<crate::xs::types::AllNNI>,
+                max_occurs: ::core::option::Option<
+                    ::std::boxed::Box<crate::xs::types::AllNNI>,
+                >,
                 all_model: ::std::boxed::Box<crate::xs::groups::AllModel>,
             },
             #[xelement(
@@ -1385,7 +2465,9 @@ pub mod types {
         #[xattribute(name = "minOccurs", optional, default)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional, default)]
-        pub max_occurs: ::core::option::Option<crate::xs::types::AllNNI>,
+        pub max_occurs: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::AllNNI>,
+        >,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
         #[xvalue(default)]
@@ -1472,9 +2554,7 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "final", optional, default)]
         pub final_: ::core::option::Option<
-            ::std::boxed::Box<
-                crate::xs::types::simple_derivation_set_items::SimpleDerivationSet,
-            >,
+            ::std::boxed::Box<crate::xs::types::SimpleDerivationSet>,
         >,
         #[xattribute(name = "name", optional, default)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
@@ -1611,9 +2691,13 @@ pub mod types {
         #[xattribute(name = "abstract", optional, default)]
         pub abstract_: ::core::option::Option<bool>,
         #[xattribute(name = "final", optional, default)]
-        pub final_: ::core::option::Option<crate::xs::types::DerivationSetType>,
+        pub final_: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+        >,
         #[xattribute(name = "block", optional, default)]
-        pub block: ::core::option::Option<crate::xs::types::DerivationSetType>,
+        pub block: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+        >,
         #[xattribute(name = "defaultAttributesApply", optional, default)]
         pub default_attributes_apply: ::core::option::Option<bool>,
         #[xvalue(default)]
@@ -1703,9 +2787,11 @@ pub mod types {
         #[xattribute(name = "abstract", optional, default)]
         pub abstract_: ::core::option::Option<bool>,
         #[xattribute(name = "final", optional, default)]
-        pub final_: ::core::option::Option<crate::xs::types::DerivationSetType>,
+        pub final_: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+        >,
         #[xattribute(name = "block", optional, default)]
-        pub block: ::core::option::Option<crate::xs::types::BlockSetType>,
+        pub block: ::core::option::Option<::std::boxed::Box<crate::xs::types::BlockSet>>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
         #[xvalue(default)]
@@ -1731,9 +2817,7 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "final", optional, default)]
         pub final_: ::core::option::Option<
-            ::std::boxed::Box<
-                crate::xs::types::simple_derivation_set_items::SimpleDerivationSet,
-            >,
+            ::std::boxed::Box<crate::xs::types::SimpleDerivationSet>,
         >,
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
@@ -1847,7 +2931,9 @@ pub mod types {
         #[xattribute(name = "id", optional, default)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "namespace", optional, default)]
-        pub namespace: ::core::option::Option<crate::xs::types::NamespaceListType>,
+        pub namespace: ::core::option::Option<
+            ::std::boxed::Box<crate::xs::types::NamespaceList>,
+        >,
         #[xattribute(name = "notNamespace", optional, default)]
         pub not_namespace: ::core::option::Option<::std::string::String>,
         #[xattribute(name = "processContents", optional, default)]
@@ -2589,17 +3675,21 @@ pub struct Any {
     #[xattribute(name = "id", optional, default)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "namespace", optional, default)]
-    pub namespace: ::core::option::Option<crate::xs::types::NamespaceListType>,
+    pub namespace: ::core::option::Option<
+        ::std::boxed::Box<crate::xs::types::NamespaceList>,
+    >,
     #[xattribute(name = "notNamespace", optional, default)]
     pub not_namespace: ::core::option::Option<::std::string::String>,
     #[xattribute(name = "processContents", optional, default)]
     pub process_contents: ::core::option::Option<any_items::ProcessContentsValue>,
     #[xattribute(name = "notQName", optional, default)]
-    pub not_q_name: ::core::option::Option<crate::xs::types::QnameListType>,
+    pub not_q_name: ::core::option::Option<
+        ::std::boxed::Box<crate::xs::types::QnameList>,
+    >,
     #[xattribute(name = "minOccurs", optional, default)]
     pub min_occurs: ::core::option::Option<usize>,
     #[xattribute(name = "maxOccurs", optional, default)]
-    pub max_occurs: ::core::option::Option<crate::xs::types::AllNNI>,
+    pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::xs::types::AllNNI>>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
 }
@@ -2710,7 +3800,9 @@ pub struct AnyAttribute {
     #[xattribute(name = "id", optional, default)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "namespace", optional, default)]
-    pub namespace: ::core::option::Option<crate::xs::types::NamespaceListType>,
+    pub namespace: ::core::option::Option<
+        ::std::boxed::Box<crate::xs::types::NamespaceList>,
+    >,
     #[xattribute(name = "notNamespace", optional, default)]
     pub not_namespace: ::core::option::Option<::std::string::String>,
     #[xattribute(name = "processContents", optional, default)]
@@ -2718,7 +3810,9 @@ pub struct AnyAttribute {
         any_attribute_items::ProcessContentsValue,
     >,
     #[xattribute(name = "notQName", optional, default)]
-    pub not_q_name: ::core::option::Option<crate::xs::types::QnameListAType>,
+    pub not_q_name: ::core::option::Option<
+        ::std::boxed::Box<crate::xs::types::QnameListA>,
+    >,
 }
 pub mod appinfo_items {
     #[derive(
@@ -3284,7 +4378,7 @@ pub struct Field {
     pub xpath: field_items::XpathValue,
     #[xattribute(name = "xpathDefaultNamespace", optional, default)]
     pub xpath_default_namespace: ::core::option::Option<
-        crate::xs::types::XpathDefaultNamespaceType,
+        ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
     >,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -3611,9 +4705,7 @@ pub struct Notation {
     #[xattribute(name = "name")]
     pub name: ::xmlity::LocalName<'static>,
     #[xattribute(name = "public", optional, default)]
-    pub public: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::public_items::Public>,
-    >,
+    pub public: ::core::option::Option<::std::boxed::Box<crate::xs::types::Public>>,
     #[xattribute(name = "system", optional, default)]
     pub system: ::core::option::Option<crate::xs::types::TargetNamespace>,
     #[xvalue(default)]
@@ -3904,18 +4996,26 @@ pub struct Schema {
     #[xattribute(name = "version", optional, default)]
     pub version: ::core::option::Option<String>,
     #[xattribute(name = "finalDefault", optional, default)]
-    pub final_default: ::core::option::Option<crate::xs::types::FullDerivationSetType>,
+    pub final_default: ::core::option::Option<
+        ::std::boxed::Box<crate::xs::types::FullDerivationSet>,
+    >,
     #[xattribute(name = "blockDefault", optional, default)]
-    pub block_default: ::core::option::Option<crate::xs::types::BlockSetType>,
+    pub block_default: ::core::option::Option<
+        ::std::boxed::Box<crate::xs::types::BlockSet>,
+    >,
     #[xattribute(name = "attributeFormDefault", optional, default)]
-    pub attribute_form_default: ::core::option::Option<crate::xs::types::FormChoiceType>,
+    pub attribute_form_default: ::core::option::Option<
+        ::std::boxed::Box<crate::xs::types::FormChoice>,
+    >,
     #[xattribute(name = "elementFormDefault", optional, default)]
-    pub element_form_default: ::core::option::Option<crate::xs::types::FormChoiceType>,
+    pub element_form_default: ::core::option::Option<
+        ::std::boxed::Box<crate::xs::types::FormChoice>,
+    >,
     #[xattribute(name = "defaultAttributes", optional, default)]
     pub default_attributes: ::core::option::Option<crate::xs::types::QName>,
     #[xattribute(name = "xpathDefaultNamespace", optional, default)]
     pub xpath_default_namespace: ::core::option::Option<
-        crate::xs::types::XpathDefaultNamespaceType,
+        ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
     >,
     #[xattribute(name = "id", optional, default)]
     pub id: ::core::option::Option<String>,
@@ -4005,7 +5105,7 @@ pub struct Selector {
     pub xpath: selector_items::XpathValue,
     #[xattribute(name = "xpathDefaultNamespace", optional, default)]
     pub xpath_default_namespace: ::core::option::Option<
-        crate::xs::types::XpathDefaultNamespaceType,
+        ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
     >,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,

@@ -10,8 +10,7 @@ use crate::{
     Result, ToIdentTypesExt, TypeType,
 };
 
-use xsd::xs::types::AllNNI;
-use xsd_type_compiler::fragments::complex::{self as cx};
+use xsd_type_compiler::fragments::complex::{self as cx, AllNNI};
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 

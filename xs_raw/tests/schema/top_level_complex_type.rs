@@ -589,7 +589,7 @@ fn xsd_all() -> xs::ComplexType {
             .annotation(
                 xs::Annotation::builder()
                     .annotation(vec![xs::Documentation::builder()
-                        .particle(vec![xs::documentation_items::Child0 {
+                        .child_0(vec![xs::documentation_items::Child0 {
                             child_0: xmlity::XmlValue::Text(xmlity::xml!(
                                 "\n  Only elements allowed inside"
                             )),
@@ -607,8 +607,8 @@ fn xsd_all() -> xs::ComplexType {
                                 LocalName::new_dangerous("explicitGroup"),
                                 Some(XmlNamespace::XS),
                             )))
-                            .variant_0(
-                              xs::types::complex_restriction_type_items::variant_0_variants::Variant0
+                            .child_1(
+                              xs::types::complex_restriction_type_items::Child1
                               ::builder()
                               .type_def_particle(Box::new(
                                 xs::types::GroupRef::builder()
@@ -719,7 +719,7 @@ fn xsd_all() -> xs::ComplexType {
                                     ])
                                     .any_attribute(
                                         xs::AnyAttribute::builder()
-                                            .namespace(xs::types::NamespaceListType::Other)
+                                            .namespace(xs::types::NamespaceList::from(xs::types::SpecialNamespaceList::Other).into())
                                             .process_contents(
                                                 xs::any_attribute_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
                                             )
@@ -840,7 +840,7 @@ fn xsd_any_type() -> xs::ComplexType {
             .annotation(
                 xs::Annotation::builder()
                     .annotation(vec![xs::Documentation::builder()
-                        .particle(vec![xs::documentation_items::Child0 {
+                        .child_0(vec![xs::documentation_items::Child0 {
                             child_0: XmlValue::Text(xmlity::xml!(
                                 "\n  Not the real urType, but as close an approximation as we can
   get in the XML representation"
@@ -857,16 +857,14 @@ fn xsd_any_type() -> xs::ComplexType {
                     type_def_particle: Some(Box::new(
                         xs::Sequence(
                             xs::types::ExplicitGroup::builder()
-                                .nested_particle(vec![Box::new(
-                                    xs::Any::builder()
-                                        .min_occurs(0)
-                                        .max_occurs(xs::types::AllNNI::Unbounded)
-                                        .process_contents(
-                                            xs::any_attribute_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
-                                        )
-                                        .build()
-                                        .into(),
-                                )])
+                                .nested_particle(vec![xs::Any::builder()
+                                    .min_occurs(0)
+                                    .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded).into())
+                                    .process_contents(
+                                        xs::any_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
+                                    )
+                                    .build()
+                                    .into()])
                                 .build()
                                 .into(),
                         )

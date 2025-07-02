@@ -9,9 +9,9 @@ use crate::{
 
 use syn::Ident;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd::xs::types::AllNNI;
 use xsd_type_compiler::fragments::{
-    complex::ComplexTypeFragmentCompiler, FragmentAccess, FragmentIdx,
+    complex::{AllNNI, ComplexTypeFragmentCompiler},
+    FragmentAccess, FragmentIdx,
 };
 
 pub trait ComplexContext {

@@ -4,7 +4,7 @@ use std::{borrow::Cow, fmt::Display, str::FromStr};
 use xmlity::{
     de::{self, NamespaceContext},
     types::string::FromStrVisitor,
-    Deserialize, ExpandedName, LocalName, Prefix, Serialize, XmlNamespace,
+    Deserialize, ExpandedName, LocalName, NoopDeSerializer, Prefix, Serialize, XmlNamespace,
 };
 
 use crate::xs;
@@ -104,6 +104,89 @@ impl<'de, 'c, C: NamespaceContext, E: xmlity::de::Error> de::Deserializer<'de>
     }
 }
 
+struct SubStringSerializer<E: xmlity::ser::Error> {
+    _marker: std::marker::PhantomData<E>,
+}
+
+impl<E: xmlity::ser::Error> SubStringSerializer<E> {
+    fn new() -> Self {
+        Self {
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<E> xmlity::ser::Serializer for SubStringSerializer<E>
+where
+    E: xmlity::ser::Error,
+{
+    type Ok = Option<String>;
+
+    type Error = E;
+
+    type SerializeElement = NoopDeSerializer<Option<String>, E>;
+
+    type SerializeSeq = NoopDeSerializer<Option<String>, E>;
+
+    fn serialize_text<S: AsRef<str>>(self, text: S) -> Result<Self::Ok, Self::Error> {
+        Ok(Some(text.as_ref().to_owned()))
+    }
+
+    fn serialize_cdata<S: AsRef<str>>(self, text: S) -> Result<Self::Ok, Self::Error> {
+        Ok(Some(text.as_ref().to_owned()))
+    }
+
+    fn serialize_element(
+        self,
+        _name: &'_ ExpandedName<'_>,
+    ) -> Result<Self::SerializeElement, Self::Error> {
+        Err(E::custom(
+            "SubStringSerializer only supports text serialization",
+        ))
+    }
+
+    fn serialize_seq(self) -> Result<Self::SerializeSeq, Self::Error> {
+        todo!()
+    }
+
+    fn serialize_decl<S: AsRef<str>>(
+        self,
+        _version: S,
+        _encoding: Option<S>,
+        _standalone: Option<S>,
+    ) -> Result<Self::Ok, Self::Error> {
+        Err(E::custom(
+            "SubStringSerializer only supports text serialization",
+        ))
+    }
+
+    fn serialize_pi<S: AsRef<[u8]>>(
+        self,
+        _target: S,
+        _content: S,
+    ) -> Result<Self::Ok, Self::Error> {
+        Err(E::custom(
+            "SubStringSerializer only supports text serialization",
+        ))
+    }
+
+    fn serialize_comment<S: AsRef<[u8]>>(self, _text: S) -> Result<Self::Ok, Self::Error> {
+        Err(E::custom(
+            "SubStringSerializer only supports text serialization",
+        ))
+    }
+
+    fn serialize_doctype<S: AsRef<[u8]>>(self, _text: S) -> Result<Self::Ok, Self::Error> {
+        Err(E::custom(
+            "SubStringSerializer only supports text serialization",
+        ))
+    }
+
+    fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
+        Ok(None)
+    }
+}
+
 macro_rules! impl_from_str_deserialize {
     ($ty:ty) => {
         impl<'de> Deserialize<'de> for $ty {
@@ -189,12 +272,29 @@ pub mod types {
         }
     }
 
-    impl<T: Display> Serialize for List<T> {
+    impl<T: Serialize> Serialize for List<T> {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: xmlity::Serializer,
         {
-            serializer.serialize_text(&self.to_string())
+            let parts = self
+                .0
+                .iter()
+                .map(|item| item.serialize(SubStringSerializer::new()))
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let list_string = parts.into_iter().filter_map(std::convert::identity).fold(
+                String::new(),
+                |mut acc, item| {
+                    if !acc.is_empty() {
+                        acc.push(' ');
+                    }
+                    acc.push_str(&item);
+                    acc
+                },
+            );
+
+            serializer.serialize_text(&list_string)
         }
     }
 
@@ -266,44 +366,44 @@ pub mod types {
         }
     }
 
-    /// Represents the maximum occurrence of types or elements
-    #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
-    pub enum AllNNI {
-        /// The occurrence is unbounded.
-        Unbounded,
+    // /// Represents the maximum occurrence of types or elements
+    // #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+    // pub enum AllNNI {
+    //     /// The occurrence is unbounded.
+    //     Unbounded,
 
-        /// The occurrence is bound to the specified limit.
-        Bounded(usize),
-    }
+    //     /// The occurrence is bound to the specified limit.
+    //     Bounded(usize),
+    // }
 
-    impl Default for AllNNI {
-        fn default() -> Self {
-            Self::Bounded(1)
-        }
-    }
+    // impl Default for AllNNI {
+    //     fn default() -> Self {
+    //         Self::Bounded(1)
+    //     }
+    // }
 
-    impl FromStr for AllNNI {
-        type Err = Error;
+    // impl FromStr for AllNNI {
+    //     type Err = Error;
 
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            match s {
-                "unbounded" => Ok(Self::Unbounded),
-                _ => Ok(Self::Bounded(usize::from_str(s)?)),
-            }
-        }
-    }
+    //     fn from_str(s: &str) -> Result<Self, Self::Err> {
+    //         match s {
+    //             "unbounded" => Ok(Self::Unbounded),
+    //             _ => Ok(Self::Bounded(usize::from_str(s)?)),
+    //         }
+    //     }
+    // }
 
-    impl Display for AllNNI {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            match self {
-                Self::Unbounded => write!(f, "unbounded"),
-                Self::Bounded(n) => write!(f, "{n}"),
-            }
-        }
-    }
+    // impl Display for AllNNI {
+    //     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    //         match self {
+    //             Self::Unbounded => write!(f, "unbounded"),
+    //             Self::Bounded(n) => write!(f, "{n}"),
+    //         }
+    //     }
+    // }
 
-    impl_to_string_serialize!(AllNNI);
-    impl_from_str_deserialize!(AllNNI);
+    // impl_to_string_serialize!(AllNNI);
+    // impl_from_str_deserialize!(AllNNI);
 
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub enum FullDerivationSetType {

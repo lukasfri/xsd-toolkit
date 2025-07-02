@@ -1,7 +1,6 @@
 pub mod transformers;
 
 use std::num::NonZeroUsize;
-use std::str::FromStr;
 use xsd::xs;
 
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
@@ -37,6 +36,7 @@ pub struct ListFragment {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnionFragment {
+    pub member_types: VecDeque<ExpandedName<'static>>,
     pub simple_types: VecDeque<FragmentIdx<SimpleTypeRootFragment>>,
 }
 
@@ -44,15 +44,6 @@ pub struct UnionFragment {
 pub struct GroupRefFragment {
     pub ref_: ExpandedName<'static>,
 }
-
-// #[derive(Debug, Clone, PartialEq)]
-// pub enum SimpleTypeRootFragment {
-//     // GroupRef { ref_: SimpleTypeIdent },
-//     Restriction(Restriction),
-//     List { item_ident: SimpleTypeIdent },
-//     Union { fragments: VecDeque<FragmentId> },
-//     Facet(Facet),
-// }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Value(pub String);
@@ -753,13 +744,22 @@ impl SimpleFragmentEquivalent for xs::Union {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
+        let member_types = self
+            .member_types
+            .as_ref()
+            .map(|member_type| member_type.0.iter().map(|a| a.0.clone()).collect())
+            .unwrap_or_default();
+
         let simple_types = self
             .simple_type
             .iter()
             .map(|simple_type| simple_type.to_simple_fragments(&mut compiler))
             .collect();
 
-        compiler.push_fragment(UnionFragment { simple_types })
+        compiler.push_fragment(UnionFragment {
+            member_types,
+            simple_types,
+        })
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(

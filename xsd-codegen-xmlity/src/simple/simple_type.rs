@@ -9,6 +9,7 @@ use crate::templates::value_record::ItemRecord;
 use crate::GeneratorScope;
 use crate::Result;
 use crate::ToIdentTypesExt;
+use crate::TypeType;
 use crate::{misc::TypeReference, simple::SimpleToTypeTemplate, templates, ToTypeTemplateData};
 use quote::format_ident;
 use quote::ToTokens;
@@ -50,7 +51,28 @@ impl SimpleToTypeTemplate for sm::UnionFragment {
         let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
         // Struct with strict order
-        let variants = self
+        let member_type_variants = self
+            .member_types
+            .iter()
+            .enumerate()
+            .map(|(i, name)| {
+                let suggested_ident = format_ident!("Variant{i}");
+                let res = context.resolve_named_type(name)?;
+
+                assert_eq!(
+                    res.ty_type,
+                    TypeType::Simple,
+                    "Member type of union must be simple"
+                );
+
+                let ident = suggested_ident;
+
+                //TODO: Get name from the name of the type
+                Ok(((ident.to_variant_ident(), res.ty), ident))
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let simple_type_variants = self
             .simple_types
             .iter()
             .enumerate()
@@ -65,6 +87,11 @@ impl SimpleToTypeTemplate for sm::UnionFragment {
                 Ok(((ident.to_variant_ident(), res.template), ident))
             })
             .collect::<Result<Vec<_>>>()?;
+
+        let variants = member_type_variants
+            .into_iter()
+            .chain(simple_type_variants)
+            .collect::<Vec<_>>();
 
         let (variants, names) = variants.into_iter().unzip::<_, _, Vec<_>, Vec<_>>();
 

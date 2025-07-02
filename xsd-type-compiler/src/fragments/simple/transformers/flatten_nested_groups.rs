@@ -21,10 +21,15 @@ impl FlattenNestedUnions {
         ctx: &mut XmlnsLocalTransformerContext,
         fragment_idx: &FragmentIdx<UnionFragment>,
     ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
-        let UnionFragment { simple_types, .. } = ctx.get_simple_fragment(fragment_idx).unwrap();
+        let UnionFragment {
+            member_types,
+            simple_types,
+            ..
+        } = ctx.get_simple_fragment(fragment_idx).unwrap();
 
         let mut flattened = TransformChange::default();
 
+        let mut new_member_types = member_types.clone();
         let mut new_simple_types = VecDeque::new();
         for fragment_id in simple_types {
             let simple_type = ctx.get_simple_fragment(fragment_id).unwrap();
@@ -35,9 +40,11 @@ impl FlattenNestedUnions {
             };
 
             let UnionFragment {
+                member_types: sub_member_types,
                 simple_types: sub_simple_types,
             } = ctx.get_simple_fragment(&union_fragment_id).unwrap();
 
+            new_member_types.extend(sub_member_types.iter().cloned());
             new_simple_types.extend(sub_simple_types.iter().cloned());
             flattened = TransformChange::Changed;
         }

@@ -10,7 +10,7 @@ use std::{collections::BTreeMap, convert::Infallible, ops::Deref};
 use complex::ComplexToTypeTemplate;
 use inflector::Inflector;
 use misc::TypeReference;
-use quote::{format_ident, ToTokens};
+use quote::format_ident;
 use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_type_compiler::{
@@ -311,7 +311,7 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
 
         Ok(BoundType {
             ty,
-            ty_type: TypeType::Complex,
+            ty_type: TypeType::Simple,
             serialize_with: None,
             deserialize_with: None,
         })
@@ -368,7 +368,36 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
     }
 
     fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<BoundType> {
-        <Self as simple::SimpleContext>::resolve_named_type(self, name)
+        if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
+            return Ok(bound_type.clone());
+        }
+
+        let type_mod_ident = format_ident!("types");
+
+        let namespace_crate = self
+            .generator
+            .bound_namespaces
+            .get(name.namespace().unwrap())
+            .unwrap_or_else(|| {
+                panic!(
+                    "unbound namespace: {}",
+                    name.namespace()
+                        .map(|a| a.to_string())
+                        .unwrap_or("Unknown namespace.".to_string())
+                )
+            });
+
+        let name = name.local_name().to_item_ident();
+        let ty: syn::Type = parse_quote!(#namespace_crate::#type_mod_ident::#name);
+
+        let ty = TypeReference::new_static(ty).wrap(TypeReference::box_wrapper);
+
+        Ok(BoundType {
+            ty,
+            ty_type: TypeType::Complex,
+            serialize_with: None,
+            deserialize_with: None,
+        })
     }
 
     fn resolve_named_element(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
@@ -780,11 +809,6 @@ impl<'a> Generator<'a> {
 
         match type_ {
             xsd_type_compiler::TopLevelType::Simple(type_) => {
-                println!(
-                    "Generating simple type: {} in namespace: {}",
-                    name.local_name(),
-                    name.namespace().unwrap()
-                );
                 let fragment = compiled_namespace
                     .complex_type
                     .simple_type_fragments
@@ -803,15 +827,16 @@ impl<'a> Generator<'a> {
 
                 items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
 
-                let ty = type_
-                    .template
-                    .prefix(parse_quote!(#module_name))
-                    .wrap(TypeReference::box_non_boxed_wrapper);
+                let ty = type_.template.into_type(Some(&parse_quote!(#module_name)));
 
-                println!(
-                    "TY: {:?}",
-                    ty.clone().into_type(None).to_token_stream().to_string()
+                let ty_item: syn::ItemType = parse_quote!(
+                    pub type #item_name = #ty;
                 );
+
+                items.push(Item::Type(ty_item));
+
+                let ty = TypeReference::new_prefixed_type(parse_quote!(#item_name))
+                    .wrap(TypeReference::box_non_boxed_wrapper);
 
                 let bound_type = BoundType {
                     ty,
@@ -995,7 +1020,7 @@ impl<'a> Generator<'a> {
 
         let augment_items = self.augmenter.augment_item(&mut item);
 
-        items.extend(scope.finish_mod(&module_name).map(|i| Item::Mod(i)));
+        items.extend(scope.finish_mod(&module_name).map(Item::Mod));
 
         items.push(item);
 

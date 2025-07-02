@@ -5,8 +5,7 @@
 pub mod transformers;
 
 use std::{
-    collections::{BTreeMap, VecDeque},
-    marker::PhantomData,
+    collections::{ VecDeque},
     ops::Deref,
 };
 
@@ -180,7 +179,7 @@ pub enum LocalElementFragmentType {
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocalElementFragment {
     pub min_occurs: Option<usize>,
-    pub max_occurs: Option<xs::types::AllNNI>,
+    pub max_occurs: Option<AllNNI>,
     pub type_: LocalElementFragmentType,
 }
 
@@ -193,29 +192,68 @@ pub struct TopLevelElementFragment {
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupRefFragment {
     pub min_occurs: Option<usize>,
-    pub max_occurs: Option<xs::types::AllNNI>,
+    pub max_occurs: Option<AllNNI>,
     pub ref_: ExpandedName<'static>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AllFragment {
     pub min_occurs: Option<usize>,
-    pub max_occurs: Option<xs::types::AllNNI>,
+    pub max_occurs: Option<AllNNI>,
     pub fragments: VecDeque<NestedParticleId>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChoiceFragment {
     pub min_occurs: Option<usize>,
-    pub max_occurs: Option<xs::types::AllNNI>,
+    pub max_occurs: Option<AllNNI>,
     pub fragments: VecDeque<NestedParticleId>,
+}
+
+
+/// Represents the maximum occurrence of types or elements
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+pub enum AllNNI {
+    /// The occurrence is unbounded.
+    Unbounded,
+
+    /// The occurrence is bound to the specified limit.
+    Bounded(usize),
+}
+
+impl Default for AllNNI {
+    fn default() -> Self {
+        Self::Bounded(1)
+    }
+}
+
+impl From<xs::types::AllNNI> for AllNNI {
+    fn from(value: xs::types::AllNNI) -> Self {
+        match value {
+            xs::types::all_nni_items::AllNNI::Variant0(a) => Self::Bounded(*a),
+            xs::types::all_nni_items::AllNNI::Variant0_0(variant0) => match *variant0 {
+                xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded => Self::Unbounded,
+            },
+        }
+    }
+}
+
+impl From<AllNNI> for xs::types::AllNNI {
+    fn from(value: AllNNI) -> Self {
+        match value {
+            AllNNI::Unbounded => xs::types::AllNNI::Variant0_0(
+                Box::new(xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded)
+            ),
+            AllNNI::Bounded(a) => xs::types::AllNNI::Variant0(Box::new(a)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SequenceFragment {
     pub id: Option<String>,
     pub min_occurs: Option<usize>,
-    pub max_occurs: Option<xs::types::AllNNI>,
+    pub max_occurs: Option<AllNNI>,
     pub fragments: VecDeque<NestedParticleId>,
 }
 
@@ -514,7 +552,7 @@ impl AsRef<ComplexTypeFragmentCompiler> for ComplexTypeFragmentCompiler {
 pub struct Error;
 
 impl From<simple::Error> for Error {
-    fn from(err: simple::Error) -> Self {
+    fn from(_err: simple::Error) -> Self {
         Error
     }
 }
@@ -638,7 +676,7 @@ impl ComplexFragmentEquivalent for xs::types::LocalElement {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let max_occurs = self.max_occurs;
+        let max_occurs = self.max_occurs.clone().map(|a| AllNNI::from(*a));
         let min_occurs = self.min_occurs;
 
         let type_ = if let Some(ref_) = self.ref_.as_ref() {
@@ -684,7 +722,7 @@ impl ComplexFragmentEquivalent for xs::types::LocalElement {
 
         let element_builder = xs::types::LocalElement::builder()
             .maybe_min_occurs(fragment.min_occurs)
-            .maybe_max_occurs(fragment.max_occurs);
+            .maybe_max_occurs(fragment.max_occurs.map(From::from).map(Box::new));
 
         match &fragment.type_ {
             LocalElementFragmentType::Local(fragment) => Ok(element_builder
@@ -785,7 +823,7 @@ impl ComplexFragmentEquivalent for xs::types::GroupRef {
 
         compiler.push_fragment(GroupRefFragment {
             min_occurs: self.min_occurs,
-            max_occurs: self.max_occurs,
+            max_occurs: self.max_occurs.clone().map(|a| AllNNI::from(*a)),
             ref_: self.ref_.0.clone(),
         })
     }
@@ -801,7 +839,7 @@ impl ComplexFragmentEquivalent for xs::types::GroupRef {
         Ok(xs::types::GroupRef {
             id: None,
             min_occurs: fragment.min_occurs,
-            max_occurs: fragment.max_occurs,
+            max_occurs: fragment.max_occurs.map(From::from).map(Box::new),
             ref_: xs::types::QName(fragment.ref_.clone()),
             annotation: None,
         })
@@ -995,7 +1033,7 @@ impl ComplexFragmentEquivalent for xs::Choice {
 
         let all = ChoiceFragment {
             min_occurs: self.0.min_occurs,
-            max_occurs: self.0.max_occurs,
+            max_occurs: self.0.max_occurs.clone().map(|a| AllNNI::from(*a)),
             fragments: self
                 .0
                 .nested_particle
@@ -1017,7 +1055,7 @@ impl ComplexFragmentEquivalent for xs::Choice {
         Ok(xs::Choice(
             xs::types::ExplicitGroup::builder()
                 .maybe_min_occurs(fragment.min_occurs)
-                .maybe_max_occurs(fragment.max_occurs)
+                .maybe_max_occurs(fragment.max_occurs.map(From::from).map(Box::new))
                 .nested_particle(
                     fragment
                         .fragments
@@ -1045,7 +1083,7 @@ impl ComplexFragmentEquivalent for xs::Sequence {
         let seq = SequenceFragment {
             id: self.0.id.clone(),
             min_occurs: self.0.min_occurs,
-            max_occurs: self.0.max_occurs,
+            max_occurs: self.0.max_occurs.clone().map(|a| AllNNI::from(*a)),
             fragments: self
                 .0
                 .nested_particle
@@ -1067,7 +1105,7 @@ impl ComplexFragmentEquivalent for xs::Sequence {
         Ok(xs::Sequence(Box::new(
             xs::types::ExplicitGroup::builder()
                 .maybe_min_occurs(fragment.min_occurs)
-                .maybe_max_occurs(fragment.max_occurs)
+                .maybe_max_occurs(fragment.max_occurs.map(From::from).map(Box::new))
                 .nested_particle(
                     fragment
                         .fragments

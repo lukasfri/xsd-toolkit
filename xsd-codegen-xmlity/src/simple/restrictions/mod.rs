@@ -1,4 +1,3 @@
-use crate::simple::SimpleContext;
 use crate::{misc::TypeReference, simple::SimpleToTypeTemplate};
 use core::num::NonZeroUsize;
 use rust_decimal::Decimal;

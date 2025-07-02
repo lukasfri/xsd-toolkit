@@ -96,7 +96,7 @@ fn xsd_type_derivation_control() -> xs::SimpleType {
         .annotation(
             xs::Annotation::builder()
                 .annotation(vec![xs::Documentation::builder()
-                    .particle(vec![xs::documentation_items::Child0 {
+                    .child_0(vec![xs::documentation_items::Child0 {
                         child_0: xmlity::XmlValue::Text(xmlity::xml!(
                             "\n  A utility type, not for public use"
                         )),
@@ -228,7 +228,7 @@ fn xsd_block_set() -> xs::SimpleType {
         xs::Annotation::builder()
             .annotation(vec![
                 xs::Documentation::builder()
-                    .particle(vec![xs::documentation_items::Child0 {
+                    .child_0(vec![xs::documentation_items::Child0 {
                             child_0:xmlity::XmlValue::Text(xmlity::xml!(
                         "\n  A utility type, not for public use"
                     )),
@@ -236,7 +236,7 @@ fn xsd_block_set() -> xs::SimpleType {
                         .build()
                         .into(),
                 xs::Documentation::builder()
-                    .particle(vec![xs::documentation_items::Child0 {
+                    .child_0(vec![xs::documentation_items::Child0 {
                             child_0: xmlity::XmlValue::Text(xmlity::xml!(
                         "\n  #all or (possibly empty) subset of {substitution, extension,\n  restriction}"
                     )),

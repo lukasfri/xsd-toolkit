@@ -132,7 +132,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                                         .into(),
                                                         xs::Facet::from(xs::Enumeration(
                                                             xs::types::NoFixedFacet::builder()
-                                                                .value(xs::any_attribute_items::ProcessContentsValue::Lax)
+                                                                .value("lax".to_string())
                                                                 .build()
                                                                 .into(),
                                                         ))

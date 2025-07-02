@@ -13,8 +13,7 @@ use crate::{
 
 use quote::format_ident;
 use syn::{parse_quote, Item, Path};
-use xsd::xs::types::AllNNI;
-use xsd_type_compiler::fragments::complex as cx;
+use xsd_type_compiler::fragments::complex::{self as cx, AllNNI};
 
 use super::{
     elements::LocalElementFragmentTemplate, ComplexContext, ComplexToTypeTemplate, Scope,

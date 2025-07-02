@@ -849,15 +849,13 @@ fn xsd_total_digits() -> xs::Element {
                                                 LocalName::new_dangerous("positiveInteger"),
                                                 Some(XmlNamespace::XS),
                                             )))
-                                            // .use_(xs::AttributeUseType::Required)
                                             .use_(xs::types::attribute_items::UseValue::Required)
                                             .build()
                                             .into()])
                                         .any_attribute(
                                             xs::AnyAttribute::builder()
-                                                .namespace(xs::types::NamespaceListType::Other)
+                                                .namespace(xs::types::NamespaceList::from(xs::types::SpecialNamespaceList::Other).into())
                                                 .process_contents(xs::any_attribute_items::ProcessContentsValue::Lax)
-                                                // .process_contents(xs::ProcessContentsType::Lax)
                                                 .build()
                                                 .into(),
                                         )
@@ -1070,7 +1068,7 @@ fn xsd_white_space() -> xs::Element {
                                                     .into()])
                                                 .any_attribute(
                                                     xs::AnyAttribute::builder()
-                                                        .namespace(xs::types::NamespaceListType::Other)
+                                                        .namespace(xs::types::NamespaceList::from(xs::types::SpecialNamespaceList::Other).into())
                                                         .process_contents(
                                                           xs::any_attribute_items::ProcessContentsValue::Lax
                                                         )

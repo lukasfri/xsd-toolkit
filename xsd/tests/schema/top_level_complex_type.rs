@@ -719,7 +719,7 @@ fn xsd_all() -> xs::ComplexType {
                                     ])
                                     .any_attribute(
                                         xs::AnyAttribute::builder()
-                                            .namespace(xs::types::NamespaceListType::Other)
+                                            .namespace(xs::types::NamespaceList::from(xs::types::SpecialNamespaceList::Other).into())
                                             .process_contents(
                                                 xs::any_attribute_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
                                             )
@@ -859,7 +859,7 @@ fn xsd_any_type() -> xs::ComplexType {
                             xs::types::ExplicitGroup::builder()
                                 .nested_particle(vec![xs::Any::builder()
                                     .min_occurs(0)
-                                    .max_occurs(xs::types::AllNNI::Unbounded)
+                                    .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded).into())
                                     .process_contents(
                                         xs::any_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
                                     )

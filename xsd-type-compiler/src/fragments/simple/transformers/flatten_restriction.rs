@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::convert::Infallible;
 
 use xmlity::ExpandedName;
@@ -16,7 +15,6 @@ pub struct FlattenRestriction {
 }
 
 impl FlattenRestriction {
-    #[allow(clippy::new_without_default)]
     pub fn new(allowed_bases: Vec<ExpandedName<'static>>) -> Self {
         Self { allowed_bases }
     }
@@ -48,7 +46,7 @@ impl FlattenRestriction {
             todo!("Base type {base} is not a restriction");
         };
 
-        let mut flattened = TransformChange::default();
+        let mut _flattened = TransformChange::default();
 
         todo!("Flatten restriction for {base}")
     }

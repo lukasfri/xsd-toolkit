@@ -155,7 +155,12 @@ mod tests {
 
         let child_choice = xs::Choice(Box::new(
             xs::types::ExplicitGroup::builder()
-                .max_occurs(xs::types::AllNNI::Unbounded)
+                .max_occurs(
+                    xs::types::AllNNI::from(
+                        xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded,
+                    )
+                    .into(),
+                )
                 .nested_particle(vec![
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("size"))
@@ -331,7 +336,12 @@ mod tests {
 
         let child_choice = xs::Choice(
             xs::types::ExplicitGroup::builder()
-                .max_occurs(xs::types::AllNNI::Unbounded)
+                .max_occurs(
+                    xs::types::AllNNI::from(
+                        xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded,
+                    )
+                    .into(),
+                )
                 .nested_particle(vec![
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("size"))
@@ -384,7 +394,7 @@ mod tests {
                                                                 name.clone().into(),
                                                             ])
                                                             .max_occurs(
-                                                                xs::types::AllNNI::Unbounded,
+                                                                xs::types::AllNNI::from(xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded).into(),
                                                             )
                                                             .build()
                                                             .into(),
