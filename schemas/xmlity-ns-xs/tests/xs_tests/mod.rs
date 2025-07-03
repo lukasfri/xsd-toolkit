@@ -10,7 +10,7 @@ pub mod top_level_simple_type;
 
 #[test]
 fn schema_deserialize() {
-    let xml = include_str!("../../../schemas/XMLSchema.xsd");
+    let xml = include_str!("../../src/XMLSchema.xsd");
 
     let schema: XmlRoot<xs::Schema> = xmlity_quick_xml::from_str(xml).unwrap();
 

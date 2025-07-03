@@ -5,9 +5,10 @@ members = [
   "xsd-codegen-xmlity",
   "xsd-type-compiler",
   "xmlity-build",
-  "xmlity-ns-xhtml",
-  "xmlity-ns-xs",
-  "xmlity-ns-xml",
+  "schemas/xmlity-ns-xhtml",
+  "schemas/xmlity-ns-xs",
+  "schemas/xmlity-ns-xsi",
+  "schemas/xmlity-ns-xml",
 ]
 
 [workspace.package]
@@ -19,6 +20,10 @@ repository = "https://github.com/lukasfri/xsd-toolkit"
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
+xmlity-ns-xhtml = { path = "schemas/xmlity-ns-xhtml" }
+xmlity-ns-xs = { path = "schemas/xmlity-ns-xs" }
+xmlity-ns-xsi = { path = "schemas/xmlity-ns-xsi" }
+xmlity-ns-xml = { path = "schemas/xmlity-ns-xml" }
 thiserror = "^2.0.4"
 pretty_assertions = "^1.4.1"
 rstest = "^0.25.0"

@@ -1162,6 +1162,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "xmlity-ns-xsi"
+version = "0.0.0"
+dependencies = [
+ "bon",
+ "derive_more",
+ "ntest",
+ "pretty_assertions",
+ "rstest",
+ "syn 2.0.101",
+ "thiserror",
+ "xmlity",
+ "xmlity-build",
+ "xmlity-ns-xml",
+ "xmlity-quick-xml",
+]
+
+[[package]]
 name = "xmlity-quick-xml"
 version = "0.0.7"
 source = "git+https://github.com/lukasfri/xmlity.git?rev=cf150b55365433aa713187ebf7ffdf783dafd8b4#cf150b55365433aa713187ebf7ffdf783dafd8b4"

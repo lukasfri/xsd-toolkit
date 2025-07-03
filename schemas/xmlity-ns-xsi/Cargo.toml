@@ -1,5 +1,5 @@
 [package]
-name = "xmlity-ns-xhtml"
+name = "xmlity-ns-xsi"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -12,11 +12,10 @@ thiserror.workspace = true
 bon = "3.6.3"
 xmlity.workspace = true
 derive_more = { version = "2.0.1", features = ["full"] }
-xmlity-ns-xml = { path = "../xmlity-ns-xml" }
-xmlity-ns-xs = { path = "../xmlity-ns-xs" }
+xmlity-ns-xml.workspace = true
 
 [build-dependencies]
-xmlity-build = { path = "../xmlity-build" }
+xmlity-build = { path = "../../xmlity-build" }
 syn = { version = "2.0.29", features = ["full", "extra-traits"] }
 xmlity.workspace = true
 
@@ -25,7 +24,3 @@ rstest.workspace = true
 pretty_assertions.workspace = true
 ntest.workspace = true
 xmlity-quick-xml.workspace = true
-
-[features]
-default = ["xhtml1_strict"]
-xhtml1_strict = []

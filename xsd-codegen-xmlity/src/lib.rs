@@ -694,13 +694,15 @@ impl<'a> Generator<'a> {
             .flatten()
             .collect::<Vec<_>>();
 
-        let item_mod = parse_quote!(
-            pub mod #types_module_name {
-                #(#type_items)*
-            }
-        );
+        if !type_items.is_empty() {
+            let item_mod = parse_quote!(
+                pub mod #types_module_name {
+                    #(#type_items)*
+                }
+            );
 
-        items.push(Item::Mod(item_mod));
+            items.push(Item::Mod(item_mod));
+        }
 
         let attributes_module_name = format_ident!("attributes");
 
@@ -726,13 +728,15 @@ impl<'a> Generator<'a> {
             .flatten()
             .collect::<Vec<_>>();
 
-        let attributes_mod = parse_quote!(
-            pub mod #attributes_module_name {
-                #(#attributes_items)*
-            }
-        );
+        if !attributes_items.is_empty() {
+            let attributes_mod = parse_quote!(
+                pub mod #attributes_module_name {
+                    #(#attributes_items)*
+                }
+            );
 
-        items.push(Item::Mod(attributes_mod));
+            items.push(Item::Mod(attributes_mod));
+        }
 
         let groups_module_name = format_ident!("groups");
 
@@ -758,13 +762,15 @@ impl<'a> Generator<'a> {
             .flatten()
             .collect::<Vec<_>>();
 
-        let groups_mod = parse_quote!(
-            pub mod #groups_module_name {
-                #(#group_items)*
-            }
-        );
+        if !group_items.is_empty() {
+            let groups_mod = parse_quote!(
+                pub mod #groups_module_name {
+                    #(#group_items)*
+                }
+            );
 
-        items.push(Item::Mod(groups_mod));
+            items.push(Item::Mod(groups_mod));
+        }
 
         for expanded_name in compiled_namespace
             .top_level_elements

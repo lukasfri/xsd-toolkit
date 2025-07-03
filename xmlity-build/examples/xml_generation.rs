@@ -10,7 +10,7 @@ fn main() {
     let time = std::time::Instant::now();
 
     let engine = xmlity_build::BuildEngine::builder()
-        .glob_patterns(vec!["./schemas/**/*.xsd".to_string()])
+        .glob_patterns(vec!["schemas/**/*.xsd".to_string()])
         .url_net_resolution(true)
         .bound_namespaces(vec![(XmlNamespace::XML, parse_quote!(crate))])
         .build();
@@ -26,7 +26,7 @@ fn main() {
     engine
         .generate_namespace(
             xmlity_build::GenerateNamespace::builder()
-                .output_file("xmlity-ns-xml/src/lib.rs".parse().unwrap())
+                .output_file("schemas/xmlity-ns-xml/src/lib.rs".parse().unwrap())
                 .namespace(XmlNamespace::XML)
                 .bon_builders(true)
                 .enum_from(true)

@@ -5,7 +5,7 @@ use xmlity_ns_xs::xs;
 
 #[test]
 fn schema_deserialize() {
-    let xml = include_str!("../../../schemas/xhtml1-strict.xsd");
+    let xml = include_str!("../../../xmlity-ns-xhtml/src/xhtml1-strict.xsd");
 
     let schema: XmlRoot<xs::Schema> = xmlity_quick_xml::from_str(xml).unwrap();
 
