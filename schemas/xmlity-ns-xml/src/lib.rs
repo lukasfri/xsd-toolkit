@@ -1,4 +1,3 @@
-pub mod types {}
 pub mod attributes {
     #[derive(
         ::core::fmt::Debug,
@@ -166,4 +165,3 @@ pub mod attributes {
         }
     }
 }
-pub mod groups {}

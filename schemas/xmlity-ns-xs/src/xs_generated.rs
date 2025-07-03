@@ -2944,7 +2944,6 @@ pub mod types {
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
     }
 }
-pub mod attributes {}
 pub mod groups {
     pub mod all_model_items {
         impl ::core::convert::From<crate::xs::types::LocalElement> for Child1 {
