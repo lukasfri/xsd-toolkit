@@ -1,3 +1,6 @@
+//! This example is used to generate the `xmlity-ns-xml` crate.
+//!
+//! The `xmlity-ns-xml` crate can not use `xmlity-build` as a dependency, because it is itself a dependency of `xmlity-build`. Therefore, this example is used to generate the `xmlity-ns-xml` crate.
 use syn::parse_quote;
 use xmlity::XmlNamespace;
 

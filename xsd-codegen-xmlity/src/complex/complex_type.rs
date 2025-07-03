@@ -494,7 +494,7 @@ mod tests {
             pub struct SimpleSequence {
                 #[xattribute(name = "a")]
                 pub a: i32,
-                #[xattribute(name = "b", optional, default)]
+                #[xattribute(name = "b", optional)]
                 pub b: ::core::option::Option<String>,
             }
         );

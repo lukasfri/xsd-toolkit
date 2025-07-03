@@ -1123,8 +1123,12 @@ dependencies = [
  "ntest",
  "pretty_assertions",
  "rstest",
+ "syn 2.0.101",
  "thiserror",
  "xmlity",
+ "xmlity-build",
+ "xmlity-ns-xml",
+ "xmlity-ns-xs",
  "xmlity-quick-xml",
 ]
 

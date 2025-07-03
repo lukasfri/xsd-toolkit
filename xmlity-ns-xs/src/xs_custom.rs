@@ -349,13 +349,6 @@ pub mod types {
         }
     }
 
-    impl fmt::Display for QName {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            //TODO
-            write!(f, "{}", self.0)
-        }
-    }
-
     impl Serialize for QName {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where

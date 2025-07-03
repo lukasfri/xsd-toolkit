@@ -41,7 +41,7 @@ impl ComplexToTypeTemplate for cx::LocalAttributeFragment {
                     ty,
                     deferred: false,
                     optional,
-                    default: optional,
+                    default: false,
                 };
 
                 (Some(ident), template)
@@ -56,7 +56,7 @@ impl ComplexToTypeTemplate for cx::LocalAttributeFragment {
                     ty,
                     deferred: true,
                     optional,
-                    default: optional,
+                    default: false,
                 };
 
                 (None, template)

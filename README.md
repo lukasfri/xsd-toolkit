@@ -1,6 +1,7 @@
 ## Remaining issues.
 
 - `xs::types::SimpleRestrictionType` has a sub-group that does not collapse.
+- In XHTML, lots of elements have complex types that are the exact same. This generates lots of useless code. By unifing it into a single common type somehow, we could save thousands of lines of code - atleast around 5-6k just from types like `kbd`.
 
 ## Facet support
 

@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use bon::Builder;
 use syn::parse_quote;
-use xmlity::{types::utils::XmlRoot, ExpandedName, LocalName, XmlNamespace};
+use xmlity::{types::utils::XmlRoot, ExpandedName, XmlNamespace};
 use xsd_codegen_xmlity::{
     augments::{
         AdditionalDerives, BonAugmentation, EnumFromAugmentation, ItemAugmentation,
@@ -149,25 +149,30 @@ impl BuildEngine {
 }
 
 impl StartedBuildEngine {
-    pub fn generate_namespace(&self, generate_namespace: GenerateNamespace) -> Result<(), Error> {
+    pub fn generate_namespace<N: Into<GenerateNamespace>>(
+        &self,
+        generate_namespace: N,
+    ) -> Result<(), Error> {
+        let generate_namespace = generate_namespace.into();
+
         let mut generator = xsd_codegen_xmlity::Generator::new_with_augmenter(
             &self.context,
             vec![
-                Box::new(if generate_namespace.bon_builders {
-                    Some(BonAugmentation::new())
-                } else {
-                    None
-                }) as Box<dyn ItemAugmentation>,
-                Box::new(if generate_namespace.enum_from {
-                    Some(EnumFromAugmentation::new())
-                } else {
-                    None
-                }) as Box<dyn ItemAugmentation>,
-                Box::new(if generate_namespace.struct_from {
-                    Some(StructFromAugmentation::new())
-                } else {
-                    None
-                }) as Box<dyn ItemAugmentation>,
+                Box::new(
+                    generate_namespace
+                        .bon_builders
+                        .then(|| BonAugmentation::new()),
+                ) as Box<dyn ItemAugmentation>,
+                Box::new(
+                    generate_namespace
+                        .enum_from
+                        .then(|| EnumFromAugmentation::new()),
+                ) as Box<dyn ItemAugmentation>,
+                Box::new(
+                    generate_namespace
+                        .struct_from
+                        .then(|| StructFromAugmentation::new()),
+                ) as Box<dyn ItemAugmentation>,
                 Box::new(Some(AdditionalDerives {
                     structs: vec![
                         parse_quote!(::core::cmp::PartialEq),
@@ -179,16 +184,6 @@ impl StartedBuildEngine {
                     ],
                 })) as Box<dyn ItemAugmentation>,
             ],
-        );
-
-        generator.bind_attribute(
-            ExpandedName::new(LocalName::new_dangerous("lang"), Some(XmlNamespace::XML)),
-            TypeReference::new_static(parse_quote!(crate::xml::Lang)),
-        );
-
-        generator.bind_attribute(
-            ExpandedName::new(LocalName::new_dangerous("space"), Some(XmlNamespace::XML)),
-            TypeReference::new_static(parse_quote!(crate::xml::Space)),
         );
 
         generator.bind_types(xsd_codegen_xmlity::binds::StdXsdTypes);

@@ -1510,11 +1510,11 @@ pub mod types {
         ::core::clone::Clone
     )]
     pub struct All {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "minOccurs", optional, default)]
+        #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<all_items::MinOccursValue>,
-        #[xattribute(name = "maxOccurs", optional, default)]
+        #[xattribute(name = "maxOccurs", optional)]
         pub max_occurs: ::core::option::Option<::std::string::String>,
         pub all_model: ::std::boxed::Box<crate::xs::groups::AllModel>,
     }
@@ -1561,13 +1561,13 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct AltType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "test", optional, default)]
+        #[xattribute(name = "test", optional)]
         pub test: ::core::option::Option<String>,
-        #[xattribute(name = "type", optional, default)]
+        #[xattribute(name = "type", optional)]
         pub type_attribute: ::core::option::Option<crate::xs::types::QName>,
-        #[xattribute(name = "xpathDefaultNamespace", optional, default)]
+        #[xattribute(name = "xpathDefaultNamespace", optional)]
         pub xpath_default_namespace: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
         >,
@@ -1586,7 +1586,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct Annotated {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -1613,11 +1613,11 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct Assertion {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "test", optional, default)]
+        #[xattribute(name = "test", optional)]
         pub test: ::core::option::Option<String>,
-        #[xattribute(name = "xpathDefaultNamespace", optional, default)]
+        #[xattribute(name = "xpathDefaultNamespace", optional)]
         pub xpath_default_namespace: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
         >,
@@ -1726,27 +1726,27 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct Attribute {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional, default)]
+        #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "ref", optional, default)]
+        #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::xs::types::QName>,
-        #[xattribute(name = "type", optional, default)]
+        #[xattribute(name = "type", optional)]
         pub type_: ::core::option::Option<crate::xs::types::QName>,
-        #[xattribute(name = "use", optional, default)]
+        #[xattribute(name = "use", optional)]
         pub use_: ::core::option::Option<attribute_items::UseValue>,
-        #[xattribute(name = "default", optional, default)]
+        #[xattribute(name = "default", optional)]
         pub default: ::core::option::Option<String>,
-        #[xattribute(name = "fixed", optional, default)]
+        #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<String>,
-        #[xattribute(name = "form", optional, default)]
+        #[xattribute(name = "form", optional)]
         pub form: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::FormChoice>,
         >,
-        #[xattribute(name = "targetNamespace", optional, default)]
+        #[xattribute(name = "targetNamespace", optional)]
         pub target_namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
-        #[xattribute(name = "inheritable", optional, default)]
+        #[xattribute(name = "inheritable", optional)]
         pub inheritable: ::core::option::Option<bool>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -1770,11 +1770,11 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct AttributeGroup {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional, default)]
+        #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "ref", optional, default)]
+        #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::xs::types::QName>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -1790,7 +1790,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct AttributeGroupRef {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "ref")]
         pub ref_: crate::xs::types::QName,
@@ -1807,23 +1807,23 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct ComplexBaseType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional, default)]
+        #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "mixed", optional, default)]
+        #[xattribute(name = "mixed", optional)]
         pub mixed: ::core::option::Option<bool>,
-        #[xattribute(name = "abstract", optional, default)]
+        #[xattribute(name = "abstract", optional)]
         pub abstract_: ::core::option::Option<bool>,
-        #[xattribute(name = "final", optional, default)]
+        #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::DerivationSet>,
         >,
-        #[xattribute(name = "block", optional, default)]
+        #[xattribute(name = "block", optional)]
         pub block: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::DerivationSet>,
         >,
-        #[xattribute(name = "defaultAttributesApply", optional, default)]
+        #[xattribute(name = "defaultAttributesApply", optional)]
         pub default_attributes_apply: ::core::option::Option<bool>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -1857,7 +1857,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct ComplexRestrictionType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
         pub base: crate::xs::types::QName,
@@ -1932,43 +1932,43 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct Element {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional, default)]
+        #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "ref", optional, default)]
+        #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::xs::types::QName>,
-        #[xattribute(name = "type", optional, default)]
+        #[xattribute(name = "type", optional)]
         pub type_attribute: ::core::option::Option<crate::xs::types::QName>,
-        #[xattribute(name = "substitutionGroup", optional, default)]
+        #[xattribute(name = "substitutionGroup", optional)]
         pub substitution_group: ::core::option::Option<
             crate::xs::types::List<crate::xs::types::QName>,
         >,
-        #[xattribute(name = "minOccurs", optional, default)]
+        #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
-        #[xattribute(name = "maxOccurs", optional, default)]
+        #[xattribute(name = "maxOccurs", optional)]
         pub max_occurs: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::AllNNI>,
         >,
-        #[xattribute(name = "default", optional, default)]
+        #[xattribute(name = "default", optional)]
         pub default: ::core::option::Option<String>,
-        #[xattribute(name = "fixed", optional, default)]
+        #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<String>,
-        #[xattribute(name = "nillable", optional, default)]
+        #[xattribute(name = "nillable", optional)]
         pub nillable: ::core::option::Option<bool>,
-        #[xattribute(name = "abstract", optional, default)]
+        #[xattribute(name = "abstract", optional)]
         pub abstract_: ::core::option::Option<bool>,
-        #[xattribute(name = "final", optional, default)]
+        #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::DerivationSet>,
         >,
-        #[xattribute(name = "block", optional, default)]
+        #[xattribute(name = "block", optional)]
         pub block: ::core::option::Option<::std::boxed::Box<crate::xs::types::BlockSet>>,
-        #[xattribute(name = "form", optional, default)]
+        #[xattribute(name = "form", optional)]
         pub form: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::FormChoice>,
         >,
-        #[xattribute(name = "targetNamespace", optional, default)]
+        #[xattribute(name = "targetNamespace", optional)]
         pub target_namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -1991,11 +1991,11 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct ExplicitGroup {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "minOccurs", optional, default)]
+        #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
-        #[xattribute(name = "maxOccurs", optional, default)]
+        #[xattribute(name = "maxOccurs", optional)]
         pub max_occurs: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::AllNNI>,
         >,
@@ -2015,7 +2015,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct ExtensionType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
         pub base: crate::xs::types::QName,
@@ -2042,11 +2042,11 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct Facet {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "value")]
         pub value: String,
-        #[xattribute(name = "fixed", optional, default)]
+        #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<bool>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2061,15 +2061,15 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct Group {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional, default)]
+        #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "ref", optional, default)]
+        #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::xs::types::QName>,
-        #[xattribute(name = "minOccurs", optional, default)]
+        #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
-        #[xattribute(name = "maxOccurs", optional, default)]
+        #[xattribute(name = "maxOccurs", optional)]
         pub max_occurs: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::AllNNI>,
         >,
@@ -2089,13 +2089,13 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct GroupRef {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "ref")]
         pub ref_: crate::xs::types::QName,
-        #[xattribute(name = "minOccurs", optional, default)]
+        #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
-        #[xattribute(name = "maxOccurs", optional, default)]
+        #[xattribute(name = "maxOccurs", optional)]
         pub max_occurs: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::AllNNI>,
         >,
@@ -2112,11 +2112,11 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct IntFacet {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "value")]
         pub value: i32,
-        #[xattribute(name = "fixed", optional, default)]
+        #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<bool>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2148,11 +2148,11 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct Keybase {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional, default)]
+        #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "ref", optional, default)]
+        #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::xs::types::QName>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2169,11 +2169,11 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct LocalComplexType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "mixed", optional, default)]
+        #[xattribute(name = "mixed", optional)]
         pub mixed: ::core::option::Option<bool>,
-        #[xattribute(name = "defaultAttributesApply", optional, default)]
+        #[xattribute(name = "defaultAttributesApply", optional)]
         pub default_attributes_apply: ::core::option::Option<bool>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2243,33 +2243,33 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct LocalElement {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional, default)]
+        #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "ref", optional, default)]
+        #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::xs::types::QName>,
-        #[xattribute(name = "type", optional, default)]
+        #[xattribute(name = "type", optional)]
         pub type_attribute: ::core::option::Option<crate::xs::types::QName>,
-        #[xattribute(name = "minOccurs", optional, default)]
+        #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
-        #[xattribute(name = "maxOccurs", optional, default)]
+        #[xattribute(name = "maxOccurs", optional)]
         pub max_occurs: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::AllNNI>,
         >,
-        #[xattribute(name = "default", optional, default)]
+        #[xattribute(name = "default", optional)]
         pub default: ::core::option::Option<String>,
-        #[xattribute(name = "fixed", optional, default)]
+        #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<String>,
-        #[xattribute(name = "nillable", optional, default)]
+        #[xattribute(name = "nillable", optional)]
         pub nillable: ::core::option::Option<bool>,
-        #[xattribute(name = "block", optional, default)]
+        #[xattribute(name = "block", optional)]
         pub block: ::core::option::Option<::std::boxed::Box<crate::xs::types::BlockSet>>,
-        #[xattribute(name = "form", optional, default)]
+        #[xattribute(name = "form", optional)]
         pub form: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::FormChoice>,
         >,
-        #[xattribute(name = "targetNamespace", optional, default)]
+        #[xattribute(name = "targetNamespace", optional)]
         pub target_namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2292,7 +2292,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct LocalSimpleType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2308,7 +2308,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct NamedAttributeGroup {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
@@ -2331,11 +2331,11 @@ pub mod types {
                 allow_unknown_attributes = "any"
             )]
             All {
-                #[xattribute(name = "id", optional, default)]
+                #[xattribute(name = "id", optional)]
                 id: ::core::option::Option<String>,
-                #[xattribute(name = "minOccurs", optional, default)]
+                #[xattribute(name = "minOccurs", optional)]
                 min_occurs: ::core::option::Option<usize>,
-                #[xattribute(name = "maxOccurs", optional, default)]
+                #[xattribute(name = "maxOccurs", optional)]
                 max_occurs: ::core::option::Option<
                     ::std::boxed::Box<crate::xs::types::AllNNI>,
                 >,
@@ -2365,7 +2365,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct NamedGroup {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
@@ -2383,7 +2383,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct NoFixedFacet {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "value")]
         pub value: String,
@@ -2400,11 +2400,11 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct NumFacet {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "value")]
         pub value: usize,
-        #[xattribute(name = "fixed", optional, default)]
+        #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<bool>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2456,15 +2456,15 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct RealGroup {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional, default)]
+        #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "ref", optional, default)]
+        #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::xs::types::QName>,
-        #[xattribute(name = "minOccurs", optional, default)]
+        #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
-        #[xattribute(name = "maxOccurs", optional, default)]
+        #[xattribute(name = "maxOccurs", optional)]
         pub max_occurs: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::AllNNI>,
         >,
@@ -2529,7 +2529,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct RestrictionType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
         pub base: crate::xs::types::QName,
@@ -2550,13 +2550,13 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct SimpleBaseType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "final", optional, default)]
+        #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::SimpleDerivationSet>,
         >,
-        #[xattribute(name = "name", optional, default)]
+        #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2572,7 +2572,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct SimpleExplicitGroup {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2590,7 +2590,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct SimpleExtensionType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
         pub base: crate::xs::types::QName,
@@ -2625,7 +2625,7 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct SimpleRestrictionType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
         pub base: crate::xs::types::QName,
@@ -2648,17 +2648,17 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct TopLevelAttribute {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
-        #[xattribute(name = "type", optional, default)]
+        #[xattribute(name = "type", optional)]
         pub type_: ::core::option::Option<crate::xs::types::QName>,
-        #[xattribute(name = "default", optional, default)]
+        #[xattribute(name = "default", optional)]
         pub default: ::core::option::Option<String>,
-        #[xattribute(name = "fixed", optional, default)]
+        #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<String>,
-        #[xattribute(name = "inheritable", optional, default)]
+        #[xattribute(name = "inheritable", optional)]
         pub inheritable: ::core::option::Option<bool>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2682,23 +2682,23 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct TopLevelComplexType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
-        #[xattribute(name = "mixed", optional, default)]
+        #[xattribute(name = "mixed", optional)]
         pub mixed: ::core::option::Option<bool>,
-        #[xattribute(name = "abstract", optional, default)]
+        #[xattribute(name = "abstract", optional)]
         pub abstract_: ::core::option::Option<bool>,
-        #[xattribute(name = "final", optional, default)]
+        #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::DerivationSet>,
         >,
-        #[xattribute(name = "block", optional, default)]
+        #[xattribute(name = "block", optional)]
         pub block: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::DerivationSet>,
         >,
-        #[xattribute(name = "defaultAttributesApply", optional, default)]
+        #[xattribute(name = "defaultAttributesApply", optional)]
         pub default_attributes_apply: ::core::option::Option<bool>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2768,29 +2768,29 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct TopLevelElement {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
-        #[xattribute(name = "type", optional, default)]
+        #[xattribute(name = "type", optional)]
         pub type_attribute: ::core::option::Option<crate::xs::types::QName>,
-        #[xattribute(name = "substitutionGroup", optional, default)]
+        #[xattribute(name = "substitutionGroup", optional)]
         pub substitution_group: ::core::option::Option<
             crate::xs::types::List<crate::xs::types::QName>,
         >,
-        #[xattribute(name = "default", optional, default)]
+        #[xattribute(name = "default", optional)]
         pub default: ::core::option::Option<String>,
-        #[xattribute(name = "fixed", optional, default)]
+        #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<String>,
-        #[xattribute(name = "nillable", optional, default)]
+        #[xattribute(name = "nillable", optional)]
         pub nillable: ::core::option::Option<bool>,
-        #[xattribute(name = "abstract", optional, default)]
+        #[xattribute(name = "abstract", optional)]
         pub abstract_: ::core::option::Option<bool>,
-        #[xattribute(name = "final", optional, default)]
+        #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::DerivationSet>,
         >,
-        #[xattribute(name = "block", optional, default)]
+        #[xattribute(name = "block", optional)]
         pub block: ::core::option::Option<::std::boxed::Box<crate::xs::types::BlockSet>>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
@@ -2813,9 +2813,9 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct TopLevelSimpleType {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "final", optional, default)]
+        #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::SimpleDerivationSet>,
         >,
@@ -2928,15 +2928,15 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct Wildcard {
-        #[xattribute(name = "id", optional, default)]
+        #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
-        #[xattribute(name = "namespace", optional, default)]
+        #[xattribute(name = "namespace", optional)]
         pub namespace: ::core::option::Option<
             ::std::boxed::Box<crate::xs::types::NamespaceList>,
         >,
-        #[xattribute(name = "notNamespace", optional, default)]
+        #[xattribute(name = "notNamespace", optional)]
         pub not_namespace: ::core::option::Option<::std::string::String>,
-        #[xattribute(name = "processContents", optional, default)]
+        #[xattribute(name = "processContents", optional)]
         pub process_contents: ::core::option::Option<
             wildcard_items::ProcessContentsValue,
         >,
@@ -2979,13 +2979,13 @@ pub mod groups {
                 children_order = "strict"
             )]
             Group {
-                #[xattribute(name = "id", optional, default)]
+                #[xattribute(name = "id", optional)]
                 id: ::core::option::Option<String>,
                 #[xattribute(name = "ref")]
                 ref_: crate::xs::types::QName,
-                #[xattribute(name = "minOccurs", optional, default)]
+                #[xattribute(name = "minOccurs", optional)]
                 min_occurs: ::core::option::Option<usize>,
-                #[xattribute(name = "maxOccurs", optional, default)]
+                #[xattribute(name = "maxOccurs", optional)]
                 max_occurs: ::core::option::Option<usize>,
                 #[xvalue(default)]
                 annotation: ::core::option::Option<
@@ -3561,7 +3561,7 @@ pub mod annotation_items {
     allow_unknown_attributes = "any"
 )]
 pub struct Annotation {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xvalue(default)]
     #[builder(default)]
@@ -3672,23 +3672,23 @@ pub mod any_items {
     children_order = "strict"
 )]
 pub struct Any {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
-    #[xattribute(name = "namespace", optional, default)]
+    #[xattribute(name = "namespace", optional)]
     pub namespace: ::core::option::Option<
         ::std::boxed::Box<crate::xs::types::NamespaceList>,
     >,
-    #[xattribute(name = "notNamespace", optional, default)]
+    #[xattribute(name = "notNamespace", optional)]
     pub not_namespace: ::core::option::Option<::std::string::String>,
-    #[xattribute(name = "processContents", optional, default)]
+    #[xattribute(name = "processContents", optional)]
     pub process_contents: ::core::option::Option<any_items::ProcessContentsValue>,
-    #[xattribute(name = "notQName", optional, default)]
+    #[xattribute(name = "notQName", optional)]
     pub not_q_name: ::core::option::Option<
         ::std::boxed::Box<crate::xs::types::QnameList>,
     >,
-    #[xattribute(name = "minOccurs", optional, default)]
+    #[xattribute(name = "minOccurs", optional)]
     pub min_occurs: ::core::option::Option<usize>,
-    #[xattribute(name = "maxOccurs", optional, default)]
+    #[xattribute(name = "maxOccurs", optional)]
     pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::xs::types::AllNNI>>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -3797,19 +3797,19 @@ pub mod any_attribute_items {
     allow_unknown_attributes = "any"
 )]
 pub struct AnyAttribute {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
-    #[xattribute(name = "namespace", optional, default)]
+    #[xattribute(name = "namespace", optional)]
     pub namespace: ::core::option::Option<
         ::std::boxed::Box<crate::xs::types::NamespaceList>,
     >,
-    #[xattribute(name = "notNamespace", optional, default)]
+    #[xattribute(name = "notNamespace", optional)]
     pub not_namespace: ::core::option::Option<::std::string::String>,
-    #[xattribute(name = "processContents", optional, default)]
+    #[xattribute(name = "processContents", optional)]
     pub process_contents: ::core::option::Option<
         any_attribute_items::ProcessContentsValue,
     >,
-    #[xattribute(name = "notQName", optional, default)]
+    #[xattribute(name = "notQName", optional)]
     pub not_q_name: ::core::option::Option<
         ::std::boxed::Box<crate::xs::types::QnameListA>,
     >,
@@ -3842,7 +3842,7 @@ pub mod appinfo_items {
     allow_unknown_attributes = "any"
 )]
 pub struct Appinfo {
-    #[xattribute(name = "source", optional, default)]
+    #[xattribute(name = "source", optional)]
     pub source: ::core::option::Option<crate::xs::types::TargetNamespace>,
     #[xvalue(default)]
     #[builder(default)]
@@ -3977,9 +3977,9 @@ pub mod complex_content_items {
     children_order = "strict"
 )]
 pub struct ComplexContent {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
-    #[xattribute(name = "mixed", optional, default)]
+    #[xattribute(name = "mixed", optional)]
     pub mixed: ::core::option::Option<bool>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -4107,11 +4107,11 @@ pub mod default_open_content_items {
     children_order = "strict"
 )]
 pub struct DefaultOpenContent {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
-    #[xattribute(name = "appliesToEmpty", optional, default)]
+    #[xattribute(name = "appliesToEmpty", optional)]
     pub applies_to_empty: ::core::option::Option<bool>,
-    #[xattribute(name = "mode", optional, default)]
+    #[xattribute(name = "mode", optional)]
     pub mode: ::core::option::Option<default_open_content_items::ModeValue>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -4146,10 +4146,12 @@ pub mod documentation_items {
     allow_unknown_attributes = "any"
 )]
 pub struct Documentation {
-    #[xattribute(name = "source", optional, default)]
+    #[xattribute(name = "source", optional)]
     pub source: ::core::option::Option<crate::xs::types::TargetNamespace>,
-    #[xattribute(deferred = true, optional, default)]
-    pub attribute_1: ::core::option::Option<xmlity_ns_xml::attributes::Lang>,
+    #[xattribute(deferred = true, optional)]
+    pub attribute_1: ::core::option::Option<
+        ::std::boxed::Box<xmlity_ns_xml::attributes::Lang>,
+    >,
     #[xvalue(default)]
     #[builder(default)]
     pub child_0: ::std::vec::Vec<documentation_items::Child0>,
@@ -4294,11 +4296,11 @@ pub mod explicit_timezone_items {
     children_order = "strict"
 )]
 pub struct ExplicitTimezone {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "value")]
     pub value: explicit_timezone_items::ValueValue,
-    #[xattribute(name = "fixed", optional, default)]
+    #[xattribute(name = "fixed", optional)]
     pub fixed: ::core::option::Option<bool>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -4372,11 +4374,11 @@ pub mod field_items {
     children_order = "strict"
 )]
 pub struct Field {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "xpath")]
     pub xpath: field_items::XpathValue,
-    #[xattribute(name = "xpathDefaultNamespace", optional, default)]
+    #[xattribute(name = "xpathDefaultNamespace", optional)]
     pub xpath_default_namespace: ::core::option::Option<
         ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
     >,
@@ -4434,11 +4436,11 @@ impl ::core::convert::From<crate::xs::types::NamedGroup> for Group {
     children_order = "strict"
 )]
 pub struct Import {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
-    #[xattribute(name = "namespace", optional, default)]
+    #[xattribute(name = "namespace", optional)]
     pub namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
-    #[xattribute(name = "schemaLocation", optional, default)]
+    #[xattribute(name = "schemaLocation", optional)]
     pub schema_location: ::core::option::Option<crate::xs::types::TargetNamespace>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -4458,7 +4460,7 @@ pub struct Import {
     children_order = "strict"
 )]
 pub struct Include {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "schemaLocation")]
     pub schema_location: crate::xs::types::TargetNamespace,
@@ -4515,13 +4517,13 @@ pub mod keyref_items {
     children_order = "strict"
 )]
 pub struct Keyref {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
-    #[xattribute(name = "name", optional, default)]
+    #[xattribute(name = "name", optional)]
     pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-    #[xattribute(name = "ref", optional, default)]
+    #[xattribute(name = "ref", optional)]
     pub ref_: ::core::option::Option<crate::xs::types::QName>,
-    #[xattribute(name = "refer", optional, default)]
+    #[xattribute(name = "refer", optional)]
     pub refer: ::core::option::Option<crate::xs::types::QName>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -4561,9 +4563,9 @@ impl ::core::convert::From<crate::xs::types::NumFacet> for Length {
     children_order = "strict"
 )]
 pub struct List {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
-    #[xattribute(name = "itemType", optional, default)]
+    #[xattribute(name = "itemType", optional)]
     pub item_type: ::core::option::Option<crate::xs::types::QName>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -4700,13 +4702,13 @@ impl ::core::convert::From<crate::xs::types::NumFacet> for MinLength {
     children_order = "strict"
 )]
 pub struct Notation {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "name")]
     pub name: ::xmlity::LocalName<'static>,
-    #[xattribute(name = "public", optional, default)]
+    #[xattribute(name = "public", optional)]
     pub public: ::core::option::Option<::std::boxed::Box<crate::xs::types::Public>>,
-    #[xattribute(name = "system", optional, default)]
+    #[xattribute(name = "system", optional)]
     pub system: ::core::option::Option<crate::xs::types::TargetNamespace>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -4815,9 +4817,9 @@ pub mod open_content_items {
     children_order = "strict"
 )]
 pub struct OpenContent {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
-    #[xattribute(name = "mode", optional, default)]
+    #[xattribute(name = "mode", optional)]
     pub mode: ::core::option::Option<open_content_items::ModeValue>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -4846,7 +4848,7 @@ pub struct OpenContent {
 pub struct Override {
     #[xattribute(name = "schemaLocation")]
     pub schema_location: crate::xs::types::TargetNamespace,
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -4869,7 +4871,7 @@ pub struct Override {
     children_order = "strict"
 )]
 pub struct Pattern {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "value")]
     pub value: String,
@@ -4915,7 +4917,7 @@ pub mod redefine_items {
 pub struct Redefine {
     #[xattribute(name = "schemaLocation")]
     pub schema_location: crate::xs::types::TargetNamespace,
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xvalue(default)]
     #[builder(default)]
@@ -4936,9 +4938,9 @@ pub struct Redefine {
     children_order = "strict"
 )]
 pub struct Restriction {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
-    #[xattribute(name = "base", optional, default)]
+    #[xattribute(name = "base", optional)]
     pub base: ::core::option::Option<crate::xs::types::QName>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -4991,36 +4993,38 @@ pub mod schema_items {
     children_order = "strict"
 )]
 pub struct Schema {
-    #[xattribute(name = "targetNamespace", optional, default)]
+    #[xattribute(name = "targetNamespace", optional)]
     pub target_namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
-    #[xattribute(name = "version", optional, default)]
+    #[xattribute(name = "version", optional)]
     pub version: ::core::option::Option<String>,
-    #[xattribute(name = "finalDefault", optional, default)]
+    #[xattribute(name = "finalDefault", optional)]
     pub final_default: ::core::option::Option<
         ::std::boxed::Box<crate::xs::types::FullDerivationSet>,
     >,
-    #[xattribute(name = "blockDefault", optional, default)]
+    #[xattribute(name = "blockDefault", optional)]
     pub block_default: ::core::option::Option<
         ::std::boxed::Box<crate::xs::types::BlockSet>,
     >,
-    #[xattribute(name = "attributeFormDefault", optional, default)]
+    #[xattribute(name = "attributeFormDefault", optional)]
     pub attribute_form_default: ::core::option::Option<
         ::std::boxed::Box<crate::xs::types::FormChoice>,
     >,
-    #[xattribute(name = "elementFormDefault", optional, default)]
+    #[xattribute(name = "elementFormDefault", optional)]
     pub element_form_default: ::core::option::Option<
         ::std::boxed::Box<crate::xs::types::FormChoice>,
     >,
-    #[xattribute(name = "defaultAttributes", optional, default)]
+    #[xattribute(name = "defaultAttributes", optional)]
     pub default_attributes: ::core::option::Option<crate::xs::types::QName>,
-    #[xattribute(name = "xpathDefaultNamespace", optional, default)]
+    #[xattribute(name = "xpathDefaultNamespace", optional)]
     pub xpath_default_namespace: ::core::option::Option<
         ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
     >,
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
-    #[xattribute(deferred = true, optional, default)]
-    pub attribute_9: ::core::option::Option<xmlity_ns_xml::attributes::Lang>,
+    #[xattribute(deferred = true, optional)]
+    pub attribute_9: ::core::option::Option<
+        ::std::boxed::Box<xmlity_ns_xml::attributes::Lang>,
+    >,
     #[xvalue(default)]
     #[builder(default)]
     pub composition: ::std::vec::Vec<crate::xs::groups::Composition>,
@@ -5099,11 +5103,11 @@ pub mod selector_items {
     children_order = "strict"
 )]
 pub struct Selector {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "xpath")]
     pub xpath: selector_items::XpathValue,
-    #[xattribute(name = "xpathDefaultNamespace", optional, default)]
+    #[xattribute(name = "xpathDefaultNamespace", optional)]
     pub xpath_default_namespace: ::core::option::Option<
         ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
     >,
@@ -5179,7 +5183,7 @@ pub mod simple_content_items {
     children_order = "strict"
 )]
 pub struct SimpleContent {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -5221,11 +5225,11 @@ impl ::core::convert::From<crate::xs::types::TopLevelSimpleType> for SimpleType 
     children_order = "strict"
 )]
 pub struct TotalDigits {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "value")]
     pub value: ::core::num::NonZeroUsize,
-    #[xattribute(name = "fixed", optional, default)]
+    #[xattribute(name = "fixed", optional)]
     pub fixed: ::core::option::Option<bool>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,
@@ -5268,9 +5272,9 @@ pub mod union_items {
     children_order = "strict"
 )]
 pub struct Union {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
-    #[xattribute(name = "memberTypes", optional, default)]
+    #[xattribute(name = "memberTypes", optional)]
     pub member_types: ::core::option::Option<
         crate::xs::types::List<crate::xs::types::QName>,
     >,
@@ -5402,11 +5406,11 @@ pub mod white_space_items {
     children_order = "strict"
 )]
 pub struct WhiteSpace {
-    #[xattribute(name = "id", optional, default)]
+    #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "value")]
     pub value: white_space_items::ValueValue,
-    #[xattribute(name = "fixed", optional, default)]
+    #[xattribute(name = "fixed", optional)]
     pub fixed: ::core::option::Option<bool>,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::xs::Annotation>,

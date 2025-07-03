@@ -1,4 +1,4 @@
-use xmlity_ns_xhtml::xhtml;
+use xmlity_ns_xhtml::xhtml1_strict as xhtml;
 
 #[rstest::rstest]
 #[case::composition(XHTML_HTML, Some(xhtml_html()))]

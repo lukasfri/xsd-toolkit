@@ -11,10 +11,21 @@ license.workspace = true
 thiserror.workspace = true
 bon = "3.6.3"
 xmlity.workspace = true
-xmlity-quick-xml.workspace = true
 derive_more = { version = "2.0.1", features = ["full"] }
+xmlity-ns-xml = { path = "../xmlity-ns-xml" }
+xmlity-ns-xs = { path = "../xmlity-ns-xs" }
+
+[build-dependencies]
+xmlity-build = { path = "../xmlity-build" }
+syn = { version = "2.0.29", features = ["full", "extra-traits"] }
+xmlity.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true
 pretty_assertions.workspace = true
 ntest.workspace = true
+xmlity-quick-xml.workspace = true
+
+[features]
+default = ["xhtml1_strict"]
+xhtml1_strict = []
