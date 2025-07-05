@@ -13,7 +13,6 @@ use crate::TypeType;
 use crate::{misc::TypeReference, simple::SimpleToTypeTemplate, templates, ToTypeTemplateData};
 use quote::format_ident;
 use quote::ToTokens;
-use std::ops::Deref;
 use std::sync::LazyLock;
 use syn::parse_quote;
 use xsd_type_compiler::fragments::FragmentIdx;
@@ -54,9 +53,7 @@ impl SimpleToTypeTemplate for sm::UnionFragment {
         let member_type_variants = self
             .member_types
             .iter()
-            .enumerate()
-            .map(|(i, name)| {
-                let suggested_ident = format_ident!("Variant{i}");
+            .map(|name| {
                 let res = context.resolve_named_type(name)?;
 
                 assert_eq!(
@@ -65,9 +62,8 @@ impl SimpleToTypeTemplate for sm::UnionFragment {
                     "Member type of union must be simple"
                 );
 
-                let ident = suggested_ident;
+                let ident = name.local_name().to_item_ident();
 
-                //TODO: Get name from the name of the type
                 Ok(((ident.to_variant_ident(), res.ty), ident))
             })
             .collect::<Result<Vec<_>>>()?;
@@ -229,12 +225,7 @@ impl SimpleToTypeTemplate for Option<NamedOrAnonymous<FragmentIdx<sm::SimpleType
         > = LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone()));
 
         self.as_ref()
-            .unwrap_or_else(|| SIMPLE_ANY_TYPE_NAMED.deref())
+            .unwrap_or_else(|| &*SIMPLE_ANY_TYPE_NAMED)
             .to_type_template(context, scope)
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use pretty_assertions::assert_eq;
 }

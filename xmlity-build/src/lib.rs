@@ -1,8 +1,12 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use bon::Builder;
 use syn::parse_quote;
 use xmlity::{types::utils::XmlRoot, ExpandedName, XmlNamespace};
+use xsd::xsn;
 use xsd_codegen_xmlity::{
     augments::{
         AdditionalDerives, BonAugmentation, EnumFromAugmentation, ItemAugmentation,
@@ -135,9 +139,52 @@ impl BuildEngine {
                 context
             });
 
+        let allowed_simple_bases: HashSet<ExpandedName<'static>> = [
+            &xsn::DECIMAL,
+            &xsn::FLOAT,
+            &xsn::DOUBLE,
+            &xsn::INTEGER,
+            &xsn::NON_POSITIVE_INTEGER,
+            &xsn::NEGATIVE_INTEGER,
+            &xsn::LONG,
+            &xsn::INT,
+            &xsn::SHORT,
+            &xsn::BYTE,
+            &xsn::NON_NEGATIVE_INTEGER,
+            &xsn::UNSIGNED_LONG,
+            &xsn::UNSIGNED_INT,
+            &xsn::UNSIGNED_SHORT,
+            &xsn::UNSIGNED_BYTE,
+            &xsn::POSITIVE_INTEGER,
+            &xsn::STRING,
+            &xsn::NORMALIZED_STRING,
+            &xsn::TOKEN,
+            &xsn::LANGUAGE,
+            &xsn::NAME,
+            &xsn::NCNAME,
+            &xsn::ID,
+            &xsn::IDREF,
+            &xsn::IDREFS,
+            &xsn::ENTITY,
+            &xsn::ENTITIES,
+            &xsn::NMTOKEN,
+            &xsn::NMTOKENS,
+            &xsn::DATE_TIME,
+            &xsn::DATE,
+            &xsn::DATE_TIME_STAMP,
+            &xsn::DAY_TIME_DURATION,
+            &xsn::ANY_URI,
+        ]
+        .iter()
+        .map(|a| (***a).clone())
+        .collect();
+
         for namespace in context.namespaces.keys().cloned().collect::<Vec<_>>() {
             context
-                .transform(&namespace, XmlityCodegenTransformer::new())
+                .transform(
+                    &namespace,
+                    XmlityCodegenTransformer::new(allowed_simple_bases.clone()),
+                )
                 .unwrap();
         }
 

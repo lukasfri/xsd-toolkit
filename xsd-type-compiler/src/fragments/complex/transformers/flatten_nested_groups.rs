@@ -1,5 +1,4 @@
 use std::collections::VecDeque;
-use std::convert::Infallible;
 
 use crate::fragments::complex::{ChoiceFragment, FragmentIdx, NestedParticleId, SequenceFragment};
 
@@ -7,6 +6,9 @@ use crate::transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTran
 
 #[non_exhaustive]
 pub struct FlattenNestedSequences {}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {}
 
 impl FlattenNestedSequences {
     #[allow(clippy::new_without_default)]
@@ -53,7 +55,7 @@ impl FlattenNestedSequences {
 }
 
 impl XmlnsLocalTransformer for FlattenNestedSequences {
-    type Error = Infallible;
+    type Error = Error;
 
     fn transform(
         self,
@@ -113,7 +115,7 @@ impl FlattenNestedChoices {
 }
 
 impl XmlnsLocalTransformer for FlattenNestedChoices {
-    type Error = Infallible;
+    type Error = Error;
 
     fn transform(
         self,

@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, convert::Infallible};
+use std::collections::VecDeque;
 
 use crate::{
     fragments::complex::{
@@ -88,6 +88,9 @@ impl HasTypeDefParticle for ComplexTypeRootFragment {
 
 #[non_exhaustive]
 pub struct ExpandGroups {}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {}
 
 impl ExpandGroups {
     #[allow(clippy::new_without_default)]
@@ -190,7 +193,7 @@ impl ExpandGroups {
 }
 
 impl XmlnsLocalTransformer for ExpandGroups {
-    type Error = Infallible;
+    type Error = Error;
 
     fn transform(
         self,

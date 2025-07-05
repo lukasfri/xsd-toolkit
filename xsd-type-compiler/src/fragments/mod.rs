@@ -3,10 +3,17 @@ pub mod simple;
 pub mod transformers;
 
 use std::collections::BTreeMap;
+use std::fmt;
 use std::marker::PhantomData;
 
 #[derive(Debug)]
 pub struct FragmentIdx<T>(usize, PhantomData<T>);
+
+impl<T> fmt::Display for FragmentIdx<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "FragmentIdx<{}>({})", std::any::type_name::<T>(), self.0)
+    }
+}
 
 impl<T> FragmentIdx<T> {
     pub fn new(index: usize) -> Self {

@@ -331,7 +331,6 @@ impl ComplexToTypeTemplate for cx::GroupRefFragment {
         let min_occurs = self.min_occurs.unwrap_or(1);
         let max_occurs = self.max_occurs.unwrap_or_default();
 
-        //TODO: Should not wrap in box if we also wrap it in Vec.
         let ty = context.resolve_named_group(&self.ref_)?;
 
         let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
@@ -882,7 +881,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -1016,7 +1015,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,

@@ -108,10 +108,10 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: StringBaseValue> Restr
                     max_length = Some(value);
                 }
                 sm::FacetFragment::Pattern { value: _ } => {
-                    //TODO: Handle pattern facet
+                    //TODO: Support pattern facet
                 }
                 sm::FacetFragment::Assertion { test: _ } => {
-                    //TODO: Handle assertion facet
+                    //TODO: Support assertion facet
                 }
                 sm::FacetFragment::MinExclusive { .. }
                 | sm::FacetFragment::MinInclusive { .. }
@@ -121,7 +121,7 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: StringBaseValue> Restr
                 | sm::FacetFragment::FractionDigits { .. }
                 | sm::FacetFragment::WhiteSpace { .. }
                 | sm::FacetFragment::ExplicitTimezone { .. } => {
-                    todo!("Unsupported facet: {:?}", facet)
+                    //TODO: Warn about unsupported facets. For now, we just ignore these facets.
                 }
             }
         }

@@ -142,8 +142,8 @@ impl ComplexToTypeTemplate for cx::SimpleContentFragment {
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
-        context: &C,
-        scope: &mut S,
+        _context: &C,
+        _scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         unimplemented!()
     }
@@ -159,10 +159,9 @@ impl ComplexToTypeTemplate for cx::ComplexContentFragment {
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match &self.content_fragment {
             cx::ComplexContentChildId::Extension(_fragment_idx) => {
-                panic!(
-                    "TODO: Should give error. Extension not supported. Ident: {}",
-                    context.suggested_ident()
-                )
+                Err(crate::Error::UnsupportedFragment {
+                    fragment: "Extension".to_string(),
+                })
             }
             cx::ComplexContentChildId::Restriction(fragment_idx) => {
                 context.resolve_fragment_id(fragment_idx, scope)
@@ -294,7 +293,7 @@ mod tests {
 
         let generator = Generator::new(&context);
 
-        let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -384,7 +383,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -479,7 +478,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -588,7 +587,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -706,7 +705,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,

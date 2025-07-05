@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
 use std::collections::VecDeque;
-use std::convert::Infallible;
-use std::ops::Deref;
 
 use xmlity::ExpandedName;
 
@@ -27,6 +25,16 @@ use xsd::xsn;
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
 #[non_exhaustive]
 pub struct ExpandExtensionFragments {}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("Base {base} not found in the context")]
+    BaseNotFound { base: ExpandedName<'static> },
+    #[error("Base {base} is not a complex type")]
+    BaseNotComplexType { base: ExpandedName<'static> },
+    #[error("Base {base} is not a restriction of \"xs:anyType\"")]
+    ExpandingNonAnyTypeRestriction { base: ExpandedName<'static> },
+}
 
 impl ExpandExtensionFragments {
     #[allow(clippy::new_without_default)]
@@ -167,16 +175,18 @@ impl ExpandExtensionFragments {
 
         let base = child_fragment.base.clone();
 
-        if &base == xsn::ANY_TYPE.deref() {
+        if base == *xsn::ANY_TYPE {
             return Ok(TransformChange::Unchanged);
         }
 
-        let base_fragment = ctx.get_named_type(&base).unwrap();
+        let base_fragment = ctx
+            .get_named_type(&base)
+            .ok_or(Error::BaseNotFound { base: base.clone() })?;
 
         let base_fragment = match base_fragment {
             TopLevelType::Complex(complex) => complex,
             TopLevelType::Simple(_) => {
-                todo!("Error - cannot expand complex content of simple type.")
+                return Err(Error::BaseNotComplexType { base: base.clone() });
             }
         };
 
@@ -217,8 +227,10 @@ impl ExpandExtensionFragments {
                                 .get_complex_fragment::<RestrictionFragment>(&fragment_idx)
                                 .unwrap();
 
-                            if &base_restriction_fragment.base != xsn::ANY_TYPE.deref() {
-                                todo!("Error - cannot expand complex content of restriction type.")
+                            if base_restriction_fragment.base != *xsn::ANY_TYPE {
+                                return Err(Error::ExpandingNonAnyTypeRestriction {
+                                    base: base_restriction_fragment.base.clone(),
+                                });
                             }
 
                             (
@@ -284,7 +296,7 @@ impl ExpandExtensionFragments {
 }
 
 impl XmlnsLocalTransformer for ExpandExtensionFragments {
-    type Error = Infallible;
+    type Error = Error;
 
     fn transform(
         self,

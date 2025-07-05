@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, convert::Infallible};
+use std::collections::VecDeque;
 
 use crate::{
     fragments::complex::{
@@ -10,6 +10,13 @@ use crate::{
 
 #[non_exhaustive]
 pub struct ExpandAttributeDeclarations {}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    //TODO: Review
+    #[error("When merging, the attribute type modes must be the same")]
+    MismatchedAttributeModes,
+}
 
 impl ExpandAttributeDeclarations {
     #[allow(clippy::new_without_default)]
@@ -27,7 +34,10 @@ impl ExpandAttributeDeclarations {
 
         let mut new_attributes = VecDeque::new();
 
-        fn merge_attribute(target: &mut LocalAttributeFragment, source: &LocalAttributeFragment) {
+        fn merge_attribute(
+            target: &mut LocalAttributeFragment,
+            source: &LocalAttributeFragment,
+        ) -> Result<(), Error> {
             if let Some(default) = &source.default {
                 target.default = Some(default.clone());
             }
@@ -49,6 +59,8 @@ impl ExpandAttributeDeclarations {
                     if let Some(type_) = source_declared.type_.clone() {
                         target_declared.type_ = Some(type_);
                     }
+
+                    Ok(())
                 }
                 (
                     LocalAttributeFragmentTypeMode::Reference(target_reference),
@@ -58,8 +70,10 @@ impl ExpandAttributeDeclarations {
                         target_reference.name, source_reference.name,
                         "When merging, the attribute references must be the same"
                     );
+
+                    Ok(())
                 }
-                _ => todo!(),
+                _ => return Err(Error::MismatchedAttributeModes),
             }
         }
 
@@ -67,7 +81,7 @@ impl ExpandAttributeDeclarations {
             new_attributes: &mut VecDeque<AttributeDeclarationId>,
             ctx: &mut XmlnsLocalTransformerContext<'_>,
             fragment_idx: &FragmentIdx<LocalAttributeFragment>,
-        ) {
+        ) -> Result<(), Error> {
             let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
 
             // Check if the attribute already exists in the new_attributes list
@@ -97,7 +111,7 @@ impl ExpandAttributeDeclarations {
             // If the attribute does not exist, add it to the new_attributes list
             let Some(i) = attribute_exists else {
                 new_attributes.push_back(AttributeDeclarationId::Attribute(*fragment_idx));
-                return;
+                return Ok(());
             };
 
             // Otherwise, merge the attributes
@@ -110,7 +124,9 @@ impl ExpandAttributeDeclarations {
 
             let existing = ctx.get_complex_fragment_mut(existing_idx).unwrap();
 
-            merge_attribute(existing, &possible);
+            merge_attribute(existing, &possible)?;
+
+            Ok(())
         }
 
         fn add_group(
@@ -141,7 +157,7 @@ impl ExpandAttributeDeclarations {
         for attributes in fragment.declarations.clone().iter() {
             match attributes {
                 AttributeDeclarationId::Attribute(fragment_idx) => {
-                    add_attribute(&mut new_attributes, context, fragment_idx);
+                    add_attribute(&mut new_attributes, context, fragment_idx)?;
                 }
                 AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
                     change = TransformChange::Changed;
@@ -159,7 +175,7 @@ impl ExpandAttributeDeclarations {
                     for declaration in attr_decls.declarations.clone().iter() {
                         match declaration {
                             AttributeDeclarationId::Attribute(fragment_idx) => {
-                                add_attribute(&mut new_attributes, context, fragment_idx);
+                                add_attribute(&mut new_attributes, context, fragment_idx)?;
                             }
                             AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
                                 add_group(&mut new_attributes, context, fragment_idx);
@@ -179,7 +195,7 @@ impl ExpandAttributeDeclarations {
 }
 
 impl XmlnsLocalTransformer for ExpandAttributeDeclarations {
-    type Error = Infallible;
+    type Error = Error;
 
     fn transform(
         self,

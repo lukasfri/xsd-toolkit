@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
 use std::collections::VecDeque;
-use std::convert::Infallible;
-use std::ops::Deref;
 
 use crate::fragments::complex::AttributeDeclarationId;
 use crate::fragments::complex::AttributeDeclarationsFragment;
@@ -23,6 +21,25 @@ use xsd::xsn;
 #[non_exhaustive]
 pub struct ExpandRestrictionFragments {}
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(
+        "Cannot restrict reference attribute {attribute:?} with base attribute {base_attribute:?}"
+    )]
+    CannotRestrictReferenceAttribute {
+        attribute: FragmentIdx<LocalAttributeFragment>,
+        base_attribute: FragmentIdx<LocalAttributeFragment>,
+    },
+    #[error(
+        "Cannot handle attribute group reference in attribute declarations. This transformer does not support attribute group references."
+    )]
+    CannotHandleAttributeGroupRef {},
+    #[error("Cannot restrict base type {base:?} to a simple type. Only complex types can be restricted.")]
+    BaseCannotBeSimpleType { base: ExpandedName<'static> },
+    #[error("Cannot restrict base type {base:?} to an extension type. Only complex types can be extended.")]
+    BaseCannotBeExtensionType { base: ExpandedName<'static> },
+}
+
 impl ExpandRestrictionFragments {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
@@ -31,19 +48,29 @@ impl ExpandRestrictionFragments {
 
     fn restrict_attribute(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
-        attribute: &FragmentIdx<LocalAttributeFragment>,
-        base_attribute: &FragmentIdx<LocalAttributeFragment>,
+        attribute_id: &FragmentIdx<LocalAttributeFragment>,
+        base_attribute_id: &FragmentIdx<LocalAttributeFragment>,
     ) -> Result<(), <Self as XmlnsLocalTransformer>::Error> {
-        let base_attribute = ctx.get_complex_fragment(base_attribute).unwrap().clone();
-        let attribute = ctx.get_complex_fragment_mut(attribute).unwrap();
+        let base_attribute = ctx.get_complex_fragment(base_attribute_id).unwrap().clone();
+        let attribute = ctx.get_complex_fragment_mut(attribute_id).unwrap();
 
         let decl_base_attribute = match base_attribute.type_mode {
             LocalAttributeFragmentTypeMode::Declared(local) => local,
-            _ => todo!(),
+            LocalAttributeFragmentTypeMode::Reference(_) => {
+                return Err(Error::CannotRestrictReferenceAttribute {
+                    attribute: *attribute_id,
+                    base_attribute: *base_attribute_id,
+                });
+            }
         };
         let decl_attribute = match &mut attribute.type_mode {
             LocalAttributeFragmentTypeMode::Declared(local) => local,
-            _ => todo!(),
+            LocalAttributeFragmentTypeMode::Reference(_) => {
+                return Err(Error::CannotRestrictReferenceAttribute {
+                    attribute: *attribute_id,
+                    base_attribute: *base_attribute_id,
+                });
+            }
         };
 
         if attribute.use_.is_none() {
@@ -82,24 +109,28 @@ impl ExpandRestrictionFragments {
             .declarations
             .iter()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(ctx, a)),
-                AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
+                AttributeDeclarationId::Attribute(a) => Ok((*a, resolve_attr_name(ctx, a))),
+                AttributeDeclarationId::AttributeGroupRef(_) => {
+                    Err(Error::CannotHandleAttributeGroupRef {})
+                }
             })
-            .collect::<BTreeMap<_, _>>();
+            .collect::<Result<BTreeMap<_, _>, <Self as XmlnsLocalTransformer>::Error>>()?;
         let resolved_child_attributes = child_attribute_fragment
             .declarations
             .iter()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(ctx, a)),
-                AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
+                AttributeDeclarationId::Attribute(a) => Ok((*a, resolve_attr_name(ctx, a))),
+                AttributeDeclarationId::AttributeGroupRef(_) => {
+                    Err(Error::CannotHandleAttributeGroupRef {})
+                }
             })
-            .collect::<BTreeMap<_, _>>();
+            .collect::<Result<BTreeMap<_, _>, <Self as XmlnsLocalTransformer>::Error>>()?;
 
         let mut new_attribute_declarations = VecDeque::new();
 
         for base_attribute in base_attribute_fragment.declarations.iter() {
             let AttributeDeclarationId::Attribute(base_attribute) = base_attribute else {
-                todo!()
+                unreachable!("If attribute group reference was present, it would have been handled in the previous map.");
             };
 
             let base_attribute_name = resolved_base_attributes.get(base_attribute).unwrap();
@@ -122,7 +153,7 @@ impl ExpandRestrictionFragments {
         // Now we iterate through children attributes and only add those that have not been added yet because they were in the base.
         for child_attribute in child_attribute_fragment.declarations.iter() {
             let AttributeDeclarationId::Attribute(child_attribute) = child_attribute else {
-                todo!()
+                unreachable!("If attribute group reference was present, it would have been handled in the previous map.");
             };
 
             let child_attribute_name = resolved_child_attributes.get(child_attribute).unwrap();
@@ -152,7 +183,7 @@ impl ExpandRestrictionFragments {
 
         let base = child_fragment.base.clone();
 
-        if &base == xsn::ANY_TYPE.deref() {
+        if base == *xsn::ANY_TYPE {
             return Ok(TransformChange::Unchanged);
         }
 
@@ -161,7 +192,7 @@ impl ExpandRestrictionFragments {
         let base_fragment = match base_fragment {
             TopLevelType::Complex(complex) => complex,
             TopLevelType::Simple(_) => {
-                todo!("Error - cannot expand complex content of simple type.")
+                return Err(Error::BaseCannotBeSimpleType { base: base.clone() });
             }
         };
 
@@ -169,18 +200,22 @@ impl ExpandRestrictionFragments {
             .get_complex_fragment::<ComplexTypeRootFragment>(&base_fragment.root_fragment)
             .unwrap();
 
-        let ComplexTypeModelId::ComplexContent(base_complex_content_id) =
-            base_root_fragment.content
-        else {
-            todo!("Error - cannot expand complex content of simple type.")
+        let base_complex_content_id = match base_root_fragment.content {
+            ComplexTypeModelId::ComplexContent(base_complex_content_id) => base_complex_content_id,
+            ComplexTypeModelId::SimpleContent(_) => todo!(),
+            ComplexTypeModelId::Other {
+                particle: _,
+                attr_decls: _,
+            } => todo!(),
         };
 
         let base_content_fragment = ctx.get_complex_fragment(&base_complex_content_id).unwrap();
 
-        let ComplexContentChildId::Restriction(base_restriction_id) =
-            base_content_fragment.content_fragment
-        else {
-            todo!("Error - cannot expand complex content of extension type.")
+        let base_restriction_id = match base_content_fragment.content_fragment {
+            ComplexContentChildId::Restriction(base_restriction_id) => base_restriction_id,
+            ComplexContentChildId::Extension(_) => {
+                return Err(Error::BaseCannotBeExtensionType { base: base.clone() });
+            }
         };
 
         let base = ctx
@@ -205,7 +240,7 @@ impl ExpandRestrictionFragments {
 }
 
 impl XmlnsLocalTransformer for ExpandRestrictionFragments {
-    type Error = Infallible;
+    type Error = Error;
 
     fn transform(
         self,

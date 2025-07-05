@@ -1,8 +1,10 @@
 use crate::{
     misc::TypeReference,
+    simple::SimpleContext,
     templates::{
-        self,
-        element_record::{AllowUnknown, ElementFieldType, ElementRecord},
+        element_record::{
+            AllowUnknown, ElementField, ElementFieldGroup, ElementFieldType, ElementRecord,
+        },
         group_record::GroupRecord,
         value_record::ItemFieldItem,
         ItemOrder,
@@ -23,7 +25,19 @@ impl ComplexToTypeTemplate for cx::ElementTypeContentId {
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match self {
-            cx::ElementTypeContentId::SimpleType(_fragment_id) => todo!(),
+            cx::ElementTypeContentId::SimpleType(_fragment_id) => context
+                .simple_context()
+                .resolve_fragment_id(_fragment_id, scope)
+                .map(|sub_type| ToTypeTemplateData {
+                    ident: None,
+                    template: GroupRecord::new_single_field(
+                        None,
+                        ElementField::Item(ItemFieldItem {
+                            ty: sub_type.template,
+                            default: false,
+                        }),
+                    ),
+                }),
             cx::ElementTypeContentId::ComplexType(fragment_idx) => {
                 context.resolve_fragment_id(fragment_idx, scope)
             }
@@ -35,19 +49,15 @@ fn type_to_element_field(
     ty: TypeReference<'static>,
     ty_type: TypeType,
     default: bool,
-) -> templates::element_record::ElementField {
+) -> ElementField {
     match ty_type {
-        TypeType::Simple => {
-            templates::element_record::ElementField::Item(ItemFieldItem { ty, default })
-        }
-        TypeType::Complex => templates::element_record::ElementField::Group(
-            templates::element_record::ElementFieldGroup { ty },
-        ),
+        TypeType::Simple => ElementField::Item(ItemFieldItem { ty, default }),
+        TypeType::Complex => ElementField::Group(ElementFieldGroup { ty }),
     }
 }
 
 impl ComplexToTypeTemplate for cx::DeclaredElementFragment {
-    type TypeTemplate = templates::element_record::ElementRecord;
+    type TypeTemplate = ElementRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
@@ -63,8 +73,7 @@ impl ComplexToTypeTemplate for cx::DeclaredElementFragment {
 
                 let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false);
 
-                let template =
-                    templates::element_record::ElementRecord::new_single_field(name, None, field);
+                let template = ElementRecord::new_single_field(name, None, field);
 
                 Ok(ToTypeTemplateData {
                     ident: Some(ident),
@@ -158,7 +167,7 @@ impl ComplexToTypeTemplate for cx::LocalElementFragment {
 }
 
 impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
-    type TypeTemplate = templates::element_record::ElementRecord;
+    type TypeTemplate = ElementRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
@@ -176,7 +185,7 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
 
                 let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false);
 
-                templates::element_record::ElementRecord {
+                ElementRecord {
                     name,
                     attribute_order: ItemOrder::None,
                     children_order: ItemOrder::None,
@@ -268,7 +277,7 @@ mod tests {
 
         let generator = Generator::new(&context);
 
-        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -361,7 +370,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -463,7 +472,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -576,7 +585,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -705,7 +714,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -813,7 +822,7 @@ mod tests {
             },
         );
 
-        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -861,7 +870,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -920,7 +929,7 @@ mod tests {
             },
         );
 
-        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -1013,7 +1022,7 @@ mod tests {
             TypeReference::new_static(parse_quote!(types::ChildElement)),
         );
 
-        let (type_, actual_items) = generator.generate_top_level_element(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,

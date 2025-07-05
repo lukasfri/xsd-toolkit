@@ -79,7 +79,11 @@ impl ComplexToTypeTemplate for cx::AttributeDeclarationId {
             cx::AttributeDeclarationId::Attribute(fragment_idx) => {
                 context.resolve_fragment_id(fragment_idx, scope)
             }
-            cx::AttributeDeclarationId::AttributeGroupRef(_fragment_idx) => todo!(),
+            cx::AttributeDeclarationId::AttributeGroupRef(_fragment_idx) => {
+                Err(crate::Error::UnsupportedFragment {
+                    fragment: "AttributeGroupRef".to_string(),
+                })
+            }
         }
     }
 }
@@ -153,7 +157,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_top_level_attribute(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_attribute(&sequence).unwrap();
 
         #[rustfmt::skip]
         let expected_items: Vec<Item> = vec![

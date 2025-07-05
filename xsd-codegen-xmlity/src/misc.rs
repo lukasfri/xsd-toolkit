@@ -183,7 +183,7 @@ pub fn unbox_type(ty: &syn::TypePath) -> Option<syn::Type> {
     if first.ident == "Box" {
         let argument = match &first.arguments {
             syn::PathArguments::AngleBracketed(arguments) => arguments,
-            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => panic!("TODO"),
+            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => return None,
         };
 
         Some(syn::parse2(argument.args.to_token_stream()).unwrap())
@@ -194,7 +194,7 @@ pub fn unbox_type(ty: &syn::TypePath) -> Option<syn::Type> {
 
         let argument = match &box_.arguments {
             syn::PathArguments::AngleBracketed(arguments) => arguments,
-            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => panic!("TODO"),
+            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => return None,
         };
 
         Some(syn::parse2(argument.args.to_token_stream()).unwrap())
@@ -210,7 +210,7 @@ pub fn unvec_type(ty: &syn::TypePath) -> Option<syn::Type> {
     if first.ident == "Vec" {
         let argument = match &first.arguments {
             syn::PathArguments::AngleBracketed(arguments) => arguments,
-            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => panic!("TODO"),
+            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => return None,
         };
 
         Some(syn::parse2(argument.args.to_token_stream()).unwrap())
@@ -221,7 +221,7 @@ pub fn unvec_type(ty: &syn::TypePath) -> Option<syn::Type> {
 
         let argument = match &vec_.arguments {
             syn::PathArguments::AngleBracketed(arguments) => arguments,
-            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => panic!("TODO"),
+            syn::PathArguments::Parenthesized(_) | syn::PathArguments::None => return None,
         };
 
         Some(syn::parse2(argument.args.to_token_stream()).unwrap())

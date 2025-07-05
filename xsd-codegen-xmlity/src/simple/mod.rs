@@ -6,7 +6,6 @@ use xsd_type_compiler::fragments::{
     simple::SimpleTypeFragmentCompiler, FragmentAccess, FragmentIdx,
 };
 
-pub mod groups;
 pub mod restrictions;
 pub mod simple_type;
 

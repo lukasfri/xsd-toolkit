@@ -104,6 +104,48 @@ impl<'de, 'c, C: NamespaceContext, E: xmlity::de::Error> de::Deserializer<'de>
     }
 }
 
+enum OnceSeqSerializer<S: xmlity::ser::Serializer> {
+    Unused(Option<S>),
+    Used(S::Ok),
+}
+
+impl<S: xmlity::ser::Serializer> OnceSeqSerializer<S> {
+    fn new(serializer: S) -> Self {
+        OnceSeqSerializer::Unused(Some(serializer))
+    }
+}
+
+impl<S> xmlity::ser::SerializeSeq for OnceSeqSerializer<S>
+where
+    S: xmlity::ser::Serializer,
+{
+    type Ok = S::Ok;
+
+    type Error = S::Error;
+
+    fn serialize_element<V: Serialize>(&mut self, v: &V) -> Result<(), Self::Error> {
+        match self {
+            OnceSeqSerializer::Unused(serializer) => {
+                let result = v.serialize(serializer.take().expect("Should never be None"))?;
+                *self = OnceSeqSerializer::Used(result);
+                Ok(())
+            }
+            OnceSeqSerializer::Used(_) => Err(xmlity::ser::Error::custom(
+                "Sequence can only be serialized once.",
+            )),
+        }
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        match self {
+            OnceSeqSerializer::Unused(_) => {
+                Err(xmlity::ser::Error::custom("Sequence was not serialized."))
+            }
+            OnceSeqSerializer::Used(result) => Ok(result),
+        }
+    }
+}
+
 struct SubStringSerializer<E: xmlity::ser::Error> {
     _marker: std::marker::PhantomData<E>,
 }
@@ -126,7 +168,7 @@ where
 
     type SerializeElement = NoopDeSerializer<Option<String>, E>;
 
-    type SerializeSeq = NoopDeSerializer<Option<String>, E>;
+    type SerializeSeq = OnceSeqSerializer<SubStringSerializer<E>>;
 
     fn serialize_text<S: AsRef<str>>(self, text: S) -> Result<Self::Ok, Self::Error> {
         Ok(Some(text.as_ref().to_owned()))
@@ -146,7 +188,7 @@ where
     }
 
     fn serialize_seq(self) -> Result<Self::SerializeSeq, Self::Error> {
-        todo!()
+        Ok(OnceSeqSerializer::new(self))
     }
 
     fn serialize_decl<S: AsRef<str>>(
@@ -350,12 +392,11 @@ pub mod types {
     }
 
     impl Serialize for QName {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
         where
             S: xmlity::Serializer,
         {
-            //TODO: Serialize with prefix in the future.
-            serializer.serialize_text(self.0.to_string())
+            todo!()
         }
     }
 

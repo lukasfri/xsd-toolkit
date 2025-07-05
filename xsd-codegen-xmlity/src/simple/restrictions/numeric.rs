@@ -431,7 +431,7 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: NumericBaseValue> Rest
                     enumerations.push(value.0.trim());
                 }
                 sm::FacetFragment::TotalDigits { value: _ } => {
-                    //TODO: Handle TotalDigits facet
+                    //TODO: Support TotalDigits facet
                 }
                 sm::FacetFragment::FractionDigits { value } => {
                     if T::supports_fraction_digits() {
@@ -442,17 +442,17 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: NumericBaseValue> Rest
                     }
                 }
                 sm::FacetFragment::Pattern { value: _ } => {
-                    //TODO: Handle Pattern facet
+                    //TODO: Support Pattern facet
                 }
                 sm::FacetFragment::Assertion { test: _ } => {
-                    //TODO: Handle Assertion facet
+                    //TODO: Support Assertion facet
                 }
                 sm::FacetFragment::WhiteSpace { .. }
                 | sm::FacetFragment::ExplicitTimezone { .. }
                 | sm::FacetFragment::Length { .. }
                 | sm::FacetFragment::MinLength { .. }
                 | sm::FacetFragment::MaxLength { .. } => {
-                    todo!("Unsupported facet: {:?}", facet)
+                    //TODO: Warn about unsupported facets. For now, we just ignore these facets.
                 }
             }
         }

@@ -3,7 +3,6 @@ use core::num::NonZeroUsize;
 use rust_decimal::Decimal;
 use std::collections::HashMap;
 use std::ops::Deref;
-use syn::parse_quote;
 use xsd::xsn;
 use xsd_type_compiler::fragments::simple as sm;
 
@@ -35,6 +34,7 @@ impl SimpleToTypeTemplate for sm::RestrictionFragment {
             .map(|facet| context.get_fragment(facet, scope))
             .collect::<crate::Result<Vec<_>>>()?;
 
+        //TODO: Move this to context
         let mut restriction_builders: HashMap<_, Box<dyn RestrictionBuilder<C, S>>> =
             HashMap::new();
 
@@ -86,11 +86,18 @@ impl SimpleToTypeTemplate for sm::RestrictionFragment {
         add_string_restriction!(xsn::NMTOKEN, String);
         add_string_restriction!(xsn::NMTOKENS, String);
 
-        let Some(builder) = restriction_builders.get(&self.base) else {
-            // TODO: This should be an error in the future, but for now we just return a String type as a fallback for unsupported types.
-            return Ok(crate::ToTypeTemplateData {
-                ident: None,
-                template: TypeReference::new_static(parse_quote!(::std::string::String)),
+        //TEMPORARY
+        add_string_restriction!(xsn::DATE_TIME, String);
+        add_string_restriction!(xsn::DATE, String);
+        add_string_restriction!(xsn::DATE_TIME_STAMP, String);
+        add_string_restriction!(xsn::DAY_TIME_DURATION, String);
+        add_string_restriction!(xsn::ANY_URI, String);
+
+        let Some(builder) =
+            restriction_builders.get(&self.base.as_ref().unwrap_or_else(|| &xsd::xsn::STRING))
+        else {
+            return Err(crate::Error::UnsupportedSimpleBase {
+                base: self.base.clone(),
             });
         };
 

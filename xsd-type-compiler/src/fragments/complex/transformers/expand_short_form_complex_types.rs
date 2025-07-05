@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-
 use crate::{
     fragments::complex::{
         ComplexContentChildId, ComplexTypeModelId, ComplexTypeRootFragment, FragmentAccess,
@@ -36,6 +34,9 @@ use xsd::xsn;
 /// Above example taken from the examples of the XML Specification.
 #[non_exhaustive]
 pub struct ExpandShortFormComplexTypes {}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {}
 
 impl ExpandShortFormComplexTypes {
     #[allow(clippy::new_without_default)]
@@ -84,7 +85,7 @@ impl ExpandShortFormComplexTypes {
 }
 
 impl XmlnsLocalTransformer for ExpandShortFormComplexTypes {
-    type Error = Infallible;
+    type Error = Error;
 
     fn transform(
         self,

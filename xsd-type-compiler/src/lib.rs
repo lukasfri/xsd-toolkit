@@ -128,10 +128,6 @@ impl CompiledNamespace {
         Ok(this)
     }
 
-    pub fn to_schema(&self) -> xsd::XmlSchema {
-        todo!()
-    }
-
     pub fn import_top_level_simple_type(
         &mut self,
         simple_type: &xs::SimpleType,

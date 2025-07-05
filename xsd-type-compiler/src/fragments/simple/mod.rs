@@ -18,7 +18,7 @@ pub struct ExtensionFragment {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RestrictionFragment {
-    pub base: ExpandedName<'static>,
+    pub base: Option<ExpandedName<'static>>,
     pub facets: Vec<FragmentIdx<FacetFragment>>,
     pub simple_type: Option<FragmentIdx<SimpleTypeRootFragment>>,
 }
@@ -318,7 +318,6 @@ impl SimpleFragmentEquivalent for xs::types::SimpleRestrictionType {
                 a.child_1
                     .iter()
                     .filter_map(|a| match a {
-                        //TODO
                         xs::groups::simple_restriction_model_items::Child1::Facet(facet) => {
                             Some(facet)
                         }
@@ -330,7 +329,7 @@ impl SimpleFragmentEquivalent for xs::types::SimpleRestrictionType {
             .unwrap_or_default();
 
         compiler.push_fragment(RestrictionFragment {
-            base,
+            base: Some(base),
             facets,
             simple_type,
         })
@@ -497,10 +496,7 @@ impl SimpleFragmentEquivalent for xs::TotalDigits {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(FacetFragment::TotalDigits {
-            //TODO
-            value: self.value,
-        })
+        compiler.push_fragment(FacetFragment::TotalDigits { value: self.value })
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
@@ -609,7 +605,6 @@ impl SimpleFragmentEquivalent for xs::WhiteSpace {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::WhiteSpace {
-            // TODO
             value: self.value.into(),
         })
     }
@@ -676,7 +671,6 @@ impl SimpleFragmentEquivalent for xs::ExplicitTimezone {
         let compiler = compiler.as_mut();
 
         compiler.push_fragment(FacetFragment::ExplicitTimezone {
-            //TODO
             value: self.value.into(),
         })
     }
@@ -779,11 +773,7 @@ impl SimpleFragmentEquivalent for xs::Restriction {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let base = self
-            .base
-            .as_ref()
-            .map(|a| a.0.clone())
-            .unwrap_or_else(|| todo!());
+        let base = self.base.as_ref().map(|a| a.0.clone());
 
         let simple_type = self
             .simple_restriction_model
@@ -796,7 +786,6 @@ impl SimpleFragmentEquivalent for xs::Restriction {
             .child_1
             .iter()
             .filter_map(|a| match a {
-                //TODO
                 xs::groups::simple_restriction_model_items::Child1::Facet(facet) => Some(facet),
                 _ => None,
             })
