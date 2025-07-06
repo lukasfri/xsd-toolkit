@@ -5,9 +5,10 @@ use xmlity::ExpandedName;
 use crate::{
     fragments::{
         simple::{RestrictionFragment, SimpleDerivation, SimpleTypeRootFragment},
+        transformers::{XmlnsContextTransformer, XmlnsContextTransformerContext},
         FragmentIdx,
     },
-    transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
+    transformers::TransformChange,
 };
 
 pub struct ExpandSimpleRestriction<'a> {
@@ -31,9 +32,9 @@ impl<'a> ExpandSimpleRestriction<'a> {
 
     fn flatten_restriction(
         &self,
-        ctx: &mut XmlnsLocalTransformerContext,
+        ctx: &mut XmlnsContextTransformerContext,
         fragment_idx: &FragmentIdx<RestrictionFragment>,
-    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
+    ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let RestrictionFragment { base, .. } = ctx.get_simple_fragment(fragment_idx).unwrap();
 
         let Some(base) = base.as_ref() else {
@@ -77,16 +78,98 @@ impl<'a> ExpandSimpleRestriction<'a> {
     }
 }
 
-impl XmlnsLocalTransformer for ExpandSimpleRestriction<'_> {
+impl XmlnsContextTransformer for ExpandSimpleRestriction<'_> {
     type Error = Error;
 
     fn transform(
         self,
-        mut ctx: XmlnsLocalTransformerContext<'_>,
+        mut ctx: XmlnsContextTransformerContext<'_>,
     ) -> Result<TransformChange, Self::Error> {
         ctx.iter_simple_fragment_ids()
+            .collect::<Vec<_>>()
             .into_iter()
             .map(|f| self.flatten_restriction(&mut ctx, &f))
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use xmlity::{ExpandedName, LocalName, XmlNamespace};
+    use xsd::{xs, xsn};
+
+    use crate::{
+        fragments::{simple::transformers::ExpandSimpleRestriction, transformers::TransformChange},
+        XmlnsContext,
+    };
+
+    #[test]
+    fn restrict_union_test_1() {
+        let parent_type: &str = r###"
+        <xs:simpleType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="allNNI">
+            <xs:union memberTypes="xs:nonNegativeInteger">
+                <xs:simpleType>
+                    <xs:restriction base="xs:NMTOKEN">
+                        <xs:enumeration value="unbounded"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:union>
+        </xs:simpleType>
+        "###;
+        let parent_type: xs::SimpleType = xmlity_quick_xml::from_str(parent_type.trim()).unwrap();
+
+        let child_type: &str = r###"
+        <xs:simpleType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="allNNIRestriction">
+            <xs:restriction base="xs:allNNI">
+                <xs:enumeration value="0"/>
+                <xs:enumeration value="1"/>
+            </xs:restriction>
+        </xs:simpleType>
+        "###;
+        let child_type: xs::SimpleType = xmlity_quick_xml::from_str(child_type.trim()).unwrap();
+
+        let allowed_bases: HashSet<ExpandedName<'static>> =
+            [&xsn::NMTOKEN, &xsn::NON_NEGATIVE_INTEGER]
+                .into_iter()
+                .map(|name| (*name).clone())
+                .collect();
+
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com/test");
+
+        let mut ctx = XmlnsContext::new();
+
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
+
+        ns.import_top_level_simple_type(&parent_type).unwrap();
+        ns.import_top_level_simple_type(&child_type).unwrap();
+
+        let transform_changed = ctx
+            .context_transform(ExpandSimpleRestriction::new(&allowed_bases))
+            .unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Changed);
+
+        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+
+        let actual = ns
+            .export_top_level_simple_type(&LocalName::new_dangerous("allNNIRestriction"))
+            .unwrap()
+            .unwrap();
+
+        let expected: &str = r###"
+        <xs:simpleType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="allNNIRestriction">
+            <xs:restriction base="xs:nonNegativeInteger">
+                <xs:enumeration value="0"/>
+                <xs:enumeration value="1"/>
+            </xs:restriction>
+        </xs:simpleType>
+        "###;
+
+        let expected: xs::SimpleType = xmlity_quick_xml::from_str(expected.trim()).unwrap();
+
+        assert_eq!(actual, expected);
     }
 }

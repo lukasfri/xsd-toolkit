@@ -55,7 +55,7 @@ impl RemoveProhibitedAttributes {
     }
 }
 
-impl XmlnsLocalTransformer for RemoveProhibitedAttributes {
+impl XmlnsLocalTransformer for &RemoveProhibitedAttributes {
     type Error = Infallible;
 
     fn transform(
@@ -65,7 +65,20 @@ impl XmlnsLocalTransformer for RemoveProhibitedAttributes {
         context
             .iter_complex_fragment_ids::<AttributeDeclarationsFragment>()
             .iter()
-            .map(|fragment_id| Self::expand_attribute_declarations(&mut context, fragment_id))
+            .map(|fragment_id| {
+                RemoveProhibitedAttributes::expand_attribute_declarations(&mut context, fragment_id)
+            })
             .collect()
+    }
+}
+
+impl XmlnsLocalTransformer for RemoveProhibitedAttributes {
+    type Error = Infallible;
+
+    fn transform(
+        self,
+        context: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
+        (&self).transform(context)
     }
 }

@@ -129,31 +129,30 @@ mod tests {
     use syn::{parse_quote, Item};
     use xmlity::{LocalName, XmlNamespace};
     use xsd::{xs, xsn};
-    use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
+    use xsd_type_compiler::XmlnsContext;
 
     use crate::Generator;
 
     #[test]
     fn simple_attribute() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com");
+
         let attribute = xs::types::TopLevelAttribute::builder()
             .name(LocalName::new_dangerous("SimpleAttribute"))
             .type_(xs::types::QName(xsn::STRING.clone()))
             .build()
             .into();
 
-        let namespace = XmlNamespace::new_dangerous("http://example.com");
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
-
-        let sequence = compiled_namespace
+        let sequence = ns
             .import_top_level_attribute(&attribute)
             .unwrap()
             .into_owned();
 
-        let mut context = XmlnsContext::new();
-        context.add_namespace(compiled_namespace);
-
-        let mut generator = Generator::new(&context);
+        let mut generator = Generator::new(&ctx);
 
         generator.bind_types(crate::binds::StdXsdTypes);
 

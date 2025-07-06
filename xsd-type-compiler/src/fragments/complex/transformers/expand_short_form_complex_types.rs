@@ -47,7 +47,7 @@ impl ExpandShortFormComplexTypes {
     pub fn expand_short_form_complex_type(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: &FragmentIdx<ComplexTypeRootFragment>,
-    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
+    ) -> Result<TransformChange, Error> {
         let root_fragment = ctx
             .get_complex_fragment::<ComplexTypeRootFragment>(fragment_id)
             .unwrap();
@@ -84,7 +84,7 @@ impl ExpandShortFormComplexTypes {
     }
 }
 
-impl XmlnsLocalTransformer for ExpandShortFormComplexTypes {
+impl XmlnsLocalTransformer for &ExpandShortFormComplexTypes {
     type Error = Error;
 
     fn transform(
@@ -93,8 +93,19 @@ impl XmlnsLocalTransformer for ExpandShortFormComplexTypes {
     ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
-            .map(|f| Self::expand_short_form_complex_type(&mut ctx, &f))
+            .map(|f| ExpandShortFormComplexTypes::expand_short_form_complex_type(&mut ctx, &f))
             .collect()
+    }
+}
+
+impl XmlnsLocalTransformer for ExpandShortFormComplexTypes {
+    type Error = Error;
+
+    fn transform(
+        self,
+        ctx: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
+        (&self).transform(ctx)
     }
 }
 
@@ -108,13 +119,15 @@ mod tests {
 
     use crate::{
         fragments::complex::transformers::expand_short_form_complex_types::ExpandShortFormComplexTypes,
-        transformers::TransformChange, CompiledNamespace, XmlnsContext,
+        transformers::TransformChange, XmlnsContext,
     };
 
     #[test]
     fn specification_1() {
-        let namespace = XmlNamespace::new_dangerous("http://localhost");
-        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://localhost");
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
         // Common for both
         let sequence = xs::Sequence(
@@ -191,33 +204,20 @@ mod tests {
             .build()
             .into();
 
-        let length = compiled_namespace
+        let length = ns
             .import_top_level_complex_type(&input)
             .unwrap()
             .into_owned();
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandShortFormComplexTypes::new())
-            .unwrap();
+        let transform_changed = ns.transform(ExpandShortFormComplexTypes::new()).unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandShortFormComplexTypes::new())
-            .unwrap();
+        let transform_changed = ns.transform(ExpandShortFormComplexTypes::new()).unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let mut xmlns_context = XmlnsContext::new();
-
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let output_namespace = xmlns_context
-            .namespaces
-            .get(length.namespace().unwrap())
-            .unwrap();
-
-        let actual_output = output_namespace
+        let actual_output = ns
             .export_top_level_complex_type(length.local_name())
             .unwrap()
             .unwrap();

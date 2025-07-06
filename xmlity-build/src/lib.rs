@@ -15,7 +15,7 @@ use xsd_codegen_xmlity::{
     misc::TypeReference,
     BoundType, XmlityCodegenTransformer,
 };
-use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
+use xsd_type_compiler::XmlnsContext;
 
 #[derive(Debug, Builder)]
 pub struct BuildEngine {
@@ -133,11 +133,14 @@ impl BuildEngine {
                 })
             })
             .map(xsd::XmlSchema::new)
-            .map(|a| CompiledNamespace::from_schema(&a).unwrap())
-            .fold(XmlnsContext::new(), |mut context, namespace| {
-                context.add_namespace(namespace);
+            .try_fold(XmlnsContext::new(), |mut context, schema| {
                 context
-            });
+                    .init_namespace(schema.namespace().clone())
+                    .import_schema(&schema)?;
+
+                Result::<XmlnsContext, xsd_type_compiler::Error>::Ok(context)
+            })
+            .unwrap();
 
         let allowed_simple_bases: HashSet<ExpandedName<'static>> = [
             &xsn::DECIMAL,
@@ -179,14 +182,9 @@ impl BuildEngine {
         .map(|a| (***a).clone())
         .collect();
 
-        for namespace in context.namespaces.keys().cloned().collect::<Vec<_>>() {
-            context
-                .transform(
-                    &namespace,
-                    XmlityCodegenTransformer::new(allowed_simple_bases.clone()),
-                )
-                .unwrap();
-        }
+        context
+            .context_transform(XmlityCodegenTransformer::new(allowed_simple_bases.clone()))
+            .unwrap();
 
         Ok(StartedBuildEngine {
             engine: self,

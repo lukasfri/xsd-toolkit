@@ -10,9 +10,9 @@ use crate::fragments::complex::FragmentIdx;
 use crate::fragments::complex::LocalAttributeFragment;
 use crate::fragments::complex::LocalAttributeFragmentTypeMode;
 use crate::fragments::complex::RestrictionFragment;
+use crate::fragments::transformers::XmlnsContextTransformer;
+use crate::fragments::transformers::XmlnsContextTransformerContext;
 use crate::transformers::TransformChange;
-use crate::transformers::XmlnsLocalTransformer;
-use crate::transformers::XmlnsLocalTransformerContext;
 use crate::TopLevelType;
 use xmlity::ExpandedName;
 use xsd::xsn;
@@ -47,10 +47,10 @@ impl ExpandRestrictionFragments {
     }
 
     fn restrict_attribute(
-        ctx: &mut XmlnsLocalTransformerContext<'_>,
+        ctx: &mut XmlnsContextTransformerContext<'_>,
         attribute_id: &FragmentIdx<LocalAttributeFragment>,
         base_attribute_id: &FragmentIdx<LocalAttributeFragment>,
-    ) -> Result<(), <Self as XmlnsLocalTransformer>::Error> {
+    ) -> Result<(), <Self as XmlnsContextTransformer>::Error> {
         let base_attribute = ctx.get_complex_fragment(base_attribute_id).unwrap().clone();
         let attribute = ctx.get_complex_fragment_mut(attribute_id).unwrap();
 
@@ -84,13 +84,13 @@ impl ExpandRestrictionFragments {
     }
 
     fn expand_restricted_attributes(
-        ctx: &mut XmlnsLocalTransformerContext<'_>,
+        ctx: &mut XmlnsContextTransformerContext<'_>,
         child_attributes: FragmentIdx<AttributeDeclarationsFragment>,
         base_attributes: FragmentIdx<AttributeDeclarationsFragment>,
-    ) -> Result<FragmentIdx<AttributeDeclarationsFragment>, <Self as XmlnsLocalTransformer>::Error>
+    ) -> Result<FragmentIdx<AttributeDeclarationsFragment>, <Self as XmlnsContextTransformer>::Error>
     {
         fn resolve_attr_name(
-            ctx: &XmlnsLocalTransformerContext,
+            ctx: &XmlnsContextTransformerContext,
             a: &FragmentIdx<LocalAttributeFragment>,
         ) -> ExpandedName<'static> {
             let fragment = ctx.get_complex_fragment(a).unwrap();
@@ -114,7 +114,7 @@ impl ExpandRestrictionFragments {
                     Err(Error::CannotHandleAttributeGroupRef {})
                 }
             })
-            .collect::<Result<BTreeMap<_, _>, <Self as XmlnsLocalTransformer>::Error>>()?;
+            .collect::<Result<BTreeMap<_, _>, <Self as XmlnsContextTransformer>::Error>>()?;
         let resolved_child_attributes = child_attribute_fragment
             .declarations
             .iter()
@@ -124,7 +124,7 @@ impl ExpandRestrictionFragments {
                     Err(Error::CannotHandleAttributeGroupRef {})
                 }
             })
-            .collect::<Result<BTreeMap<_, _>, <Self as XmlnsLocalTransformer>::Error>>()?;
+            .collect::<Result<BTreeMap<_, _>, <Self as XmlnsContextTransformer>::Error>>()?;
 
         let mut new_attribute_declarations = VecDeque::new();
 
@@ -176,9 +176,9 @@ impl ExpandRestrictionFragments {
     }
 
     fn expand_restriction(
-        ctx: &mut XmlnsLocalTransformerContext<'_>,
+        ctx: &mut XmlnsContextTransformerContext<'_>,
         child_fragment_idx: &FragmentIdx<RestrictionFragment>,
-    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
+    ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let child_fragment = ctx.get_complex_fragment(child_fragment_idx).unwrap();
 
         let base = child_fragment.base.clone();
@@ -239,14 +239,15 @@ impl ExpandRestrictionFragments {
     }
 }
 
-impl XmlnsLocalTransformer for ExpandRestrictionFragments {
+impl XmlnsContextTransformer for ExpandRestrictionFragments {
     type Error = Error;
 
     fn transform(
         self,
-        mut ctx: XmlnsLocalTransformerContext<'_>,
+        mut ctx: XmlnsContextTransformerContext<'_>,
     ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
+            .collect::<Vec<_>>()
             .into_iter()
             .map(|f| Self::expand_restriction(&mut ctx, &f))
             .collect()
@@ -262,12 +263,13 @@ mod tests {
 
     use crate::{
         fragments::complex::transformers::ExpandRestrictionFragments,
-        transformers::TransformChange, CompiledNamespace, XmlnsContext,
+        transformers::TransformChange, XmlnsContext,
     };
 
     #[test]
     fn basic_child_only_expand_restriction() {
-        let test_namespace = XmlNamespace::new_dangerous("http://localhost");
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://localhost");
 
         // ```xml
         // <xs:complexType name="ProductType">
@@ -347,7 +349,7 @@ mod tests {
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(ExpandedName::new(
                                 LocalName::new_dangerous("ProductType"),
-                                Some(test_namespace.clone()),
+                                Some(TEST_NAMESPACE.clone()),
                             )))
                             .child_1(
                                 xs::types::complex_restriction_type_items::Child1::builder()
@@ -436,34 +438,27 @@ mod tests {
                 .build()
                 .into();
 
-        let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
-
-        compiled_namespace
-            .import_top_level_complex_type(&product_type)
-            .unwrap();
-        compiled_namespace
-            .import_top_level_complex_type(&derived_shirt_type)
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        ns.import_top_level_complex_type(&product_type).unwrap();
+        ns.import_top_level_complex_type(&derived_shirt_type)
             .unwrap();
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandRestrictionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandRestrictionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandRestrictionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandRestrictionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let mut xmlns_context = XmlnsContext::new();
+        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
-
-        let actual_flattened_shirt_type = compiled_namespace
+        let actual_flattened_shirt_type = ns
             .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
             .unwrap()
             .unwrap();
@@ -473,7 +468,8 @@ mod tests {
 
     #[test]
     fn basic_attribute_only_expand_restriction() {
-        let test_namespace = XmlNamespace::new_dangerous("http://localhost");
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://localhost");
 
         // ```xml
         // <xs:complexType name="ProductType">
@@ -540,7 +536,7 @@ mod tests {
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(ExpandedName::new(
                                 LocalName::new_dangerous("ProductType"),
-                                Some(test_namespace.clone()),
+                                Some(TEST_NAMESPACE.clone()),
                             )))
                             .attr_decls(
                                 xs::groups::AttrDecls::builder()
@@ -617,34 +613,28 @@ mod tests {
                 .build()
                 .into();
 
-        let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        compiled_namespace
-            .import_top_level_complex_type(&product_type)
-            .unwrap();
-        compiled_namespace
-            .import_top_level_complex_type(&derived_shirt_type)
+        ns.import_top_level_complex_type(&product_type).unwrap();
+        ns.import_top_level_complex_type(&derived_shirt_type)
             .unwrap();
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandRestrictionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandRestrictionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandRestrictionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandRestrictionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let mut xmlns_context = XmlnsContext::new();
+        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
-
-        let actual_flattened_shirt_type = compiled_namespace
+        let actual_flattened_shirt_type = ns
             .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
             .unwrap()
             .unwrap();

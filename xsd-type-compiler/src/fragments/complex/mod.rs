@@ -9,7 +9,7 @@ use std::{collections::VecDeque, ops::Deref};
 use crate::{
     fragments::{
         simple::{self, SimpleFragmentEquivalent, SimpleTypeFragmentCompiler},
-        FragmentAccess, FragmentCollection, FragmentIdx, HasFragmentCollection,
+        FragmentAccess, FragmentCollection, FragmentIdx, HasFragmentCollection, NamespaceIdx,
     },
     NamedOrAnonymous,
 };
@@ -247,9 +247,15 @@ impl Default for AllNNI {
 
 impl From<xs::types::AllNNI> for AllNNI {
     fn from(value: xs::types::AllNNI) -> Self {
+        AllNNI::from(&value)
+    }
+}
+
+impl<'a> From<&'a xs::types::AllNNI> for AllNNI {
+    fn from(value: &'a xs::types::AllNNI) -> Self {
         match value {
-            xs::types::all_nni_items::AllNNI::Variant0(a) => Self::Bounded(*a),
-            xs::types::all_nni_items::AllNNI::Variant0_0(variant0) => match *variant0 {
+            xs::types::all_nni_items::AllNNI::Variant0(a) => Self::Bounded(**a),
+            xs::types::all_nni_items::AllNNI::Variant0_0(variant0) => match **variant0 {
                 xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded => {
                     Self::Unbounded
                 }
@@ -532,32 +538,33 @@ where
 impl ComplexTypeFragmentCompiler {
     pub fn new(
         namespace: XmlNamespace<'static>,
+        namespace_idx: NamespaceIdx,
         simple_type_fragments: SimpleTypeFragmentCompiler,
     ) -> Self {
         Self {
             namespace,
             simple_type_fragments,
-            complex_types: FragmentCollection::new(),
-            simple_restrictions: FragmentCollection::new(),
-            simple_extensions: FragmentCollection::new(),
-            simple_contents: FragmentCollection::new(),
-            restrictions: FragmentCollection::new(),
-            extensions: FragmentCollection::new(),
-            complex_contents: FragmentCollection::new(),
-            group_refs: FragmentCollection::new(),
-            alls: FragmentCollection::new(),
-            choices: FragmentCollection::new(),
-            sequences: FragmentCollection::new(),
-            anys: FragmentCollection::new(),
-            elements: FragmentCollection::new(),
-            top_level_elements: FragmentCollection::new(),
-            local_attributes: FragmentCollection::new(),
-            top_level_attributes: FragmentCollection::new(),
-            attribute_group_refs: FragmentCollection::new(),
-            groups: FragmentCollection::new(),
-            attribute_groups: FragmentCollection::new(),
-            attribute_declarations: FragmentCollection::new(),
-            any_attributes: FragmentCollection::new(),
+            complex_types: FragmentCollection::new(namespace_idx),
+            simple_restrictions: FragmentCollection::new(namespace_idx),
+            simple_extensions: FragmentCollection::new(namespace_idx),
+            simple_contents: FragmentCollection::new(namespace_idx),
+            restrictions: FragmentCollection::new(namespace_idx),
+            extensions: FragmentCollection::new(namespace_idx),
+            complex_contents: FragmentCollection::new(namespace_idx),
+            group_refs: FragmentCollection::new(namespace_idx),
+            alls: FragmentCollection::new(namespace_idx),
+            choices: FragmentCollection::new(namespace_idx),
+            sequences: FragmentCollection::new(namespace_idx),
+            anys: FragmentCollection::new(namespace_idx),
+            elements: FragmentCollection::new(namespace_idx),
+            top_level_elements: FragmentCollection::new(namespace_idx),
+            local_attributes: FragmentCollection::new(namespace_idx),
+            top_level_attributes: FragmentCollection::new(namespace_idx),
+            attribute_group_refs: FragmentCollection::new(namespace_idx),
+            groups: FragmentCollection::new(namespace_idx),
+            attribute_groups: FragmentCollection::new(namespace_idx),
+            attribute_declarations: FragmentCollection::new(namespace_idx),
+            any_attributes: FragmentCollection::new(namespace_idx),
         }
     }
 }
@@ -1872,8 +1879,8 @@ impl ComplexFragmentEquivalent for xs::types::named_group_items::Child1 {
                 all_model,
             } => {
                 let fragment = AllFragment {
-                    min_occurs: None,
-                    max_occurs: None,
+                    min_occurs: *min_occurs,
+                    max_occurs: max_occurs.as_ref().map(|a| AllNNI::from(&**a)),
                     fragments: all_model
                         .child_1
                         .iter()
@@ -1917,22 +1924,72 @@ impl ComplexFragmentEquivalent for xs::types::named_group_items::Child1 {
         compiler: T,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        todo!()
-        // match fragment_id {
-        //     NamedGroupTypeContentId::All(all) => {
-        //         let all = xs::AllType::from_complex_fragments(compiler, all)?;
-        //         Ok(xs::NamedGroupTypeContent::All(Box::new(all)))
-        //     }
-        //     NamedGroupTypeContentId::Choice(choice) => {
-        //         let choice = xs::ChoiceType::from_complex_fragments(compiler, choice)?;
-        //         Ok(xs::NamedGroupTypeContent::Choice(Box::new(choice)))
-        //     }
-        //     NamedGroupTypeContentId::Sequence(sequence) => {
-        //         let sequence: xs::SequenceType =
-        //             xs::SequenceType::from_complex_fragments(compiler, sequence)?;
-        //         Ok(xs::NamedGroupTypeContent::Sequence(Box::new(sequence)))
-        //     }
-        // }
+        let compiler = compiler.as_ref();
+
+        match fragment_id {
+            NamedGroupTypeContentId::All(all) => {
+                let all = compiler.get_fragment(all).unwrap();
+
+                Ok(xs::types::named_group_items::Child1::All {
+                    id: None,
+                    min_occurs: all.min_occurs,
+                    max_occurs: all.max_occurs.map(xs::types::AllNNI::from).map(Box::new),
+                    all_model: xs::groups::AllModel::builder()
+                        .child_1(
+                            all.fragments
+                                .iter()
+                                .map(|fragment| {
+                                    xs::groups::all_model_items::Child1::from_complex_fragments(
+                                        compiler, fragment,
+                                    )
+                                })
+                                .collect::<Result<_, _>>()?,
+                        )
+                        .build()
+                        .into(),
+                })
+            }
+            NamedGroupTypeContentId::Choice(choice) => {
+                let choice = compiler.get_fragment(choice).unwrap();
+
+                Ok(xs::types::named_group_items::Child1::Choice(
+                    xs::types::SimpleExplicitGroup::builder()
+                        .nested_particle(
+                            choice
+                                .fragments
+                                .iter()
+                                .map(|fragment| {
+                                    xs::groups::NestedParticle::from_complex_fragments(
+                                        compiler, fragment,
+                                    )
+                                })
+                                .collect::<Result<_, _>>()?,
+                        )
+                        .build()
+                        .into(),
+                ))
+            }
+            NamedGroupTypeContentId::Sequence(sequence) => {
+                let sequence = compiler.get_fragment(sequence).unwrap();
+
+                Ok(xs::types::named_group_items::Child1::Sequence(
+                    xs::types::SimpleExplicitGroup::builder()
+                        .nested_particle(
+                            sequence
+                                .fragments
+                                .iter()
+                                .map(|fragment| {
+                                    xs::groups::NestedParticle::from_complex_fragments(
+                                        compiler, fragment,
+                                    )
+                                })
+                                .collect::<Result<_, _>>()?,
+                        )
+                        .build()
+                        .into(),
+                ))
+            }
+        }
     }
 }
 

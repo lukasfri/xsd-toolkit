@@ -1,9 +1,9 @@
-use super::complex::{self, ComplexTypeRootFragment};
+use super::complex::{self};
 use super::FragmentAccess;
 use crate::fragments::{simple, FragmentIdx};
-use crate::{CompiledNamespace, NamedOrAnonymous};
+use crate::CompiledNamespace;
 
-use xmlity::ExpandedName;
+use xmlity::{ExpandedName, LocalName};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TransformChange {
@@ -155,9 +155,114 @@ impl XmlnsLocalTransformerContext<'_> {
 
     pub fn get_named_type<'a>(
         &'a self,
+        name: &'a LocalName<'_>,
+    ) -> Option<&'a crate::TopLevelType> {
+        self.current_namespace().top_level_types.get(name)
+    }
+
+    pub fn get_named_attribute_group<'a>(
+        &'a self,
+        name: &'a LocalName<'_>,
+    ) -> Option<&'a crate::TopLevelAttributeGroup> {
+        self.current_namespace()
+            .top_level_attribute_groups
+            .get(name)
+    }
+}
+
+pub trait XmlnsContextTransformer {
+    type Error: std::fmt::Debug;
+
+    /// Returns true if the context was changed.
+    fn transform(
+        self,
+        context: XmlnsContextTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error>;
+}
+
+pub struct XmlnsContextTransformerContext<'a> {
+    pub xmlns_context: &'a mut crate::XmlnsContext,
+}
+
+impl XmlnsContextTransformerContext<'_> {
+    fn get_namespace(
+        &self,
+        namespace_idx: &crate::NamespaceIdx,
+    ) -> Option<&crate::CompiledNamespace> {
+        self.xmlns_context.namespaces.get(namespace_idx)
+    }
+
+    fn get_namespace_mut(
+        &mut self,
+        namespace_idx: &crate::NamespaceIdx,
+    ) -> Option<&mut crate::CompiledNamespace> {
+        self.xmlns_context.namespaces.get_mut(namespace_idx)
+    }
+
+    pub fn iter_complex_fragment_ids<F: 'static>(&self) -> impl Iterator<Item = FragmentIdx<F>> + '_
+    where
+        complex::ComplexTypeFragmentCompiler: FragmentAccess<F>,
+    {
+        self.xmlns_context
+            .namespaces
+            .iter()
+            .flat_map(|(_, ns)| ns.complex_type.iter_fragment_ids())
+    }
+
+    pub fn get_complex_fragment<F>(&self, fragment_idx: &FragmentIdx<F>) -> Option<&F>
+    where
+        complex::ComplexTypeFragmentCompiler: FragmentAccess<F>,
+    {
+        self.get_namespace(&fragment_idx.namespace_idx())?
+            .complex_type
+            .get_fragment(fragment_idx)
+    }
+
+    pub fn get_complex_fragment_mut<F>(&mut self, fragment_idx: &FragmentIdx<F>) -> Option<&mut F>
+    where
+        complex::ComplexTypeFragmentCompiler: FragmentAccess<F>,
+    {
+        self.get_namespace_mut(&fragment_idx.namespace_idx())?
+            .complex_type
+            .get_fragment_mut(fragment_idx)
+    }
+
+    pub fn iter_simple_fragment_ids<F: 'static>(&self) -> impl Iterator<Item = FragmentIdx<F>> + '_
+    where
+        simple::SimpleTypeFragmentCompiler: FragmentAccess<F>,
+    {
+        self.xmlns_context
+            .namespaces
+            .iter()
+            .flat_map(|(_, ns)| ns.complex_type.simple_type_fragments.iter_fragment_ids())
+    }
+
+    pub fn get_simple_fragment<F>(&self, fragment_idx: &FragmentIdx<F>) -> Option<&F>
+    where
+        simple::SimpleTypeFragmentCompiler: FragmentAccess<F>,
+    {
+        self.get_namespace(&fragment_idx.namespace_idx())?
+            .complex_type
+            .simple_type_fragments
+            .get_fragment(fragment_idx)
+    }
+
+    pub fn get_simple_fragment_mut<F>(&mut self, fragment_idx: &FragmentIdx<F>) -> Option<&mut F>
+    where
+        simple::SimpleTypeFragmentCompiler: FragmentAccess<F>,
+    {
+        self.get_namespace_mut(&fragment_idx.namespace_idx())?
+            .complex_type
+            .simple_type_fragments
+            .get_fragment_mut(fragment_idx)
+    }
+
+    pub fn get_named_type<'a>(
+        &'a self,
         name: &'a ExpandedName<'_>,
     ) -> Option<&'a crate::TopLevelType> {
-        self.current_namespace()
+        self.xmlns_context
+            .get_namespace(name.namespace()?)?
             .top_level_types
             .get(name.local_name())
     }
@@ -166,28 +271,9 @@ impl XmlnsLocalTransformerContext<'_> {
         &'a self,
         name: &'a ExpandedName<'_>,
     ) -> Option<&'a crate::TopLevelAttributeGroup> {
-        self.current_namespace()
+        self.xmlns_context
+            .get_namespace(name.namespace()?)?
             .top_level_attribute_groups
             .get(name.local_name())
-    }
-
-    pub fn get_complex_fragment_from_ident<'a, F>(
-        &'a self,
-        name: &'a NamedOrAnonymous<FragmentIdx<ComplexTypeRootFragment>>,
-    ) -> Option<&'a ComplexTypeRootFragment>
-    where
-        complex::ComplexTypeFragmentCompiler: FragmentAccess<F>,
-    {
-        let fragment_id = match name {
-            NamedOrAnonymous::Named(expanded_name) => {
-                match self.get_named_type(expanded_name).unwrap() {
-                    crate::TopLevelType::Complex(complex) => &complex.root_fragment,
-                    crate::TopLevelType::Simple(_) => unreachable!(),
-                }
-            }
-            NamedOrAnonymous::Anonymous(fragment_id) => fragment_id,
-        };
-
-        self.get_complex_fragment::<ComplexTypeRootFragment>(fragment_id)
     }
 }

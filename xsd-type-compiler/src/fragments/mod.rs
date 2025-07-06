@@ -6,18 +6,37 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::marker::PhantomData;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct NamespaceIdx(usize);
+
+impl NamespaceIdx {
+    pub fn new(index: usize) -> Self {
+        Self(index)
+    }
+}
+
 #[derive(Debug)]
-pub struct FragmentIdx<T>(usize, PhantomData<T>);
+pub struct FragmentIdx<T>(NamespaceIdx, usize, PhantomData<T>);
 
 impl<T> fmt::Display for FragmentIdx<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "FragmentIdx<{}>({})", std::any::type_name::<T>(), self.0)
+        write!(
+            f,
+            "FragmentIdx<{}>({},{})",
+            std::any::type_name::<T>(),
+            self.0 .0,
+            self.1
+        )
     }
 }
 
 impl<T> FragmentIdx<T> {
-    pub fn new(index: usize) -> Self {
-        Self(index, PhantomData)
+    pub fn new(namespace: NamespaceIdx, index: usize) -> Self {
+        Self(namespace, index, PhantomData)
+    }
+
+    pub fn namespace_idx(&self) -> NamespaceIdx {
+        self.0
     }
 }
 
@@ -41,7 +60,9 @@ impl<T> PartialOrd for FragmentIdx<T> {
 }
 impl<T> Ord for FragmentIdx<T> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.0.cmp(&other.0).then_with(|| self.1.cmp(&other.1))
+        self.0
+            .cmp(&other.0)
+            .then_with(|| self.1.cmp(&other.1).then_with(|| self.2.cmp(&other.2)))
     }
 }
 impl<T> std::hash::Hash for FragmentIdx<T> {
@@ -55,18 +76,20 @@ impl<T> std::hash::Hash for FragmentIdx<T> {
 pub struct FragmentCollection<T> {
     fragment_id_count: usize,
     pub fragments: BTreeMap<FragmentIdx<T>, T>,
+    namespace_idx: NamespaceIdx,
 }
 
 impl<T> FragmentCollection<T> {
-    pub fn new() -> Self {
+    pub fn new(namespace_idx: NamespaceIdx) -> Self {
         Self {
             fragment_id_count: 0,
             fragments: BTreeMap::new(),
+            namespace_idx,
         }
     }
 
     fn generate_fragment_id(&mut self) -> FragmentIdx<T> {
-        let fragment_id = FragmentIdx::new(self.fragment_id_count);
+        let fragment_id = FragmentIdx::new(self.namespace_idx, self.fragment_id_count);
         self.fragment_id_count += 1;
         fragment_id
     }
@@ -77,12 +100,6 @@ impl<T> FragmentCollection<T> {
 
     pub fn is_empty(&self) -> bool {
         self.fragments.is_empty()
-    }
-}
-
-impl<T> Default for FragmentCollection<T> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

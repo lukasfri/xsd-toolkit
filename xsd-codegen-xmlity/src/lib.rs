@@ -28,7 +28,7 @@ use xsd_type_compiler::{
             ComplexTypeFragmentCompiler,
         },
         simple::{transformers::ExpandSimpleRestriction, SimpleTypeFragmentCompiler},
-        transformers::{TransformChange, XmlnsLocalTransformer},
+        transformers::{TransformChange, XmlnsContextTransformer},
         FragmentAccess,
     },
     CompiledNamespace, TopLevelType,
@@ -68,58 +68,58 @@ impl XmlityCodegenTransformer {
     }
 }
 
-impl XmlnsLocalTransformer for XmlityCodegenTransformer {
+impl XmlnsContextTransformer for XmlityCodegenTransformer {
     type Error = Infallible;
     fn transform(
         self,
-        mut context: xsd_type_compiler::fragments::transformers::XmlnsLocalTransformerContext<'_>,
+        context: xsd_type_compiler::fragments::transformers::XmlnsContextTransformerContext<'_>,
     ) -> std::result::Result<TransformChange, Self::Error> {
         for i in 0..100 {
             let mut total_change = TransformChange::Unchanged;
 
             total_change |= context
-                .current_namespace_mut()
-                .transform(ExpandSimpleRestriction::new(&self.allowed_simple_bases))
+                .xmlns_context
+                .context_transform(ExpandSimpleRestriction::new(&self.allowed_simple_bases))
                 .unwrap();
 
             total_change |= context
-                .current_namespace_mut()
-                .transform(ExpandShortFormComplexTypes::new())
+                .xmlns_context
+                .local_transform_all(&ExpandShortFormComplexTypes::new())
                 .unwrap();
 
             total_change |= context
-                .current_namespace_mut()
-                .transform(SingleChoiceToSequence::new())
+                .xmlns_context
+                .local_transform_all(&SingleChoiceToSequence::new())
                 .unwrap();
 
             total_change |= context
-                .current_namespace_mut()
-                .transform(FlattenNestedSequences::new())
+                .xmlns_context
+                .local_transform_all(&FlattenNestedSequences::new())
                 .unwrap();
 
             total_change |= context
-                .current_namespace_mut()
-                .transform(FlattenNestedChoices::new())
+                .xmlns_context
+                .local_transform_all(&FlattenNestedChoices::new())
                 .unwrap();
 
             total_change |= context
-                .current_namespace_mut()
-                .transform(ExpandAttributeDeclarations::new())
+                .xmlns_context
+                .context_transform(ExpandAttributeDeclarations::new())
                 .unwrap();
 
             total_change |= context
-                .current_namespace_mut()
-                .transform(ExpandExtensionFragments::new())
+                .xmlns_context
+                .context_transform(ExpandExtensionFragments::new())
                 .unwrap();
 
             total_change |= context
-                .current_namespace_mut()
-                .transform(ExpandRestrictionFragments::new())
+                .xmlns_context
+                .context_transform(ExpandRestrictionFragments::new())
                 .unwrap();
 
             total_change |= context
-                .current_namespace_mut()
-                .transform(RemoveProhibitedAttributes::new())
+                .xmlns_context
+                .local_transform_all(&RemoveProhibitedAttributes::new())
                 .unwrap();
 
             if total_change == TransformChange::Unchanged {
@@ -245,8 +245,7 @@ impl<'a> GeneratorContext<'a> {
     pub fn current_namespace(&self) -> &CompiledNamespace {
         self.generator
             .context
-            .namespaces
-            .get(self.namespace)
+            .get_namespace(self.namespace)
             .unwrap()
     }
 }
@@ -654,8 +653,7 @@ impl<'a> Generator<'a> {
 
         let compiled_namespace =
             self.context
-                .namespaces
-                .get(namespace)
+                .get_namespace(namespace)
                 .ok_or_else(|| Error::MissingNamespace {
                     namespace: namespace.clone().into_owned(),
                 })?;
@@ -712,8 +710,7 @@ impl<'a> Generator<'a> {
 
         let compiled_namespace =
             self.context
-                .namespaces
-                .get(namespace)
+                .get_namespace(namespace)
                 .ok_or_else(|| Error::MissingNamespace {
                     namespace: namespace.clone().into_owned(),
                 })?;
@@ -815,8 +812,7 @@ impl<'a> Generator<'a> {
     ) -> Result<Option<ItemMod>> {
         let compiled_namespace =
             self.context
-                .namespaces
-                .get(namespace)
+                .get_namespace(namespace)
                 .ok_or_else(|| Error::MissingNamespace {
                     namespace: namespace.clone().into_owned(),
                 })?;
@@ -907,8 +903,7 @@ impl<'a> Generator<'a> {
 
         let compiled_namespace =
             self.context
-                .namespaces
-                .get(namespace)
+                .get_namespace(namespace)
                 .ok_or_else(|| Error::MissingNamespace {
                     namespace: namespace.clone().into_owned(),
                 })?;
@@ -958,8 +953,7 @@ impl<'a> Generator<'a> {
     ) -> Result<Option<ItemMod>> {
         let compiled_namespace =
             self.context
-                .namespaces
-                .get(namespace)
+                .get_namespace(namespace)
                 .ok_or_else(|| Error::MissingNamespace {
                     namespace: namespace.clone().into_owned(),
                 })?;
@@ -1007,8 +1001,7 @@ impl<'a> Generator<'a> {
 
         let compiled_namespace =
             self.context
-                .namespaces
-                .get(namespace)
+                .get_namespace(namespace)
                 .ok_or_else(|| Error::MissingNamespace {
                     namespace: namespace.clone().into_owned(),
                 })?;
@@ -1059,8 +1052,7 @@ impl<'a> Generator<'a> {
 
         let compiled_namespace =
             self.context
-                .namespaces
-                .get(namespace)
+                .get_namespace(namespace)
                 .ok_or_else(|| Error::MissingNamespace {
                     namespace: namespace.clone().into_owned(),
                 })?;
@@ -1110,8 +1102,7 @@ impl<'a> Generator<'a> {
     ) -> Result<Option<ItemMod>> {
         let compiled_namespace =
             self.context
-                .namespaces
-                .get(namespace)
+                .get_namespace(namespace)
                 .ok_or_else(|| Error::MissingNamespace {
                     namespace: namespace.clone().into_owned(),
                 })?;

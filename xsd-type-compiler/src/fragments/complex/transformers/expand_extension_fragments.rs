@@ -16,9 +16,9 @@ use crate::fragments::complex::LocalAttributeFragment;
 use crate::fragments::complex::LocalAttributeFragmentTypeMode;
 use crate::fragments::complex::RestrictionFragment;
 use crate::fragments::complex::SequenceFragment;
+use crate::fragments::transformers::XmlnsContextTransformer;
+use crate::fragments::transformers::XmlnsContextTransformerContext;
 use crate::transformers::TransformChange;
-use crate::transformers::XmlnsLocalTransformer;
-use crate::transformers::XmlnsLocalTransformerContext;
 use crate::TopLevelType;
 use xsd::xsn;
 
@@ -43,10 +43,10 @@ impl ExpandExtensionFragments {
     }
 
     fn expand_attribute(
-        ctx: &mut XmlnsLocalTransformerContext<'_>,
+        ctx: &mut XmlnsContextTransformerContext<'_>,
         attribute: &FragmentIdx<LocalAttributeFragment>,
         base_attribute: &FragmentIdx<LocalAttributeFragment>,
-    ) -> Result<(), <Self as XmlnsLocalTransformer>::Error> {
+    ) -> Result<(), <Self as XmlnsContextTransformer>::Error> {
         let base_attribute = ctx.get_complex_fragment(base_attribute).unwrap().clone();
         let attribute = ctx.get_complex_fragment_mut(attribute).unwrap();
 
@@ -70,13 +70,13 @@ impl ExpandExtensionFragments {
     }
 
     fn expand_expanded_attributes(
-        ctx: &mut XmlnsLocalTransformerContext<'_>,
+        ctx: &mut XmlnsContextTransformerContext<'_>,
         child_attributes: FragmentIdx<AttributeDeclarationsFragment>,
         base_attributes: FragmentIdx<AttributeDeclarationsFragment>,
-    ) -> Result<FragmentIdx<AttributeDeclarationsFragment>, <Self as XmlnsLocalTransformer>::Error>
+    ) -> Result<FragmentIdx<AttributeDeclarationsFragment>, <Self as XmlnsContextTransformer>::Error>
     {
         fn resolve_attr_name(
-            ctx: &XmlnsLocalTransformerContext,
+            ctx: &XmlnsContextTransformerContext,
             a: &FragmentIdx<LocalAttributeFragment>,
         ) -> ExpandedName<'static> {
             let fragment = ctx.get_complex_fragment(a).unwrap();
@@ -158,9 +158,9 @@ impl ExpandExtensionFragments {
     }
 
     fn expand_extension(
-        ctx: &mut XmlnsLocalTransformerContext<'_>,
+        ctx: &mut XmlnsContextTransformerContext<'_>,
         child_complex_content_fragment_idx: &FragmentIdx<ComplexContentFragment>,
-    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
+    ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let child_complex_content_fragment = ctx
             .get_complex_fragment(child_complex_content_fragment_idx)
             .unwrap();
@@ -265,9 +265,13 @@ impl ExpandExtensionFragments {
                     },
                 };
 
-                let compiler = &mut ctx.current_namespace_mut().complex_type;
+                let ns = &mut ctx
+                    .xmlns_context
+                    .namespaces
+                    .get_mut(&child_complex_content_fragment_idx.namespace_idx())
+                    .unwrap();
 
-                let new_content_fragment = compiler.push_fragment(new_content_fragment);
+                let new_content_fragment = ns.complex_type.push_fragment(new_content_fragment);
 
                 new_content_fragment.into()
             })
@@ -282,12 +286,15 @@ impl ExpandExtensionFragments {
             attribute_declarations: new_attribute_declarations,
         };
 
-        let compiler = &mut ctx.current_namespace_mut().complex_type;
+        let ns = &mut ctx
+            .xmlns_context
+            .namespaces
+            .get_mut(&child_complex_content_fragment_idx.namespace_idx())
+            .unwrap();
 
-        let new_child_content = compiler.push_fragment(new_child_content);
+        let new_child_content = ns.complex_type.push_fragment(new_child_content);
 
-        compiler
-            .get_fragment_mut(child_complex_content_fragment_idx)
+        ctx.get_complex_fragment_mut(child_complex_content_fragment_idx)
             .unwrap()
             .content_fragment = ComplexContentChildId::Restriction(new_child_content);
 
@@ -295,14 +302,15 @@ impl ExpandExtensionFragments {
     }
 }
 
-impl XmlnsLocalTransformer for ExpandExtensionFragments {
+impl XmlnsContextTransformer for ExpandExtensionFragments {
     type Error = Error;
 
     fn transform(
         self,
-        mut ctx: XmlnsLocalTransformerContext<'_>,
+        mut ctx: XmlnsContextTransformerContext<'_>,
     ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
+            .collect::<Vec<_>>()
             .into_iter()
             .map(|f| Self::expand_extension(&mut ctx, &f))
             .collect()
@@ -319,12 +327,13 @@ mod tests {
 
     use crate::{
         fragments::complex::transformers::ExpandExtensionFragments, transformers::TransformChange,
-        CompiledNamespace, XmlnsContext,
+        XmlnsContext,
     };
 
     #[test]
     fn basic_child_only_expand_extension() {
-        let test_namespace = XmlNamespace::new_dangerous("http://localhost");
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://localhost");
 
         let parent_seq = xs::Sequence(Box::new(
             xs::types::ExplicitGroup::builder()
@@ -422,7 +431,7 @@ mod tests {
                         xs::types::ExtensionType::builder()
                             .base(xs::types::QName(ExpandedName::new(
                                 LocalName::new_dangerous("ProductType"),
-                                Some(test_namespace.clone()),
+                                Some(TEST_NAMESPACE.clone()),
                             )))
                             .type_def_particle(Box::new(child_choice.clone().into()))
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
@@ -490,34 +499,28 @@ mod tests {
                 .build()
                 .into();
 
-        let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        compiled_namespace
-            .import_top_level_complex_type(&product_type)
-            .unwrap();
-        compiled_namespace
-            .import_top_level_complex_type(&derived_shirt_type)
+        ns.import_top_level_complex_type(&product_type).unwrap();
+        ns.import_top_level_complex_type(&derived_shirt_type)
             .unwrap();
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandExtensionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandExtensionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let mut xmlns_context = XmlnsContext::new();
+        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
-
-        let actual_flattened_shirt_type = compiled_namespace
+        let actual_flattened_shirt_type = ns
             .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
             .unwrap()
             .unwrap();
@@ -527,7 +530,8 @@ mod tests {
 
     #[test]
     fn basic_attribute_only_expand_extension() {
-        let test_namespace = XmlNamespace::new_dangerous("http://localhost");
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://localhost");
 
         // <xs:complexType name="ProductType">
         //   <xs:complexContent>
@@ -589,7 +593,7 @@ mod tests {
                         xs::types::ExtensionType::builder()
                             .base(xs::types::QName(ExpandedName::new(
                                 LocalName::new_dangerous("ProductType"),
-                                Some(test_namespace.clone()),
+                                Some(TEST_NAMESPACE.clone()),
                             )))
                             .attr_decls(
                                 xs::groups::AttrDecls::builder()
@@ -678,34 +682,28 @@ mod tests {
                 .build()
                 .into();
 
-        let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        compiled_namespace
-            .import_top_level_complex_type(&product_type)
-            .unwrap();
-        compiled_namespace
-            .import_top_level_complex_type(&derived_shirt_type)
+        ns.import_top_level_complex_type(&product_type).unwrap();
+        ns.import_top_level_complex_type(&derived_shirt_type)
             .unwrap();
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandExtensionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandExtensionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let mut xmlns_context = XmlnsContext::new();
+        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
-
-        let actual_flattened_shirt_type = compiled_namespace
+        let actual_flattened_shirt_type = ns
             .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
             .unwrap()
             .unwrap();
@@ -715,6 +713,9 @@ mod tests {
 
     #[test]
     fn expand_extension_type_element_no_fragment() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://localhost");
+
         // <xs:complexType name="Block">
         //     <xs:choice minOccurs="0" maxOccurs="unbounded">
         //     <xs:group ref="block"/>
@@ -918,34 +919,26 @@ mod tests {
             .build()
             .into();
 
-        let mut compiled_namespace = CompiledNamespace::new(XmlNamespace::XHTML);
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        ns.import_top_level_complex_type(&block).unwrap();
+        ns.import_top_level_element(&noscript).unwrap();
 
-        compiled_namespace
-            .import_top_level_complex_type(&block)
-            .unwrap();
-        compiled_namespace
-            .import_top_level_element(&noscript)
-            .unwrap();
-
-        let transform_changed = compiled_namespace
-            .transform(ExpandExtensionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandExtensionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let mut xmlns_context = XmlnsContext::new();
+        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let compiled_namespace = xmlns_context.namespaces.get(&XmlNamespace::XHTML).unwrap();
-
-        let actual_flattened_noscript = compiled_namespace
+        let actual_flattened_noscript = ns
             .export_top_level_element(&LocalName::new_dangerous("noscript"))
             .unwrap()
             .unwrap();
@@ -955,6 +948,9 @@ mod tests {
 
     #[test]
     fn expand_xhtml_a() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://localhost");
+
         // <xs:complexType name="a.content" mixed="true">
         //     <xs:annotation>
         //     <xs:documentation>
@@ -1342,32 +1338,27 @@ mod tests {
             .build()
             .into();
 
-        let mut compiled_namespace = CompiledNamespace::new(XmlNamespace::XHTML);
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        compiled_namespace
-            .import_top_level_complex_type(&a_content)
-            .unwrap();
-        compiled_namespace.import_top_level_element(&a).unwrap();
+        ns.import_top_level_complex_type(&a_content).unwrap();
+        ns.import_top_level_element(&a).unwrap();
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandExtensionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = compiled_namespace
-            .transform(ExpandExtensionFragments::new())
+        let transform_changed = ctx
+            .context_transform(ExpandExtensionFragments::new())
             .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let mut xmlns_context = XmlnsContext::new();
+        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
 
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let compiled_namespace = xmlns_context.namespaces.get(&XmlNamespace::XHTML).unwrap();
-
-        let actual_flattened_a = compiled_namespace
+        let actual_flattened_a = ns
             .export_top_level_element(&LocalName::new_dangerous("a"))
             .unwrap()
             .unwrap();

@@ -6,7 +6,9 @@ use xsd::xs;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
 use crate::{
-    fragments::{FragmentAccess, FragmentCollection, FragmentIdx, HasFragmentCollection},
+    fragments::{
+        FragmentAccess, FragmentCollection, FragmentIdx, HasFragmentCollection, NamespaceIdx,
+    },
     NamedOrAnonymous,
 };
 use std::collections::VecDeque;
@@ -121,16 +123,16 @@ pub struct SimpleTypeFragmentCompiler {
 }
 
 impl SimpleTypeFragmentCompiler {
-    pub fn new(namespace: XmlNamespace<'static>) -> Self {
+    pub fn new(namespace: XmlNamespace<'static>, namespace_idx: NamespaceIdx) -> Self {
         Self {
             namespace,
-            simple_types: FragmentCollection::new(),
-            restrictions: FragmentCollection::new(),
-            extensions: FragmentCollection::new(),
-            facets: FragmentCollection::new(),
-            lists: FragmentCollection::new(),
-            unions: FragmentCollection::new(),
-            group_refs: FragmentCollection::new(),
+            simple_types: FragmentCollection::new(namespace_idx),
+            restrictions: FragmentCollection::new(namespace_idx),
+            extensions: FragmentCollection::new(namespace_idx),
+            facets: FragmentCollection::new(namespace_idx),
+            lists: FragmentCollection::new(namespace_idx),
+            unions: FragmentCollection::new(namespace_idx),
+            group_refs: FragmentCollection::new(namespace_idx),
         }
     }
 }

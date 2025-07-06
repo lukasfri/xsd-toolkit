@@ -5,7 +5,7 @@ use crate::{
         AttributeDeclarationId, AttributeDeclarationsFragment, AttributeGroupRefFragment,
         FragmentIdx, LocalAttributeFragment, LocalAttributeFragmentTypeMode,
     },
-    transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
+    transformers::{TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext},
 };
 
 #[non_exhaustive]
@@ -25,9 +25,9 @@ impl ExpandAttributeDeclarations {
     }
 
     fn expand_attribute_declaration(
-        context: &mut XmlnsLocalTransformerContext<'_>,
+        context: &mut XmlnsContextTransformerContext<'_>,
         fragment_id: &FragmentIdx<AttributeDeclarationsFragment>,
-    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
+    ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let mut change = TransformChange::default();
 
         let fragment = context.get_complex_fragment(fragment_id).unwrap();
@@ -79,7 +79,7 @@ impl ExpandAttributeDeclarations {
 
         fn add_attribute(
             new_attributes: &mut VecDeque<AttributeDeclarationId>,
-            ctx: &mut XmlnsLocalTransformerContext<'_>,
+            ctx: &mut XmlnsContextTransformerContext<'_>,
             fragment_idx: &FragmentIdx<LocalAttributeFragment>,
         ) -> Result<(), Error> {
             let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
@@ -131,7 +131,7 @@ impl ExpandAttributeDeclarations {
 
         fn add_group(
             new_attributes: &mut VecDeque<AttributeDeclarationId>,
-            ctx: &mut XmlnsLocalTransformerContext<'_>,
+            ctx: &mut XmlnsContextTransformerContext<'_>,
             fragment_idx: &FragmentIdx<AttributeGroupRefFragment>,
         ) {
             let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
@@ -194,15 +194,16 @@ impl ExpandAttributeDeclarations {
     }
 }
 
-impl XmlnsLocalTransformer for ExpandAttributeDeclarations {
+impl XmlnsContextTransformer for ExpandAttributeDeclarations {
     type Error = Error;
 
     fn transform(
         self,
-        mut context: XmlnsLocalTransformerContext<'_>,
+        mut context: XmlnsContextTransformerContext<'_>,
     ) -> Result<TransformChange, Self::Error> {
         context
             .iter_complex_fragment_ids::<AttributeDeclarationsFragment>()
+            .collect::<Vec<_>>()
             .iter()
             .map(|fragment_id| Self::expand_attribute_declaration(&mut context, fragment_id))
             .collect()
@@ -211,7 +212,7 @@ impl XmlnsLocalTransformer for ExpandAttributeDeclarations {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CompiledNamespace, XmlnsContext};
+    use crate::XmlnsContext;
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -274,21 +275,19 @@ mod tests {
             .build()
             .into();
 
-        let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
-
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
         ns.import_top_level_attribute_group(&attribute_group)
             .unwrap();
         ns.import_top_level_complex_type(&input).unwrap();
 
-        let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
+        let transform_changed = ctx
+            .context_transform(ExpandAttributeDeclarations::new())
+            .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let mut ctx = XmlnsContext::new();
-
-        ctx.add_namespace(ns);
-
-        let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
 
         let actual = ns
             .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
@@ -390,21 +389,20 @@ mod tests {
             .build()
             .into();
 
-        let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
         ns.import_top_level_attribute_group(&attribute_group)
             .unwrap();
         ns.import_top_level_complex_type(&input).unwrap();
 
-        let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
+        let transform_changed = ctx
+            .context_transform(ExpandAttributeDeclarations::new())
+            .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let mut ctx = XmlnsContext::new();
-
-        ctx.add_namespace(ns);
-
-        let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
 
         let actual = ns
             .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
@@ -508,21 +506,20 @@ mod tests {
             .build()
             .into();
 
-        let mut ns = CompiledNamespace::new(TEST_NAMESPACE);
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
         ns.import_top_level_attribute_group(&attribute_group)
             .unwrap();
         ns.import_top_level_complex_type(&input).unwrap();
 
-        let transform_changed = ns.transform(ExpandAttributeDeclarations::new()).unwrap();
+        let transform_changed = ctx
+            .context_transform(ExpandAttributeDeclarations::new())
+            .unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let mut ctx = XmlnsContext::new();
-
-        ctx.add_namespace(ns);
-
-        let ns = ctx.namespaces.get(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
 
         let actual = ns
             .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)

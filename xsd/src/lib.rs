@@ -12,6 +12,10 @@ impl XmlSchema {
         Self { underlying_schema }
     }
 
+    pub fn namespace(&self) -> &xmlity::XmlNamespace<'static> {
+        &self.underlying_schema.target_namespace.as_ref().unwrap().0
+    }
+
     pub fn schema_tops(&self) -> impl Iterator<Item = &xs::groups::SchemaTop> {
         self.underlying_schema.child_2.iter().map(|a| &a.schema_top)
     }

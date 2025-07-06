@@ -232,7 +232,7 @@ impl SingleChoiceToSequence {
     }
 }
 
-impl XmlnsLocalTransformer for SingleChoiceToSequence {
+impl XmlnsLocalTransformer for &SingleChoiceToSequence {
     type Error = Infallible;
 
     fn transform(
@@ -240,19 +240,31 @@ impl XmlnsLocalTransformer for SingleChoiceToSequence {
         mut ctx: XmlnsLocalTransformerContext<'_>,
     ) -> Result<TransformChange, Self::Error> {
         let mut changed = TransformChange::default();
+        use SingleChoiceToSequence as LT;
 
-        changed |= Self::expand_fragments_group_content::<AllFragment>(&mut ctx)?;
+        changed |= LT::expand_fragments_group_content::<AllFragment>(&mut ctx)?;
 
-        changed |= Self::expand_fragments_group_content::<SequenceFragment>(&mut ctx)?;
+        changed |= LT::expand_fragments_group_content::<SequenceFragment>(&mut ctx)?;
 
-        changed |= Self::expand_fragments_group_content::<ChoiceFragment>(&mut ctx)?;
+        changed |= LT::expand_fragments_group_content::<ChoiceFragment>(&mut ctx)?;
 
-        changed |= Self::expand_fragments_type_def_particle::<ExtensionFragment>(&mut ctx)?;
+        changed |= LT::expand_fragments_type_def_particle::<ExtensionFragment>(&mut ctx)?;
 
-        changed |= Self::expand_fragments_type_def_particle::<RestrictionFragment>(&mut ctx)?;
+        changed |= LT::expand_fragments_type_def_particle::<RestrictionFragment>(&mut ctx)?;
 
-        changed |= Self::expand_fragments_type_def_particle::<ComplexTypeRootFragment>(&mut ctx)?;
+        changed |= LT::expand_fragments_type_def_particle::<ComplexTypeRootFragment>(&mut ctx)?;
 
         Ok(changed)
+    }
+}
+
+impl XmlnsLocalTransformer for SingleChoiceToSequence {
+    type Error = Infallible;
+
+    fn transform(
+        self,
+        ctx: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
+        (&self).transform(ctx)
     }
 }

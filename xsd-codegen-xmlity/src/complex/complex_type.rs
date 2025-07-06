@@ -243,12 +243,15 @@ mod tests {
     use xmlity::{LocalName, XmlNamespace};
     use xsd::xs;
     use xsd::xsn;
-    use xsd_type_compiler::{CompiledNamespace, XmlnsContext};
+    use xsd_type_compiler::{ XmlnsContext};
 
     use crate::Generator;
 
     #[test]
     fn empty_sequence_complex_type() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com");
+            
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .complex_type_model(Box::new(
@@ -279,19 +282,15 @@ mod tests {
             .build()
             .into();
 
-        let namespace = XmlNamespace::new_dangerous("http://example.com");
-
-        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
-
-        let sequence = compiled_namespace
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        
+        let sequence = ns
             .import_top_level_complex_type(&sequence)
             .unwrap()
             .into_owned();
 
-        let mut context = XmlnsContext::new();
-        context.add_namespace(compiled_namespace);
-
-        let generator = Generator::new(&context);
+        let generator = Generator::new(&ctx);
 
         let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
 
@@ -320,6 +319,9 @@ mod tests {
 
     #[test]
     fn two_child_sequence_complex_type() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com");
+
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .complex_type_model(
@@ -367,19 +369,17 @@ mod tests {
             .build()
             .into();
 
-        let namespace = XmlNamespace::new_dangerous("http://example.com");
 
-        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
 
-        let sequence = compiled_namespace
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
+
+        let sequence = ns
             .import_top_level_complex_type(&sequence)
             .unwrap()
             .into_owned();
 
-        let mut context = XmlnsContext::new();
-        context.add_namespace(compiled_namespace);
-
-        let mut generator = Generator::new(&context);
+        let mut generator = Generator::new(&ctx);
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
@@ -415,6 +415,9 @@ mod tests {
 
     #[test]
     fn two_attribute_sequence_complex_type() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com");
+
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .complex_type_model(
@@ -462,19 +465,17 @@ mod tests {
             .build()
             .into();
 
-        let namespace = XmlNamespace::new_dangerous("http://example.com");
 
-        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let sequence = compiled_namespace
+        let sequence = ns
             .import_top_level_complex_type(&sequence)
             .unwrap()
             .into_owned();
 
-        let mut context = XmlnsContext::new();
-        context.add_namespace(compiled_namespace);
 
-        let mut generator = Generator::new(&context);
+        let mut generator = Generator::new(&ctx);
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
@@ -510,6 +511,9 @@ mod tests {
 
     #[test]
     fn two_sequence_deep_element() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com");
+
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .complex_type_model(
@@ -571,19 +575,16 @@ mod tests {
             .build()
             .into();
 
-        let namespace = XmlNamespace::new_dangerous("http://example.com");
 
-        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let sequence = compiled_namespace
+        let sequence = ns
             .import_top_level_complex_type(&sequence)
             .unwrap()
             .into_owned();
 
-        let mut context = XmlnsContext::new();
-        context.add_namespace(compiled_namespace);
-
-        let mut generator = Generator::new(&context);
+        let mut generator = Generator::new(&ctx);
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
@@ -630,6 +631,9 @@ mod tests {
 
     #[test]
     fn three_sequence_deep_element() {
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://example.com");
+
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .complex_type_model(
@@ -689,19 +693,16 @@ mod tests {
             .build()
             .into();
 
-        let namespace = XmlNamespace::new_dangerous("http://example.com");
 
-        let mut compiled_namespace = CompiledNamespace::new(namespace.clone());
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let sequence = compiled_namespace
+        let sequence = ns
             .import_top_level_complex_type(&sequence)
             .unwrap()
             .into_owned();
 
-        let mut context = XmlnsContext::new();
-        context.add_namespace(compiled_namespace);
-
-        let mut generator = Generator::new(&context);
+        let mut generator = Generator::new(&ctx);
 
         generator.bind_types(crate::binds::StdXsdTypes);
 

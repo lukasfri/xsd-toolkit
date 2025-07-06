@@ -5,7 +5,7 @@ use transformers::TransformChange;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::xs;
 
-use crate::fragments::{transformers, FragmentIdx};
+use crate::fragments::{transformers, FragmentIdx, NamespaceIdx};
 pub mod fragments;
 use crate::fragments::complex::ComplexFragmentEquivalent;
 use crate::fragments::simple::SimpleFragmentEquivalent;
@@ -13,34 +13,110 @@ use crate::fragments::simple::SimpleFragmentEquivalent;
 #[derive(Debug)]
 pub enum Error {
     ImportOfExistingEntity,
+    NonExistentXmlNamespace { namespace: XmlNamespace<'static> },
 }
 
 #[derive(Debug)]
 pub struct XmlnsContext {
-    pub namespaces: BTreeMap<XmlNamespace<'static>, CompiledNamespace>,
+    pub namespaces: BTreeMap<NamespaceIdx, CompiledNamespace>,
+    pub namespace_idxs: BTreeMap<XmlNamespace<'static>, NamespaceIdx>,
+    namespace_id_count: usize,
 }
 
 impl XmlnsContext {
     pub fn new() -> Self {
         Self {
             namespaces: BTreeMap::new(),
+            namespace_idxs: BTreeMap::new(),
+            namespace_id_count: 0,
         }
     }
 
-    pub fn add_namespace(&mut self, namespace: CompiledNamespace) {
-        self.namespaces
-            .insert(namespace.namespace.clone(), namespace);
+    fn generate_fragment_id(&mut self) -> NamespaceIdx {
+        let fragment_id = NamespaceIdx::new(self.namespace_id_count);
+        self.namespace_id_count += 1;
+        fragment_id
     }
 
-    pub fn transform<T: transformers::XmlnsLocalTransformer>(
+    pub fn init_namespace(&mut self, namespace: XmlNamespace<'static>) -> &mut CompiledNamespace {
+        let namespace_idx = self.generate_fragment_id();
+        self.namespace_idxs.insert(namespace.clone(), namespace_idx);
+
+        let namespace = CompiledNamespace::new(namespace, namespace_idx);
+
+        self.namespaces.insert(namespace_idx, namespace);
+
+        self.namespaces
+            .get_mut(&namespace_idx)
+            .expect("Just inserted namespace")
+    }
+
+    pub fn get_namespace(&self, namespace: &XmlNamespace<'_>) -> Option<&CompiledNamespace> {
+        let Some(namespace_idx) = self.namespace_idxs.get(namespace) else {
+            return None;
+        };
+
+        self.namespaces.get(namespace_idx)
+    }
+
+    pub fn get_namespace_mut(
         &mut self,
-        namespace: &XmlNamespace<'static>,
+        namespace: &XmlNamespace<'_>,
+    ) -> Option<&mut CompiledNamespace> {
+        let Some(namespace_idx) = self.namespace_idxs.get(namespace) else {
+            return None;
+        };
+
+        self.namespaces.get_mut(namespace_idx)
+    }
+
+    pub fn local_transform<T: transformers::XmlnsLocalTransformer>(
+        &mut self,
+        namespace: &XmlNamespace<'_>,
+        transformer: T,
+    ) -> Result<TransformChange, T::Error> {
+        let Some(namespace) = self.namespace_idxs.get(namespace) else {
+            return Ok(TransformChange::Unchanged);
+        };
+
+        let namespace = *namespace;
+
+        self.local_transform_id(&namespace, transformer)
+    }
+
+    pub fn local_transform_id<T: transformers::XmlnsLocalTransformer>(
+        &mut self,
+        namespace: &NamespaceIdx,
         transformer: T,
     ) -> Result<TransformChange, T::Error> {
         self.namespaces
             .get_mut(namespace)
             .unwrap()
             .transform(transformer)
+    }
+
+    pub fn local_transform_all<T: transformers::XmlnsLocalTransformer + Clone>(
+        &mut self,
+        transformer: T,
+    ) -> Result<TransformChange, T::Error> {
+        self.namespaces.values_mut().try_fold(
+            TransformChange::Unchanged,
+            |total_change, namespace| {
+                let change = namespace.transform(transformer.clone())?;
+                Ok(total_change | change)
+            },
+        )
+    }
+
+    pub fn context_transform<T: transformers::XmlnsContextTransformer>(
+        &mut self,
+        transformer: T,
+    ) -> Result<TransformChange, T::Error> {
+        let context = transformers::XmlnsContextTransformerContext {
+            xmlns_context: self,
+        };
+
+        transformer.transform(context)
     }
 }
 
@@ -68,11 +144,12 @@ pub enum NamedOrAnonymous<T> {
 }
 
 impl CompiledNamespace {
-    pub fn new(namespace: XmlNamespace<'static>) -> Self {
+    pub fn new(namespace: XmlNamespace<'static>, namespace_idx: NamespaceIdx) -> Self {
         let simple_type_compiler =
-            fragments::simple::SimpleTypeFragmentCompiler::new(namespace.clone());
+            fragments::simple::SimpleTypeFragmentCompiler::new(namespace.clone(), namespace_idx);
         let complex_type_compiler = fragments::complex::ComplexTypeFragmentCompiler::new(
             namespace.clone(),
+            namespace_idx,
             simple_type_compiler,
         );
 
@@ -94,38 +171,36 @@ impl CompiledNamespace {
         transformer.transform(transformers::XmlnsLocalTransformerContext { namespace: self })
     }
 
-    pub fn from_schema(schema: &xsd::XmlSchema) -> Result<Self, Error> {
-        let mut this = Self::new(schema.underlying_schema.target_namespace.clone().unwrap().0);
-
+    pub fn import_schema(&mut self, schema: &xsd::XmlSchema) -> Result<(), Error> {
         use xs::groups::{Redefinable, SchemaTop};
 
         for redefine in schema.schema_tops() {
             match redefine {
                 SchemaTop::Redefinable(redefineable) => match redefineable.deref() {
                     Redefinable::SimpleType(simple_type) => {
-                        this.import_top_level_simple_type(simple_type)?;
+                        self.import_top_level_simple_type(simple_type)?;
                     }
                     Redefinable::ComplexType(complex_type) => {
-                        this.import_top_level_complex_type(complex_type)?;
+                        self.import_top_level_complex_type(complex_type)?;
                     }
                     Redefinable::Group(group) => {
-                        this.import_top_level_group(group)?;
+                        self.import_top_level_group(group)?;
                     }
                     Redefinable::AttributeGroup(attribute_group) => {
-                        this.import_top_level_attribute_group(attribute_group)?;
+                        self.import_top_level_attribute_group(attribute_group)?;
                     }
                 },
                 SchemaTop::Element(element) => {
-                    this.import_top_level_element(element)?;
+                    self.import_top_level_element(element)?;
                 }
                 SchemaTop::Attribute(attribute) => {
-                    this.import_top_level_attribute(attribute)?;
+                    self.import_top_level_attribute(attribute)?;
                 }
                 SchemaTop::Notation(_) => {}
             }
         }
 
-        Ok(this)
+        Ok(())
     }
 
     pub fn import_top_level_simple_type(
@@ -145,6 +220,23 @@ impl CompiledNamespace {
         let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
 
         Ok(name)
+    }
+
+    pub fn export_top_level_simple_type(
+        &self,
+        name: &LocalName<'_>,
+    ) -> Result<Option<xs::SimpleType>, Error> {
+        let Some(TopLevelType::Simple(type_)) = self.top_level_types.get(name) else {
+            return Ok(None);
+        };
+
+        let fragment_id = &type_.root_fragment;
+
+        let type_ =
+            xs::types::TopLevelSimpleType::from_simple_fragments(&self.complex_type, fragment_id)
+                .unwrap();
+
+        Ok(Some(xs::SimpleType(type_.into())))
     }
 
     pub fn import_top_level_complex_type(
@@ -169,21 +261,19 @@ impl CompiledNamespace {
 
     pub fn export_top_level_complex_type(
         &self,
-        complex_type: &LocalName<'_>,
+        name: &LocalName<'_>,
     ) -> Result<Option<xs::ComplexType>, Error> {
-        let Some(TopLevelType::Complex(top_level_complex_type)) =
-            self.top_level_types.get(complex_type)
-        else {
+        let Some(TopLevelType::Complex(type_)) = self.top_level_types.get(name) else {
             return Ok(None);
         };
 
-        let fragment_id = &top_level_complex_type.root_fragment;
+        let fragment_id = &type_.root_fragment;
 
-        let complex_type =
+        let type_ =
             xs::types::TopLevelComplexType::from_complex_fragments(&self.complex_type, fragment_id)
                 .unwrap();
 
-        Ok(Some(xs::ComplexType(complex_type.into())))
+        Ok(Some(xs::ComplexType(type_.into())))
     }
 
     pub fn import_top_level_element(

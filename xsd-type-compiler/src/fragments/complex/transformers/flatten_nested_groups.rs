@@ -54,7 +54,7 @@ impl FlattenNestedSequences {
     }
 }
 
-impl XmlnsLocalTransformer for FlattenNestedSequences {
+impl XmlnsLocalTransformer for &FlattenNestedSequences {
     type Error = Error;
 
     fn transform(
@@ -63,8 +63,19 @@ impl XmlnsLocalTransformer for FlattenNestedSequences {
     ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
-            .map(|f| Self::flatten_sequence(&mut ctx, &f))
+            .map(|f| FlattenNestedSequences::flatten_sequence(&mut ctx, &f))
             .collect()
+    }
+}
+
+impl XmlnsLocalTransformer for FlattenNestedSequences {
+    type Error = Error;
+
+    fn transform(
+        self,
+        ctx: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
+        (&self).transform(ctx)
     }
 }
 
@@ -114,7 +125,7 @@ impl FlattenNestedChoices {
     }
 }
 
-impl XmlnsLocalTransformer for FlattenNestedChoices {
+impl XmlnsLocalTransformer for &FlattenNestedChoices {
     type Error = Error;
 
     fn transform(
@@ -123,8 +134,19 @@ impl XmlnsLocalTransformer for FlattenNestedChoices {
     ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
             .into_iter()
-            .map(|f| Self::flatten_choice(&mut ctx, &f))
+            .map(|f| FlattenNestedChoices::flatten_choice(&mut ctx, &f))
             .collect()
+    }
+}
+
+impl XmlnsLocalTransformer for FlattenNestedChoices {
+    type Error = Error;
+
+    fn transform(
+        self,
+        ctx: XmlnsLocalTransformerContext<'_>,
+    ) -> Result<TransformChange, Self::Error> {
+        (&self).transform(ctx)
     }
 }
 
@@ -138,12 +160,13 @@ mod tests {
 
     use crate::{
         fragments::complex::transformers::FlattenNestedSequences, transformers::TransformChange,
-        CompiledNamespace, XmlnsContext,
+        XmlnsContext,
     };
 
     #[test]
     fn flatten_nested_sequences() {
-        let test_namespace = XmlNamespace::new_dangerous("http://localhost");
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://localhost");
 
         let number = xs::types::LocalElement::builder()
             .name(LocalName::new_dangerous("number"))
@@ -290,31 +313,22 @@ mod tests {
                 .build()
                 .into();
 
-        let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        compiled_namespace
-            .import_top_level_complex_type(&non_flattened_shirt_type)
+        ns.import_top_level_complex_type(&non_flattened_shirt_type)
             .unwrap();
 
-        let transform_changed = compiled_namespace
-            .transform(FlattenNestedSequences::new())
-            .unwrap();
+        let transform_changed: TransformChange =
+            ns.transform(FlattenNestedSequences::new()).unwrap();
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let transform_changed = compiled_namespace
-            .transform(FlattenNestedSequences::new())
-            .unwrap();
+        let transform_changed = ns.transform(FlattenNestedSequences::new()).unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let mut xmlns_context = XmlnsContext::new();
-
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
-
-        let actual_flattened_shirt_type = compiled_namespace
+        let actual_flattened_shirt_type = ns
             .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
             .unwrap()
             .unwrap();
@@ -324,7 +338,8 @@ mod tests {
 
     #[test]
     fn do_not_flatten_sequences_with_occurs() {
-        let test_namespace = XmlNamespace::new_dangerous("http://localhost");
+        const TEST_NAMESPACE: XmlNamespace<'static> =
+            XmlNamespace::new_dangerous("http://localhost");
 
         let number = xs::types::LocalElement::builder()
             .name(LocalName::new_dangerous("number"))
@@ -423,25 +438,17 @@ mod tests {
             .build()
             .into();
 
-        let mut compiled_namespace = CompiledNamespace::new(test_namespace.clone());
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        compiled_namespace
-            .import_top_level_complex_type(&non_flattened_shirt_type)
+        ns.import_top_level_complex_type(&non_flattened_shirt_type)
             .unwrap();
 
-        let transform_changed = compiled_namespace
-            .transform(FlattenNestedSequences::new())
-            .unwrap();
+        let transform_changed = ns.transform(FlattenNestedSequences::new()).unwrap();
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let mut xmlns_context = XmlnsContext::new();
-
-        xmlns_context.add_namespace(compiled_namespace);
-
-        let compiled_namespace = xmlns_context.namespaces.get(&test_namespace).unwrap();
-
-        let actual_flattened_shirt_type = compiled_namespace
+        let actual_flattened_shirt_type = ns
             .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
             .unwrap()
             .unwrap();
