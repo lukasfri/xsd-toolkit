@@ -300,6 +300,7 @@ pub mod types {
                     value
                         .as_str()
                         .split([' ', '|', ',', ';'])
+                        .filter(|v| !v.is_empty())
                         .map(|s| {
                             T::deserialize(SubStrDeserializer::new(s, &value.namespace_context()))
                         })

@@ -1,5 +1,5 @@
 [package]
-name = "xsd-codegen-xmlity"
+name = "xsd-fragment-transformer"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,18 +8,11 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
+syn = { version = "2.0.29", features = ["full"] }
 xsd = { path = "../xsd" }
-xmlity.workspace = true
-proc-macro2 = "1.0.66"
-quote = "1.0.33"
-syn = { version = "2.0.29", features = ["full", "extra-traits"] }
-prettyplease = "0.2.15"
 thiserror.workspace = true
+xmlity.workspace = true
 xsd-type-compiler = { path = "../xsd-type-compiler" }
-dyn-clone = "1.0.14"
-Inflector = "0.11.4"
-rust_decimal = "1.37.2"
-xsd-fragment-transformer = { path = "../xsd-fragment-transformer" }
 
 [dev-dependencies]
 pretty_assertions.workspace = true

@@ -1,10 +1,9 @@
 use std::convert::Infallible;
 
-use crate::{
-    fragments::complex::{
-        AttributeDeclarationId, AttributeDeclarationsFragment, AttributeUse, FragmentIdx,
-    },
-    transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
+use crate::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
+use xsd_type_compiler::fragments::{
+    complex::{self as cx, AttributeDeclarationId, AttributeDeclarationsFragment, AttributeUse},
+    FragmentIdx,
 };
 
 #[non_exhaustive]
@@ -31,9 +30,7 @@ impl RemoveProhibitedAttributes {
             .filter_map(|a| match a {
                 AttributeDeclarationId::Attribute(fragment_idx) => {
                     let fragment = context
-                        .get_complex_fragment::<crate::fragments::complex::LocalAttributeFragment>(
-                            &fragment_idx,
-                        )
+                        .get_complex_fragment::<cx::LocalAttributeFragment>(&fragment_idx)
                         .unwrap();
 
                     if fragment.use_ != Some(AttributeUse::Prohibited) {

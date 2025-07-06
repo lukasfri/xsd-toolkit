@@ -1,21 +1,22 @@
 use std::collections::BTreeMap;
 use std::collections::VecDeque;
 
-use crate::fragments::complex::AttributeDeclarationId;
-use crate::fragments::complex::AttributeDeclarationsFragment;
-use crate::fragments::complex::ComplexContentChildId;
-use crate::fragments::complex::ComplexTypeModelId;
-use crate::fragments::complex::ComplexTypeRootFragment;
-use crate::fragments::complex::FragmentIdx;
-use crate::fragments::complex::LocalAttributeFragment;
-use crate::fragments::complex::LocalAttributeFragmentTypeMode;
-use crate::fragments::complex::RestrictionFragment;
-use crate::fragments::transformers::XmlnsContextTransformer;
-use crate::fragments::transformers::XmlnsContextTransformerContext;
-use crate::transformers::TransformChange;
-use crate::TopLevelType;
 use xmlity::ExpandedName;
 use xsd::xsn;
+use xsd_type_compiler::fragments::complex::AttributeDeclarationId;
+use xsd_type_compiler::fragments::complex::AttributeDeclarationsFragment;
+use xsd_type_compiler::fragments::complex::ComplexContentChildId;
+use xsd_type_compiler::fragments::complex::ComplexTypeModelId;
+use xsd_type_compiler::fragments::complex::ComplexTypeRootFragment;
+use xsd_type_compiler::fragments::complex::LocalAttributeFragment;
+use xsd_type_compiler::fragments::complex::LocalAttributeFragmentTypeMode;
+use xsd_type_compiler::fragments::complex::RestrictionFragment;
+use xsd_type_compiler::fragments::FragmentIdx;
+use xsd_type_compiler::TopLevelType;
+
+use crate::TransformChange;
+use crate::XmlnsContextTransformer;
+use crate::XmlnsContextTransformerContext;
 
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
 #[non_exhaustive]
@@ -256,15 +257,14 @@ impl XmlnsContextTransformer for ExpandRestrictionFragments {
 
 #[cfg(test)]
 mod tests {
+    use crate::XmlnsContextExt;
+
+    use super::*;
     use pretty_assertions::assert_eq;
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::{xs, xsn};
-
-    use crate::{
-        fragments::complex::transformers::ExpandRestrictionFragments,
-        transformers::TransformChange, XmlnsContext,
-    };
+    use xsd_type_compiler::XmlnsContext;
 
     #[test]
     fn basic_child_only_expand_restriction() {

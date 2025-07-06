@@ -2,8 +2,6 @@
 //!
 //! It is naturally dependent on the simple type compiler, as complex types can contain simple types.
 
-pub mod transformers;
-
 use std::{collections::VecDeque, ops::Deref};
 
 use crate::{
@@ -126,7 +124,7 @@ pub struct TopLevelGroupFragment {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AttributeGroupRefFragment {
-    ref_: ExpandedName<'static>,
+    pub ref_: ExpandedName<'static>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

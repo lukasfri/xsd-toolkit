@@ -15,6 +15,7 @@ use xsd_codegen_xmlity::{
     misc::TypeReference,
     BoundType, XmlityCodegenTransformer,
 };
+use xsd_fragment_transformer::XmlnsContextExt;
 use xsd_type_compiler::XmlnsContext;
 
 #[derive(Debug, Builder)]

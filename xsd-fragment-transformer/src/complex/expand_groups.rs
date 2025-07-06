@@ -1,12 +1,13 @@
 use std::collections::VecDeque;
 
-use crate::{
-    fragments::complex::{
+use crate::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
+use xsd_type_compiler::fragments::{
+    complex::{
         AllFragment, ChoiceFragment, ComplexTypeFragmentCompiler, ComplexTypeModelId,
-        ComplexTypeRootFragment, ExtensionFragment, FragmentAccess, FragmentIdx, NestedParticleId,
-        RestrictionFragment, SequenceFragment, TypeDefParticleId,
+        ComplexTypeRootFragment, ExtensionFragment, NestedParticleId, RestrictionFragment,
+        SequenceFragment, TypeDefParticleId,
     },
-    transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext},
+    FragmentAccess, FragmentIdx,
 };
 
 trait HasGroupContent {

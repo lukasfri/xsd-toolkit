@@ -2,13 +2,10 @@ use std::collections::HashSet;
 
 use xmlity::ExpandedName;
 
-use crate::{
-    fragments::{
-        simple::{RestrictionFragment, SimpleDerivation, SimpleTypeRootFragment},
-        transformers::{XmlnsContextTransformer, XmlnsContextTransformerContext},
-        FragmentIdx,
-    },
-    transformers::TransformChange,
+use crate::{TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext};
+use xsd_type_compiler::fragments::{
+    simple::{RestrictionFragment, SimpleDerivation, SimpleTypeRootFragment},
+    FragmentIdx,
 };
 
 pub struct ExpandSimpleRestriction<'a> {
@@ -47,7 +44,7 @@ impl<'a> ExpandSimpleRestriction<'a> {
             return Ok(TransformChange::default());
         }
 
-        let crate::TopLevelType::Simple(simple_type) = ctx
+        let xsd_type_compiler::TopLevelType::Simple(simple_type) = ctx
             .get_named_type(base)
             .ok_or(Error::BaseNotFound { base: base.clone() })?
         else {
@@ -95,15 +92,15 @@ impl XmlnsContextTransformer for ExpandSimpleRestriction<'_> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::collections::HashSet;
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::{xs, xsn};
 
-    use crate::{
-        fragments::{simple::transformers::ExpandSimpleRestriction, transformers::TransformChange},
-        XmlnsContext,
-    };
+    use xsd_type_compiler::XmlnsContext;
+
+    use crate::{TransformChange, XmlnsContextExt};
 
     #[test]
     fn restrict_union_test_1() {

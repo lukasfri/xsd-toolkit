@@ -4,11 +4,12 @@ members = [
   "xsd",
   "xsd-codegen-xmlity",
   "xsd-type-compiler",
+  "xsd-fragment-transformer",
   "xmlity-build",
   "schemas/xmlity-ns-xhtml",
   "schemas/xmlity-ns-xs",
   "schemas/xmlity-ns-xsi",
-  "schemas/xmlity-ns-xml",
+  "schemas/xmlity-ns-xml", "xsd-dynamic-query",
 ]
 
 [workspace.package]

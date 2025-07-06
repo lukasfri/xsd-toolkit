@@ -1,5 +1,3 @@
-pub mod transformers;
-
 use std::num::NonZeroUsize;
 use xsd::xs;
 
@@ -53,7 +51,7 @@ pub struct Value(pub String);
 #[derive(Debug, Clone, PartialEq)]
 pub struct Pattern(pub String);
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WhiteSpaceValue {
     Preserve,
     Replace,
@@ -120,6 +118,18 @@ pub struct SimpleTypeFragmentCompiler {
     pub lists: FragmentCollection<ListFragment>,
     pub unions: FragmentCollection<UnionFragment>,
     pub group_refs: FragmentCollection<GroupRefFragment>,
+}
+
+impl AsMut<SimpleTypeFragmentCompiler> for SimpleTypeFragmentCompiler {
+    fn as_mut(&mut self) -> &mut SimpleTypeFragmentCompiler {
+        self
+    }
+}
+
+impl AsRef<SimpleTypeFragmentCompiler> for SimpleTypeFragmentCompiler {
+    fn as_ref(&self) -> &SimpleTypeFragmentCompiler {
+        self
+    }
 }
 
 impl SimpleTypeFragmentCompiler {
@@ -219,12 +229,6 @@ where
 
     fn iter_fragment_ids(&self) -> Vec<FragmentIdx<T>> {
         self.get_fragment_collection().iter_fragment_ids()
-    }
-}
-
-impl AsMut<SimpleTypeFragmentCompiler> for SimpleTypeFragmentCompiler {
-    fn as_mut(&mut self) -> &mut SimpleTypeFragmentCompiler {
-        self
     }
 }
 

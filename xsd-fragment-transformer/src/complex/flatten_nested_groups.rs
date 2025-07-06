@@ -1,8 +1,11 @@
 use std::collections::VecDeque;
 
-use crate::fragments::complex::{ChoiceFragment, FragmentIdx, NestedParticleId, SequenceFragment};
+use xsd_type_compiler::fragments::{
+    complex::{ChoiceFragment, NestedParticleId, SequenceFragment},
+    FragmentIdx,
+};
 
-use crate::transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
+use crate::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
 
 #[non_exhaustive]
 pub struct FlattenNestedSequences {}
@@ -152,16 +155,16 @@ impl XmlnsLocalTransformer for FlattenNestedChoices {
 
 #[cfg(test)]
 mod tests {
+    use crate::CompiledNamespaceExt;
+
+    use super::*;
     use pretty_assertions::assert_eq;
 
     use xmlity::{LocalName, XmlNamespace};
     use xsd::xs::{self};
     use xsd::xsn;
 
-    use crate::{
-        fragments::complex::transformers::FlattenNestedSequences, transformers::TransformChange,
-        XmlnsContext,
-    };
+    use xsd_type_compiler::XmlnsContext;
 
     #[test]
     fn flatten_nested_sequences() {

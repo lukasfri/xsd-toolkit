@@ -1,11 +1,10 @@
 use std::collections::BTreeMap;
 use std::ops::Deref;
 
-use transformers::TransformChange;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::xs;
 
-use crate::fragments::{transformers, FragmentIdx, NamespaceIdx};
+use crate::fragments::{FragmentIdx, NamespaceIdx};
 pub mod fragments;
 use crate::fragments::complex::ComplexFragmentEquivalent;
 use crate::fragments::simple::SimpleFragmentEquivalent;
@@ -69,55 +68,6 @@ impl XmlnsContext {
 
         self.namespaces.get_mut(namespace_idx)
     }
-
-    pub fn local_transform<T: transformers::XmlnsLocalTransformer>(
-        &mut self,
-        namespace: &XmlNamespace<'_>,
-        transformer: T,
-    ) -> Result<TransformChange, T::Error> {
-        let Some(namespace) = self.namespace_idxs.get(namespace) else {
-            return Ok(TransformChange::Unchanged);
-        };
-
-        let namespace = *namespace;
-
-        self.local_transform_id(&namespace, transformer)
-    }
-
-    pub fn local_transform_id<T: transformers::XmlnsLocalTransformer>(
-        &mut self,
-        namespace: &NamespaceIdx,
-        transformer: T,
-    ) -> Result<TransformChange, T::Error> {
-        self.namespaces
-            .get_mut(namespace)
-            .unwrap()
-            .transform(transformer)
-    }
-
-    pub fn local_transform_all<T: transformers::XmlnsLocalTransformer + Clone>(
-        &mut self,
-        transformer: T,
-    ) -> Result<TransformChange, T::Error> {
-        self.namespaces.values_mut().try_fold(
-            TransformChange::Unchanged,
-            |total_change, namespace| {
-                let change = namespace.transform(transformer.clone())?;
-                Ok(total_change | change)
-            },
-        )
-    }
-
-    pub fn context_transform<T: transformers::XmlnsContextTransformer>(
-        &mut self,
-        transformer: T,
-    ) -> Result<TransformChange, T::Error> {
-        let context = transformers::XmlnsContextTransformerContext {
-            xmlns_context: self,
-        };
-
-        transformer.transform(context)
-    }
 }
 
 impl Default for XmlnsContext {
@@ -162,13 +112,6 @@ impl CompiledNamespace {
             top_level_groups: BTreeMap::new(),
             top_level_attribute_groups: BTreeMap::new(),
         }
-    }
-
-    pub fn transform<T: transformers::XmlnsLocalTransformer>(
-        &mut self,
-        transformer: T,
-    ) -> Result<TransformChange, T::Error> {
-        transformer.transform(transformers::XmlnsLocalTransformerContext { namespace: self })
     }
 
     pub fn import_schema(&mut self, schema: &xsd::XmlSchema) -> Result<(), Error> {

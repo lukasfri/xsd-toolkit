@@ -1100,6 +1100,7 @@ dependencies = [
  "xmlity-quick-xml",
  "xsd",
  "xsd-codegen-xmlity",
+ "xsd-fragment-transformer",
  "xsd-type-compiler",
 ]
 
@@ -1216,6 +1217,45 @@ dependencies = [
  "quote",
  "rstest",
  "rust_decimal",
+ "syn 2.0.101",
+ "thiserror",
+ "xmlity",
+ "xmlity-quick-xml",
+ "xsd",
+ "xsd-fragment-transformer",
+ "xsd-type-compiler",
+]
+
+[[package]]
+name = "xsd-dynamic-query"
+version = "0.0.0"
+dependencies = [
+ "Inflector",
+ "dyn-clone",
+ "insta",
+ "map-macro",
+ "pretty_assertions",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "rstest",
+ "rust_decimal",
+ "syn 2.0.101",
+ "thiserror",
+ "xmlity",
+ "xmlity-quick-xml",
+ "xsd",
+ "xsd-type-compiler",
+]
+
+[[package]]
+name = "xsd-fragment-transformer"
+version = "0.0.0"
+dependencies = [
+ "insta",
+ "map-macro",
+ "pretty_assertions",
+ "rstest",
  "syn 2.0.101",
  "thiserror",
  "xmlity",

@@ -17,19 +17,18 @@ use misc::TypeReference;
 use quote::format_ident;
 use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xsd_fragment_transformer::{
+    complex::{
+        ExpandAttributeDeclarations, ExpandExtensionFragments, ExpandRestrictionFragments,
+        ExpandShortFormComplexTypes, FlattenNestedChoices, FlattenNestedSequences,
+        RemoveProhibitedAttributes, SingleChoiceToSequence,
+    },
+    simple::ExpandSimpleRestriction,
+    TransformChange, XmlnsContextExt, XmlnsContextTransformer,
+};
 use xsd_type_compiler::{
     fragments::{
-        complex::{
-            transformers::{
-                ExpandAttributeDeclarations, ExpandExtensionFragments, ExpandRestrictionFragments,
-                ExpandShortFormComplexTypes, FlattenNestedChoices, FlattenNestedSequences,
-                RemoveProhibitedAttributes, SingleChoiceToSequence,
-            },
-            ComplexTypeFragmentCompiler,
-        },
-        simple::{transformers::ExpandSimpleRestriction, SimpleTypeFragmentCompiler},
-        transformers::{TransformChange, XmlnsContextTransformer},
-        FragmentAccess,
+        complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
     },
     CompiledNamespace, TopLevelType,
 };
@@ -72,7 +71,7 @@ impl XmlnsContextTransformer for XmlityCodegenTransformer {
     type Error = Infallible;
     fn transform(
         self,
-        context: xsd_type_compiler::fragments::transformers::XmlnsContextTransformerContext<'_>,
+        context: xsd_fragment_transformer::XmlnsContextTransformerContext<'_>,
     ) -> std::result::Result<TransformChange, Self::Error> {
         for i in 0..100 {
             let mut total_change = TransformChange::Unchanged;

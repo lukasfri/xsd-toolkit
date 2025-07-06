@@ -1,5 +1,5 @@
 [package]
-name = "xmlity-build"
+name = "xsd-dynamic-query"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,20 +9,21 @@ license.workspace = true
 
 [dependencies]
 xsd = { path = "../xsd" }
-xsd-codegen-xmlity = { path = "../xsd-codegen-xmlity" }
-xsd-type-compiler = { path = "../xsd-type-compiler" }
+xmlity.workspace = true
 proc-macro2 = "1.0.66"
 quote = "1.0.33"
 syn = { version = "2.0.29", features = ["full", "extra-traits"] }
 prettyplease = "0.2.15"
 thiserror.workspace = true
-bon = "3.6.3"
-glob = "0.3.2"
-xmlity.workspace = true
-xmlity-quick-xml.workspace = true
-derive_more = { version = "2.0.1", features = ["full"] }
-xsd-fragment-transformer = { path = "../xsd-fragment-transformer" }
+xsd-type-compiler = { path = "../xsd-type-compiler" }
+dyn-clone = "1.0.14"
+Inflector = "0.11.4"
+rust_decimal = "1.37.2"
 
 [dev-dependencies]
-rstest.workspace = true
 pretty_assertions.workspace = true
+rstest.workspace = true
+# xsd-xmlity = { path = "../xsd-xmlity" }
+xmlity-quick-xml.workspace = true
+insta = { version = "1.31.0", features = [] }
+map-macro = "0.3.0"
