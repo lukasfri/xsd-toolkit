@@ -813,7 +813,7 @@ impl SimpleFragmentEquivalent for xs::Restriction {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SimpleDerivation {
     Restriction(FragmentIdx<RestrictionFragment>),
     List(FragmentIdx<ListFragment>),

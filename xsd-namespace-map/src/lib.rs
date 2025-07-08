@@ -1,59 +1,21 @@
 use std::{
     collections::{HashMap, HashSet},
+    path::PathBuf,
     str::FromStr,
 };
 
 use url::Url;
-use xmlity::{
-    types::utils::{XmlRoot, XmlRootTop},
-    XmlNamespace,
-};
-use xsd::xs;
+use xmlity::XmlNamespace;
+
+use crate::resolvers::{AsyncXmlSchemaResolver, XmlSchemaResolver};
+
+pub mod resolvers;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SchemaHash(pub [u8; 32]);
-
-#[allow(async_fn_in_trait)]
-pub trait XmlSchemaResolver {
-    type Error: std::error::Error + Send + Sync;
-
-    async fn resolve_schema(&self, location: &Url) -> Result<xsd::XmlSchema, Self::Error>;
-}
-
-pub struct ReqwestXmlSchemaResolver {
-    client: reqwest::Client,
-}
-
-impl ReqwestXmlSchemaResolver {
-    pub fn new(client: reqwest::Client) -> Self {
-        Self { client }
-    }
-}
-
-impl XmlSchemaResolver for ReqwestXmlSchemaResolver {
-    type Error = reqwest::Error;
-
-    async fn resolve_schema(&self, location: &Url) -> Result<xsd::XmlSchema, Self::Error> {
-        let response = self.client.get(location.as_str()).send().await?;
-        let schema_text = response.text().await?;
-
-        let schema: XmlRoot<xs::Schema> = xmlity_quick_xml::from_str(schema_text.as_str()).unwrap();
-        let schema = schema
-            .elements
-            .into_iter()
-            .find_map(|a| match a {
-                XmlRootTop::Value(v) => Some(v),
-                _ => None,
-            })
-            .unwrap();
-        let schema = xsd::XmlSchema::new(schema);
-
-        Ok(schema)
-    }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SchemaLocation {
@@ -64,6 +26,19 @@ pub struct SchemaLocation {
 
 pub struct XmlNamespaceMap {
     pub locations: HashMap<Url, Option<SchemaLocation>>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum GlobError {
+    #[error("Pattern error: {0}")]
+    Pattern(#[from] glob::PatternError),
+    #[error("Glob error at index {index}: {error}")]
+    Glob {
+        index: usize,
+        error: glob::GlobError,
+    },
+    #[error("Failed to parse URL")]
+    UrlParse { path: PathBuf },
 }
 
 impl XmlNamespaceMap {
@@ -86,14 +61,28 @@ impl XmlNamespaceMap {
         });
     }
 
-    pub async fn load_location<T: XmlSchemaResolver>(&mut self, resolver: &T, url: &Url) {
-        if self.locations.get(url).is_some_and(|loc| loc.is_some()) {
-            // Already loaded, no need to load again
-            return;
-        }
+    pub fn inform_glob_pattern(&mut self, glob_pattern: &str) -> Result<(), GlobError> {
+        glob::glob(glob_pattern)?
+            .into_iter()
+            .enumerate()
+            .map(|(i, path)| {
+                path.map_err(|e| GlobError::Glob { index: i, error: e })
+                    .and_then(|path| {
+                        let path = if path.is_absolute() {
+                            path
+                        } else {
+                            std::env::current_dir()
+                                .map_err(|_| GlobError::UrlParse { path: path.clone() })?
+                                .join(path)
+                        };
+                        Url::from_file_path(&path).map_err(|()| GlobError::UrlParse { path })
+                    })
+            })
+            .map(|url| url.map(|url| self.inform_location(&url)))
+            .collect::<Result<(), _>>()
+    }
 
-        let schema = resolver.resolve_schema(url).await.unwrap();
-
+    fn load_location_internal(&mut self, url: &Url, schema: xsd::XmlSchema) {
         let imports = schema
             .imports()
             .map(|a| {
@@ -143,25 +132,49 @@ impl XmlNamespaceMap {
         self.locations.insert(url.clone(), Some(location));
     }
 
-    pub async fn explore_locations<T: XmlSchemaResolver>(&mut self, resolver: T) {
+    pub fn load_location<T: XmlSchemaResolver>(&mut self, resolver: &T, url: &Url) {
+        if self.locations.get(url).is_some_and(|loc| loc.is_some()) {
+            // Already loaded, no need to load again
+            return;
+        }
+
+        let schema = resolver.resolve_schema(url).unwrap();
+
+        self.load_location_internal(url, schema);
+    }
+
+    pub async fn load_location_async<T: AsyncXmlSchemaResolver>(
+        &mut self,
+        resolver: &T,
+        url: &Url,
+    ) {
+        if self.locations.get(url).is_some_and(|loc| loc.is_some()) {
+            // Already loaded, no need to load again
+            return;
+        }
+
+        let schema = resolver.resolve_schema(url).await.unwrap();
+
+        self.load_location_internal(url, schema);
+    }
+
+    pub fn explore_locations<T: XmlSchemaResolver>(&mut self, resolver: T) {
         while let Some(url) = self
             .locations
             .iter()
             .find_map(|(url, location)| location.is_none().then(|| url.clone()))
         {
-            self.load_location(&resolver, &url).await;
+            self.load_location(&resolver, &url);
         }
     }
-}
 
-pub fn get_all_urls_in_glob(
-    glob_pattern: &str,
-) -> Result<HashSet<Url>, Box<dyn std::error::Error>> {
-    glob::glob(glob_pattern)?
-        .into_iter()
-        .map(|path| {
-            path.map(|p| Url::from_file_path(p).unwrap())
-                .map_err(From::from)
-        })
-        .collect::<Result<HashSet<_>, _>>()
+    pub async fn explore_locations_async<T: AsyncXmlSchemaResolver>(&mut self, resolver: T) {
+        while let Some(url) = self
+            .locations
+            .iter()
+            .find_map(|(url, location)| location.is_none().then(|| url.clone()))
+        {
+            self.load_location_async(&resolver, &url).await;
+        }
+    }
 }

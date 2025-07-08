@@ -12,11 +12,12 @@ syn = { version = "2.0.29", features = ["full"] }
 xsd = { path = "../xsd" }
 thiserror.workspace = true
 xmlity.workspace = true
-url = { version = "2" }
-reqwest = { version = "0.12.22" }
+url = { version = "2.5.4" }
+reqwest = { version = "0.12.22", features = ["blocking"] }
 xmlity-quick-xml.workspace = true
 sha3 = "0.11.0-rc.0"
 glob = "0.3.2"
+tokio = { version = "1.46.1", features = ["fs"] }
 
 [dev-dependencies]
 pretty_assertions.workspace = true
@@ -25,4 +26,4 @@ rstest.workspace = true
 xmlity-quick-xml.workspace = true
 insta = { version = "1.31.0", features = [] }
 map-macro = "0.3.0"
-tokio = { version = "1.35.1", features = ["full"] }
+tokio = { version = "1.46.1", features = ["full"] }

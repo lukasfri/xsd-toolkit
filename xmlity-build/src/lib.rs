@@ -1,11 +1,9 @@
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashSet, convert::Infallible, path::PathBuf, str::FromStr};
 
 use bon::Builder;
 use syn::parse_quote;
-use xmlity::{types::utils::XmlRoot, ExpandedName, XmlNamespace};
+use url::Url;
+use xmlity::{ExpandedName, XmlNamespace};
 use xsd::xsn;
 use xsd_codegen_xmlity::{
     augments::{
@@ -17,11 +15,50 @@ use xsd_codegen_xmlity::{
 };
 use xsd_fragments::XmlnsContext;
 use xsd_fragments_transformer::XmlnsContextExt;
+use xsd_namespace_map::{
+    resolvers::{
+        reqwest::BlockingReqwestXmlSchemaResolver, std_fs::StdFsSchemaResolver, XmlSchemaResolver,
+    },
+    GlobError, XmlNamespaceMap,
+};
+
+pub struct MultiReader {
+    reqwest: BlockingReqwestXmlSchemaResolver,
+    fs: StdFsSchemaResolver,
+}
+
+impl MultiReader {
+    pub fn new() -> Self {
+        Self {
+            reqwest: BlockingReqwestXmlSchemaResolver::default(),
+            fs: StdFsSchemaResolver::default(),
+        }
+    }
+}
+
+impl XmlSchemaResolver for MultiReader {
+    type Error = Infallible;
+
+    fn resolve_schema(&self, location: &Url) -> Result<xsd::XmlSchema, Self::Error> {
+        match location.scheme() {
+            "file" => self
+                .fs
+                .resolve_schema(location)
+                .map_err(|e| panic!("Failed to resolve schema from file {}: {}", location, e,)),
+            _ => self
+                .reqwest
+                .resolve_schema(location)
+                .map_err(|e| panic!("Failed to resolve schema from URL {}: {}", location, e)),
+        }
+    }
+}
 
 #[derive(Debug, Builder)]
 pub struct BuildEngine {
     #[builder(default)]
     pub glob_patterns: Vec<String>,
+    #[builder(default)]
+    pub urls: Vec<String>,
     #[builder(default = true)]
     pub url_net_resolution: bool,
     #[builder(default)]
@@ -46,36 +83,8 @@ pub struct GenerateNamespace {
 
 #[derive(Debug, derive_more::derive::From, derive_more::derive::Display)]
 pub enum Error {
-    #[display("glob pattern error at index {}", _0.index)]
+    #[display("glob pattern error {}", _0)]
     GlobPath(GlobError),
-    #[display("file error at path {}", _0.path.display())]
-    File(FileError),
-}
-
-#[derive(Debug, derive_more::derive::Display, derive_more::derive::Error)]
-#[display("glob pattern error at index {}", index)]
-pub struct GlobError {
-    index: usize,
-    kind: GlobErrorKind,
-}
-
-#[derive(Debug, derive_more::derive::Display, derive_more::derive::Error)]
-pub enum GlobErrorKind {
-    Pattern(glob::PatternError),
-    Glob(glob::GlobError),
-}
-
-#[derive(Debug, derive_more::derive::Display, derive_more::derive::Error)]
-#[display("File error at {}", path.to_str().unwrap_or("unknown path"))]
-pub struct FileError {
-    path: PathBuf,
-    kind: FileErrorKind,
-}
-
-#[derive(Debug)]
-pub enum FileErrorKind {
-    Io(std::io::Error),
-    XmlityQuickXml(xmlity_quick_xml::de::Error),
 }
 
 pub struct StartedBuildEngine {
@@ -84,64 +93,20 @@ pub struct StartedBuildEngine {
 }
 
 impl BuildEngine {
-    pub fn file_paths_from_glob<P: AsRef<str>>(pattern: P) -> Result<Vec<PathBuf>, GlobErrorKind> {
-        let paths = glob::glob(pattern.as_ref()).map_err(GlobErrorKind::Pattern)?;
-
-        let paths = paths
-            .into_iter()
-            .map(|r| r.map_err(GlobErrorKind::Glob))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(paths)
-    }
-
-    pub fn read_xsd_file<P: AsRef<Path>>(
-        path: P,
-    ) -> Result<XmlRoot<xsd::xs::Schema>, FileErrorKind> {
-        let xml = std::fs::read_to_string(path.as_ref()).map_err(FileErrorKind::Io)?;
-
-        let xsd = xmlity_quick_xml::from_str::<XmlRoot<xsd::xs::Schema>>(&xml)
-            .map_err(FileErrorKind::XmlityQuickXml)?;
-
-        Ok(xsd)
-    }
-
-    pub fn add_glob_pattern<T: Into<String>>(&mut self, path: T) {
-        self.glob_patterns.push(path.into());
-    }
-
     pub fn start(self) -> Result<StartedBuildEngine, Error> {
-        let paths = self
-            .glob_patterns
+        let mut map = XmlNamespaceMap::new();
+        self.glob_patterns
             .iter()
-            .map(Self::file_paths_from_glob)
-            .enumerate()
-            .map(|(index, r)| r.map_err(|kind| GlobError { index, kind }))
-            .collect::<Result<Vec<_>, _>>()?;
+            .try_for_each(|pattern| map.inform_glob_pattern(pattern))?;
 
-        let xsds = paths
-            .into_iter()
-            .flatten()
-            .map(|path| Self::read_xsd_file(&path).map_err(|kind| FileError { kind, path }))
-            .collect::<Result<Vec<_>, _>>()?;
+        let urls = self.urls.iter().map(|url| Url::from_str(url).unwrap());
 
-        let mut context = xsds
-            .into_iter()
-            .filter_map(|schema| {
-                schema.elements.into_iter().find_map(|a| match a {
-                    xmlity::types::utils::XmlRootTop::Value(a) => Some(a),
-                    _ => None,
-                })
-            })
-            .map(xsd::XmlSchema::new)
-            .try_fold(XmlnsContext::new(), |mut context, schema| {
-                context
-                    .init_namespace(schema.namespace().clone())
-                    .import_schema(&schema)?;
+        map.inform_locations(urls);
 
-                Result::<XmlnsContext, xsd_fragments::Error>::Ok(context)
-            })
-            .unwrap();
+        map.explore_locations(MultiReader::new());
+
+        let mut context = XmlnsContext::new();
+        context.import_namespace_map(&map).unwrap();
 
         let allowed_simple_bases: HashSet<ExpandedName<'static>> = [
             &xsn::DECIMAL,

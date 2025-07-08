@@ -12,6 +12,7 @@ syn = { version = "2.0.29", features = ["full"] }
 xsd = { path = "../xsd" }
 thiserror.workspace = true
 xmlity.workspace = true
+xsd-namespace-map = { path = "../xsd-namespace-map" }
 
 [dev-dependencies]
 pretty_assertions.workspace = true

@@ -90,25 +90,37 @@ impl XmlnsContext {
             .collect::<Result<(), Error>>()
     }
 
-    pub fn import_namespace(&mut self, schema: &xsd::XmlSchema) -> Result<(), Error> {
+    pub fn import_namespace_map(
+        &mut self,
+        map: &xsd_namespace_map::XmlNamespaceMap,
+    ) -> Result<(), Error> {
+        map.locations
+            .iter()
+            .filter_map(|(_, location)| location.as_ref())
+            .map(|location| self.import_schema(&location.schema))
+            .collect::<Result<(), Error>>()
+    }
+
+    pub fn import_schema(&mut self, schema: &xsd::XmlSchema) -> Result<(), Error> {
         use xs::groups::Composition;
         let namespace = schema.namespace();
 
         schema
             .compositions()
             .map(|c| match c {
-                Composition::Include(include) => todo!(),
-                Composition::Import(import) => todo!(),
+                Composition::Include(include) => Ok(()),
+                Composition::Import(import) => Ok(()),
                 Composition::Redefine(redefine) => self.import_redefine(redefine),
                 Composition::Override(_) => todo!(),
-                Composition::Annotation(annotation) => todo!(),
+                Composition::Annotation(annotation) => Ok(()),
             })
             .collect::<Result<(), Error>>()?;
 
-        let Some(compiled_namespace) = self.get_namespace_mut(namespace) else {
-            return Err(Error::NonExistentXmlNamespace {
-                namespace: namespace.clone(),
-            });
+        let compiled_namespace = if let Some(compiled_namespace) = self.get_namespace_mut(namespace)
+        {
+            compiled_namespace
+        } else {
+            self.init_namespace(namespace.clone())
         };
 
         compiled_namespace.import_schema(schema)
@@ -211,17 +223,16 @@ impl CompiledNamespace {
         &mut self,
         simple_type: &xs::SimpleType,
     ) -> Result<ExpandedName<'_>, Error> {
-        let name = simple_type.0.name.clone();
+        let local_name = simple_type.0.name.clone();
+        let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_types.contains_key(&name) {
-            return Err(Error::ImportOfExistingEntity);
+        if self.top_level_types.contains_key(&local_name) {
+            return Ok(name);
         }
 
         let root_fragment = simple_type.0.to_simple_fragments(&mut self.complex_type);
         let type_ = TopLevelType::Simple(TopLevelSimpleType { root_fragment });
-        self.top_level_types.insert(name.clone(), type_);
-
-        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+        self.top_level_types.insert(local_name.clone(), type_);
 
         Ok(name)
     }
@@ -247,18 +258,17 @@ impl CompiledNamespace {
         &mut self,
         complex_type: &xs::ComplexType,
     ) -> Result<ExpandedName<'_>, Error> {
-        let name = complex_type.0.name.clone();
+        let local_name = complex_type.0.name.clone();
+        let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_types.contains_key(&name) {
-            return Err(Error::ImportOfExistingEntity);
+        if self.top_level_types.contains_key(&local_name) {
+            return Ok(name);
         }
 
         let root_fragment = complex_type.0.to_complex_fragments(&mut self.complex_type);
 
         let type_ = TopLevelType::Complex(TopLevelComplexType { root_fragment });
-        self.top_level_types.insert(name.clone(), type_);
-
-        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+        self.top_level_types.insert(local_name.clone(), type_);
 
         Ok(name)
     }
@@ -284,18 +294,17 @@ impl CompiledNamespace {
         &mut self,
         element: &xs::Element,
     ) -> Result<ExpandedName<'_>, Error> {
-        let name = element.0.name.clone();
+        let local_name = element.0.name.clone();
+        let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_elements.contains_key(&name) {
-            return Err(Error::ImportOfExistingEntity);
+        if self.top_level_elements.contains_key(&local_name) {
+            return Ok(name);
         }
 
         let root_fragment = element.0.to_complex_fragments(&mut self.complex_type);
 
         self.top_level_elements
-            .insert(name.clone(), TopLevelElement { root_fragment });
-
-        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+            .insert(local_name.clone(), TopLevelElement { root_fragment });
 
         Ok(name)
     }
@@ -321,34 +330,32 @@ impl CompiledNamespace {
         &mut self,
         attribute: &xs::Attribute,
     ) -> Result<ExpandedName<'_>, Error> {
-        let name = attribute.0.name.clone();
+        let local_name = attribute.0.name.clone();
+        let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_attributes.contains_key(&name) {
-            return Err(Error::ImportOfExistingEntity);
+        if self.top_level_attributes.contains_key(&local_name) {
+            return Ok(name);
         }
 
         let root_fragment = attribute.0.to_complex_fragments(&mut self.complex_type);
 
         self.top_level_attributes
-            .insert(name.clone(), TopLevelAttribute { root_fragment });
-
-        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+            .insert(local_name.clone(), TopLevelAttribute { root_fragment });
 
         Ok(name)
     }
 
     pub fn import_top_level_group(&mut self, group: &xs::Group) -> Result<ExpandedName<'_>, Error> {
-        let name = group.0.name.clone();
+        let local_name = group.0.name.clone();
+        let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_groups.contains_key(&name) {
-            return Err(Error::ImportOfExistingEntity);
+        if self.top_level_groups.contains_key(&local_name) {
+            return Ok(name);
         }
 
         let root_fragment = group.0.to_complex_fragments(&mut self.complex_type);
         let type_ = TopLevelGroup { root_fragment };
-        self.top_level_groups.insert(name.clone(), type_);
-
-        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+        self.top_level_groups.insert(local_name.clone(), type_);
 
         Ok(name)
     }
@@ -357,19 +364,19 @@ impl CompiledNamespace {
         &mut self,
         attribute_group: &xs::AttributeGroup,
     ) -> Result<ExpandedName<'_>, Error> {
-        let name = attribute_group.0.name.clone();
+        let local_name = attribute_group.0.name.clone();
+        let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_groups.contains_key(&name) {
-            return Err(Error::ImportOfExistingEntity);
+        if self.top_level_groups.contains_key(&local_name) {
+            return Ok(name);
         }
 
         let root_fragment = attribute_group
             .0
             .to_complex_fragments(&mut self.complex_type);
         let type_ = TopLevelAttributeGroup { root_fragment };
-        self.top_level_attribute_groups.insert(name.clone(), type_);
-
-        let name = ExpandedName::new(name, Some(self.namespace.as_ref()));
+        self.top_level_attribute_groups
+            .insert(local_name.clone(), type_);
 
         Ok(name)
     }

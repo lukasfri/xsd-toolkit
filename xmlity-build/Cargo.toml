@@ -22,7 +22,10 @@ xmlity.workspace = true
 xmlity-quick-xml.workspace = true
 derive_more = { version = "2.0.1", features = ["full"] }
 xsd-fragments-transformer = { path = "../xsd-fragments-transformer" }
+url = "2.5.4"
+xsd-namespace-map = { path = "../xsd-namespace-map" }
 
 [dev-dependencies]
 rstest.workspace = true
 pretty_assertions.workspace = true
+tokio = { version = "1.46.1", features = ["full"] }

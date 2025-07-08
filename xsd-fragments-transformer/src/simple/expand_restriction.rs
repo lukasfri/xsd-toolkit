@@ -1,15 +1,12 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use xmlity::ExpandedName;
-use xsd_dynamic_query::{IdentifySimpleType, ParsedFacets, XmlnsContextQueryContext};
+use xsd_dynamic_query::ParsedFacets;
 
 use crate::{TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext};
-use xsd_fragments::{
-    fragments::{
-        simple::{self as sm, RestrictionFragment, SimpleDerivation, SimpleTypeRootFragment},
-        FragmentIdx,
-    },
-    NamedOrAnonymous,
+use xsd_fragments::fragments::{
+    simple::{RestrictionFragment, SimpleDerivation, SimpleTypeRootFragment},
+    FragmentIdx,
 };
 
 pub struct ExpandSimpleRestriction<'a> {
@@ -32,10 +29,18 @@ impl<'a> ExpandSimpleRestriction<'a> {
     fn flatten_restriction(
         &self,
         ctx: &mut XmlnsContextTransformerContext,
-        fragment_idx: &FragmentIdx<RestrictionFragment>,
+        fragment_idx: &FragmentIdx<SimpleTypeRootFragment>,
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
+        let simple_type = ctx.get_simple_fragment(fragment_idx).unwrap();
+
+        let SimpleDerivation::Restriction(restriction_fragment_idx) = simple_type.simple_derivation
+        else {
+            // If the simple type is not a restriction, we skip it
+            return Ok(TransformChange::default());
+        };
+
         let RestrictionFragment { base, facets, .. } =
-            ctx.get_simple_fragment(fragment_idx).unwrap();
+            ctx.get_simple_fragment(&restriction_fragment_idx).unwrap();
 
         let facets = facets
             .iter()
@@ -52,7 +57,7 @@ impl<'a> ExpandSimpleRestriction<'a> {
             return Ok(TransformChange::default());
         }
 
-        let xsd_fragments::TopLevelType::Simple(simple_type) = ctx
+        let xsd_fragments::TopLevelType::Simple(base_simple_type) = ctx
             .get_named_type(base)
             .ok_or(Error::BaseNotFound { base: base.clone() })?
         else {
@@ -60,59 +65,74 @@ impl<'a> ExpandSimpleRestriction<'a> {
         };
 
         let base_fragment: &SimpleTypeRootFragment = ctx
-            .get_simple_fragment(&simple_type.root_fragment)
+            .get_simple_fragment(&base_simple_type.root_fragment)
             .expect("Base fragment should exist");
 
-        match &base_fragment.simple_derivation {
+        match base_fragment.simple_derivation {
             SimpleDerivation::Restriction(base_restriction) => {
                 let base_restriction = ctx
-                    .get_simple_fragment(base_restriction)
+                    .get_simple_fragment(&base_restriction)
                     .expect("Base restriction should exist")
                     .clone();
 
                 // We need to replace the base with the base restriction and then flatten the facets
-                let fragment = ctx.get_simple_fragment_mut(fragment_idx).unwrap();
+                let fragment = ctx
+                    .get_simple_fragment_mut(&restriction_fragment_idx)
+                    .unwrap();
                 fragment.base = base_restriction.base.clone();
 
                 Ok(TransformChange::Changed)
             }
-            SimpleDerivation::List(base_list) => {
-                let base_list = ctx
-                    .get_simple_fragment(base_list)
-                    .expect("Base list should exist")
-                    .clone();
-
-                todo!()
-            }
-            SimpleDerivation::Union(fragment_idx) => {
-                let union_type = ctx
-                    .get_simple_fragment(fragment_idx)
-                    .expect("Base union should exist");
-
-                let union_types = facets
-                    .enumerations
-                    .iter()
-                    .map(|v| {
-                        fragment_idx.identify_simple_type(
-                            &XmlnsContextQueryContext {
-                                named_handlers: HashMap::new(),
-                                xmlns_context: &ctx.xmlns_context,
-                            },
-                            &v.0,
-                        )
-                    })
-                    .collect::<Result<
-                        HashSet<Option<NamedOrAnonymous<FragmentIdx<sm::RestrictionFragment>>>>,
-                        xsd_dynamic_query::Error,
-                    >>()
-                    .unwrap();
-
-                // let base_union = ctx
-                //     .get_simple_fragment(fragment_idx)
-                //     .expect("Base union should exist")
+            SimpleDerivation::List(list_fragment_idx) => {
+                // let base_list = ctx
+                //     .get_simple_fragment(&base_list)
+                //     .expect("Base list should exist")
                 //     .clone();
 
-                todo!()
+                let simple_type = ctx
+                    .get_simple_fragment_mut(fragment_idx)
+                    .expect("Base union should exist");
+
+                simple_type.simple_derivation = SimpleDerivation::List(list_fragment_idx);
+
+                Ok(TransformChange::Changed)
+            }
+            SimpleDerivation::Union(union_fragment_idx) => {
+                // For now we simply flatten to the union
+                // let union_type = ctx
+                //     .get_simple_fragment(&union_fragment_idx)
+                //     .expect("Base union should exist");
+
+                // let union_types = facets
+                //     .enumerations
+                //     .iter()
+                //     .map(|v| {
+                //         union_fragment_idx.identify_simple_type(
+                //             &XmlnsContextQueryContext {
+                //                 named_handlers: HashMap::new(),
+                //                 xmlns_context: &ctx.xmlns_context,
+                //             },
+                //             &v.0,
+                //         )
+                //     })
+                //     .collect::<Result<
+                //         HashSet<Option<NamedOrAnonymous<FragmentIdx<sm::RestrictionFragment>>>>,
+                //         xsd_dynamic_query::Error,
+                //     >>()
+                //     .unwrap();
+
+                // // let base_union = ctx
+                // //     .get_simple_fragment(union_fragment_idx)
+                // //     .expect("Base union should exist")
+                // //     .clone();
+
+                let simple_type = ctx
+                    .get_simple_fragment_mut(fragment_idx)
+                    .expect("Base union should exist");
+
+                simple_type.simple_derivation = SimpleDerivation::Union(union_fragment_idx);
+
+                Ok(TransformChange::Changed)
             }
         }
     }
