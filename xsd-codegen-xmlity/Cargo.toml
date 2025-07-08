@@ -15,11 +15,12 @@ quote = "1.0.33"
 syn = { version = "2.0.29", features = ["full", "extra-traits"] }
 prettyplease = "0.2.15"
 thiserror.workspace = true
-xsd-type-compiler = { path = "../xsd-type-compiler" }
+xsd-fragments = { path = "../xsd-fragments" }
 dyn-clone = "1.0.14"
 Inflector = "0.11.4"
 rust_decimal = "1.37.2"
-xsd-fragment-transformer = { path = "../xsd-fragment-transformer" }
+xsd-fragments-transformer = { path = "../xsd-fragments-transformer" }
+xsd-dynamic-query = { path = "../xsd-dynamic-query" }
 
 [dev-dependencies]
 pretty_assertions.workspace = true

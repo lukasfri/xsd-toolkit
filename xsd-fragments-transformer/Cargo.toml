@@ -1,5 +1,5 @@
 [package]
-name = "xsd-fragment-transformer"
+name = "xsd-fragments-transformer"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -12,7 +12,8 @@ syn = { version = "2.0.29", features = ["full"] }
 xsd = { path = "../xsd" }
 thiserror.workspace = true
 xmlity.workspace = true
-xsd-type-compiler = { path = "../xsd-type-compiler" }
+xsd-fragments = { path = "../xsd-fragments" }
+xsd-dynamic-query = { path = "../xsd-dynamic-query" }
 
 [dev-dependencies]
 pretty_assertions.workspace = true

@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use std::convert::Infallible;
 
 use crate::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
-use xsd_type_compiler::fragments::{
+use xsd_fragments::fragments::{
     simple::{SimpleDerivation, UnionFragment},
     FragmentIdx,
 };

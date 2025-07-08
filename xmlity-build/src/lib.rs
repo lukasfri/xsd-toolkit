@@ -15,8 +15,8 @@ use xsd_codegen_xmlity::{
     misc::TypeReference,
     BoundType, XmlityCodegenTransformer,
 };
-use xsd_fragment_transformer::XmlnsContextExt;
-use xsd_type_compiler::XmlnsContext;
+use xsd_fragments::XmlnsContext;
+use xsd_fragments_transformer::XmlnsContextExt;
 
 #[derive(Debug, Builder)]
 pub struct BuildEngine {
@@ -139,7 +139,7 @@ impl BuildEngine {
                     .init_namespace(schema.namespace().clone())
                     .import_schema(&schema)?;
 
-                Result::<XmlnsContext, xsd_type_compiler::Error>::Ok(context)
+                Result::<XmlnsContext, xsd_fragments::Error>::Ok(context)
             })
             .unwrap();
 

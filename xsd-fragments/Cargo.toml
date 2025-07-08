@@ -1,5 +1,5 @@
 [package]
-name = "xsd-dynamic-query"
+name = "xsd-fragments"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,17 +8,10 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
+syn = { version = "2.0.29", features = ["full"] }
 xsd = { path = "../xsd" }
-xmlity.workspace = true
-proc-macro2 = "1.0.66"
-quote = "1.0.33"
-syn = { version = "2.0.29", features = ["full", "extra-traits"] }
-prettyplease = "0.2.15"
 thiserror.workspace = true
-xsd-fragments = { path = "../xsd-fragments" }
-dyn-clone = "1.0.14"
-Inflector = "0.11.4"
-rust_decimal = "1.37.2"
+xmlity.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true

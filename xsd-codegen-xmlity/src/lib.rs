@@ -17,7 +17,7 @@ use misc::TypeReference;
 use quote::format_ident;
 use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd_fragment_transformer::{
+use xsd_fragments_transformer::{
     complex::{
         ExpandAttributeDeclarations, ExpandExtensionFragments, ExpandRestrictionFragments,
         ExpandShortFormComplexTypes, FlattenNestedChoices, FlattenNestedSequences,
@@ -26,7 +26,7 @@ use xsd_fragment_transformer::{
     simple::ExpandSimpleRestriction,
     TransformChange, XmlnsContextExt, XmlnsContextTransformer,
 };
-use xsd_type_compiler::{
+use xsd_fragments::{
     fragments::{
         complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
     },
@@ -71,7 +71,7 @@ impl XmlnsContextTransformer for XmlityCodegenTransformer {
     type Error = Infallible;
     fn transform(
         self,
-        context: xsd_fragment_transformer::XmlnsContextTransformerContext<'_>,
+        context: xsd_fragments_transformer::XmlnsContextTransformerContext<'_>,
     ) -> std::result::Result<TransformChange, Self::Error> {
         for i in 0..100 {
             let mut total_change = TransformChange::Unchanged;
@@ -132,7 +132,7 @@ impl XmlnsContextTransformer for XmlityCodegenTransformer {
 
 #[derive(Debug)]
 pub struct Generator<'a> {
-    pub context: &'a xsd_type_compiler::XmlnsContext,
+    pub context: &'a xsd_fragments::XmlnsContext,
     pub bound_namespaces: BTreeMap<XmlNamespace<'static>, syn::Path>,
     pub bound_types: BTreeMap<ExpandedName<'static>, BoundType>,
     pub bound_elements: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
@@ -278,7 +278,7 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
 
     fn get_fragment<F, S: Scope>(
         &self,
-        fragment_id: &xsd_type_compiler::fragments::FragmentIdx<F>,
+        fragment_id: &xsd_fragments::fragments::FragmentIdx<F>,
         _: &mut S,
     ) -> Result<&F>
     where
@@ -294,7 +294,7 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
 
     fn resolve_fragment_id<F: SimpleToTypeTemplate, S: Scope>(
         &self,
-        fragment_id: &xsd_type_compiler::fragments::FragmentIdx<F>,
+        fragment_id: &xsd_fragments::fragments::FragmentIdx<F>,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
     where
@@ -373,7 +373,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
 
     fn resolve_fragment_id<F: ComplexToTypeTemplate, S: Scope>(
         &self,
-        fragment_id: &xsd_type_compiler::fragments::FragmentIdx<F>,
+        fragment_id: &xsd_fragments::fragments::FragmentIdx<F>,
         scope: &mut S,
     ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
     where
@@ -583,7 +583,7 @@ pub struct BoundType {
 
 impl<'a> Generator<'a> {
     pub fn new_with_augmenter<A: augments::ItemAugmentation + 'static>(
-        context: &'a xsd_type_compiler::XmlnsContext,
+        context: &'a xsd_fragments::XmlnsContext,
         augmentation: A,
     ) -> Self {
         Self {
@@ -596,7 +596,7 @@ impl<'a> Generator<'a> {
             augmenter: Box::new(augmentation),
         }
     }
-    pub fn new(context: &'a xsd_type_compiler::XmlnsContext) -> Self {
+    pub fn new(context: &'a xsd_fragments::XmlnsContext) -> Self {
         Self::new_with_augmenter(context, augments::NoopAugmentation::new())
     }
 
@@ -722,7 +722,7 @@ impl<'a> Generator<'a> {
             })?;
 
         match type_ {
-            xsd_type_compiler::TopLevelType::Simple(type_) => {
+            xsd_fragments::TopLevelType::Simple(type_) => {
                 let fragment = compiled_namespace
                     .complex_type
                     .simple_type_fragments
@@ -761,7 +761,7 @@ impl<'a> Generator<'a> {
 
                 Ok((bound_type, items))
             }
-            xsd_type_compiler::TopLevelType::Complex(type_) => {
+            xsd_fragments::TopLevelType::Complex(type_) => {
                 let fragment = compiled_namespace
                     .complex_type
                     .get_fragment(&type_.root_fragment)

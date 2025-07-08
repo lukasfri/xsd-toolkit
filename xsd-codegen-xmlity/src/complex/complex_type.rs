@@ -8,7 +8,7 @@ use crate::{
 };
 
 use quote::format_ident;
-use xsd_type_compiler::fragments::complex::{self as cx};
+use xsd_fragments::fragments::complex::{self as cx};
 
 use super::{groups::TypeDefParticleTemplate, ComplexContext, Scope, ComplexToTypeTemplate, ToTypeTemplateData};
 
@@ -243,7 +243,7 @@ mod tests {
     use xmlity::{LocalName, XmlNamespace};
     use xsd::xs;
     use xsd::xsn;
-    use xsd_type_compiler::{ XmlnsContext};
+    use xsd_fragments::{ XmlnsContext};
 
     use crate::Generator;
 

@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use xsd_type_compiler::fragments::{
+use xsd_fragments::fragments::{
     complex::{ChoiceFragment, NestedParticleId, SequenceFragment},
     FragmentIdx,
 };
@@ -164,7 +164,7 @@ mod tests {
     use xsd::xs::{self};
     use xsd::xsn;
 
-    use xsd_type_compiler::XmlnsContext;
+    use xsd_fragments::XmlnsContext;
 
     #[test]
     fn flatten_nested_sequences() {

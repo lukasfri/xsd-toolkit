@@ -4,7 +4,7 @@ use rust_decimal::Decimal;
 use std::collections::HashMap;
 use std::ops::Deref;
 use xsd::xsn;
-use xsd_type_compiler::fragments::simple as sm;
+use xsd_fragments::fragments::simple as sm;
 
 mod numeric;
 use numeric::NumericRestrictionBuilder;
@@ -56,6 +56,10 @@ impl SimpleToTypeTemplate for sm::RestrictionFragment {
                 );
             };
         }
+        // Review - sources:
+        // - https://www.w3.org/TR/2012/REC-xmlschema11-2-20120405/datatypes.html#built-in-primitive-datatypes
+        // - https://www.w3.org/TR/2012/REC-xmlschema11-2-20120405/datatypes.html#ordinary-built-ins
+        // - https://www.w3.org/TR/2012/REC-xmlschema11-2-20120405/datatypes.html#cos-applicable-facets
         add_numeric_restriction!(xsn::DECIMAL, Decimal);
         add_numeric_restriction!(xsn::FLOAT, f32);
         add_numeric_restriction!(xsn::DOUBLE, f64);

@@ -2,13 +2,14 @@ use quote::format_ident;
 use std::fmt::Debug;
 use std::str::FromStr;
 use syn::parse_quote;
+use xsd_dynamic_query::ParsedFacets;
 
 use super::RestrictionBuilder;
 use crate::misc::TypeReference;
 use crate::templates;
 use crate::ToIdentTypesExt;
 use inflector::Inflector;
-use xsd_type_compiler::fragments::simple as sm;
+use xsd_fragments::fragments::simple as sm;
 
 pub trait StringBaseValue: FromStr<Err: Debug> {
     fn to_pattern(&self) -> syn::Pat;
@@ -88,45 +89,9 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: StringBaseValue> Restr
         let enum_with_ident = format_ident!("{}_with", ident.to_path_ident());
         let error_ident = format_ident!("{}ParseError", ident.to_item_ident());
 
-        let mut length = None;
-        let mut min_length = None;
-        let mut max_length = None;
-        let mut enumerations = Vec::new();
+        let facets = facets.into_iter().map(|a| *a).collect::<ParsedFacets>();
 
-        for facet in facets {
-            match facet {
-                sm::FacetFragment::Enumeration { value } => {
-                    enumerations.push(value.0.as_str());
-                }
-                sm::FacetFragment::Length { value } => {
-                    length = Some(value);
-                }
-                sm::FacetFragment::MinLength { value } => {
-                    min_length = Some(value);
-                }
-                sm::FacetFragment::MaxLength { value } => {
-                    max_length = Some(value);
-                }
-                sm::FacetFragment::Pattern { value: _ } => {
-                    //TODO: Support pattern facet
-                }
-                sm::FacetFragment::Assertion { test: _ } => {
-                    //TODO: Support assertion facet
-                }
-                sm::FacetFragment::MinExclusive { .. }
-                | sm::FacetFragment::MinInclusive { .. }
-                | sm::FacetFragment::MaxExclusive { .. }
-                | sm::FacetFragment::MaxInclusive { .. }
-                | sm::FacetFragment::TotalDigits { .. }
-                | sm::FacetFragment::FractionDigits { .. }
-                | sm::FacetFragment::WhiteSpace { .. }
-                | sm::FacetFragment::ExplicitTimezone { .. } => {
-                    //TODO: Warn about unsupported facets. For now, we just ignore these facets.
-                }
-            }
-        }
-
-        if enumerations.is_empty() {
+        if facets.enumerations.is_empty() {
             let struct_def = templates::wrapper_struct::WrapperStruct {
                 struct_ident: ident.to_item_ident(),
                 repr_type: T::repr_type(),
@@ -149,9 +114,10 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: StringBaseValue> Restr
             })
         } else {
             // If there are enumerations, we create an enum type
-            let enumerations = enumerations
+            let enumerations = facets
+                .enumerations
                 .into_iter()
-                .map(|s| T::from_str(s).expect("Failed to parse enumeration value"))
+                .map(|s| T::from_str(&s.0).expect("Failed to parse enumeration value"))
                 .collect::<Vec<_>>();
 
             let enumerations = enumerations

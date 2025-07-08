@@ -12,7 +12,7 @@ use crate::{
     Result, ToIdentTypesExt, TypeType,
 };
 
-use xsd_type_compiler::fragments::complex::{self as cx, AllNNI};
+use xsd_fragments::fragments::complex::{self as cx, AllNNI};
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 
@@ -68,7 +68,7 @@ impl ComplexToTypeTemplate for cx::DeclaredElementFragment {
         let ident = self.name.to_item_ident();
 
         match &self.type_ {
-            xsd_type_compiler::NamedOrAnonymous::Named(expanded_name) => {
+            xsd_fragments::NamedOrAnonymous::Named(expanded_name) => {
                 let bound_type = context.resolve_named_type(expanded_name)?;
 
                 let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false);
@@ -80,7 +80,7 @@ impl ComplexToTypeTemplate for cx::DeclaredElementFragment {
                     template,
                 })
             }
-            xsd_type_compiler::NamedOrAnonymous::Anonymous(anonymous) => {
+            xsd_fragments::NamedOrAnonymous::Anonymous(anonymous) => {
                 let sub_type = context.resolve_fragment(anonymous, scope)?;
 
                 let template = sub_type.template.into_element_record(name);
@@ -180,7 +180,7 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
         let type_ = self.type_.as_ref();
 
         let template = match type_ {
-            Some(xsd_type_compiler::NamedOrAnonymous::Named(expanded_name)) => {
+            Some(xsd_fragments::NamedOrAnonymous::Named(expanded_name)) => {
                 let bound_type = context.resolve_named_type(expanded_name)?;
 
                 let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false);
@@ -194,7 +194,7 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
                     allow_unknown_children: AllowUnknown::AtEnd,
                 }
             }
-            Some(xsd_type_compiler::NamedOrAnonymous::Anonymous(anonymous)) => {
+            Some(xsd_fragments::NamedOrAnonymous::Anonymous(anonymous)) => {
                 let sub_type = context.resolve_fragment(anonymous, scope)?;
 
                 sub_type.template.into_element_record(name)
@@ -217,7 +217,7 @@ mod tests {
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::xs;
     use xsd::xsn;
-    use xsd_type_compiler::{ XmlnsContext};
+    use xsd_fragments::{ XmlnsContext};
 
     use crate::misc::TypeReference;
     use crate::BoundType;

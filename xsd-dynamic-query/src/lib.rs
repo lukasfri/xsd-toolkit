@@ -1,18 +1,18 @@
-use std::collections::HashSet;
+use std::{collections::HashMap, num::NonZeroUsize};
 
 use xmlity::ExpandedName;
-use xsd_type_compiler::{
+use xsd_fragments::{
     fragments::{
         complex::{self as cx},
-        simple::{self as sm},
+        simple::{self as sm, Assertion, ExplicitTimezoneValue, Pattern, Value},
         FragmentAccess, FragmentIdx, NamespaceIdx,
     },
     CompiledNamespace, NamedOrAnonymous,
 };
 
 pub struct XmlnsContextQueryContext<'a> {
-    pub temp_allow_base: HashSet<ExpandedName<'static>>,
-    pub xmlns_context: &'a xsd_type_compiler::XmlnsContext,
+    pub named_handlers: HashMap<ExpandedName<'static>, Box<dyn IdentifySimpleType>>,
+    pub xmlns_context: &'a xsd_fragments::XmlnsContext,
 }
 
 impl XmlnsContextQueryContext<'_> {
@@ -62,7 +62,7 @@ impl XmlnsContextQueryContext<'_> {
     pub fn get_named_type<'a>(
         &'a self,
         name: &'a ExpandedName<'_>,
-    ) -> Option<&'a xsd_type_compiler::TopLevelType> {
+    ) -> Option<&'a xsd_fragments::TopLevelType> {
         self.xmlns_context
             .get_namespace(name.namespace()?)?
             .top_level_types
@@ -72,7 +72,7 @@ impl XmlnsContextQueryContext<'_> {
     pub fn get_named_attribute_group<'a>(
         &'a self,
         name: &'a ExpandedName<'_>,
-    ) -> Option<&'a xsd_type_compiler::TopLevelAttributeGroup> {
+    ) -> Option<&'a xsd_fragments::TopLevelAttributeGroup> {
         self.xmlns_context
             .get_namespace(name.namespace()?)?
             .top_level_attribute_groups
@@ -88,6 +88,108 @@ pub enum Error {
     TypeNotSimpleType { name: ExpandedName<'static> },
     #[error("Fragment not found in the context")]
     FragmentNotFound {},
+}
+
+#[derive(Default, Debug)]
+pub struct ParsedFacets<'a> {
+    pub min_length: Option<&'a usize>,
+    pub max_length: Option<&'a usize>,
+    pub length: Option<&'a usize>,
+    pub min_inclusive: Option<&'a Value>,
+    pub min_exclusive: Option<&'a Value>,
+    pub max_inclusive: Option<&'a Value>,
+    pub max_exclusive: Option<&'a Value>,
+    pub white_space: Option<&'a sm::WhiteSpaceValue>,
+    pub enumerations: Vec<&'a Value>,
+    pub patterns: Vec<&'a Pattern>,
+    pub assertions: Vec<&'a Assertion>,
+    pub total_digits: Option<&'a NonZeroUsize>,
+    pub fraction_digits: Option<&'a usize>,
+    pub explicit_timezone: Option<&'a ExplicitTimezoneValue>,
+}
+
+impl<'a> ParsedFacets<'a> {
+    /// Add a facet to the parsed facets
+    /// Returns true if the facet was already present
+    pub fn add_facet(&mut self, facet: &'a sm::FacetFragment) -> bool {
+        match facet {
+            sm::FacetFragment::Length { value } => self.length.replace(value).is_some(),
+            sm::FacetFragment::MinLength { value } => self.min_length.replace(value).is_some(),
+            sm::FacetFragment::MaxLength { value } => self.max_length.replace(value).is_some(),
+            sm::FacetFragment::MinExclusive { value } => {
+                self.min_exclusive.replace(value).is_some()
+            }
+            sm::FacetFragment::MinInclusive { value } => {
+                self.min_inclusive.replace(value).is_some()
+            }
+            sm::FacetFragment::MaxExclusive { value } => {
+                self.max_exclusive.replace(value).is_some()
+            }
+            sm::FacetFragment::MaxInclusive { value } => {
+                self.max_inclusive.replace(value).is_some()
+            }
+            sm::FacetFragment::Enumeration { value } => {
+                if self
+                    .enumerations
+                    .iter()
+                    .any(|e| e.0.trim() == value.0.trim())
+                {
+                    true // The enumeration is already present
+                } else {
+                    self.enumerations.push(value);
+                    false
+                }
+            }
+            sm::FacetFragment::TotalDigits { value } => self.total_digits.replace(value).is_some(),
+            sm::FacetFragment::FractionDigits { value } => {
+                self.fraction_digits.replace(value).is_some()
+            }
+            sm::FacetFragment::WhiteSpace { value } => self.white_space.replace(value).is_some(),
+            sm::FacetFragment::Pattern { value } => {
+                if self.patterns.iter().any(|e| e.0.trim() == value.0.trim()) {
+                    true // The pattern is already present
+                } else {
+                    self.patterns.push(value);
+                    false
+                }
+            }
+            sm::FacetFragment::Assertion { test } => {
+                let Some(test) = test.as_ref() else {
+                    return false; // No assertion to add
+                };
+
+                if self.assertions.iter().any(|e| *e == test) {
+                    true // The assertion is already present
+                } else {
+                    self.assertions.push(test);
+                    false
+                }
+            }
+            sm::FacetFragment::ExplicitTimezone { value } => {
+                if self.explicit_timezone.replace(value).is_some() {
+                    true // The explicit timezone is already present
+                } else {
+                    false // The explicit timezone was added
+                }
+            }
+        }
+    }
+}
+
+impl<'a> FromIterator<&'a sm::FacetFragment> for ParsedFacets<'a> {
+    fn from_iter<T: IntoIterator<Item = &'a sm::FacetFragment>>(iter: T) -> Self {
+        let mut facets = ParsedFacets::default();
+        facets.extend(iter);
+        facets
+    }
+}
+
+impl<'a> Extend<&'a sm::FacetFragment> for ParsedFacets<'a> {
+    fn extend<T: IntoIterator<Item = &'a sm::FacetFragment>>(&mut self, iter: T) {
+        iter.into_iter().for_each(|facet| {
+            self.add_facet(facet);
+        });
+    }
 }
 
 pub trait IdentifySimpleType {
@@ -109,108 +211,35 @@ impl IdentifySimpleType for FragmentIdx<sm::RestrictionFragment> {
             .ok_or(Error::FragmentNotFound {})?;
 
         if let Some(base) = fragment.base.as_ref() {
-            // If the base is in the allowed bases, we skip checking the base type
-            if !ctx.temp_allow_base.contains(base) {
-                let base_fragment: FragmentIdx<sm::SimpleTypeRootFragment> = ctx
-                    .get_named_type(base)
-                    .ok_or_else(|| Error::TypeNotFound { name: base.clone() })
-                    .and_then(|t| match t {
-                        xsd_type_compiler::TopLevelType::Simple(type_) => Ok(type_.root_fragment),
-                        xsd_type_compiler::TopLevelType::Complex(_) => {
-                            Err(Error::TypeNotSimpleType { name: base.clone() })
-                        }
-                    })?;
-
-                if base_fragment.identify_simple_type(ctx, value)?.is_none() {
-                    // If the base type does not match, we return None
-                    return Ok(None);
-                }
+            if base.identify_simple_type(ctx, value)?.is_none() {
+                // If the base type does not match, we return None
+                return Ok(None);
             }
         }
 
-        let mut min_length = None;
-        let mut max_length = None;
-        let mut length = None;
-        let mut min_inclusive = None;
-        let mut min_exclusive = None;
-        let mut max_inclusive = None;
-        let mut max_exclusive = None;
-        let mut white_space = None;
-        let mut enumerations = Vec::new();
-        let mut patterns = Vec::new();
-        let mut assertions = Vec::new();
-        let mut total_digits = None;
-        let mut fraction_digits = None;
-
-        for facet in fragment
+        let parsed_facets = fragment
             .facets
             .iter()
-            .filter_map(|id| ctx.get_simple_fragment(id))
-        {
-            match facet {
-                sm::FacetFragment::MinExclusive { value } => {
-                    min_exclusive = Some(value.0.trim());
-                }
-                sm::FacetFragment::MinInclusive { value } => {
-                    min_inclusive = Some(value.0.trim());
-                }
-                sm::FacetFragment::MaxExclusive { value } => {
-                    max_exclusive = Some(value.0.trim());
-                }
-                sm::FacetFragment::MaxInclusive { value } => {
-                    max_inclusive = Some(value.0.trim());
-                }
-                sm::FacetFragment::Enumeration { value } => {
-                    enumerations.push(value.0.trim());
-                }
-                sm::FacetFragment::TotalDigits { value } => {
-                    total_digits = Some(*value);
-                }
-                sm::FacetFragment::FractionDigits { value } => {
-                    fraction_digits = Some(*value);
-                }
-                sm::FacetFragment::Pattern { value } => {
-                    patterns.push(value.clone());
-                }
-                sm::FacetFragment::Assertion { test } => {
-                    if let Some(test) = test.as_ref() {
-                        assertions.push(test.clone());
-                    }
-                }
-                sm::FacetFragment::WhiteSpace { value } => {
-                    white_space = Some(*value);
-                }
-                sm::FacetFragment::ExplicitTimezone { .. } => {}
-                sm::FacetFragment::Length { value } => {
-                    length = Some(*value);
-                }
-                sm::FacetFragment::MinLength { value } => {
-                    min_length = Some(*value);
-                }
-                sm::FacetFragment::MaxLength { value } => {
-                    max_length = Some(*value);
-                }
-            }
-        }
+            .map(|id| ctx.get_simple_fragment(id).unwrap())
+            .collect::<ParsedFacets>();
 
-        let white_space = white_space.unwrap_or(sm::WhiteSpaceValue::Collapse);
+        let white_space = parsed_facets
+            .white_space
+            .copied()
+            .unwrap_or(sm::WhiteSpaceValue::Collapse);
 
         let value = match white_space {
             // No normalization is done, the whitespace-normalized value is the ·initial value·
             sm::WhiteSpaceValue::Preserve => value.to_string(),
             // All occurrences of #x9 (tab), #xA (line feed) and #xD (carriage return) are replaced with #x20 (space).
-            sm::WhiteSpaceValue::Replace => value
-                .replace('\t', " ")
-                .replace('\n', " ")
-                .replace('\r', " "),
+            sm::WhiteSpaceValue::Replace => value.replace(['\t', '\n', '\r'], " "),
             // Subsequent to the replacements specified above under replace, contiguous sequences of #x20s are collapsed to a single #x20, and initial and/or final #x20s are deleted.
             sm::WhiteSpaceValue::Collapse => value
+                .replace(['\t', '\n', '\r'], " ")
                 .split_whitespace()
                 .filter(|s| !s.is_empty())
                 .collect::<Vec<&str>>()
-                .join(" ")
-                .trim()
-                .to_string(),
+                .join(" "),
         };
 
         // TODO: Depends on the type, if it should be counted as bytes or characters
@@ -221,24 +250,28 @@ impl IdentifySimpleType for FragmentIdx<sm::RestrictionFragment> {
 
         let value_len = count_len(&value);
 
-        if let Some(length) = length {
-            if value_len != length {
+        if let Some(length) = parsed_facets.length {
+            if value_len != *length {
                 return Ok(None);
             }
         }
-        if let Some(min_length) = min_length {
-            if value_len < min_length {
+        if let Some(min_length) = parsed_facets.min_length {
+            if value_len < *min_length {
                 return Ok(None);
             }
         }
-        if let Some(max_length) = max_length {
-            if value_len > max_length {
+        if let Some(max_length) = parsed_facets.max_length {
+            if value_len > *max_length {
                 return Ok(None);
             }
         }
 
-        if !enumerations.is_empty() {
-            if enumerations.iter().any(|e| e == &value) {
+        if !parsed_facets.enumerations.is_empty() {
+            if parsed_facets
+                .enumerations
+                .iter()
+                .any(|e| e.0.trim() == &value)
+            {
                 return Ok(Some(NamedOrAnonymous::Anonymous(*self)));
             } else {
                 return Ok(None);
@@ -284,37 +317,18 @@ impl IdentifySimpleType for FragmentIdx<sm::UnionFragment> {
             .get_simple_fragment(self)
             .ok_or(Error::FragmentNotFound {})?;
 
-        let identified_member_type = fragments
+        let member_types_id = fragments
             .member_types
             .iter()
-            .find_map(|name| {
-                if ctx.temp_allow_base.contains(name) {
-                    // If the base is in the allowed bases, we skip checking the base type
-                    return Some(Ok(Some(NamedOrAnonymous::Named(name.clone()))));
-                } else {
-                    let Some(type_) = ctx.get_named_type(name) else {
-                        return Some(Err(Error::TypeNotFound { name: name.clone() }));
-                    };
+            .map(|name| name.identify_simple_type(ctx, value));
 
-                    match type_ {
-                        xsd_type_compiler::TopLevelType::Simple(type_) => {
-                            Some(type_.root_fragment.identify_simple_type(ctx, value))
-                        }
-                        xsd_type_compiler::TopLevelType::Complex(_) => None,
-                    }
-                }
-            })
-            .transpose()?
-            .flatten();
-
-        if let Some(fragment) = identified_member_type {
-            return Ok(Some(fragment));
-        }
-
-        fragments
+        let simple_types_id = fragments
             .simple_types
             .iter()
-            .map(|id| id.identify_simple_type(ctx, value))
+            .map(|id| id.identify_simple_type(ctx, value));
+
+        member_types_id
+            .chain(simple_types_id)
             .find_map(|result| match result {
                 Ok(Some(fragment)) => Some(Ok(fragment)),
                 Ok(None) => None,
@@ -348,6 +362,31 @@ impl IdentifySimpleType for FragmentIdx<sm::SimpleTypeRootFragment> {
     }
 }
 
+impl IdentifySimpleType for ExpandedName<'_> {
+    fn identify_simple_type(
+        &self,
+        ctx: &XmlnsContextQueryContext<'_>,
+        value: &str,
+    ) -> Result<Option<NamedOrAnonymous<FragmentIdx<sm::RestrictionFragment>>>, Error> {
+        if let Some(handler) = ctx.named_handlers.get(self) {
+            return handler.identify_simple_type(ctx, value);
+        }
+
+        ctx.get_named_type(self)
+            .ok_or_else(|| Error::TypeNotFound {
+                name: self.clone().into_owned(),
+            })
+            .and_then(|t| match t {
+                xsd_fragments::TopLevelType::Simple(type_) => {
+                    type_.root_fragment.identify_simple_type(ctx, value)
+                }
+                xsd_fragments::TopLevelType::Complex(_) => Err(Error::TypeNotSimpleType {
+                    name: self.clone().into_owned(),
+                }),
+            })
+    }
+}
+
 impl IdentifySimpleType for NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>> {
     fn identify_simple_type(
         &self,
@@ -355,21 +394,21 @@ impl IdentifySimpleType for NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragm
         value: &str,
     ) -> Result<Option<NamedOrAnonymous<FragmentIdx<sm::RestrictionFragment>>>, Error> {
         match self {
-            NamedOrAnonymous::Named(expanded_name) => ctx
-                .get_named_type(expanded_name)
-                .ok_or_else(|| Error::TypeNotFound {
-                    name: expanded_name.clone(),
-                })
-                .and_then(|t| match t {
-                    xsd_type_compiler::TopLevelType::Simple(type_) => {
-                        type_.root_fragment.identify_simple_type(ctx, value)
-                    }
-                    xsd_type_compiler::TopLevelType::Complex(_) => Err(Error::TypeNotSimpleType {
-                        name: expanded_name.clone(),
-                    }),
-                }),
+            NamedOrAnonymous::Named(name) => name.identify_simple_type(ctx, value),
             NamedOrAnonymous::Anonymous(id) => id.identify_simple_type(ctx, value),
         }
+    }
+}
+
+struct AllowAll(ExpandedName<'static>);
+
+impl IdentifySimpleType for AllowAll {
+    fn identify_simple_type(
+        &self,
+        _ctx: &XmlnsContextQueryContext<'_>,
+        _value: &str,
+    ) -> Result<Option<NamedOrAnonymous<FragmentIdx<sm::RestrictionFragment>>>, Error> {
+        Ok(Some(NamedOrAnonymous::Named(self.0.clone())))
     }
 }
 
@@ -377,8 +416,8 @@ impl IdentifySimpleType for NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragm
 mod tests {
     use super::*;
     use xmlity::{LocalName, XmlNamespace};
-    use xsd::xs;
-    use xsd_type_compiler::XmlnsContext;
+    use xsd::{xs, xsn};
+    use xsd_fragments::XmlnsContext;
 
     #[test]
     fn test_identify_simple_restriction() {
@@ -402,12 +441,9 @@ mod tests {
 
         let query_ctx = XmlnsContextQueryContext {
             xmlns_context: &ctx,
-            temp_allow_base: [ExpandedName::new(
-                LocalName::new_dangerous("NMTOKEN"),
-                Some(XmlNamespace::XS),
-            )]
-            .into_iter()
-            .collect(),
+            named_handlers: map_macro::hash_map! {
+                xsn::NMTOKEN.clone() => Box::new(AllowAll(xsn::NMTOKEN.clone())) as Box<dyn IdentifySimpleType>,
+            },
         };
 
         let ns = query_ctx
@@ -421,8 +457,8 @@ mod tests {
             .unwrap();
 
         let child_fragment = match child_fragment {
-            xsd_type_compiler::TopLevelType::Simple(type_) => type_.root_fragment,
-            xsd_type_compiler::TopLevelType::Complex(_) => {
+            xsd_fragments::TopLevelType::Simple(type_) => type_.root_fragment,
+            xsd_fragments::TopLevelType::Complex(_) => {
                 panic!("Expected a simple type, got a complex type")
             }
         };
@@ -459,15 +495,10 @@ mod tests {
 
         let query_ctx = XmlnsContextQueryContext {
             xmlns_context: &ctx,
-            temp_allow_base: [
-                ExpandedName::new(
-                    LocalName::new_dangerous("nonNegativeInteger"),
-                    Some(XmlNamespace::XS),
-                ),
-                ExpandedName::new(LocalName::new_dangerous("NMTOKEN"), Some(XmlNamespace::XS)),
-            ]
-            .into_iter()
-            .collect(),
+            named_handlers: map_macro::hash_map! {
+                xsn::NON_NEGATIVE_INTEGER.clone() => Box::new(AllowAll(xsn::NON_NEGATIVE_INTEGER.clone())) as Box<dyn IdentifySimpleType>,
+                xsn::NMTOKEN.clone() => Box::new(AllowAll(xsn::NMTOKEN.clone())) as Box<dyn IdentifySimpleType>,
+            },
         };
 
         let ns = query_ctx
@@ -481,8 +512,8 @@ mod tests {
             .unwrap();
 
         let child_fragment = match child_fragment {
-            xsd_type_compiler::TopLevelType::Simple(type_) => type_.root_fragment,
-            xsd_type_compiler::TopLevelType::Complex(_) => {
+            xsd_fragments::TopLevelType::Simple(type_) => type_.root_fragment,
+            xsd_fragments::TopLevelType::Complex(_) => {
                 panic!("Expected a simple type, got a complex type")
             }
         };
@@ -526,15 +557,10 @@ mod tests {
 
         let query_ctx = XmlnsContextQueryContext {
             xmlns_context: &ctx,
-            temp_allow_base: [
-                ExpandedName::new(
-                    LocalName::new_dangerous("nonNegativeInteger"),
-                    Some(XmlNamespace::XS),
-                ),
-                ExpandedName::new(LocalName::new_dangerous("NMTOKEN"), Some(XmlNamespace::XS)),
-            ]
-            .into_iter()
-            .collect(),
+            named_handlers: map_macro::hash_map! {
+                xsn::NON_NEGATIVE_INTEGER.clone() => Box::new(AllowAll(xsn::NON_NEGATIVE_INTEGER.clone())) as Box<dyn IdentifySimpleType>,
+                xsn::NMTOKEN.clone() => Box::new(AllowAll(xsn::NMTOKEN.clone())) as Box<dyn IdentifySimpleType>,
+            },
         };
 
         let ns = query_ctx
@@ -548,8 +574,8 @@ mod tests {
             .unwrap();
 
         let child_fragment = match child_fragment {
-            xsd_type_compiler::TopLevelType::Simple(type_) => type_.root_fragment,
-            xsd_type_compiler::TopLevelType::Complex(_) => {
+            xsd_fragments::TopLevelType::Simple(type_) => type_.root_fragment,
+            xsd_fragments::TopLevelType::Complex(_) => {
                 panic!("Expected a simple type, got a complex type")
             }
         };

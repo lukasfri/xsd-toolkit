@@ -3,13 +3,16 @@ resolver = "2"
 members = [
   "xsd",
   "xsd-codegen-xmlity",
-  "xsd-type-compiler",
-  "xsd-fragment-transformer",
+  "xsd-fragments",
+  "xsd-fragments-transformer",
   "xmlity-build",
   "schemas/xmlity-ns-xhtml",
   "schemas/xmlity-ns-xs",
   "schemas/xmlity-ns-xsi",
-  "schemas/xmlity-ns-xml", "xsd-dynamic-query",
+  "schemas/xmlity-ns-xml",
+  "xsd-dynamic-query",
+  "xsd-builtin",
+  "xsd-namespace-map",
 ]
 
 [workspace.package]

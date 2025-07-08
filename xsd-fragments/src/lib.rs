@@ -68,6 +68,51 @@ impl XmlnsContext {
 
         self.namespaces.get_mut(namespace_idx)
     }
+
+    pub fn import_redefine(&mut self, redefine: &xs::Redefine) -> Result<(), Error> {
+        use xs::redefine_items::Redefine;
+        let namespace = &redefine.schema_location.0;
+
+        let compiled_namespace =
+            self.get_namespace_mut(namespace)
+                .ok_or(Error::NonExistentXmlNamespace {
+                    namespace: namespace.clone(),
+                })?;
+
+        redefine
+            .redefine
+            .iter()
+            .filter_map(|r| match r {
+                Redefine::Annotation(_) => None,
+                Redefine::Redefinable(redefinable) => Some(redefinable.deref()),
+            })
+            .map(|r| compiled_namespace.import_redefineable(r))
+            .collect::<Result<(), Error>>()
+    }
+
+    pub fn import_namespace(&mut self, schema: &xsd::XmlSchema) -> Result<(), Error> {
+        use xs::groups::Composition;
+        let namespace = schema.namespace();
+
+        schema
+            .compositions()
+            .map(|c| match c {
+                Composition::Include(include) => todo!(),
+                Composition::Import(import) => todo!(),
+                Composition::Redefine(redefine) => self.import_redefine(redefine),
+                Composition::Override(_) => todo!(),
+                Composition::Annotation(annotation) => todo!(),
+            })
+            .collect::<Result<(), Error>>()?;
+
+        let Some(compiled_namespace) = self.get_namespace_mut(namespace) else {
+            return Err(Error::NonExistentXmlNamespace {
+                namespace: namespace.clone(),
+            });
+        };
+
+        compiled_namespace.import_schema(schema)
+    }
 }
 
 impl Default for XmlnsContext {
@@ -114,25 +159,41 @@ impl CompiledNamespace {
         }
     }
 
-    pub fn import_schema(&mut self, schema: &xsd::XmlSchema) -> Result<(), Error> {
-        use xs::groups::{Redefinable, SchemaTop};
+    pub fn import_include(&mut self, include: &xs::Include) -> Result<(), Error> {
+        let include_namespace = &include.schema_location.0;
+        todo!()
+    }
 
-        for redefine in schema.schema_tops() {
-            match redefine {
-                SchemaTop::Redefinable(redefineable) => match redefineable.deref() {
-                    Redefinable::SimpleType(simple_type) => {
-                        self.import_top_level_simple_type(simple_type)?;
-                    }
-                    Redefinable::ComplexType(complex_type) => {
-                        self.import_top_level_complex_type(complex_type)?;
-                    }
-                    Redefinable::Group(group) => {
-                        self.import_top_level_group(group)?;
-                    }
-                    Redefinable::AttributeGroup(attribute_group) => {
-                        self.import_top_level_attribute_group(attribute_group)?;
-                    }
-                },
+    pub fn import_redefineable(
+        &mut self,
+        redefineable: &xs::groups::Redefinable,
+    ) -> Result<(), Error> {
+        use xs::groups::Redefinable;
+
+        match redefineable {
+            Redefinable::SimpleType(simple_type) => {
+                self.import_top_level_simple_type(simple_type)?;
+            }
+            Redefinable::ComplexType(complex_type) => {
+                self.import_top_level_complex_type(complex_type)?;
+            }
+            Redefinable::Group(group) => {
+                self.import_top_level_group(group)?;
+            }
+            Redefinable::AttributeGroup(attribute_group) => {
+                self.import_top_level_attribute_group(attribute_group)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn import_schema(&mut self, schema: &xsd::XmlSchema) -> Result<(), Error> {
+        use xs::groups::SchemaTop;
+
+        for schema_top in schema.schema_tops() {
+            match schema_top {
+                SchemaTop::Redefinable(redefineable) => self.import_redefineable(redefineable)?,
                 SchemaTop::Element(element) => {
                     self.import_top_level_element(element)?;
                 }

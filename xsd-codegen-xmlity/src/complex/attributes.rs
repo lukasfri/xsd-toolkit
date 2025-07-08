@@ -5,7 +5,7 @@ use crate::{
 use quote::format_ident;
 use syn::parse_quote;
 use xmlity::ExpandedName;
-use xsd_type_compiler::fragments::complex::{self as cx, AttributeUse};
+use xsd_fragments::fragments::complex::{self as cx, AttributeUse};
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 
@@ -129,7 +129,7 @@ mod tests {
     use syn::{parse_quote, Item};
     use xmlity::{LocalName, XmlNamespace};
     use xsd::{xs, xsn};
-    use xsd_type_compiler::XmlnsContext;
+    use xsd_fragments::XmlnsContext;
 
     use crate::Generator;
 

@@ -9,7 +9,7 @@ use crate::{
 
 use syn::Ident;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd_type_compiler::fragments::{
+use xsd_fragments::fragments::{
     complex::{AllNNI, ComplexTypeFragmentCompiler},
     FragmentAccess, FragmentIdx,
 };

@@ -13,7 +13,7 @@ use crate::{
 
 use quote::format_ident;
 use syn::{parse_quote, Item, Path};
-use xsd_type_compiler::fragments::complex::{self as cx, AllNNI};
+use xsd_fragments::fragments::complex::{self as cx, AllNNI};
 
 use super::{
     elements::LocalElementFragmentTemplate, ComplexContext, ComplexToTypeTemplate, Scope,
@@ -797,7 +797,7 @@ mod tests {
     use xmlity::{LocalName, XmlNamespace};
     use xsd::xs;
     use xsd::xsn;
-    use xsd_type_compiler::XmlnsContext;
+    use xsd_fragments::XmlnsContext;
 
     use crate::Generator;
 

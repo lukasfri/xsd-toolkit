@@ -15,8 +15,8 @@ use quote::format_ident;
 use quote::ToTokens;
 use std::sync::LazyLock;
 use syn::parse_quote;
-use xsd_type_compiler::fragments::FragmentIdx;
-use xsd_type_compiler::{fragments::simple as sm, NamedOrAnonymous};
+use xsd_fragments::fragments::FragmentIdx;
+use xsd_fragments::{fragments::simple as sm, NamedOrAnonymous};
 
 impl SimpleToTypeTemplate for sm::ListFragment {
     type TypeTemplate = TypeReference<'static>;

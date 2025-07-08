@@ -2,9 +2,7 @@ use crate::{BoundType, Result, Scope, ToTypeTemplateData};
 
 use syn::Ident;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd_type_compiler::fragments::{
-    simple::SimpleTypeFragmentCompiler, FragmentAccess, FragmentIdx,
-};
+use xsd_fragments::fragments::{simple::SimpleTypeFragmentCompiler, FragmentAccess, FragmentIdx};
 
 pub mod restrictions;
 pub mod simple_type;

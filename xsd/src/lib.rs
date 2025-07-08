@@ -3,6 +3,7 @@ use std::ops::Deref;
 pub use xmlity_ns_xs::xs;
 pub mod xsn;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct XmlSchema {
     pub underlying_schema: xs::Schema,
 }
@@ -14,6 +15,24 @@ impl XmlSchema {
 
     pub fn namespace(&self) -> &xmlity::XmlNamespace<'static> {
         &self.underlying_schema.target_namespace.as_ref().unwrap().0
+    }
+
+    pub fn compositions(&self) -> impl Iterator<Item = &xs::groups::Composition> {
+        self.underlying_schema.composition.iter()
+    }
+
+    pub fn includes(&self) -> impl Iterator<Item = &xs::Include> + use<'_> {
+        self.compositions().filter_map(|c| match c {
+            xs::groups::Composition::Include(include) => Some(include.deref()),
+            _ => None,
+        })
+    }
+
+    pub fn imports(&self) -> impl Iterator<Item = &xs::Import> + use<'_> {
+        self.compositions().filter_map(|c| match c {
+            xs::groups::Composition::Import(import) => Some(import.deref()),
+            _ => None,
+        })
     }
 
     pub fn schema_tops(&self) -> impl Iterator<Item = &xs::groups::SchemaTop> {

@@ -1,6 +1,6 @@
 use crate::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
 use xsd::xsn;
-use xsd_type_compiler::fragments::{
+use xsd_fragments::fragments::{
     complex::{
         self as cx, ComplexContentChildId, ComplexTypeModelId, ComplexTypeRootFragment,
         RestrictionFragment,
@@ -119,7 +119,7 @@ mod tests {
     use xmlity::{LocalName, XmlNamespace};
     use xsd::xs;
     use xsd::xsn;
-    use xsd_type_compiler::XmlnsContext;
+    use xsd_fragments::XmlnsContext;
 
     #[test]
     fn specification_1() {

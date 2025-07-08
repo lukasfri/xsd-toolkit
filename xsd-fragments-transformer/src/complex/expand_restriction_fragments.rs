@@ -3,16 +3,16 @@ use std::collections::VecDeque;
 
 use xmlity::ExpandedName;
 use xsd::xsn;
-use xsd_type_compiler::fragments::complex::AttributeDeclarationId;
-use xsd_type_compiler::fragments::complex::AttributeDeclarationsFragment;
-use xsd_type_compiler::fragments::complex::ComplexContentChildId;
-use xsd_type_compiler::fragments::complex::ComplexTypeModelId;
-use xsd_type_compiler::fragments::complex::ComplexTypeRootFragment;
-use xsd_type_compiler::fragments::complex::LocalAttributeFragment;
-use xsd_type_compiler::fragments::complex::LocalAttributeFragmentTypeMode;
-use xsd_type_compiler::fragments::complex::RestrictionFragment;
-use xsd_type_compiler::fragments::FragmentIdx;
-use xsd_type_compiler::TopLevelType;
+use xsd_fragments::fragments::complex::AttributeDeclarationId;
+use xsd_fragments::fragments::complex::AttributeDeclarationsFragment;
+use xsd_fragments::fragments::complex::ComplexContentChildId;
+use xsd_fragments::fragments::complex::ComplexTypeModelId;
+use xsd_fragments::fragments::complex::ComplexTypeRootFragment;
+use xsd_fragments::fragments::complex::LocalAttributeFragment;
+use xsd_fragments::fragments::complex::LocalAttributeFragmentTypeMode;
+use xsd_fragments::fragments::complex::RestrictionFragment;
+use xsd_fragments::fragments::FragmentIdx;
+use xsd_fragments::TopLevelType;
 
 use crate::TransformChange;
 use crate::XmlnsContextTransformer;
@@ -264,7 +264,7 @@ mod tests {
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::{xs, xsn};
-    use xsd_type_compiler::XmlnsContext;
+    use xsd_fragments::XmlnsContext;
 
     #[test]
     fn basic_child_only_expand_restriction() {

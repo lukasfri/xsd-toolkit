@@ -1,7 +1,7 @@
-use std::{collections::VecDeque, convert::Infallible};
+use std::collections::VecDeque;
 
 use crate::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
-use xsd_type_compiler::fragments::{
+use xsd_fragments::fragments::{
     complex::{
         AllFragment, ChoiceFragment, ComplexTypeFragmentCompiler, ComplexTypeModelId,
         ComplexTypeRootFragment, ExtensionFragment, NestedParticleId, RestrictionFragment,
@@ -87,70 +87,30 @@ impl HasTypeDefParticle for ComplexTypeRootFragment {
     }
 }
 
-enum ChoiceToSequence {
-    Sequence(FragmentIdx<SequenceFragment>),
-    Choice(FragmentIdx<ChoiceFragment>),
-}
-
 #[non_exhaustive]
-pub struct SingleChoiceToSequence {}
+pub struct ExpandGroups {}
 
-impl SingleChoiceToSequence {
+#[derive(Debug, thiserror::Error)]
+pub enum Error {}
+
+impl ExpandGroups {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
 
-    fn convert_choice(
-        ctx: &mut XmlnsLocalTransformerContext<'_>,
-        fragment_id: FragmentIdx<ChoiceFragment>,
-    ) -> Result<ChoiceToSequence, <Self as XmlnsLocalTransformer>::Error> {
-        let fragment = ctx.get_complex_fragment(&fragment_id).unwrap();
-
-        if fragment.group_content().len() != 1 {
-            return Ok(ChoiceToSequence::Choice(fragment_id));
-        }
-
-        let sequence = SequenceFragment {
-            fragments: fragment.group_content().clone(),
-            max_occurs: fragment.max_occurs,
-            min_occurs: fragment.min_occurs,
-            id: None,
-        };
-
-        let compiler = &mut ctx.current_namespace_mut().complex_type;
-
-        let sequence = compiler.push_fragment(sequence);
-
-        Ok(ChoiceToSequence::Sequence(sequence))
-    }
-
     pub fn expand_group_content(
-        ctx: &mut XmlnsLocalTransformerContext<'_>,
-        fragment_id: NestedParticleId,
-    ) -> Result<NestedParticleId, <Self as XmlnsLocalTransformer>::Error> {
-        let NestedParticleId::Choice(choice) = fragment_id else {
-            return Ok(fragment_id);
-        };
-
-        match Self::convert_choice(ctx, choice)? {
-            ChoiceToSequence::Sequence(sequence) => Ok(NestedParticleId::Sequence(sequence)),
-            ChoiceToSequence::Choice(choice) => Ok(NestedParticleId::Choice(choice)),
-        }
+        _context: &mut XmlnsLocalTransformerContext<'_>,
+        _group_contents: NestedParticleId,
+    ) -> NestedParticleId {
+        todo!()
     }
 
     pub fn expand_type_def_particle(
-        ctx: &mut XmlnsLocalTransformerContext<'_>,
-        fragment_id: TypeDefParticleId,
-    ) -> Result<TypeDefParticleId, <Self as XmlnsLocalTransformer>::Error> {
-        let TypeDefParticleId::Choice(choice) = fragment_id else {
-            return Ok(fragment_id);
-        };
-
-        match Self::convert_choice(ctx, choice)? {
-            ChoiceToSequence::Sequence(sequence) => Ok(TypeDefParticleId::Sequence(sequence)),
-            ChoiceToSequence::Choice(choice) => Ok(TypeDefParticleId::Choice(choice)),
-        }
+        _context: &mut XmlnsLocalTransformerContext<'_>,
+        _group_contents: TypeDefParticleId,
+    ) -> TypeDefParticleId {
+        todo!()
     }
 
     fn expand_fragment_with_group_content<F: HasGroupContent>(
@@ -169,13 +129,13 @@ impl SingleChoiceToSequence {
         let expanded_fragments = unexpanded_fragments
             .into_iter()
             .map(|f| {
-                let res = Self::expand_group_content(context, f)?;
+                let res = Self::expand_group_content(context, f);
 
                 change |= TransformChange::from(res != f);
 
-                Ok(res)
+                res
             })
-            .collect::<Result<_, <Self as XmlnsLocalTransformer>::Error>>()?;
+            .collect();
 
         let fragment = context.get_complex_fragment_mut(fragment_id).unwrap();
 
@@ -209,7 +169,7 @@ impl SingleChoiceToSequence {
             return Ok(TransformChange::Unchanged);
         };
 
-        let expanded_fragment = Self::expand_type_def_particle(context, unexpanded_fragment)?;
+        let expanded_fragment = Self::expand_type_def_particle(context, unexpanded_fragment);
 
         let fragment = context.get_complex_fragment_mut(fragment_id).unwrap();
 
@@ -233,39 +193,27 @@ impl SingleChoiceToSequence {
     }
 }
 
-impl XmlnsLocalTransformer for &SingleChoiceToSequence {
-    type Error = Infallible;
+impl XmlnsLocalTransformer for ExpandGroups {
+    type Error = Error;
 
     fn transform(
         self,
         mut ctx: XmlnsLocalTransformerContext<'_>,
     ) -> Result<TransformChange, Self::Error> {
         let mut changed = TransformChange::default();
-        use SingleChoiceToSequence as LT;
 
-        changed |= LT::expand_fragments_group_content::<AllFragment>(&mut ctx)?;
+        changed |= Self::expand_fragments_group_content::<AllFragment>(&mut ctx)?;
 
-        changed |= LT::expand_fragments_group_content::<SequenceFragment>(&mut ctx)?;
+        changed |= Self::expand_fragments_group_content::<SequenceFragment>(&mut ctx)?;
 
-        changed |= LT::expand_fragments_group_content::<ChoiceFragment>(&mut ctx)?;
+        changed |= Self::expand_fragments_group_content::<ChoiceFragment>(&mut ctx)?;
 
-        changed |= LT::expand_fragments_type_def_particle::<ExtensionFragment>(&mut ctx)?;
+        changed |= Self::expand_fragments_type_def_particle::<ExtensionFragment>(&mut ctx)?;
 
-        changed |= LT::expand_fragments_type_def_particle::<RestrictionFragment>(&mut ctx)?;
+        changed |= Self::expand_fragments_type_def_particle::<RestrictionFragment>(&mut ctx)?;
 
-        changed |= LT::expand_fragments_type_def_particle::<ComplexTypeRootFragment>(&mut ctx)?;
+        changed |= Self::expand_fragments_type_def_particle::<ComplexTypeRootFragment>(&mut ctx)?;
 
         Ok(changed)
-    }
-}
-
-impl XmlnsLocalTransformer for SingleChoiceToSequence {
-    type Error = Infallible;
-
-    fn transform(
-        self,
-        ctx: XmlnsLocalTransformerContext<'_>,
-    ) -> Result<TransformChange, Self::Error> {
-        (&self).transform(ctx)
     }
 }

@@ -1,9 +1,9 @@
 pub mod complex;
 pub mod simple;
 
-use xsd_type_compiler::fragments::{complex as cx, simple as sm, FragmentIdx};
-use xsd_type_compiler::fragments::{FragmentAccess, NamespaceIdx};
-use xsd_type_compiler::CompiledNamespace;
+use xsd_fragments::fragments::{complex as cx, simple as sm, FragmentIdx};
+use xsd_fragments::fragments::{FragmentAccess, NamespaceIdx};
+use xsd_fragments::CompiledNamespace;
 
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
@@ -158,14 +158,14 @@ impl XmlnsLocalTransformerContext<'_> {
     pub fn get_named_type<'a>(
         &'a self,
         name: &'a LocalName<'_>,
-    ) -> Option<&'a xsd_type_compiler::TopLevelType> {
+    ) -> Option<&'a xsd_fragments::TopLevelType> {
         self.current_namespace().top_level_types.get(name)
     }
 
     pub fn get_named_attribute_group<'a>(
         &'a self,
         name: &'a LocalName<'_>,
-    ) -> Option<&'a xsd_type_compiler::TopLevelAttributeGroup> {
+    ) -> Option<&'a xsd_fragments::TopLevelAttributeGroup> {
         self.current_namespace()
             .top_level_attribute_groups
             .get(name)
@@ -183,7 +183,7 @@ pub trait XmlnsContextTransformer {
 }
 
 pub struct XmlnsContextTransformerContext<'a> {
-    pub xmlns_context: &'a mut xsd_type_compiler::XmlnsContext,
+    pub xmlns_context: &'a mut xsd_fragments::XmlnsContext,
 }
 
 impl XmlnsContextTransformerContext<'_> {
@@ -262,7 +262,7 @@ impl XmlnsContextTransformerContext<'_> {
     pub fn get_named_type<'a>(
         &'a self,
         name: &'a ExpandedName<'_>,
-    ) -> Option<&'a xsd_type_compiler::TopLevelType> {
+    ) -> Option<&'a xsd_fragments::TopLevelType> {
         self.xmlns_context
             .get_namespace(name.namespace()?)?
             .top_level_types
@@ -272,7 +272,7 @@ impl XmlnsContextTransformerContext<'_> {
     pub fn get_named_attribute_group<'a>(
         &'a self,
         name: &'a ExpandedName<'_>,
-    ) -> Option<&'a xsd_type_compiler::TopLevelAttributeGroup> {
+    ) -> Option<&'a xsd_fragments::TopLevelAttributeGroup> {
         self.xmlns_context
             .get_namespace(name.namespace()?)?
             .top_level_attribute_groups
@@ -304,7 +304,7 @@ pub trait XmlnsContextExt {
     ) -> Result<TransformChange, T::Error>;
 }
 
-impl XmlnsContextExt for xsd_type_compiler::XmlnsContext {
+impl XmlnsContextExt for xsd_fragments::XmlnsContext {
     fn local_transform<T: XmlnsLocalTransformer>(
         &mut self,
         namespace: &XmlNamespace<'_>,
@@ -362,7 +362,7 @@ pub trait CompiledNamespaceExt {
     ) -> Result<TransformChange, T::Error>;
 }
 
-impl CompiledNamespaceExt for xsd_type_compiler::CompiledNamespace {
+impl CompiledNamespaceExt for xsd_fragments::CompiledNamespace {
     fn transform<T: XmlnsLocalTransformer>(
         &mut self,
         transformer: T,

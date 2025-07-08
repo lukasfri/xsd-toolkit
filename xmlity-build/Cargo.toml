@@ -10,7 +10,7 @@ license.workspace = true
 [dependencies]
 xsd = { path = "../xsd" }
 xsd-codegen-xmlity = { path = "../xsd-codegen-xmlity" }
-xsd-type-compiler = { path = "../xsd-type-compiler" }
+xsd-fragments = { path = "../xsd-fragments" }
 proc-macro2 = "1.0.66"
 quote = "1.0.33"
 syn = { version = "2.0.29", features = ["full", "extra-traits"] }
@@ -21,7 +21,7 @@ glob = "0.3.2"
 xmlity.workspace = true
 xmlity-quick-xml.workspace = true
 derive_more = { version = "2.0.1", features = ["full"] }
-xsd-fragment-transformer = { path = "../xsd-fragment-transformer" }
+xsd-fragments-transformer = { path = "../xsd-fragments-transformer" }
 
 [dev-dependencies]
 rstest.workspace = true

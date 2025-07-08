@@ -7,20 +7,20 @@ use crate::TransformChange;
 use crate::XmlnsContextTransformer;
 use crate::XmlnsContextTransformerContext;
 use xsd::xsn;
-use xsd_type_compiler::fragments::complex::AttributeDeclarationId;
-use xsd_type_compiler::fragments::complex::AttributeDeclarationsFragment;
-use xsd_type_compiler::fragments::complex::ComplexContentChildId;
-use xsd_type_compiler::fragments::complex::ComplexContentFragment;
-use xsd_type_compiler::fragments::complex::ComplexTypeModelId;
-use xsd_type_compiler::fragments::complex::ComplexTypeRootFragment;
-use xsd_type_compiler::fragments::complex::ExtensionFragment;
-use xsd_type_compiler::fragments::complex::LocalAttributeFragment;
-use xsd_type_compiler::fragments::complex::LocalAttributeFragmentTypeMode;
-use xsd_type_compiler::fragments::complex::RestrictionFragment;
-use xsd_type_compiler::fragments::complex::SequenceFragment;
-use xsd_type_compiler::fragments::FragmentAccess;
-use xsd_type_compiler::fragments::FragmentIdx;
-use xsd_type_compiler::TopLevelType;
+use xsd_fragments::fragments::complex::AttributeDeclarationId;
+use xsd_fragments::fragments::complex::AttributeDeclarationsFragment;
+use xsd_fragments::fragments::complex::ComplexContentChildId;
+use xsd_fragments::fragments::complex::ComplexContentFragment;
+use xsd_fragments::fragments::complex::ComplexTypeModelId;
+use xsd_fragments::fragments::complex::ComplexTypeRootFragment;
+use xsd_fragments::fragments::complex::ExtensionFragment;
+use xsd_fragments::fragments::complex::LocalAttributeFragment;
+use xsd_fragments::fragments::complex::LocalAttributeFragmentTypeMode;
+use xsd_fragments::fragments::complex::RestrictionFragment;
+use xsd_fragments::fragments::complex::SequenceFragment;
+use xsd_fragments::fragments::FragmentAccess;
+use xsd_fragments::fragments::FragmentIdx;
+use xsd_fragments::TopLevelType;
 
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
 #[non_exhaustive]
@@ -327,7 +327,7 @@ mod tests {
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::xs;
     use xsd::xsn;
-    use xsd_type_compiler::XmlnsContext;
+    use xsd_fragments::XmlnsContext;
 
     #[test]
     fn basic_child_only_expand_extension() {
