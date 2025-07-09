@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use crate::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
+use crate::{TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext};
 use xsd_fragments::fragments::{
     complex::{self as cx, AttributeDeclarationId, AttributeDeclarationsFragment, AttributeUse},
     FragmentIdx,
@@ -16,9 +16,9 @@ impl RemoveProhibitedAttributes {
     }
 
     fn expand_attribute_declarations(
-        context: &mut XmlnsLocalTransformerContext<'_>,
+        context: &mut XmlnsContextTransformerContext<'_>,
         fragment_id: &FragmentIdx<AttributeDeclarationsFragment>,
-    ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
+    ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let mut change = TransformChange::default();
 
         let fragment = context.get_complex_fragment(fragment_id).unwrap();
@@ -33,11 +33,11 @@ impl RemoveProhibitedAttributes {
                         .get_complex_fragment::<cx::LocalAttributeFragment>(&fragment_idx)
                         .unwrap();
 
-                    if fragment.use_ != Some(AttributeUse::Prohibited) {
-                        Some(a)
-                    } else {
+                    if fragment.use_ == Some(AttributeUse::Prohibited) {
                         change |= TransformChange::Changed;
                         None
+                    } else {
+                        Some(a)
                     }
                 }
                 a => Some(a),
@@ -52,29 +52,33 @@ impl RemoveProhibitedAttributes {
     }
 }
 
-impl XmlnsLocalTransformer for &RemoveProhibitedAttributes {
+impl XmlnsContextTransformer for &RemoveProhibitedAttributes {
     type Error = Infallible;
 
     fn transform(
         self,
-        mut context: XmlnsLocalTransformerContext<'_>,
+        mut context: XmlnsContextTransformerContext<'_>,
     ) -> Result<TransformChange, Self::Error> {
         context
             .iter_complex_fragment_ids::<AttributeDeclarationsFragment>()
-            .iter()
+            .collect::<Vec<_>>()
+            .into_iter()
             .map(|fragment_id| {
-                RemoveProhibitedAttributes::expand_attribute_declarations(&mut context, fragment_id)
+                RemoveProhibitedAttributes::expand_attribute_declarations(
+                    &mut context,
+                    &fragment_id,
+                )
             })
             .collect()
     }
 }
 
-impl XmlnsLocalTransformer for RemoveProhibitedAttributes {
+impl XmlnsContextTransformer for RemoveProhibitedAttributes {
     type Error = Infallible;
 
     fn transform(
         self,
-        context: XmlnsLocalTransformerContext<'_>,
+        context: XmlnsContextTransformerContext<'_>,
     ) -> Result<TransformChange, Self::Error> {
         (&self).transform(context)
     }

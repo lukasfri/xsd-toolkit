@@ -65,6 +65,7 @@ impl XmlnsLocalTransformer for &FlattenNestedSequences {
         mut ctx: XmlnsLocalTransformerContext<'_>,
     ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
+            .collect::<Vec<_>>()
             .into_iter()
             .map(|f| FlattenNestedSequences::flatten_sequence(&mut ctx, &f))
             .collect()
@@ -136,6 +137,7 @@ impl XmlnsLocalTransformer for &FlattenNestedChoices {
         mut ctx: XmlnsLocalTransformerContext<'_>,
     ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
+            .collect::<Vec<_>>()
             .into_iter()
             .map(|f| FlattenNestedChoices::flatten_choice(&mut ctx, &f))
             .collect()

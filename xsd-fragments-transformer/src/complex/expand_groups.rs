@@ -151,6 +151,7 @@ impl ExpandGroups {
         ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         ctx.iter_complex_fragment_ids()
+            .collect::<Vec<_>>()
             .into_iter()
             .map(|f| Self::expand_fragment_with_group_content(ctx, &f))
             .collect()
@@ -187,8 +188,9 @@ impl ExpandGroups {
         ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         ctx.iter_complex_fragment_ids()
-            .iter()
-            .map(|f| Self::expand_fragment_with_type_def_particle(ctx, f))
+            .collect::<Vec<_>>()
+            .into_iter()
+            .map(|f| Self::expand_fragment_with_type_def_particle(ctx, &f))
             .collect()
     }
 }

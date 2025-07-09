@@ -77,6 +77,7 @@ pub trait XmlnsLocalTransformer {
     ) -> Result<TransformChange, Self::Error>;
 }
 
+#[derive(Debug)]
 pub struct XmlnsLocalTransformerContext<'a> {
     // pub namespace: &'a XmlNamespace<'static>,
     pub namespace: &'a mut CompiledNamespace,
@@ -100,11 +101,14 @@ impl XmlnsLocalTransformerContext<'_> {
         self.namespace
     }
 
-    pub fn iter_complex_fragment_ids<F: 'static>(&self) -> Vec<FragmentIdx<F>>
+    pub fn iter_complex_fragment_ids<F: 'static>(&self) -> impl Iterator<Item = FragmentIdx<F>> + '_
     where
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
-        self.current_namespace().complex_type.iter_fragment_ids()
+        self.current_namespace()
+            .complex_type
+            .iter_fragment_ids()
+            .into_iter()
     }
 
     pub fn get_complex_fragment<F>(&self, fragment_idx: &FragmentIdx<F>) -> Option<&F>
@@ -182,6 +186,7 @@ pub trait XmlnsContextTransformer {
     ) -> Result<TransformChange, Self::Error>;
 }
 
+#[derive(Debug)]
 pub struct XmlnsContextTransformerContext<'a> {
     pub xmlns_context: &'a mut xsd_fragments::XmlnsContext,
 }

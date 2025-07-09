@@ -17,6 +17,12 @@ use misc::TypeReference;
 use quote::format_ident;
 use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xsd_fragments::{
+    fragments::{
+        complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
+    },
+    CompiledNamespace, TopLevelType,
+};
 use xsd_fragments_transformer::{
     complex::{
         ExpandAttributeDeclarations, ExpandExtensionFragments, ExpandRestrictionFragments,
@@ -25,12 +31,6 @@ use xsd_fragments_transformer::{
     },
     simple::ExpandSimpleRestriction,
     TransformChange, XmlnsContextExt, XmlnsContextTransformer,
-};
-use xsd_fragments::{
-    fragments::{
-        complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
-    },
-    CompiledNamespace, TopLevelType,
 };
 
 use crate::{
@@ -118,7 +118,7 @@ impl XmlnsContextTransformer for XmlityCodegenTransformer {
 
             total_change |= context
                 .xmlns_context
-                .local_transform_all(&RemoveProhibitedAttributes::new())
+                .context_transform(&RemoveProhibitedAttributes::new())
                 .unwrap();
 
             if total_change == TransformChange::Unchanged {
@@ -380,7 +380,11 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         let fragment = self
-            .current_namespace()
+            .generator
+            .context
+            .namespaces
+            .get(&fragment_id.namespace_idx())
+            .unwrap()
             .complex_type
             .get_fragment(fragment_id)
             .unwrap();

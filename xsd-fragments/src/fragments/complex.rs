@@ -147,14 +147,12 @@ pub struct SimpleContentFragment {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleExtensionFragment {
     pub base: ExpandedName<'static>,
-    // pub content_fragment: Option<TypeDefParticleId>,
     pub attribute_declarations: FragmentIdx<AttributeDeclarationsFragment>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleRestrictionFragment {
     pub base: ExpandedName<'static>,
-    // pub content_fragment: Option<TypeDefParticleId>,
     pub attribute_declarations: FragmentIdx<AttributeDeclarationsFragment>,
 }
 
@@ -338,6 +336,26 @@ impl HasFragmentCollection<ComplexTypeRootFragment> for ComplexTypeFragmentCompi
     }
     fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<ComplexTypeRootFragment> {
         &mut self.complex_types
+    }
+}
+
+impl HasFragmentCollection<SimpleRestrictionFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<SimpleRestrictionFragment> {
+        &self.simple_restrictions
+    }
+    fn get_fragment_collection_mut(
+        &mut self,
+    ) -> &mut FragmentCollection<SimpleRestrictionFragment> {
+        &mut self.simple_restrictions
+    }
+}
+
+impl HasFragmentCollection<SimpleExtensionFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<SimpleExtensionFragment> {
+        &self.simple_extensions
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<SimpleExtensionFragment> {
+        &mut self.simple_extensions
     }
 }
 
@@ -1547,9 +1565,16 @@ impl ComplexFragmentEquivalent for xs::types::SimpleExtensionType {
 
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
-        _compiler: T,
+        mut compiler: T,
     ) -> Self::FragmentId {
-        todo!()
+        let compiler = compiler.as_mut();
+
+        let attribute_declarations = self.attr_decls.to_complex_fragments(&mut *compiler);
+
+        compiler.push_fragment(SimpleExtensionFragment {
+            base: self.base.0.clone(),
+            attribute_declarations,
+        })
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(

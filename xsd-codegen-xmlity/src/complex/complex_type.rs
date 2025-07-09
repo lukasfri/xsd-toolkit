@@ -136,16 +136,73 @@ impl ComplexToTypeTemplate for cx::RestrictionFragment {
     }
 }
 
+impl ComplexToTypeTemplate for cx::SimpleExtensionFragment {
+    type TypeTemplate = templates::group_record::GroupRecord;
+
+    fn to_type_template<C: ComplexContext, S: Scope>(
+        &self,
+        context: &C,
+        scope: &mut S,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let simple_type = context.resolve_named_type(&self.base)?;
+
+        if simple_type.ty_type != crate::TypeType::Simple {
+            return Err(crate::Error::UnsupportedFragment {
+                fragment: "SimpleExtensionFragment with non-simple type as base".to_string(),
+            });
+        }
+
+        let mut template = GroupRecord::new_single_field(Some(format_ident!("Content")), ElementField::Item(ItemFieldItem {
+                ty: simple_type.ty,
+                default: false,
+            }));
+
+
+        let attributes = context.resolve_fragment_id(&self.attribute_declarations, scope)?;
+
+        let attribute_fields = dedup_attribute_field_idents(
+            match &template.fields {
+                ElementFieldType::Named(items) => items,
+                ElementFieldType::Empty => &[],
+                ElementFieldType::Unnamed(_) => {
+                    unreachable!("Should only be named fields or empty")
+                }
+            },
+            attributes.template,
+        );
+
+        template
+            .fields
+            .prefix_fields(ElementFieldType::Named(attribute_fields));
+
+        template.force_empty_if_empty();
+
+        Ok(ToTypeTemplateData {
+            ident: None,
+            template,
+        })
+    }
+}
+
 
 impl ComplexToTypeTemplate for cx::SimpleContentFragment {
     type TypeTemplate = templates::group_record::GroupRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
-        _context: &C,
-        _scope: &mut S,
+        context: &C,
+        scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        unimplemented!()
+        match self.content_fragment {
+            cx::SimpleContentChildId::Extension(fragment_idx) => {
+                context.resolve_fragment_id(&fragment_idx, scope)
+            },
+            cx::SimpleContentChildId::Restriction(_) => {
+                Err(crate::Error::UnsupportedFragment {
+                    fragment: "SimpleContent Restriction".to_string(),
+                })
+            },
+        }
     }
 }
 
@@ -160,7 +217,7 @@ impl ComplexToTypeTemplate for cx::ComplexContentFragment {
         match &self.content_fragment {
             cx::ComplexContentChildId::Extension(_fragment_idx) => {
                 Err(crate::Error::UnsupportedFragment {
-                    fragment: "Extension".to_string(),
+                    fragment: " ComplexContent Extension".to_string(),
                 })
             }
             cx::ComplexContentChildId::Restriction(fragment_idx) => {

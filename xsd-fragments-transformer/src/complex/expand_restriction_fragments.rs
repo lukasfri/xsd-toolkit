@@ -55,31 +55,29 @@ impl ExpandRestrictionFragments {
         let base_attribute = ctx.get_complex_fragment(base_attribute_id).unwrap().clone();
         let attribute = ctx.get_complex_fragment_mut(attribute_id).unwrap();
 
-        let decl_base_attribute = match base_attribute.type_mode {
-            LocalAttributeFragmentTypeMode::Declared(local) => local,
-            LocalAttributeFragmentTypeMode::Reference(_) => {
-                return Err(Error::CannotRestrictReferenceAttribute {
-                    attribute: *attribute_id,
-                    base_attribute: *base_attribute_id,
-                });
-            }
-        };
-        let decl_attribute = match &mut attribute.type_mode {
-            LocalAttributeFragmentTypeMode::Declared(local) => local,
-            LocalAttributeFragmentTypeMode::Reference(_) => {
-                return Err(Error::CannotRestrictReferenceAttribute {
-                    attribute: *attribute_id,
-                    base_attribute: *base_attribute_id,
-                });
-            }
-        };
+        use LocalAttributeFragmentTypeMode as TypeMode;
 
-        if attribute.use_.is_none() {
-            attribute.use_ = base_attribute.use_;
-        }
-        if decl_attribute.type_.is_none() {
-            decl_attribute.type_ = decl_base_attribute.type_;
-        }
+        match (base_attribute.type_mode, &mut attribute.type_mode) {
+            (TypeMode::Declared(decl_base_attribute), TypeMode::Declared(decl_attribute)) => {
+                if attribute.use_.is_none() {
+                    attribute.use_ = base_attribute.use_;
+                }
+                if decl_attribute.type_.is_none() {
+                    decl_attribute.type_ = decl_base_attribute.type_;
+                }
+            }
+            (TypeMode::Reference(_decl_base_attribute), TypeMode::Reference(_decl_attribute)) => {
+                if attribute.use_.is_none() {
+                    attribute.use_ = base_attribute.use_;
+                }
+            }
+            _ => {
+                return Err(Error::CannotRestrictReferenceAttribute {
+                    attribute: *attribute_id,
+                    base_attribute: *base_attribute_id,
+                });
+            }
+        };
 
         Ok(())
     }

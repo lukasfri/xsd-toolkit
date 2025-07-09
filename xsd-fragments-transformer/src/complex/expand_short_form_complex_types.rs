@@ -92,6 +92,7 @@ impl XmlnsLocalTransformer for &ExpandShortFormComplexTypes {
         mut ctx: XmlnsLocalTransformerContext<'_>,
     ) -> Result<TransformChange, Self::Error> {
         ctx.iter_complex_fragment_ids()
+            .collect::<Vec<_>>()
             .into_iter()
             .map(|f| ExpandShortFormComplexTypes::expand_short_form_complex_type(&mut ctx, &f))
             .collect()
