@@ -1,5 +1,5 @@
 use xmlity::types::utils::{XmlRoot, XmlRootTop};
-use xmlity_ns_xs::xs;
+use xmlity_ns_xs as xs;
 
 // pub mod top_level_element;
 

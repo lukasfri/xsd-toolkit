@@ -392,7 +392,7 @@ mod tests {
             xs::types::ExplicitGroup::builder()
                 .max_occurs(
                     xs::types::AllNNI::from(
-                        xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded,
+                        xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded,
                     )
                     .into(),
                 )
@@ -735,7 +735,7 @@ mod tests {
                                         xs::Choice(Box::new(
                                             xs::types::ExplicitGroup::builder()
                                                 .min_occurs(0)
-                                                .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded).into())
+                                                .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded).into())
                                                 .nested_particle(vec![
                                                     xs::types::GroupRef::builder()
                                                         .ref_(xs::types::QName(ExpandedName::new(
@@ -847,7 +847,7 @@ mod tests {
                                             xs::Choice(Box::new(
                                                 xs::types::ExplicitGroup::builder()
                                                     .min_occurs(0)
-                                                    .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded).into())
+                                                    .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded).into())
                                                     .nested_particle(vec![
                                                         xs::types::GroupRef::builder()
                                                             .ref_(xs::types::QName(
@@ -978,7 +978,7 @@ mod tests {
                                         xs::Choice(Box::new(
                                             xs::types::ExplicitGroup::builder()
                                                 .min_occurs(0)
-                                                .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded).into())
+                                                .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded).into())
                                                 .nested_particle(vec![
                                                     xs::types::GroupRef::builder()
                                                         .ref_(xs::types::QName(ExpandedName::new(
@@ -1181,7 +1181,7 @@ mod tests {
                                             xs::Choice(
                                                 xs::types::ExplicitGroup::builder()
                                                     .min_occurs(0)
-                                                    .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded).into())
+                                                    .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded).into())
                                                     .nested_particle(vec![
                                                         xs::types::GroupRef::builder()
                                                             .ref_(xs::types::QName(

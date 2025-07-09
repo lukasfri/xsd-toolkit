@@ -15,13 +15,13 @@ fn main() {
         .url_net_resolution(true)
         .bound_namespaces(vec![
             (XmlNamespace::XML, parse_quote!(xmlity_ns_xml)),
-            (XmlNamespace::XS, parse_quote!(crate::xs)),
+            (XmlNamespace::XS, parse_quote!(crate)),
         ])
         .bound_types(vec![
             (
                 ExpandedName::new(LocalName::new_dangerous("QName"), Some(XmlNamespace::XS)),
                 BoundType {
-                    ty: TypeReference::new_static(parse_quote!(crate::xs::types::QName)),
+                    ty: TypeReference::new_static(parse_quote!(crate::types::QName)),
                     ty_type: TypeType::Simple,
                     serialize_with: None,
                     deserialize_with: None,
@@ -30,7 +30,7 @@ fn main() {
             (
                 ExpandedName::new(LocalName::new_dangerous("anyURI"), Some(XmlNamespace::XS)),
                 BoundType {
-                    ty: TypeReference::new_static(parse_quote!(crate::xs::types::TargetNamespace)),
+                    ty: TypeReference::new_static(parse_quote!(crate::types::TargetNamespace)),
                     ty_type: TypeType::Simple,
                     serialize_with: None,
                     deserialize_with: None,
@@ -48,7 +48,7 @@ fn main() {
         ])
         .bound_elements(vec![(
             ExpandedName::new(LocalName::new_dangerous("facet"), Some(XmlNamespace::XS)),
-            TypeReference::new_static(parse_quote!(crate::xs::Facet)),
+            TypeReference::new_static(parse_quote!(crate::Facet)),
         )])
         .build();
 

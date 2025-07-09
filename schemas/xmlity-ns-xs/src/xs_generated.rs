@@ -1,6 +1,6 @@
 pub mod types {
     pub mod all_nni_items {
-        pub mod variant_0_variants {
+        pub mod all_nni_variants {
             #[derive(
                 ::core::fmt::Debug,
                 ::core::clone::Clone,
@@ -88,12 +88,12 @@ pub mod types {
         }
         impl ::core::convert::From<usize> for AllNNI {
             fn from(value: usize) -> Self {
-                AllNNI::Variant0(::std::boxed::Box::new(value))
+                AllNNI::NonNegativeInteger(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<variant_0_variants::Variant0> for AllNNI {
-            fn from(value: variant_0_variants::Variant0) -> Self {
-                AllNNI::Variant0_0(::std::boxed::Box::new(value))
+        impl ::core::convert::From<all_nni_variants::Variant0> for AllNNI {
+            fn from(value: all_nni_variants::Variant0) -> Self {
+                AllNNI::Variant0(::std::boxed::Box::new(value))
             }
         }
         #[derive(
@@ -104,13 +104,13 @@ pub mod types {
             ::core::clone::Clone
         )]
         pub enum AllNNI {
-            Variant0(::std::boxed::Box<usize>),
-            Variant0_0(::std::boxed::Box<variant_0_variants::Variant0>),
+            NonNegativeInteger(::std::boxed::Box<usize>),
+            Variant0(::std::boxed::Box<all_nni_variants::Variant0>),
         }
     }
     pub type AllNNI = all_nni_items::AllNNI;
     pub mod basic_namespace_list_items {
-        pub mod variant_0_variants {
+        pub mod basic_namespace_list_variants {
             #[derive(
                 ::core::fmt::Debug,
                 ::core::clone::Clone,
@@ -201,15 +201,16 @@ pub mod types {
                 }
             }
         }
-        impl ::core::convert::From<crate::xs::types::TargetNamespace>
+        impl ::core::convert::From<crate::types::TargetNamespace>
         for BasicNamespaceList {
-            fn from(value: crate::xs::types::TargetNamespace) -> Self {
-                BasicNamespaceList::Variant0(::std::boxed::Box::new(value))
+            fn from(value: crate::types::TargetNamespace) -> Self {
+                BasicNamespaceList::AnyURI(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<variant_0_variants::Variant0> for BasicNamespaceList {
-            fn from(value: variant_0_variants::Variant0) -> Self {
-                BasicNamespaceList::Variant0_0(::std::boxed::Box::new(value))
+        impl ::core::convert::From<basic_namespace_list_variants::Variant0>
+        for BasicNamespaceList {
+            fn from(value: basic_namespace_list_variants::Variant0) -> Self {
+                BasicNamespaceList::Variant0(::std::boxed::Box::new(value))
             }
         }
         #[derive(
@@ -220,11 +221,11 @@ pub mod types {
             ::core::clone::Clone
         )]
         pub enum BasicNamespaceList {
-            Variant0(::std::boxed::Box<crate::xs::types::TargetNamespace>),
-            Variant0_0(::std::boxed::Box<variant_0_variants::Variant0>),
+            AnyURI(::std::boxed::Box<crate::types::TargetNamespace>),
+            Variant0(::std::boxed::Box<basic_namespace_list_variants::Variant0>),
         }
     }
-    pub type BasicNamespaceList = crate::xs::types::List<
+    pub type BasicNamespaceList = crate::types::List<
         basic_namespace_list_items::BasicNamespaceList,
     >;
     pub mod block_set_items {
@@ -313,15 +314,109 @@ pub mod types {
                     }
                 }
             }
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_1_with)]
+            pub enum Variant1 {
+                Extension,
+                Restriction,
+                Substitution,
+            }
+            pub mod variant_1_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant1, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant1::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant1,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant1ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant1ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant1ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant1 {
+                type Error = Variant1ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "extension" => Ok(Variant1::Extension),
+                        "restriction" => Ok(Variant1::Restriction),
+                        "substitution" => Ok(Variant1::Substitution),
+                        _ => {
+                            Err(Variant1ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant1> for ::std::string::String {
+                fn from(value: Variant1) -> Self {
+                    match value {
+                        Variant1::Extension => ::std::string::String::from("extension"),
+                        Variant1::Restriction => {
+                            ::std::string::String::from("restriction")
+                        }
+                        Variant1::Substitution => {
+                            ::std::string::String::from("substitution")
+                        }
+                    }
+                }
+            }
         }
         impl ::core::convert::From<variant_variants::Variant0> for BlockSet {
             fn from(value: variant_variants::Variant0) -> Self {
                 BlockSet::Variant0(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::types::List<::std::string::String>>
+        impl ::core::convert::From<crate::types::List<variant_variants::Variant1>>
         for BlockSet {
-            fn from(value: crate::xs::types::List<::std::string::String>) -> Self {
+            fn from(value: crate::types::List<variant_variants::Variant1>) -> Self {
                 BlockSet::Variant1(::std::boxed::Box::new(value))
             }
         }
@@ -334,7 +429,9 @@ pub mod types {
         )]
         pub enum BlockSet {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
-            Variant1(::std::boxed::Box<crate::xs::types::List<::std::string::String>>),
+            Variant1(
+                ::std::boxed::Box<crate::types::List<variant_variants::Variant1>>,
+            ),
         }
     }
     pub type BlockSet = block_set_items::BlockSet;
@@ -537,13 +634,13 @@ pub mod types {
             }
         }
         impl ::core::convert::From<
-            crate::xs::types::List<
-                ::std::boxed::Box<crate::xs::types::ReducedDerivationControl>,
+            crate::types::List<
+                ::std::boxed::Box<crate::types::ReducedDerivationControl>,
             >,
         > for DerivationSet {
             fn from(
-                value: crate::xs::types::List<
-                    ::std::boxed::Box<crate::xs::types::ReducedDerivationControl>,
+                value: crate::types::List<
+                    ::std::boxed::Box<crate::types::ReducedDerivationControl>,
                 >,
             ) -> Self {
                 DerivationSet::Variant1(::std::boxed::Box::new(value))
@@ -560,8 +657,8 @@ pub mod types {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
             Variant1(
                 ::std::boxed::Box<
-                    crate::xs::types::List<
-                        ::std::boxed::Box<crate::xs::types::ReducedDerivationControl>,
+                    crate::types::List<
+                        ::std::boxed::Box<crate::types::ReducedDerivationControl>,
                     >,
                 >,
             ),
@@ -751,13 +848,13 @@ pub mod types {
             }
         }
         impl ::core::convert::From<
-            crate::xs::types::List<
-                ::std::boxed::Box<crate::xs::types::TypeDerivationControl>,
+            crate::types::List<
+                ::std::boxed::Box<crate::types::TypeDerivationControl>,
             >,
         > for FullDerivationSet {
             fn from(
-                value: crate::xs::types::List<
-                    ::std::boxed::Box<crate::xs::types::TypeDerivationControl>,
+                value: crate::types::List<
+                    ::std::boxed::Box<crate::types::TypeDerivationControl>,
                 >,
             ) -> Self {
                 FullDerivationSet::Variant1(::std::boxed::Box::new(value))
@@ -774,8 +871,8 @@ pub mod types {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
             Variant1(
                 ::std::boxed::Box<
-                    crate::xs::types::List<
-                        ::std::boxed::Box<crate::xs::types::TypeDerivationControl>,
+                    crate::types::List<
+                        ::std::boxed::Box<crate::types::TypeDerivationControl>,
                     >,
                 >,
             ),
@@ -783,16 +880,15 @@ pub mod types {
     }
     pub type FullDerivationSet = full_derivation_set_items::FullDerivationSet;
     pub mod namespace_list_items {
-        impl ::core::convert::From<crate::xs::types::SpecialNamespaceList>
+        impl ::core::convert::From<crate::types::SpecialNamespaceList>
         for NamespaceList {
-            fn from(value: crate::xs::types::SpecialNamespaceList) -> Self {
-                NamespaceList::Variant0(::std::boxed::Box::new(value))
+            fn from(value: crate::types::SpecialNamespaceList) -> Self {
+                NamespaceList::SpecialNamespaceList(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::types::BasicNamespaceList>
-        for NamespaceList {
-            fn from(value: crate::xs::types::BasicNamespaceList) -> Self {
-                NamespaceList::Variant1(::std::boxed::Box::new(value))
+        impl ::core::convert::From<crate::types::BasicNamespaceList> for NamespaceList {
+            fn from(value: crate::types::BasicNamespaceList) -> Self {
+                NamespaceList::BasicNamespaceList(::std::boxed::Box::new(value))
             }
         }
         #[derive(
@@ -803,8 +899,8 @@ pub mod types {
             ::core::clone::Clone
         )]
         pub enum NamespaceList {
-            Variant0(::std::boxed::Box<crate::xs::types::SpecialNamespaceList>),
-            Variant1(::std::boxed::Box<crate::xs::types::BasicNamespaceList>),
+            SpecialNamespaceList(::std::boxed::Box<crate::types::SpecialNamespaceList>),
+            BasicNamespaceList(::std::boxed::Box<crate::types::BasicNamespaceList>),
         }
     }
     pub type NamespaceList = namespace_list_items::NamespaceList;
@@ -865,7 +961,7 @@ pub mod types {
     }
     pub type Public = public_items::Public;
     pub mod qname_list_items {
-        pub mod variant_0_variants {
+        pub mod qname_list_variants {
             #[derive(
                 ::core::fmt::Debug,
                 ::core::clone::Clone,
@@ -956,14 +1052,14 @@ pub mod types {
                 }
             }
         }
-        impl ::core::convert::From<crate::xs::types::QName> for QnameList {
-            fn from(value: crate::xs::types::QName) -> Self {
-                QnameList::Variant0(::std::boxed::Box::new(value))
+        impl ::core::convert::From<crate::types::QName> for QnameList {
+            fn from(value: crate::types::QName) -> Self {
+                QnameList::Qname(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<variant_0_variants::Variant0> for QnameList {
-            fn from(value: variant_0_variants::Variant0) -> Self {
-                QnameList::Variant0_0(::std::boxed::Box::new(value))
+        impl ::core::convert::From<qname_list_variants::Variant0> for QnameList {
+            fn from(value: qname_list_variants::Variant0) -> Self {
+                QnameList::Variant0(::std::boxed::Box::new(value))
             }
         }
         #[derive(
@@ -974,13 +1070,13 @@ pub mod types {
             ::core::clone::Clone
         )]
         pub enum QnameList {
-            Variant0(::std::boxed::Box<crate::xs::types::QName>),
-            Variant0_0(::std::boxed::Box<variant_0_variants::Variant0>),
+            Qname(::std::boxed::Box<crate::types::QName>),
+            Variant0(::std::boxed::Box<qname_list_variants::Variant0>),
         }
     }
-    pub type QnameList = crate::xs::types::List<qname_list_items::QnameList>;
+    pub type QnameList = crate::types::List<qname_list_items::QnameList>;
     pub mod qname_list_a_items {
-        pub mod variant_0_variants {
+        pub mod qname_list_a_variants {
             #[derive(
                 ::core::fmt::Debug,
                 ::core::clone::Clone,
@@ -1066,14 +1162,14 @@ pub mod types {
                 }
             }
         }
-        impl ::core::convert::From<crate::xs::types::QName> for QnameListA {
-            fn from(value: crate::xs::types::QName) -> Self {
-                QnameListA::Variant0(::std::boxed::Box::new(value))
+        impl ::core::convert::From<crate::types::QName> for QnameListA {
+            fn from(value: crate::types::QName) -> Self {
+                QnameListA::Qname(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<variant_0_variants::Variant0> for QnameListA {
-            fn from(value: variant_0_variants::Variant0) -> Self {
-                QnameListA::Variant0_0(::std::boxed::Box::new(value))
+        impl ::core::convert::From<qname_list_a_variants::Variant0> for QnameListA {
+            fn from(value: qname_list_a_variants::Variant0) -> Self {
+                QnameListA::Variant0(::std::boxed::Box::new(value))
             }
         }
         #[derive(
@@ -1084,12 +1180,107 @@ pub mod types {
             ::core::clone::Clone
         )]
         pub enum QnameListA {
-            Variant0(::std::boxed::Box<crate::xs::types::QName>),
-            Variant0_0(::std::boxed::Box<variant_0_variants::Variant0>),
+            Qname(::std::boxed::Box<crate::types::QName>),
+            Variant0(::std::boxed::Box<qname_list_a_variants::Variant0>),
         }
     }
-    pub type QnameListA = crate::xs::types::List<qname_list_a_items::QnameListA>;
-    pub type ReducedDerivationControl = ::std::string::String;
+    pub type QnameListA = crate::types::List<qname_list_a_items::QnameListA>;
+    pub mod reduced_derivation_control_items {
+        #[derive(
+            ::core::fmt::Debug,
+            ::core::clone::Clone,
+            ::core::marker::Copy,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq
+        )]
+        #[xvalue(with = reduced_derivation_control_with)]
+        pub enum ReducedDerivationControl {
+            Extension,
+            Restriction,
+        }
+        pub mod reduced_derivation_control_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::ReducedDerivationControl, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: ::std::string::String = text
+                    .parse()
+                    .map_err(::xmlity::de::Error::custom)?;
+                super::ReducedDerivationControl::try_from(value)
+                    .map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::ReducedDerivationControl,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                    .into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug)]
+        pub enum ReducedDerivationControlParseError {
+            NonExistent { value: ::std::string::String },
+        }
+        impl ::core::fmt::Display for ReducedDerivationControlParseError {
+            fn fmt(
+                &self,
+                f: &mut ::core::fmt::Formatter<'_>,
+            ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                match self {
+                    ReducedDerivationControlParseError::NonExistent { value } => {
+                        write!(
+                            f, "Value '{:?}' does not exist in the enumeration", value
+                        )
+                    }
+                }
+            }
+        }
+        impl ::core::convert::TryFrom<::std::string::String>
+        for ReducedDerivationControl {
+            type Error = ReducedDerivationControlParseError;
+            fn try_from(
+                value: ::std::string::String,
+            ) -> ::core::result::Result<Self, Self::Error> {
+                match ::std::string::String::as_str(&value) {
+                    "extension" => Ok(ReducedDerivationControl::Extension),
+                    "restriction" => Ok(ReducedDerivationControl::Restriction),
+                    _ => {
+                        Err(ReducedDerivationControlParseError::NonExistent {
+                            value,
+                        })
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<ReducedDerivationControl> for ::std::string::String {
+            fn from(value: ReducedDerivationControl) -> Self {
+                match value {
+                    ReducedDerivationControl::Extension => {
+                        ::std::string::String::from("extension")
+                    }
+                    ReducedDerivationControl::Restriction => {
+                        ::std::string::String::from("restriction")
+                    }
+                }
+            }
+        }
+    }
+    pub type ReducedDerivationControl = reduced_derivation_control_items::ReducedDerivationControl;
     pub mod simple_derivation_set_items {
         pub mod variant_variants {
             #[derive(
@@ -1176,15 +1367,110 @@ pub mod types {
                     }
                 }
             }
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_1_with)]
+            pub enum Variant1 {
+                List,
+                Union,
+                Restriction,
+                Extension,
+            }
+            pub mod variant_1_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant1, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant1::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant1,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant1ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant1ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant1ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant1 {
+                type Error = Variant1ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "list" => Ok(Variant1::List),
+                        "union" => Ok(Variant1::Union),
+                        "restriction" => Ok(Variant1::Restriction),
+                        "extension" => Ok(Variant1::Extension),
+                        _ => {
+                            Err(Variant1ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant1> for ::std::string::String {
+                fn from(value: Variant1) -> Self {
+                    match value {
+                        Variant1::List => ::std::string::String::from("list"),
+                        Variant1::Union => ::std::string::String::from("union"),
+                        Variant1::Restriction => {
+                            ::std::string::String::from("restriction")
+                        }
+                        Variant1::Extension => ::std::string::String::from("extension"),
+                    }
+                }
+            }
         }
         impl ::core::convert::From<variant_variants::Variant0> for SimpleDerivationSet {
             fn from(value: variant_variants::Variant0) -> Self {
                 SimpleDerivationSet::Variant0(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::types::List<::std::string::String>>
+        impl ::core::convert::From<crate::types::List<variant_variants::Variant1>>
         for SimpleDerivationSet {
-            fn from(value: crate::xs::types::List<::std::string::String>) -> Self {
+            fn from(value: crate::types::List<variant_variants::Variant1>) -> Self {
                 SimpleDerivationSet::Variant1(::std::boxed::Box::new(value))
             }
         }
@@ -1197,7 +1483,9 @@ pub mod types {
         )]
         pub enum SimpleDerivationSet {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
-            Variant1(::std::boxed::Box<crate::xs::types::List<::std::string::String>>),
+            Variant1(
+                ::std::boxed::Box<crate::types::List<variant_variants::Variant1>>,
+            ),
         }
     }
     pub type SimpleDerivationSet = simple_derivation_set_items::SimpleDerivationSet;
@@ -1292,9 +1580,109 @@ pub mod types {
         }
     }
     pub type SpecialNamespaceList = special_namespace_list_items::SpecialNamespaceList;
-    pub type TypeDerivationControl = ::std::string::String;
+    pub mod type_derivation_control_items {
+        #[derive(
+            ::core::fmt::Debug,
+            ::core::clone::Clone,
+            ::core::marker::Copy,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq
+        )]
+        #[xvalue(with = type_derivation_control_with)]
+        pub enum TypeDerivationControl {
+            Extension,
+            Restriction,
+            List,
+            Union,
+        }
+        pub mod type_derivation_control_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::TypeDerivationControl, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: ::std::string::String = text
+                    .parse()
+                    .map_err(::xmlity::de::Error::custom)?;
+                super::TypeDerivationControl::try_from(value)
+                    .map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::TypeDerivationControl,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                    .into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug)]
+        pub enum TypeDerivationControlParseError {
+            NonExistent { value: ::std::string::String },
+        }
+        impl ::core::fmt::Display for TypeDerivationControlParseError {
+            fn fmt(
+                &self,
+                f: &mut ::core::fmt::Formatter<'_>,
+            ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                match self {
+                    TypeDerivationControlParseError::NonExistent { value } => {
+                        write!(
+                            f, "Value '{:?}' does not exist in the enumeration", value
+                        )
+                    }
+                }
+            }
+        }
+        impl ::core::convert::TryFrom<::std::string::String> for TypeDerivationControl {
+            type Error = TypeDerivationControlParseError;
+            fn try_from(
+                value: ::std::string::String,
+            ) -> ::core::result::Result<Self, Self::Error> {
+                match ::std::string::String::as_str(&value) {
+                    "extension" => Ok(TypeDerivationControl::Extension),
+                    "restriction" => Ok(TypeDerivationControl::Restriction),
+                    "list" => Ok(TypeDerivationControl::List),
+                    "union" => Ok(TypeDerivationControl::Union),
+                    _ => {
+                        Err(TypeDerivationControlParseError::NonExistent {
+                            value,
+                        })
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<TypeDerivationControl> for ::std::string::String {
+            fn from(value: TypeDerivationControl) -> Self {
+                match value {
+                    TypeDerivationControl::Extension => {
+                        ::std::string::String::from("extension")
+                    }
+                    TypeDerivationControl::Restriction => {
+                        ::std::string::String::from("restriction")
+                    }
+                    TypeDerivationControl::List => ::std::string::String::from("list"),
+                    TypeDerivationControl::Union => ::std::string::String::from("union"),
+                }
+            }
+        }
+    }
+    pub type TypeDerivationControl = type_derivation_control_items::TypeDerivationControl;
     pub mod xpath_default_namespace_items {
-        pub mod variant_0_variants {
+        pub mod xpath_default_namespace_variants {
             #[derive(
                 ::core::fmt::Debug,
                 ::core::clone::Clone,
@@ -1390,16 +1778,16 @@ pub mod types {
                 }
             }
         }
-        impl ::core::convert::From<crate::xs::types::TargetNamespace>
+        impl ::core::convert::From<crate::types::TargetNamespace>
         for XpathDefaultNamespace {
-            fn from(value: crate::xs::types::TargetNamespace) -> Self {
-                XpathDefaultNamespace::Variant0(::std::boxed::Box::new(value))
+            fn from(value: crate::types::TargetNamespace) -> Self {
+                XpathDefaultNamespace::AnyURI(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<variant_0_variants::Variant0>
+        impl ::core::convert::From<xpath_default_namespace_variants::Variant0>
         for XpathDefaultNamespace {
-            fn from(value: variant_0_variants::Variant0) -> Self {
-                XpathDefaultNamespace::Variant0_0(::std::boxed::Box::new(value))
+            fn from(value: xpath_default_namespace_variants::Variant0) -> Self {
+                XpathDefaultNamespace::Variant0(::std::boxed::Box::new(value))
             }
         }
         #[derive(
@@ -1410,8 +1798,8 @@ pub mod types {
             ::core::clone::Clone
         )]
         pub enum XpathDefaultNamespace {
-            Variant0(::std::boxed::Box<crate::xs::types::TargetNamespace>),
-            Variant0_0(::std::boxed::Box<variant_0_variants::Variant0>),
+            AnyURI(::std::boxed::Box<crate::types::TargetNamespace>),
+            Variant0(::std::boxed::Box<xpath_default_namespace_variants::Variant0>),
         }
     }
     pub type XpathDefaultNamespace = xpath_default_namespace_items::XpathDefaultNamespace;
@@ -1500,6 +1888,114 @@ pub mod types {
                 }
             }
         }
+        pub mod max_occurs_value_variants {
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_0_with)]
+            pub enum Variant0 {
+                Unbounded,
+            }
+            pub mod variant_0_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant0, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant0,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant0ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant0ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant0ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+                type Error = Variant0ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "unbounded" => Ok(Variant0::Unbounded),
+                        _ => {
+                            Err(Variant0ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant0> for ::std::string::String {
+                fn from(value: Variant0) -> Self {
+                    match value {
+                        Variant0::Unbounded => ::std::string::String::from("unbounded"),
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<usize> for MaxOccursValue {
+            fn from(value: usize) -> Self {
+                MaxOccursValue::NonNegativeInteger(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<max_occurs_value_variants::Variant0>
+        for MaxOccursValue {
+            fn from(value: max_occurs_value_variants::Variant0) -> Self {
+                MaxOccursValue::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum MaxOccursValue {
+            NonNegativeInteger(::std::boxed::Box<usize>),
+            Variant0(::std::boxed::Box<max_occurs_value_variants::Variant0>),
+        }
     }
     #[derive(
         ::core::fmt::Debug,
@@ -1515,17 +2011,17 @@ pub mod types {
         #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<all_items::MinOccursValue>,
         #[xattribute(name = "maxOccurs", optional)]
-        pub max_occurs: ::core::option::Option<::std::string::String>,
-        pub all_model: ::std::boxed::Box<crate::xs::groups::AllModel>,
+        pub max_occurs: ::core::option::Option<all_items::MaxOccursValue>,
+        pub all_model: ::std::boxed::Box<crate::groups::AllModel>,
     }
     pub mod alt_type_items {
-        impl ::core::convert::From<crate::xs::types::LocalSimpleType> for Type {
-            fn from(value: crate::xs::types::LocalSimpleType) -> Self {
+        impl ::core::convert::From<crate::types::LocalSimpleType> for Type {
+            fn from(value: crate::types::LocalSimpleType) -> Self {
                 Type::SimpleType(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::types::LocalComplexType> for Type {
-            fn from(value: crate::xs::types::LocalComplexType) -> Self {
+        impl ::core::convert::From<crate::types::LocalComplexType> for Type {
+            fn from(value: crate::types::LocalComplexType) -> Self {
                 Type::ComplexType(::std::boxed::Box::new(value))
             }
         }
@@ -1542,13 +2038,13 @@ pub mod types {
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            SimpleType(#[xgroup] ::std::boxed::Box<crate::xs::types::LocalSimpleType>),
+            SimpleType(#[xgroup] ::std::boxed::Box<crate::types::LocalSimpleType>),
             #[xelement(
                 name = "complexType",
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            ComplexType(#[xgroup] ::std::boxed::Box<crate::xs::types::LocalComplexType>),
+            ComplexType(#[xgroup] ::std::boxed::Box<crate::types::LocalComplexType>),
         }
     }
     #[derive(
@@ -1566,13 +2062,13 @@ pub mod types {
         #[xattribute(name = "test", optional)]
         pub test: ::core::option::Option<String>,
         #[xattribute(name = "type", optional)]
-        pub type_attribute: ::core::option::Option<crate::xs::types::QName>,
+        pub type_attribute: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "xpathDefaultNamespace", optional)]
         pub xpath_default_namespace: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
+            ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
         >,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         pub type_: ::core::option::Option<alt_type_items::Type>,
     }
@@ -1589,7 +2085,7 @@ pub mod types {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -1619,10 +2115,10 @@ pub mod types {
         pub test: ::core::option::Option<String>,
         #[xattribute(name = "xpathDefaultNamespace", optional)]
         pub xpath_default_namespace: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
+            ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
         >,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
     pub mod attribute_items {
         #[derive(
@@ -1731,9 +2227,9 @@ pub mod types {
         #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
         #[xattribute(name = "ref", optional)]
-        pub ref_: ::core::option::Option<crate::xs::types::QName>,
+        pub ref_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "type", optional)]
-        pub type_: ::core::option::Option<crate::xs::types::QName>,
+        pub type_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "use", optional)]
         pub use_: ::core::option::Option<attribute_items::UseValue>,
         #[xattribute(name = "default", optional)]
@@ -1741,15 +2237,13 @@ pub mod types {
         #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<String>,
         #[xattribute(name = "form", optional)]
-        pub form: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::FormChoice>,
-        >,
+        pub form: ::core::option::Option<::std::boxed::Box<crate::types::FormChoice>>,
         #[xattribute(name = "targetNamespace", optional)]
-        pub target_namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
+        pub target_namespace: ::core::option::Option<crate::types::TargetNamespace>,
         #[xattribute(name = "inheritable", optional)]
         pub inheritable: ::core::option::Option<bool>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xelement(
             name = "simpleType",
             namespace = "http://www.w3.org/2001/XMLSchema",
@@ -1757,7 +2251,7 @@ pub mod types {
             optional
         )]
         pub simple_type: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::LocalSimpleType>,
+            ::std::boxed::Box<crate::types::LocalSimpleType>,
         >,
     }
     #[derive(
@@ -1775,10 +2269,10 @@ pub mod types {
         #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
         #[xattribute(name = "ref", optional)]
-        pub ref_: ::core::option::Option<crate::xs::types::QName>,
+        pub ref_: ::core::option::Option<crate::types::QName>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
-        pub attr_decls: ::std::boxed::Box<crate::xs::groups::AttrDecls>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
+        pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -1793,9 +2287,9 @@ pub mod types {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "ref")]
-        pub ref_: crate::xs::types::QName,
+        pub ref_: crate::types::QName,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -1817,17 +2311,17 @@ pub mod types {
         pub abstract_: ::core::option::Option<bool>,
         #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+            ::std::boxed::Box<crate::types::DerivationSet>,
         >,
         #[xattribute(name = "block", optional)]
         pub block: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+            ::std::boxed::Box<crate::types::DerivationSet>,
         >,
         #[xattribute(name = "defaultAttributesApply", optional)]
         pub default_attributes_apply: ::core::option::Option<bool>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
-        pub complex_type_model: ::std::boxed::Box<crate::xs::groups::ComplexTypeModel>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
+        pub complex_type_model: ::std::boxed::Box<crate::groups::ComplexTypeModel>,
     }
     pub mod complex_restriction_type_items {
         #[derive(
@@ -1842,9 +2336,9 @@ pub mod types {
         pub struct Child1 {
             #[xvalue(default)]
             pub open_content: ::core::option::Option<
-                ::std::boxed::Box<crate::xs::OpenContent>,
+                ::std::boxed::Box<crate::OpenContent>,
             >,
-            pub type_def_particle: ::std::boxed::Box<crate::xs::groups::TypeDefParticle>,
+            pub type_def_particle: ::std::boxed::Box<crate::groups::TypeDefParticle>,
         }
     }
     #[derive(
@@ -1860,22 +2354,22 @@ pub mod types {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
-        pub base: crate::xs::types::QName,
+        pub base: crate::types::QName,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         pub child_1: ::core::option::Option<complex_restriction_type_items::Child1>,
-        pub attr_decls: ::std::boxed::Box<crate::xs::groups::AttrDecls>,
-        pub assertions: ::std::boxed::Box<crate::xs::groups::Assertions>,
+        pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
+        pub assertions: ::std::boxed::Box<crate::groups::Assertions>,
     }
     pub mod element_items {
-        impl ::core::convert::From<crate::xs::types::LocalSimpleType> for Type {
-            fn from(value: crate::xs::types::LocalSimpleType) -> Self {
+        impl ::core::convert::From<crate::types::LocalSimpleType> for Type {
+            fn from(value: crate::types::LocalSimpleType) -> Self {
                 Type::SimpleType(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::types::LocalComplexType> for Type {
-            fn from(value: crate::xs::types::LocalComplexType) -> Self {
+        impl ::core::convert::From<crate::types::LocalComplexType> for Type {
+            fn from(value: crate::types::LocalComplexType) -> Self {
                 Type::ComplexType(::std::boxed::Box::new(value))
             }
         }
@@ -1892,16 +2386,16 @@ pub mod types {
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            SimpleType(#[xgroup] ::std::boxed::Box<crate::xs::types::LocalSimpleType>),
+            SimpleType(#[xgroup] ::std::boxed::Box<crate::types::LocalSimpleType>),
             #[xelement(
                 name = "complexType",
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            ComplexType(#[xgroup] ::std::boxed::Box<crate::xs::types::LocalComplexType>),
+            ComplexType(#[xgroup] ::std::boxed::Box<crate::types::LocalComplexType>),
         }
-        impl ::core::convert::From<crate::xs::types::AltType> for Alternative {
-            fn from(value: crate::xs::types::AltType) -> Self {
+        impl ::core::convert::From<crate::types::AltType> for Alternative {
+            fn from(value: crate::types::AltType) -> Self {
                 Alternative(::std::boxed::Box::new(value))
             }
         }
@@ -1917,10 +2411,7 @@ pub mod types {
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        pub struct Alternative(
-            #[xgroup]
-            pub ::std::boxed::Box<crate::xs::types::AltType>,
-        );
+        pub struct Alternative(#[xgroup] pub ::std::boxed::Box<crate::types::AltType>);
     }
     #[derive(
         ::core::fmt::Debug,
@@ -1937,19 +2428,17 @@ pub mod types {
         #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
         #[xattribute(name = "ref", optional)]
-        pub ref_: ::core::option::Option<crate::xs::types::QName>,
+        pub ref_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "type", optional)]
-        pub type_attribute: ::core::option::Option<crate::xs::types::QName>,
+        pub type_attribute: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "substitutionGroup", optional)]
         pub substitution_group: ::core::option::Option<
-            crate::xs::types::List<crate::xs::types::QName>,
+            crate::types::List<crate::types::QName>,
         >,
         #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional)]
-        pub max_occurs: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::AllNNI>,
-        >,
+        pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
         #[xattribute(name = "default", optional)]
         pub default: ::core::option::Option<String>,
         #[xattribute(name = "fixed", optional)]
@@ -1960,18 +2449,16 @@ pub mod types {
         pub abstract_: ::core::option::Option<bool>,
         #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+            ::std::boxed::Box<crate::types::DerivationSet>,
         >,
         #[xattribute(name = "block", optional)]
-        pub block: ::core::option::Option<::std::boxed::Box<crate::xs::types::BlockSet>>,
+        pub block: ::core::option::Option<::std::boxed::Box<crate::types::BlockSet>>,
         #[xattribute(name = "form", optional)]
-        pub form: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::FormChoice>,
-        >,
+        pub form: ::core::option::Option<::std::boxed::Box<crate::types::FormChoice>>,
         #[xattribute(name = "targetNamespace", optional)]
-        pub target_namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
+        pub target_namespace: ::core::option::Option<crate::types::TargetNamespace>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         pub type_: ::core::option::Option<element_items::Type>,
         #[xvalue(default)]
@@ -1979,7 +2466,7 @@ pub mod types {
         pub alternative: ::std::vec::Vec<element_items::Alternative>,
         #[xvalue(default)]
         #[builder(default)]
-        pub identity_constraint: ::std::vec::Vec<crate::xs::groups::IdentityConstraint>,
+        pub identity_constraint: ::std::vec::Vec<crate::groups::IdentityConstraint>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -1996,14 +2483,12 @@ pub mod types {
         #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional)]
-        pub max_occurs: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::AllNNI>,
-        >,
+        pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         #[builder(default)]
-        pub nested_particle: ::std::vec::Vec<crate::xs::groups::NestedParticle>,
+        pub nested_particle: ::std::vec::Vec<crate::groups::NestedParticle>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2018,19 +2503,17 @@ pub mod types {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
-        pub base: crate::xs::types::QName,
+        pub base: crate::types::QName,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
-        pub open_content: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::OpenContent>,
-        >,
+        pub open_content: ::core::option::Option<::std::boxed::Box<crate::OpenContent>>,
         #[xvalue(default)]
         pub type_def_particle: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::groups::TypeDefParticle>,
+            ::std::boxed::Box<crate::groups::TypeDefParticle>,
         >,
-        pub attr_decls: ::std::boxed::Box<crate::xs::groups::AttrDecls>,
-        pub assertions: ::std::boxed::Box<crate::xs::groups::Assertions>,
+        pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
+        pub assertions: ::std::boxed::Box<crate::groups::Assertions>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2049,7 +2532,7 @@ pub mod types {
         #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<bool>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2066,18 +2549,16 @@ pub mod types {
         #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
         #[xattribute(name = "ref", optional)]
-        pub ref_: ::core::option::Option<crate::xs::types::QName>,
+        pub ref_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional)]
-        pub max_occurs: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::AllNNI>,
-        >,
+        pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         #[builder(default)]
-        pub particle: ::std::vec::Vec<crate::xs::groups::Particle>,
+        pub particle: ::std::vec::Vec<crate::groups::Particle>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2092,15 +2573,13 @@ pub mod types {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "ref")]
-        pub ref_: crate::xs::types::QName,
+        pub ref_: crate::types::QName,
         #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional)]
-        pub max_occurs: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::AllNNI>,
-        >,
+        pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2119,7 +2598,7 @@ pub mod types {
         #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<bool>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
     pub mod keybase_items {
         #[derive(
@@ -2132,10 +2611,10 @@ pub mod types {
         )]
         #[xvalue(order = "strict")]
         pub struct Child1 {
-            pub selector: ::std::boxed::Box<crate::xs::Selector>,
+            pub selector: ::std::boxed::Box<crate::Selector>,
             #[xvalue(default)]
             #[builder(default)]
-            pub field: ::std::vec::Vec<crate::xs::Field>,
+            pub field: ::std::vec::Vec<crate::Field>,
         }
     }
     #[derive(
@@ -2153,9 +2632,9 @@ pub mod types {
         #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
         #[xattribute(name = "ref", optional)]
-        pub ref_: ::core::option::Option<crate::xs::types::QName>,
+        pub ref_: ::core::option::Option<crate::types::QName>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         pub child_1: ::core::option::Option<keybase_items::Child1>,
     }
@@ -2176,17 +2655,17 @@ pub mod types {
         #[xattribute(name = "defaultAttributesApply", optional)]
         pub default_attributes_apply: ::core::option::Option<bool>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
-        pub complex_type_model: ::std::boxed::Box<crate::xs::groups::ComplexTypeModel>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
+        pub complex_type_model: ::std::boxed::Box<crate::groups::ComplexTypeModel>,
     }
     pub mod local_element_items {
-        impl ::core::convert::From<crate::xs::types::LocalSimpleType> for Type {
-            fn from(value: crate::xs::types::LocalSimpleType) -> Self {
+        impl ::core::convert::From<crate::types::LocalSimpleType> for Type {
+            fn from(value: crate::types::LocalSimpleType) -> Self {
                 Type::SimpleType(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::types::LocalComplexType> for Type {
-            fn from(value: crate::xs::types::LocalComplexType) -> Self {
+        impl ::core::convert::From<crate::types::LocalComplexType> for Type {
+            fn from(value: crate::types::LocalComplexType) -> Self {
                 Type::ComplexType(::std::boxed::Box::new(value))
             }
         }
@@ -2203,16 +2682,16 @@ pub mod types {
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            SimpleType(#[xgroup] ::std::boxed::Box<crate::xs::types::LocalSimpleType>),
+            SimpleType(#[xgroup] ::std::boxed::Box<crate::types::LocalSimpleType>),
             #[xelement(
                 name = "complexType",
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            ComplexType(#[xgroup] ::std::boxed::Box<crate::xs::types::LocalComplexType>),
+            ComplexType(#[xgroup] ::std::boxed::Box<crate::types::LocalComplexType>),
         }
-        impl ::core::convert::From<crate::xs::types::AltType> for Alternative {
-            fn from(value: crate::xs::types::AltType) -> Self {
+        impl ::core::convert::From<crate::types::AltType> for Alternative {
+            fn from(value: crate::types::AltType) -> Self {
                 Alternative(::std::boxed::Box::new(value))
             }
         }
@@ -2228,10 +2707,7 @@ pub mod types {
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        pub struct Alternative(
-            #[xgroup]
-            pub ::std::boxed::Box<crate::xs::types::AltType>,
-        );
+        pub struct Alternative(#[xgroup] pub ::std::boxed::Box<crate::types::AltType>);
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2248,15 +2724,13 @@ pub mod types {
         #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
         #[xattribute(name = "ref", optional)]
-        pub ref_: ::core::option::Option<crate::xs::types::QName>,
+        pub ref_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "type", optional)]
-        pub type_attribute: ::core::option::Option<crate::xs::types::QName>,
+        pub type_attribute: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional)]
-        pub max_occurs: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::AllNNI>,
-        >,
+        pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
         #[xattribute(name = "default", optional)]
         pub default: ::core::option::Option<String>,
         #[xattribute(name = "fixed", optional)]
@@ -2264,15 +2738,13 @@ pub mod types {
         #[xattribute(name = "nillable", optional)]
         pub nillable: ::core::option::Option<bool>,
         #[xattribute(name = "block", optional)]
-        pub block: ::core::option::Option<::std::boxed::Box<crate::xs::types::BlockSet>>,
+        pub block: ::core::option::Option<::std::boxed::Box<crate::types::BlockSet>>,
         #[xattribute(name = "form", optional)]
-        pub form: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::FormChoice>,
-        >,
+        pub form: ::core::option::Option<::std::boxed::Box<crate::types::FormChoice>>,
         #[xattribute(name = "targetNamespace", optional)]
-        pub target_namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
+        pub target_namespace: ::core::option::Option<crate::types::TargetNamespace>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         pub type_: ::core::option::Option<local_element_items::Type>,
         #[xvalue(default)]
@@ -2280,7 +2752,7 @@ pub mod types {
         pub alternative: ::std::vec::Vec<local_element_items::Alternative>,
         #[xvalue(default)]
         #[builder(default)]
-        pub identity_constraint: ::std::vec::Vec<crate::xs::groups::IdentityConstraint>,
+        pub identity_constraint: ::std::vec::Vec<crate::groups::IdentityConstraint>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2295,8 +2767,8 @@ pub mod types {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
-        pub simple_derivation: ::std::boxed::Box<crate::xs::groups::SimpleDerivation>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
+        pub simple_derivation: ::std::boxed::Box<crate::groups::SimpleDerivation>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2313,8 +2785,8 @@ pub mod types {
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
-        pub attr_decls: ::std::boxed::Box<crate::xs::groups::AttrDecls>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
+        pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
     }
     pub mod named_group_items {
         #[derive(
@@ -2337,22 +2809,22 @@ pub mod types {
                 min_occurs: ::core::option::Option<usize>,
                 #[xattribute(name = "maxOccurs", optional)]
                 max_occurs: ::core::option::Option<
-                    ::std::boxed::Box<crate::xs::types::AllNNI>,
+                    ::std::boxed::Box<crate::types::AllNNI>,
                 >,
-                all_model: ::std::boxed::Box<crate::xs::groups::AllModel>,
+                all_model: ::std::boxed::Box<crate::groups::AllModel>,
             },
             #[xelement(
                 name = "choice",
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            Choice(#[xgroup] ::std::boxed::Box<crate::xs::types::SimpleExplicitGroup>),
+            Choice(#[xgroup] ::std::boxed::Box<crate::types::SimpleExplicitGroup>),
             #[xelement(
                 name = "sequence",
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            Sequence(#[xgroup] ::std::boxed::Box<crate::xs::types::SimpleExplicitGroup>),
+            Sequence(#[xgroup] ::std::boxed::Box<crate::types::SimpleExplicitGroup>),
         }
     }
     #[derive(
@@ -2370,7 +2842,7 @@ pub mod types {
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         pub child_1: named_group_items::Child1,
     }
     #[derive(
@@ -2388,7 +2860,7 @@ pub mod types {
         #[xattribute(name = "value")]
         pub value: String,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2407,7 +2879,7 @@ pub mod types {
         #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<bool>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2418,18 +2890,18 @@ pub mod types {
     )]
     pub struct OpenAttrs;
     pub mod real_group_items {
-        impl ::core::convert::From<crate::xs::All> for Child1 {
-            fn from(value: crate::xs::All) -> Self {
+        impl ::core::convert::From<crate::All> for Child1 {
+            fn from(value: crate::All) -> Self {
                 Child1::All(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::Choice> for Child1 {
-            fn from(value: crate::xs::Choice) -> Self {
+        impl ::core::convert::From<crate::Choice> for Child1 {
+            fn from(value: crate::Choice) -> Self {
                 Child1::Choice(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::Sequence> for Child1 {
-            fn from(value: crate::xs::Sequence) -> Self {
+        impl ::core::convert::From<crate::Sequence> for Child1 {
+            fn from(value: crate::Sequence) -> Self {
                 Child1::Sequence(::std::boxed::Box::new(value))
             }
         }
@@ -2441,9 +2913,9 @@ pub mod types {
             ::core::clone::Clone
         )]
         pub enum Child1 {
-            All(::std::boxed::Box<crate::xs::All>),
-            Choice(::std::boxed::Box<crate::xs::Choice>),
-            Sequence(::std::boxed::Box<crate::xs::Sequence>),
+            All(::std::boxed::Box<crate::All>),
+            Choice(::std::boxed::Box<crate::Choice>),
+            Sequence(::std::boxed::Box<crate::Sequence>),
         }
     }
     #[derive(
@@ -2461,15 +2933,13 @@ pub mod types {
         #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
         #[xattribute(name = "ref", optional)]
-        pub ref_: ::core::option::Option<crate::xs::types::QName>,
+        pub ref_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional)]
-        pub max_occurs: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::AllNNI>,
-        >,
+        pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         pub child_1: ::core::option::Option<real_group_items::Child1>,
     }
@@ -2487,11 +2957,9 @@ pub mod types {
             pub struct Variant0 {
                 #[xvalue(default)]
                 pub open_content: ::core::option::Option<
-                    ::std::boxed::Box<crate::xs::OpenContent>,
+                    ::std::boxed::Box<crate::OpenContent>,
                 >,
-                pub type_def_particle: ::std::boxed::Box<
-                    crate::xs::groups::TypeDefParticle,
-                >,
+                pub type_def_particle: ::std::boxed::Box<crate::groups::TypeDefParticle>,
             }
         }
         impl ::core::convert::From<child_1_variants::Variant0> for Child1 {
@@ -2499,9 +2967,8 @@ pub mod types {
                 Child1::Variant0(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::groups::SimpleRestrictionModel>
-        for Child1 {
-            fn from(value: crate::xs::groups::SimpleRestrictionModel) -> Self {
+        impl ::core::convert::From<crate::groups::SimpleRestrictionModel> for Child1 {
+            fn from(value: crate::groups::SimpleRestrictionModel) -> Self {
                 Child1::SimpleRestrictionModel(::std::boxed::Box::new(value))
             }
         }
@@ -2515,7 +2982,7 @@ pub mod types {
         pub enum Child1 {
             Variant0(::std::boxed::Box<child_1_variants::Variant0>),
             SimpleRestrictionModel(
-                ::std::boxed::Box<crate::xs::groups::SimpleRestrictionModel>,
+                ::std::boxed::Box<crate::groups::SimpleRestrictionModel>,
             ),
         }
     }
@@ -2532,13 +2999,13 @@ pub mod types {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
-        pub base: crate::xs::types::QName,
+        pub base: crate::types::QName,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         pub child_1: ::core::option::Option<restriction_type_items::Child1>,
-        pub attr_decls: ::std::boxed::Box<crate::xs::groups::AttrDecls>,
-        pub assertions: ::std::boxed::Box<crate::xs::groups::Assertions>,
+        pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
+        pub assertions: ::std::boxed::Box<crate::groups::Assertions>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2554,13 +3021,13 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::SimpleDerivationSet>,
+            ::std::boxed::Box<crate::types::SimpleDerivationSet>,
         >,
         #[xattribute(name = "name", optional)]
         pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
-        pub simple_derivation: ::std::boxed::Box<crate::xs::groups::SimpleDerivation>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
+        pub simple_derivation: ::std::boxed::Box<crate::groups::SimpleDerivation>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2575,10 +3042,10 @@ pub mod types {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         #[builder(default)]
-        pub nested_particle: ::std::vec::Vec<crate::xs::groups::NestedParticle>,
+        pub nested_particle: ::std::vec::Vec<crate::groups::NestedParticle>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2593,11 +3060,11 @@ pub mod types {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
-        pub base: crate::xs::types::QName,
+        pub base: crate::types::QName,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
-        pub attr_decls: ::std::boxed::Box<crate::xs::groups::AttrDecls>,
-        pub assertions: ::std::boxed::Box<crate::xs::groups::Assertions>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
+        pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
+        pub assertions: ::std::boxed::Box<crate::groups::Assertions>,
     }
     pub mod simple_restriction_type_items {
         #[derive(
@@ -2611,7 +3078,7 @@ pub mod types {
         #[xvalue(order = "strict")]
         pub struct SimpleRestrictionModel {
             pub simple_restriction_model: ::std::boxed::Box<
-                crate::xs::groups::SimpleRestrictionModel,
+                crate::groups::SimpleRestrictionModel,
             >,
         }
     }
@@ -2628,15 +3095,15 @@ pub mod types {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
-        pub base: crate::xs::types::QName,
+        pub base: crate::types::QName,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         pub simple_restriction_model: ::core::option::Option<
             simple_restriction_type_items::SimpleRestrictionModel,
         >,
-        pub attr_decls: ::std::boxed::Box<crate::xs::groups::AttrDecls>,
-        pub assertions: ::std::boxed::Box<crate::xs::groups::Assertions>,
+        pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
+        pub assertions: ::std::boxed::Box<crate::groups::Assertions>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2653,7 +3120,7 @@ pub mod types {
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
         #[xattribute(name = "type", optional)]
-        pub type_: ::core::option::Option<crate::xs::types::QName>,
+        pub type_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "default", optional)]
         pub default: ::core::option::Option<String>,
         #[xattribute(name = "fixed", optional)]
@@ -2661,7 +3128,7 @@ pub mod types {
         #[xattribute(name = "inheritable", optional)]
         pub inheritable: ::core::option::Option<bool>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xelement(
             name = "simpleType",
             namespace = "http://www.w3.org/2001/XMLSchema",
@@ -2669,7 +3136,7 @@ pub mod types {
             optional
         )]
         pub simple_type: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::LocalSimpleType>,
+            ::std::boxed::Box<crate::types::LocalSimpleType>,
         >,
     }
     #[derive(
@@ -2692,26 +3159,26 @@ pub mod types {
         pub abstract_: ::core::option::Option<bool>,
         #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+            ::std::boxed::Box<crate::types::DerivationSet>,
         >,
         #[xattribute(name = "block", optional)]
         pub block: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+            ::std::boxed::Box<crate::types::DerivationSet>,
         >,
         #[xattribute(name = "defaultAttributesApply", optional)]
         pub default_attributes_apply: ::core::option::Option<bool>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
-        pub complex_type_model: ::std::boxed::Box<crate::xs::groups::ComplexTypeModel>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
+        pub complex_type_model: ::std::boxed::Box<crate::groups::ComplexTypeModel>,
     }
     pub mod top_level_element_items {
-        impl ::core::convert::From<crate::xs::types::LocalSimpleType> for Type {
-            fn from(value: crate::xs::types::LocalSimpleType) -> Self {
+        impl ::core::convert::From<crate::types::LocalSimpleType> for Type {
+            fn from(value: crate::types::LocalSimpleType) -> Self {
                 Type::SimpleType(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::types::LocalComplexType> for Type {
-            fn from(value: crate::xs::types::LocalComplexType) -> Self {
+        impl ::core::convert::From<crate::types::LocalComplexType> for Type {
+            fn from(value: crate::types::LocalComplexType) -> Self {
                 Type::ComplexType(::std::boxed::Box::new(value))
             }
         }
@@ -2728,16 +3195,16 @@ pub mod types {
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            SimpleType(#[xgroup] ::std::boxed::Box<crate::xs::types::LocalSimpleType>),
+            SimpleType(#[xgroup] ::std::boxed::Box<crate::types::LocalSimpleType>),
             #[xelement(
                 name = "complexType",
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            ComplexType(#[xgroup] ::std::boxed::Box<crate::xs::types::LocalComplexType>),
+            ComplexType(#[xgroup] ::std::boxed::Box<crate::types::LocalComplexType>),
         }
-        impl ::core::convert::From<crate::xs::types::AltType> for Alternative {
-            fn from(value: crate::xs::types::AltType) -> Self {
+        impl ::core::convert::From<crate::types::AltType> for Alternative {
+            fn from(value: crate::types::AltType) -> Self {
                 Alternative(::std::boxed::Box::new(value))
             }
         }
@@ -2753,10 +3220,7 @@ pub mod types {
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        pub struct Alternative(
-            #[xgroup]
-            pub ::std::boxed::Box<crate::xs::types::AltType>,
-        );
+        pub struct Alternative(#[xgroup] pub ::std::boxed::Box<crate::types::AltType>);
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2773,10 +3237,10 @@ pub mod types {
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
         #[xattribute(name = "type", optional)]
-        pub type_attribute: ::core::option::Option<crate::xs::types::QName>,
+        pub type_attribute: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "substitutionGroup", optional)]
         pub substitution_group: ::core::option::Option<
-            crate::xs::types::List<crate::xs::types::QName>,
+            crate::types::List<crate::types::QName>,
         >,
         #[xattribute(name = "default", optional)]
         pub default: ::core::option::Option<String>,
@@ -2788,12 +3252,12 @@ pub mod types {
         pub abstract_: ::core::option::Option<bool>,
         #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::DerivationSet>,
+            ::std::boxed::Box<crate::types::DerivationSet>,
         >,
         #[xattribute(name = "block", optional)]
-        pub block: ::core::option::Option<::std::boxed::Box<crate::xs::types::BlockSet>>,
+        pub block: ::core::option::Option<::std::boxed::Box<crate::types::BlockSet>>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         pub type_: ::core::option::Option<top_level_element_items::Type>,
         #[xvalue(default)]
@@ -2801,7 +3265,7 @@ pub mod types {
         pub alternative: ::std::vec::Vec<top_level_element_items::Alternative>,
         #[xvalue(default)]
         #[builder(default)]
-        pub identity_constraint: ::std::vec::Vec<crate::xs::groups::IdentityConstraint>,
+        pub identity_constraint: ::std::vec::Vec<crate::groups::IdentityConstraint>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2817,15 +3281,129 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "final", optional)]
         pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::SimpleDerivationSet>,
+            ::std::boxed::Box<crate::types::SimpleDerivationSet>,
         >,
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
-        pub simple_derivation: ::std::boxed::Box<crate::xs::groups::SimpleDerivation>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
+        pub simple_derivation: ::std::boxed::Box<crate::groups::SimpleDerivation>,
     }
     pub mod wildcard_items {
+        pub mod not_namespace_value_variants {
+            #[derive(
+                ::core::fmt::Debug,
+                ::core::clone::Clone,
+                ::core::marker::Copy,
+                ::xmlity::Serialize,
+                ::xmlity::Deserialize,
+                ::core::cmp::PartialEq
+            )]
+            #[xvalue(with = variant_0_with)]
+            pub enum Variant0 {
+                TargetNamespace,
+                Local,
+            }
+            pub mod variant_0_with {
+                pub fn deserialize<'de, D>(
+                    deserializer: D,
+                ) -> ::core::result::Result<super::Variant0, D::Error>
+                where
+                    D: ::xmlity::Deserializer<'de>,
+                {
+                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                        deserializer,
+                    )?;
+                    let value: ::std::string::String = text
+                        .parse()
+                        .map_err(::xmlity::de::Error::custom)?;
+                    super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+                }
+                pub fn serialize<S>(
+                    value: &super::Variant0,
+                    serializer: S,
+                ) -> ::core::result::Result<S::Ok, S::Error>
+                where
+                    S: ::xmlity::Serializer,
+                {
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                        .into();
+                    ::xmlity::Serialize::serialize(
+                        ::std::string::String::as_str(
+                            &::std::string::ToString::to_string(&value),
+                        ),
+                        serializer,
+                    )
+                }
+            }
+            #[derive(::core::fmt::Debug)]
+            pub enum Variant0ParseError {
+                NonExistent { value: ::std::string::String },
+            }
+            impl ::core::fmt::Display for Variant0ParseError {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                    match self {
+                        Variant0ParseError::NonExistent { value } => {
+                            write!(
+                                f, "Value '{:?}' does not exist in the enumeration", value
+                            )
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+                type Error = Variant0ParseError;
+                fn try_from(
+                    value: ::std::string::String,
+                ) -> ::core::result::Result<Self, Self::Error> {
+                    match ::std::string::String::as_str(&value) {
+                        "##targetNamespace" => Ok(Variant0::TargetNamespace),
+                        "##local" => Ok(Variant0::Local),
+                        _ => {
+                            Err(Variant0ParseError::NonExistent {
+                                value,
+                            })
+                        }
+                    }
+                }
+            }
+            impl ::core::convert::From<Variant0> for ::std::string::String {
+                fn from(value: Variant0) -> Self {
+                    match value {
+                        Variant0::TargetNamespace => {
+                            ::std::string::String::from("##targetNamespace")
+                        }
+                        Variant0::Local => ::std::string::String::from("##local"),
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<crate::types::TargetNamespace>
+        for NotNamespaceValue {
+            fn from(value: crate::types::TargetNamespace) -> Self {
+                NotNamespaceValue::AnyURI(::std::boxed::Box::new(value))
+            }
+        }
+        impl ::core::convert::From<not_namespace_value_variants::Variant0>
+        for NotNamespaceValue {
+            fn from(value: not_namespace_value_variants::Variant0) -> Self {
+                NotNamespaceValue::Variant0(::std::boxed::Box::new(value))
+            }
+        }
+        #[derive(
+            ::core::fmt::Debug,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq,
+            ::core::clone::Clone
+        )]
+        pub enum NotNamespaceValue {
+            AnyURI(::std::boxed::Box<crate::types::TargetNamespace>),
+            Variant0(::std::boxed::Box<not_namespace_value_variants::Variant0>),
+        }
         #[derive(
             ::core::fmt::Debug,
             ::core::clone::Clone,
@@ -2932,27 +3510,29 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "namespace", optional)]
         pub namespace: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::NamespaceList>,
+            ::std::boxed::Box<crate::types::NamespaceList>,
         >,
         #[xattribute(name = "notNamespace", optional)]
-        pub not_namespace: ::core::option::Option<::std::string::String>,
+        pub not_namespace: ::core::option::Option<
+            crate::types::List<wildcard_items::NotNamespaceValue>,
+        >,
         #[xattribute(name = "processContents", optional)]
         pub process_contents: ::core::option::Option<
             wildcard_items::ProcessContentsValue,
         >,
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
 }
 pub mod groups {
     pub mod all_model_items {
-        impl ::core::convert::From<crate::xs::types::LocalElement> for Child1 {
-            fn from(value: crate::xs::types::LocalElement) -> Self {
+        impl ::core::convert::From<crate::types::LocalElement> for Child1 {
+            fn from(value: crate::types::LocalElement) -> Self {
                 Child1::Element(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::Any> for Child1 {
-            fn from(value: crate::xs::Any) -> Self {
+        impl ::core::convert::From<crate::Any> for Child1 {
+            fn from(value: crate::Any) -> Self {
                 Child1::Any(::std::boxed::Box::new(value))
             }
         }
@@ -2969,8 +3549,8 @@ pub mod groups {
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            Element(#[xgroup] ::std::boxed::Box<crate::xs::types::LocalElement>),
-            Any(::std::boxed::Box<crate::xs::Any>),
+            Element(#[xgroup] ::std::boxed::Box<crate::types::LocalElement>),
+            Any(::std::boxed::Box<crate::Any>),
             #[xelement(
                 name = "group",
                 namespace = "http://www.w3.org/2001/XMLSchema",
@@ -2981,15 +3561,13 @@ pub mod groups {
                 #[xattribute(name = "id", optional)]
                 id: ::core::option::Option<String>,
                 #[xattribute(name = "ref")]
-                ref_: crate::xs::types::QName,
+                ref_: crate::types::QName,
                 #[xattribute(name = "minOccurs", optional)]
                 min_occurs: ::core::option::Option<usize>,
                 #[xattribute(name = "maxOccurs", optional)]
                 max_occurs: ::core::option::Option<usize>,
                 #[xvalue(default)]
-                annotation: ::core::option::Option<
-                    ::std::boxed::Box<crate::xs::Annotation>,
-                >,
+                annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
             },
         }
     }
@@ -3004,14 +3582,14 @@ pub mod groups {
     #[xvalue(order = "strict")]
     pub struct AllModel {
         #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::xs::Annotation>>,
+        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
         #[builder(default)]
         pub child_1: ::std::vec::Vec<all_model_items::Child1>,
     }
     pub mod assertions_items {
-        impl ::core::convert::From<crate::xs::types::Assertion> for Assert {
-            fn from(value: crate::xs::types::Assertion) -> Self {
+        impl ::core::convert::From<crate::types::Assertion> for Assert {
+            fn from(value: crate::types::Assertion) -> Self {
                 Assert(::std::boxed::Box::new(value))
             }
         }
@@ -3027,7 +3605,7 @@ pub mod groups {
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        pub struct Assert(#[xgroup] pub ::std::boxed::Box<crate::xs::types::Assertion>);
+        pub struct Assert(#[xgroup] pub ::std::boxed::Box<crate::types::Assertion>);
     }
     #[derive(
         ::core::fmt::Debug,
@@ -3044,13 +3622,13 @@ pub mod groups {
         pub assert: ::std::vec::Vec<assertions_items::Assert>,
     }
     pub mod attr_decls_items {
-        impl ::core::convert::From<crate::xs::types::Attribute> for Attribute {
-            fn from(value: crate::xs::types::Attribute) -> Self {
+        impl ::core::convert::From<crate::types::Attribute> for Attribute {
+            fn from(value: crate::types::Attribute) -> Self {
                 Attribute::Attribute(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::xs::types::AttributeGroupRef> for Attribute {
-            fn from(value: crate::xs::types::AttributeGroupRef) -> Self {
+        impl ::core::convert::From<crate::types::AttributeGroupRef> for Attribute {
+            fn from(value: crate::types::AttributeGroupRef) -> Self {
                 Attribute::AttributeGroup(::std::boxed::Box::new(value))
             }
         }
@@ -3067,16 +3645,13 @@ pub mod groups {
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            Attribute(#[xgroup] ::std::boxed::Box<crate::xs::types::Attribute>),
+            Attribute(#[xgroup] ::std::boxed::Box<crate::types::Attribute>),
             #[xelement(
                 name = "attributeGroup",
                 namespace = "http://www.w3.org/2001/XMLSchema",
                 allow_unknown_attributes = "any"
             )]
-            AttributeGroup(
-                #[xgroup]
-                ::std::boxed::Box<crate::xs::types::AttributeGroupRef>,
-            ),
+            AttributeGroup(#[xgroup] ::std::boxed::Box<crate::types::AttributeGroupRef>),
         }
     }
     #[derive(
@@ -3094,7 +3669,7 @@ pub mod groups {
         pub attribute: ::std::vec::Vec<attr_decls_items::Attribute>,
         #[xvalue(default)]
         pub any_attribute: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::AnyAttribute>,
+            ::std::boxed::Box<crate::AnyAttribute>,
         >,
     }
     pub mod complex_type_model_items {
@@ -3111,14 +3686,14 @@ pub mod groups {
             pub struct Variant2 {
                 #[xvalue(default)]
                 pub open_content: ::core::option::Option<
-                    ::std::boxed::Box<crate::xs::OpenContent>,
+                    ::std::boxed::Box<crate::OpenContent>,
                 >,
                 #[xvalue(default)]
                 pub type_def_particle: ::core::option::Option<
-                    ::std::boxed::Box<crate::xs::groups::TypeDefParticle>,
+                    ::std::boxed::Box<crate::groups::TypeDefParticle>,
                 >,
-                pub attr_decls: crate::xs::groups::AttrDecls,
-                pub assertions: crate::xs::groups::Assertions,
+                pub attr_decls: crate::groups::AttrDecls,
+                pub assertions: crate::groups::Assertions,
             }
         }
     }
@@ -3130,21 +3705,21 @@ pub mod groups {
         ::core::clone::Clone
     )]
     pub enum ComplexTypeModel {
-        SimpleContent(::std::boxed::Box<crate::xs::SimpleContent>),
-        ComplexContent(::std::boxed::Box<crate::xs::ComplexContent>),
+        SimpleContent(::std::boxed::Box<crate::SimpleContent>),
+        ComplexContent(::std::boxed::Box<crate::ComplexContent>),
         Variant2(
             ::std::boxed::Box<
                 complex_type_model_items::complex_type_model_variants::Variant2,
             >,
         ),
     }
-    impl ::core::convert::From<crate::xs::SimpleContent> for ComplexTypeModel {
-        fn from(value: crate::xs::SimpleContent) -> Self {
+    impl ::core::convert::From<crate::SimpleContent> for ComplexTypeModel {
+        fn from(value: crate::SimpleContent) -> Self {
             ComplexTypeModel::SimpleContent(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::ComplexContent> for ComplexTypeModel {
-        fn from(value: crate::xs::ComplexContent) -> Self {
+    impl ::core::convert::From<crate::ComplexContent> for ComplexTypeModel {
+        fn from(value: crate::ComplexContent) -> Self {
             ComplexTypeModel::ComplexContent(::std::boxed::Box::new(value))
         }
     }
@@ -3165,34 +3740,34 @@ pub mod groups {
         ::core::clone::Clone
     )]
     pub enum Composition {
-        Include(::std::boxed::Box<crate::xs::Include>),
-        Import(::std::boxed::Box<crate::xs::Import>),
-        Redefine(::std::boxed::Box<crate::xs::Redefine>),
-        Override(::std::boxed::Box<crate::xs::Override>),
-        Annotation(::std::boxed::Box<crate::xs::Annotation>),
+        Include(::std::boxed::Box<crate::Include>),
+        Import(::std::boxed::Box<crate::Import>),
+        Redefine(::std::boxed::Box<crate::Redefine>),
+        Override(::std::boxed::Box<crate::Override>),
+        Annotation(::std::boxed::Box<crate::Annotation>),
     }
-    impl ::core::convert::From<crate::xs::Include> for Composition {
-        fn from(value: crate::xs::Include) -> Self {
+    impl ::core::convert::From<crate::Include> for Composition {
+        fn from(value: crate::Include) -> Self {
             Composition::Include(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Import> for Composition {
-        fn from(value: crate::xs::Import) -> Self {
+    impl ::core::convert::From<crate::Import> for Composition {
+        fn from(value: crate::Import) -> Self {
             Composition::Import(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Redefine> for Composition {
-        fn from(value: crate::xs::Redefine) -> Self {
+    impl ::core::convert::From<crate::Redefine> for Composition {
+        fn from(value: crate::Redefine) -> Self {
             Composition::Redefine(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Override> for Composition {
-        fn from(value: crate::xs::Override) -> Self {
+    impl ::core::convert::From<crate::Override> for Composition {
+        fn from(value: crate::Override) -> Self {
             Composition::Override(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Annotation> for Composition {
-        fn from(value: crate::xs::Annotation) -> Self {
+    impl ::core::convert::From<crate::Annotation> for Composition {
+        fn from(value: crate::Annotation) -> Self {
             Composition::Annotation(::std::boxed::Box::new(value))
         }
     }
@@ -3204,22 +3779,22 @@ pub mod groups {
         ::core::clone::Clone
     )]
     pub enum IdentityConstraint {
-        Unique(::std::boxed::Box<crate::xs::Unique>),
-        Key(::std::boxed::Box<crate::xs::Key>),
-        Keyref(::std::boxed::Box<crate::xs::Keyref>),
+        Unique(::std::boxed::Box<crate::Unique>),
+        Key(::std::boxed::Box<crate::Key>),
+        Keyref(::std::boxed::Box<crate::Keyref>),
     }
-    impl ::core::convert::From<crate::xs::Unique> for IdentityConstraint {
-        fn from(value: crate::xs::Unique) -> Self {
+    impl ::core::convert::From<crate::Unique> for IdentityConstraint {
+        fn from(value: crate::Unique) -> Self {
             IdentityConstraint::Unique(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Key> for IdentityConstraint {
-        fn from(value: crate::xs::Key) -> Self {
+    impl ::core::convert::From<crate::Key> for IdentityConstraint {
+        fn from(value: crate::Key) -> Self {
             IdentityConstraint::Key(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Keyref> for IdentityConstraint {
-        fn from(value: crate::xs::Keyref) -> Self {
+    impl ::core::convert::From<crate::Keyref> for IdentityConstraint {
+        fn from(value: crate::Keyref) -> Self {
             IdentityConstraint::Keyref(::std::boxed::Box::new(value))
         }
     }
@@ -3236,39 +3811,39 @@ pub mod groups {
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        Element(#[xgroup] ::std::boxed::Box<crate::xs::types::LocalElement>),
+        Element(#[xgroup] ::std::boxed::Box<crate::types::LocalElement>),
         #[xelement(
             name = "group",
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        Group(#[xgroup] ::std::boxed::Box<crate::xs::types::GroupRef>),
-        Choice(::std::boxed::Box<crate::xs::Choice>),
-        Sequence(::std::boxed::Box<crate::xs::Sequence>),
-        Any(::std::boxed::Box<crate::xs::Any>),
+        Group(#[xgroup] ::std::boxed::Box<crate::types::GroupRef>),
+        Choice(::std::boxed::Box<crate::Choice>),
+        Sequence(::std::boxed::Box<crate::Sequence>),
+        Any(::std::boxed::Box<crate::Any>),
     }
-    impl ::core::convert::From<crate::xs::types::LocalElement> for NestedParticle {
-        fn from(value: crate::xs::types::LocalElement) -> Self {
+    impl ::core::convert::From<crate::types::LocalElement> for NestedParticle {
+        fn from(value: crate::types::LocalElement) -> Self {
             NestedParticle::Element(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::types::GroupRef> for NestedParticle {
-        fn from(value: crate::xs::types::GroupRef) -> Self {
+    impl ::core::convert::From<crate::types::GroupRef> for NestedParticle {
+        fn from(value: crate::types::GroupRef) -> Self {
             NestedParticle::Group(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Choice> for NestedParticle {
-        fn from(value: crate::xs::Choice) -> Self {
+    impl ::core::convert::From<crate::Choice> for NestedParticle {
+        fn from(value: crate::Choice) -> Self {
             NestedParticle::Choice(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Sequence> for NestedParticle {
-        fn from(value: crate::xs::Sequence) -> Self {
+    impl ::core::convert::From<crate::Sequence> for NestedParticle {
+        fn from(value: crate::Sequence) -> Self {
             NestedParticle::Sequence(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Any> for NestedParticle {
-        fn from(value: crate::xs::Any) -> Self {
+    impl ::core::convert::From<crate::Any> for NestedParticle {
+        fn from(value: crate::Any) -> Self {
             NestedParticle::Any(::std::boxed::Box::new(value))
         }
     }
@@ -3285,45 +3860,45 @@ pub mod groups {
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        Element(#[xgroup] ::std::boxed::Box<crate::xs::types::LocalElement>),
+        Element(#[xgroup] ::std::boxed::Box<crate::types::LocalElement>),
         #[xelement(
             name = "group",
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        Group(#[xgroup] ::std::boxed::Box<crate::xs::types::GroupRef>),
-        All(::std::boxed::Box<crate::xs::All>),
-        Choice(::std::boxed::Box<crate::xs::Choice>),
-        Sequence(::std::boxed::Box<crate::xs::Sequence>),
-        Any(::std::boxed::Box<crate::xs::Any>),
+        Group(#[xgroup] ::std::boxed::Box<crate::types::GroupRef>),
+        All(::std::boxed::Box<crate::All>),
+        Choice(::std::boxed::Box<crate::Choice>),
+        Sequence(::std::boxed::Box<crate::Sequence>),
+        Any(::std::boxed::Box<crate::Any>),
     }
-    impl ::core::convert::From<crate::xs::types::LocalElement> for Particle {
-        fn from(value: crate::xs::types::LocalElement) -> Self {
+    impl ::core::convert::From<crate::types::LocalElement> for Particle {
+        fn from(value: crate::types::LocalElement) -> Self {
             Particle::Element(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::types::GroupRef> for Particle {
-        fn from(value: crate::xs::types::GroupRef) -> Self {
+    impl ::core::convert::From<crate::types::GroupRef> for Particle {
+        fn from(value: crate::types::GroupRef) -> Self {
             Particle::Group(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::All> for Particle {
-        fn from(value: crate::xs::All) -> Self {
+    impl ::core::convert::From<crate::All> for Particle {
+        fn from(value: crate::All) -> Self {
             Particle::All(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Choice> for Particle {
-        fn from(value: crate::xs::Choice) -> Self {
+    impl ::core::convert::From<crate::Choice> for Particle {
+        fn from(value: crate::Choice) -> Self {
             Particle::Choice(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Sequence> for Particle {
-        fn from(value: crate::xs::Sequence) -> Self {
+    impl ::core::convert::From<crate::Sequence> for Particle {
+        fn from(value: crate::Sequence) -> Self {
             Particle::Sequence(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Any> for Particle {
-        fn from(value: crate::xs::Any) -> Self {
+    impl ::core::convert::From<crate::Any> for Particle {
+        fn from(value: crate::Any) -> Self {
             Particle::Any(::std::boxed::Box::new(value))
         }
     }
@@ -3335,28 +3910,28 @@ pub mod groups {
         ::core::clone::Clone
     )]
     pub enum Redefinable {
-        SimpleType(::std::boxed::Box<crate::xs::SimpleType>),
-        ComplexType(::std::boxed::Box<crate::xs::ComplexType>),
-        Group(::std::boxed::Box<crate::xs::Group>),
-        AttributeGroup(::std::boxed::Box<crate::xs::AttributeGroup>),
+        SimpleType(::std::boxed::Box<crate::SimpleType>),
+        ComplexType(::std::boxed::Box<crate::ComplexType>),
+        Group(::std::boxed::Box<crate::Group>),
+        AttributeGroup(::std::boxed::Box<crate::AttributeGroup>),
     }
-    impl ::core::convert::From<crate::xs::SimpleType> for Redefinable {
-        fn from(value: crate::xs::SimpleType) -> Self {
+    impl ::core::convert::From<crate::SimpleType> for Redefinable {
+        fn from(value: crate::SimpleType) -> Self {
             Redefinable::SimpleType(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::ComplexType> for Redefinable {
-        fn from(value: crate::xs::ComplexType) -> Self {
+    impl ::core::convert::From<crate::ComplexType> for Redefinable {
+        fn from(value: crate::ComplexType) -> Self {
             Redefinable::ComplexType(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Group> for Redefinable {
-        fn from(value: crate::xs::Group) -> Self {
+    impl ::core::convert::From<crate::Group> for Redefinable {
+        fn from(value: crate::Group) -> Self {
             Redefinable::Group(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::AttributeGroup> for Redefinable {
-        fn from(value: crate::xs::AttributeGroup) -> Self {
+    impl ::core::convert::From<crate::AttributeGroup> for Redefinable {
+        fn from(value: crate::AttributeGroup) -> Self {
             Redefinable::AttributeGroup(::std::boxed::Box::new(value))
         }
     }
@@ -3368,28 +3943,28 @@ pub mod groups {
         ::core::clone::Clone
     )]
     pub enum SchemaTop {
-        Redefinable(::std::boxed::Box<crate::xs::groups::Redefinable>),
-        Element(::std::boxed::Box<crate::xs::Element>),
-        Attribute(::std::boxed::Box<crate::xs::Attribute>),
-        Notation(::std::boxed::Box<crate::xs::Notation>),
+        Redefinable(::std::boxed::Box<crate::groups::Redefinable>),
+        Element(::std::boxed::Box<crate::Element>),
+        Attribute(::std::boxed::Box<crate::Attribute>),
+        Notation(::std::boxed::Box<crate::Notation>),
     }
-    impl ::core::convert::From<crate::xs::groups::Redefinable> for SchemaTop {
-        fn from(value: crate::xs::groups::Redefinable) -> Self {
+    impl ::core::convert::From<crate::groups::Redefinable> for SchemaTop {
+        fn from(value: crate::groups::Redefinable) -> Self {
             SchemaTop::Redefinable(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Element> for SchemaTop {
-        fn from(value: crate::xs::Element) -> Self {
+    impl ::core::convert::From<crate::Element> for SchemaTop {
+        fn from(value: crate::Element) -> Self {
             SchemaTop::Element(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Attribute> for SchemaTop {
-        fn from(value: crate::xs::Attribute) -> Self {
+    impl ::core::convert::From<crate::Attribute> for SchemaTop {
+        fn from(value: crate::Attribute) -> Self {
             SchemaTop::Attribute(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Notation> for SchemaTop {
-        fn from(value: crate::xs::Notation) -> Self {
+    impl ::core::convert::From<crate::Notation> for SchemaTop {
+        fn from(value: crate::Notation) -> Self {
             SchemaTop::Notation(::std::boxed::Box::new(value))
         }
     }
@@ -3401,28 +3976,28 @@ pub mod groups {
         ::core::clone::Clone
     )]
     pub enum SimpleDerivation {
-        Restriction(::std::boxed::Box<crate::xs::Restriction>),
-        List(::std::boxed::Box<crate::xs::List>),
-        Union(::std::boxed::Box<crate::xs::Union>),
+        Restriction(::std::boxed::Box<crate::Restriction>),
+        List(::std::boxed::Box<crate::List>),
+        Union(::std::boxed::Box<crate::Union>),
     }
-    impl ::core::convert::From<crate::xs::Restriction> for SimpleDerivation {
-        fn from(value: crate::xs::Restriction) -> Self {
+    impl ::core::convert::From<crate::Restriction> for SimpleDerivation {
+        fn from(value: crate::Restriction) -> Self {
             SimpleDerivation::Restriction(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::List> for SimpleDerivation {
-        fn from(value: crate::xs::List) -> Self {
+    impl ::core::convert::From<crate::List> for SimpleDerivation {
+        fn from(value: crate::List) -> Self {
             SimpleDerivation::List(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Union> for SimpleDerivation {
-        fn from(value: crate::xs::Union) -> Self {
+    impl ::core::convert::From<crate::Union> for SimpleDerivation {
+        fn from(value: crate::Union) -> Self {
             SimpleDerivation::Union(::std::boxed::Box::new(value))
         }
     }
     pub mod simple_restriction_model_items {
-        impl ::core::convert::From<crate::xs::Facet> for Child1 {
-            fn from(value: crate::xs::Facet) -> Self {
+        impl ::core::convert::From<crate::Facet> for Child1 {
+            fn from(value: crate::Facet) -> Self {
                 Child1::Facet(::std::boxed::Box::new(value))
             }
         }
@@ -3439,7 +4014,7 @@ pub mod groups {
             ::core::clone::Clone
         )]
         pub enum Child1 {
-            Facet(::std::boxed::Box<crate::xs::Facet>),
+            Facet(::std::boxed::Box<crate::Facet>),
             Variant1(::std::boxed::Box<::xmlity::XmlValue>),
         }
     }
@@ -3460,7 +4035,7 @@ pub mod groups {
             optional
         )]
         pub simple_type: ::core::option::Option<
-            ::std::boxed::Box<crate::xs::types::LocalSimpleType>,
+            ::std::boxed::Box<crate::types::LocalSimpleType>,
         >,
         #[xvalue(default)]
         #[builder(default)]
@@ -3479,28 +4054,28 @@ pub mod groups {
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        Group(#[xgroup] ::std::boxed::Box<crate::xs::types::GroupRef>),
-        All(::std::boxed::Box<crate::xs::All>),
-        Choice(::std::boxed::Box<crate::xs::Choice>),
-        Sequence(::std::boxed::Box<crate::xs::Sequence>),
+        Group(#[xgroup] ::std::boxed::Box<crate::types::GroupRef>),
+        All(::std::boxed::Box<crate::All>),
+        Choice(::std::boxed::Box<crate::Choice>),
+        Sequence(::std::boxed::Box<crate::Sequence>),
     }
-    impl ::core::convert::From<crate::xs::types::GroupRef> for TypeDefParticle {
-        fn from(value: crate::xs::types::GroupRef) -> Self {
+    impl ::core::convert::From<crate::types::GroupRef> for TypeDefParticle {
+        fn from(value: crate::types::GroupRef) -> Self {
             TypeDefParticle::Group(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::All> for TypeDefParticle {
-        fn from(value: crate::xs::All) -> Self {
+    impl ::core::convert::From<crate::All> for TypeDefParticle {
+        fn from(value: crate::All) -> Self {
             TypeDefParticle::All(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Choice> for TypeDefParticle {
-        fn from(value: crate::xs::Choice) -> Self {
+    impl ::core::convert::From<crate::Choice> for TypeDefParticle {
+        fn from(value: crate::Choice) -> Self {
             TypeDefParticle::Choice(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Sequence> for TypeDefParticle {
-        fn from(value: crate::xs::Sequence) -> Self {
+    impl ::core::convert::From<crate::Sequence> for TypeDefParticle {
+        fn from(value: crate::Sequence) -> Self {
             TypeDefParticle::Sequence(::std::boxed::Box::new(value))
         }
     }
@@ -3517,20 +4092,20 @@ pub mod groups {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct All(#[xgroup] pub ::std::boxed::Box<crate::xs::types::All>);
-impl ::core::convert::From<crate::xs::types::All> for All {
-    fn from(value: crate::xs::types::All) -> Self {
+pub struct All(#[xgroup] pub ::std::boxed::Box<crate::types::All>);
+impl ::core::convert::From<crate::types::All> for All {
+    fn from(value: crate::types::All) -> Self {
         All(::std::boxed::Box::new(value))
     }
 }
 pub mod annotation_items {
-    impl ::core::convert::From<crate::xs::Appinfo> for Annotation {
-        fn from(value: crate::xs::Appinfo) -> Self {
+    impl ::core::convert::From<crate::Appinfo> for Annotation {
+        fn from(value: crate::Appinfo) -> Self {
             Annotation::Appinfo(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::Documentation> for Annotation {
-        fn from(value: crate::xs::Documentation) -> Self {
+    impl ::core::convert::From<crate::Documentation> for Annotation {
+        fn from(value: crate::Documentation) -> Self {
             Annotation::Documentation(::std::boxed::Box::new(value))
         }
     }
@@ -3542,8 +4117,8 @@ pub mod annotation_items {
         ::core::clone::Clone
     )]
     pub enum Annotation {
-        Appinfo(::std::boxed::Box<crate::xs::Appinfo>),
-        Documentation(::std::boxed::Box<crate::xs::Documentation>),
+        Appinfo(::std::boxed::Box<crate::Appinfo>),
+        Documentation(::std::boxed::Box<crate::Documentation>),
     }
 }
 #[derive(
@@ -3567,6 +4142,119 @@ pub struct Annotation {
     pub annotation: ::std::vec::Vec<annotation_items::Annotation>,
 }
 pub mod any_items {
+    pub mod not_namespace_value_variants {
+        #[derive(
+            ::core::fmt::Debug,
+            ::core::clone::Clone,
+            ::core::marker::Copy,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq
+        )]
+        #[xvalue(with = variant_0_with)]
+        pub enum Variant0 {
+            TargetNamespace,
+            Local,
+        }
+        pub mod variant_0_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::Variant0, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: ::std::string::String = text
+                    .parse()
+                    .map_err(::xmlity::de::Error::custom)?;
+                super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::Variant0,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                    .into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug)]
+        pub enum Variant0ParseError {
+            NonExistent { value: ::std::string::String },
+        }
+        impl ::core::fmt::Display for Variant0ParseError {
+            fn fmt(
+                &self,
+                f: &mut ::core::fmt::Formatter<'_>,
+            ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                match self {
+                    Variant0ParseError::NonExistent { value } => {
+                        write!(
+                            f, "Value '{:?}' does not exist in the enumeration", value
+                        )
+                    }
+                }
+            }
+        }
+        impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+            type Error = Variant0ParseError;
+            fn try_from(
+                value: ::std::string::String,
+            ) -> ::core::result::Result<Self, Self::Error> {
+                match ::std::string::String::as_str(&value) {
+                    "##targetNamespace" => Ok(Variant0::TargetNamespace),
+                    "##local" => Ok(Variant0::Local),
+                    _ => {
+                        Err(Variant0ParseError::NonExistent {
+                            value,
+                        })
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<Variant0> for ::std::string::String {
+            fn from(value: Variant0) -> Self {
+                match value {
+                    Variant0::TargetNamespace => {
+                        ::std::string::String::from("##targetNamespace")
+                    }
+                    Variant0::Local => ::std::string::String::from("##local"),
+                }
+            }
+        }
+    }
+    impl ::core::convert::From<crate::types::TargetNamespace> for NotNamespaceValue {
+        fn from(value: crate::types::TargetNamespace) -> Self {
+            NotNamespaceValue::AnyURI(::std::boxed::Box::new(value))
+        }
+    }
+    impl ::core::convert::From<not_namespace_value_variants::Variant0>
+    for NotNamespaceValue {
+        fn from(value: not_namespace_value_variants::Variant0) -> Self {
+            NotNamespaceValue::Variant0(::std::boxed::Box::new(value))
+        }
+    }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::Serialize,
+        ::xmlity::Deserialize,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    pub enum NotNamespaceValue {
+        AnyURI(::std::boxed::Box<crate::types::TargetNamespace>),
+        Variant0(::std::boxed::Box<not_namespace_value_variants::Variant0>),
+    }
     #[derive(
         ::core::fmt::Debug,
         ::core::clone::Clone,
@@ -3675,24 +4363,137 @@ pub struct Any {
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "namespace", optional)]
     pub namespace: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::NamespaceList>,
+        ::std::boxed::Box<crate::types::NamespaceList>,
     >,
     #[xattribute(name = "notNamespace", optional)]
-    pub not_namespace: ::core::option::Option<::std::string::String>,
+    pub not_namespace: ::core::option::Option<
+        crate::types::List<any_items::NotNamespaceValue>,
+    >,
     #[xattribute(name = "processContents", optional)]
     pub process_contents: ::core::option::Option<any_items::ProcessContentsValue>,
     #[xattribute(name = "notQName", optional)]
-    pub not_q_name: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::QnameList>,
-    >,
+    pub not_q_name: ::core::option::Option<::std::boxed::Box<crate::types::QnameList>>,
     #[xattribute(name = "minOccurs", optional)]
     pub min_occurs: ::core::option::Option<usize>,
     #[xattribute(name = "maxOccurs", optional)]
-    pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::xs::types::AllNNI>>,
+    pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
 }
 pub mod any_attribute_items {
+    pub mod not_namespace_value_variants {
+        #[derive(
+            ::core::fmt::Debug,
+            ::core::clone::Clone,
+            ::core::marker::Copy,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq
+        )]
+        #[xvalue(with = variant_0_with)]
+        pub enum Variant0 {
+            TargetNamespace,
+            Local,
+        }
+        pub mod variant_0_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::Variant0, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: ::std::string::String = text
+                    .parse()
+                    .map_err(::xmlity::de::Error::custom)?;
+                super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::Variant0,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                    .into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug)]
+        pub enum Variant0ParseError {
+            NonExistent { value: ::std::string::String },
+        }
+        impl ::core::fmt::Display for Variant0ParseError {
+            fn fmt(
+                &self,
+                f: &mut ::core::fmt::Formatter<'_>,
+            ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                match self {
+                    Variant0ParseError::NonExistent { value } => {
+                        write!(
+                            f, "Value '{:?}' does not exist in the enumeration", value
+                        )
+                    }
+                }
+            }
+        }
+        impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
+            type Error = Variant0ParseError;
+            fn try_from(
+                value: ::std::string::String,
+            ) -> ::core::result::Result<Self, Self::Error> {
+                match ::std::string::String::as_str(&value) {
+                    "##targetNamespace" => Ok(Variant0::TargetNamespace),
+                    "##local" => Ok(Variant0::Local),
+                    _ => {
+                        Err(Variant0ParseError::NonExistent {
+                            value,
+                        })
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<Variant0> for ::std::string::String {
+            fn from(value: Variant0) -> Self {
+                match value {
+                    Variant0::TargetNamespace => {
+                        ::std::string::String::from("##targetNamespace")
+                    }
+                    Variant0::Local => ::std::string::String::from("##local"),
+                }
+            }
+        }
+    }
+    impl ::core::convert::From<crate::types::TargetNamespace> for NotNamespaceValue {
+        fn from(value: crate::types::TargetNamespace) -> Self {
+            NotNamespaceValue::AnyURI(::std::boxed::Box::new(value))
+        }
+    }
+    impl ::core::convert::From<not_namespace_value_variants::Variant0>
+    for NotNamespaceValue {
+        fn from(value: not_namespace_value_variants::Variant0) -> Self {
+            NotNamespaceValue::Variant0(::std::boxed::Box::new(value))
+        }
+    }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::Serialize,
+        ::xmlity::Deserialize,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    pub enum NotNamespaceValue {
+        AnyURI(::std::boxed::Box<crate::types::TargetNamespace>),
+        Variant0(::std::boxed::Box<not_namespace_value_variants::Variant0>),
+    }
     #[derive(
         ::core::fmt::Debug,
         ::core::clone::Clone,
@@ -3800,18 +4601,18 @@ pub struct AnyAttribute {
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "namespace", optional)]
     pub namespace: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::NamespaceList>,
+        ::std::boxed::Box<crate::types::NamespaceList>,
     >,
     #[xattribute(name = "notNamespace", optional)]
-    pub not_namespace: ::core::option::Option<::std::string::String>,
+    pub not_namespace: ::core::option::Option<
+        crate::types::List<any_attribute_items::NotNamespaceValue>,
+    >,
     #[xattribute(name = "processContents", optional)]
     pub process_contents: ::core::option::Option<
         any_attribute_items::ProcessContentsValue,
     >,
     #[xattribute(name = "notQName", optional)]
-    pub not_q_name: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::QnameListA>,
-    >,
+    pub not_q_name: ::core::option::Option<::std::boxed::Box<crate::types::QnameListA>>,
 }
 pub mod appinfo_items {
     #[derive(
@@ -3842,7 +4643,7 @@ pub mod appinfo_items {
 )]
 pub struct Appinfo {
     #[xattribute(name = "source", optional)]
-    pub source: ::core::option::Option<crate::xs::types::TargetNamespace>,
+    pub source: ::core::option::Option<crate::types::TargetNamespace>,
     #[xvalue(default)]
     #[builder(default)]
     pub child_0: ::std::vec::Vec<appinfo_items::Child0>,
@@ -3859,9 +4660,9 @@ pub struct Appinfo {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct Assertion(#[xgroup] pub ::std::boxed::Box<crate::xs::types::Assertion>);
-impl ::core::convert::From<crate::xs::types::Assertion> for Assertion {
-    fn from(value: crate::xs::types::Assertion) -> Self {
+pub struct Assertion(#[xgroup] pub ::std::boxed::Box<crate::types::Assertion>);
+impl ::core::convert::From<crate::types::Assertion> for Assertion {
+    fn from(value: crate::types::Assertion) -> Self {
         Assertion(::std::boxed::Box::new(value))
     }
 }
@@ -3877,12 +4678,9 @@ impl ::core::convert::From<crate::xs::types::Assertion> for Assertion {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct Attribute(
-    #[xgroup]
-    pub ::std::boxed::Box<crate::xs::types::TopLevelAttribute>,
-);
-impl ::core::convert::From<crate::xs::types::TopLevelAttribute> for Attribute {
-    fn from(value: crate::xs::types::TopLevelAttribute) -> Self {
+pub struct Attribute(#[xgroup] pub ::std::boxed::Box<crate::types::TopLevelAttribute>);
+impl ::core::convert::From<crate::types::TopLevelAttribute> for Attribute {
+    fn from(value: crate::types::TopLevelAttribute) -> Self {
         Attribute(::std::boxed::Box::new(value))
     }
 }
@@ -3900,10 +4698,10 @@ impl ::core::convert::From<crate::xs::types::TopLevelAttribute> for Attribute {
 )]
 pub struct AttributeGroup(
     #[xgroup]
-    pub ::std::boxed::Box<crate::xs::types::NamedAttributeGroup>,
+    pub ::std::boxed::Box<crate::types::NamedAttributeGroup>,
 );
-impl ::core::convert::From<crate::xs::types::NamedAttributeGroup> for AttributeGroup {
-    fn from(value: crate::xs::types::NamedAttributeGroup) -> Self {
+impl ::core::convert::From<crate::types::NamedAttributeGroup> for AttributeGroup {
+    fn from(value: crate::types::NamedAttributeGroup) -> Self {
         AttributeGroup(::std::boxed::Box::new(value))
     }
 }
@@ -3919,20 +4717,20 @@ impl ::core::convert::From<crate::xs::types::NamedAttributeGroup> for AttributeG
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct Choice(#[xgroup] pub ::std::boxed::Box<crate::xs::types::ExplicitGroup>);
-impl ::core::convert::From<crate::xs::types::ExplicitGroup> for Choice {
-    fn from(value: crate::xs::types::ExplicitGroup) -> Self {
+pub struct Choice(#[xgroup] pub ::std::boxed::Box<crate::types::ExplicitGroup>);
+impl ::core::convert::From<crate::types::ExplicitGroup> for Choice {
+    fn from(value: crate::types::ExplicitGroup) -> Self {
         Choice(::std::boxed::Box::new(value))
     }
 }
 pub mod complex_content_items {
-    impl ::core::convert::From<crate::xs::types::ComplexRestrictionType> for Child1 {
-        fn from(value: crate::xs::types::ComplexRestrictionType) -> Self {
+    impl ::core::convert::From<crate::types::ComplexRestrictionType> for Child1 {
+        fn from(value: crate::types::ComplexRestrictionType) -> Self {
             Child1::Restriction(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::types::ExtensionType> for Child1 {
-        fn from(value: crate::xs::types::ExtensionType) -> Self {
+    impl ::core::convert::From<crate::types::ExtensionType> for Child1 {
+        fn from(value: crate::types::ExtensionType) -> Self {
             Child1::Extension(::std::boxed::Box::new(value))
         }
     }
@@ -3949,16 +4747,13 @@ pub mod complex_content_items {
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        Restriction(
-            #[xgroup]
-            ::std::boxed::Box<crate::xs::types::ComplexRestrictionType>,
-        ),
+        Restriction(#[xgroup] ::std::boxed::Box<crate::types::ComplexRestrictionType>),
         #[xelement(
             name = "extension",
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        Extension(#[xgroup] ::std::boxed::Box<crate::xs::types::ExtensionType>),
+        Extension(#[xgroup] ::std::boxed::Box<crate::types::ExtensionType>),
     }
 }
 #[derive(
@@ -3981,7 +4776,7 @@ pub struct ComplexContent {
     #[xattribute(name = "mixed", optional)]
     pub mixed: ::core::option::Option<bool>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
     pub child_1: complex_content_items::Child1,
 }
 #[derive(
@@ -3998,10 +4793,10 @@ pub struct ComplexContent {
 )]
 pub struct ComplexType(
     #[xgroup]
-    pub ::std::boxed::Box<crate::xs::types::TopLevelComplexType>,
+    pub ::std::boxed::Box<crate::types::TopLevelComplexType>,
 );
-impl ::core::convert::From<crate::xs::types::TopLevelComplexType> for ComplexType {
-    fn from(value: crate::xs::types::TopLevelComplexType) -> Self {
+impl ::core::convert::From<crate::types::TopLevelComplexType> for ComplexType {
+    fn from(value: crate::types::TopLevelComplexType) -> Self {
         ComplexType(::std::boxed::Box::new(value))
     }
 }
@@ -4113,9 +4908,9 @@ pub struct DefaultOpenContent {
     #[xattribute(name = "mode", optional)]
     pub mode: ::core::option::Option<default_open_content_items::ModeValue>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
     #[xelement(name = "any", namespace = "http://www.w3.org/2001/XMLSchema", group)]
-    pub any: ::std::boxed::Box<crate::xs::types::Wildcard>,
+    pub any: ::std::boxed::Box<crate::types::Wildcard>,
 }
 pub mod documentation_items {
     #[derive(
@@ -4146,7 +4941,7 @@ pub mod documentation_items {
 )]
 pub struct Documentation {
     #[xattribute(name = "source", optional)]
-    pub source: ::core::option::Option<crate::xs::types::TargetNamespace>,
+    pub source: ::core::option::Option<crate::types::TargetNamespace>,
     #[xattribute(deferred = true, optional)]
     pub attribute_1: ::core::option::Option<
         ::std::boxed::Box<xmlity_ns_xml::attributes::Lang>,
@@ -4167,9 +4962,9 @@ pub struct Documentation {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct Element(#[xgroup] pub ::std::boxed::Box<crate::xs::types::TopLevelElement>);
-impl ::core::convert::From<crate::xs::types::TopLevelElement> for Element {
-    fn from(value: crate::xs::types::TopLevelElement) -> Self {
+pub struct Element(#[xgroup] pub ::std::boxed::Box<crate::types::TopLevelElement>);
+impl ::core::convert::From<crate::types::TopLevelElement> for Element {
+    fn from(value: crate::types::TopLevelElement) -> Self {
         Element(::std::boxed::Box::new(value))
     }
 }
@@ -4185,9 +4980,9 @@ impl ::core::convert::From<crate::xs::types::TopLevelElement> for Element {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct Enumeration(#[xgroup] pub ::std::boxed::Box<crate::xs::types::NoFixedFacet>);
-impl ::core::convert::From<crate::xs::types::NoFixedFacet> for Enumeration {
-    fn from(value: crate::xs::types::NoFixedFacet) -> Self {
+pub struct Enumeration(#[xgroup] pub ::std::boxed::Box<crate::types::NoFixedFacet>);
+impl ::core::convert::From<crate::types::NoFixedFacet> for Enumeration {
+    fn from(value: crate::types::NoFixedFacet) -> Self {
         Enumeration(::std::boxed::Box::new(value))
     }
 }
@@ -4302,7 +5097,7 @@ pub struct ExplicitTimezone {
     #[xattribute(name = "fixed", optional)]
     pub fixed: ::core::option::Option<bool>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
 }
 pub mod field_items {
     impl ::core::convert::From<::std::string::String> for XpathValue {
@@ -4379,10 +5174,10 @@ pub struct Field {
     pub xpath: field_items::XpathValue,
     #[xattribute(name = "xpathDefaultNamespace", optional)]
     pub xpath_default_namespace: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
+        ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
     >,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
 }
 #[derive(
     ::core::fmt::Debug,
@@ -4396,9 +5191,9 @@ pub struct Field {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct FractionDigits(#[xgroup] pub ::std::boxed::Box<crate::xs::types::NumFacet>);
-impl ::core::convert::From<crate::xs::types::NumFacet> for FractionDigits {
-    fn from(value: crate::xs::types::NumFacet) -> Self {
+pub struct FractionDigits(#[xgroup] pub ::std::boxed::Box<crate::types::NumFacet>);
+impl ::core::convert::From<crate::types::NumFacet> for FractionDigits {
+    fn from(value: crate::types::NumFacet) -> Self {
         FractionDigits(::std::boxed::Box::new(value))
     }
 }
@@ -4414,9 +5209,9 @@ impl ::core::convert::From<crate::xs::types::NumFacet> for FractionDigits {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct Group(#[xgroup] pub ::std::boxed::Box<crate::xs::types::NamedGroup>);
-impl ::core::convert::From<crate::xs::types::NamedGroup> for Group {
-    fn from(value: crate::xs::types::NamedGroup) -> Self {
+pub struct Group(#[xgroup] pub ::std::boxed::Box<crate::types::NamedGroup>);
+impl ::core::convert::From<crate::types::NamedGroup> for Group {
+    fn from(value: crate::types::NamedGroup) -> Self {
         Group(::std::boxed::Box::new(value))
     }
 }
@@ -4438,11 +5233,11 @@ pub struct Import {
     #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "namespace", optional)]
-    pub namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
+    pub namespace: ::core::option::Option<crate::types::TargetNamespace>,
     #[xattribute(name = "schemaLocation", optional)]
-    pub schema_location: ::core::option::Option<crate::xs::types::TargetNamespace>,
+    pub schema_location: ::core::option::Option<crate::types::TargetNamespace>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
 }
 #[derive(
     ::core::fmt::Debug,
@@ -4462,9 +5257,9 @@ pub struct Include {
     #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "schemaLocation")]
-    pub schema_location: crate::xs::types::TargetNamespace,
+    pub schema_location: crate::types::TargetNamespace,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
 }
 #[derive(
     ::core::fmt::Debug,
@@ -4478,9 +5273,9 @@ pub struct Include {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct Key(#[xgroup] pub ::std::boxed::Box<crate::xs::types::Keybase>);
-impl ::core::convert::From<crate::xs::types::Keybase> for Key {
-    fn from(value: crate::xs::types::Keybase) -> Self {
+pub struct Key(#[xgroup] pub ::std::boxed::Box<crate::types::Keybase>);
+impl ::core::convert::From<crate::types::Keybase> for Key {
+    fn from(value: crate::types::Keybase) -> Self {
         Key(::std::boxed::Box::new(value))
     }
 }
@@ -4495,10 +5290,10 @@ pub mod keyref_items {
     )]
     #[xvalue(order = "strict")]
     pub struct Child1 {
-        pub selector: ::std::boxed::Box<crate::xs::Selector>,
+        pub selector: ::std::boxed::Box<crate::Selector>,
         #[xvalue(default)]
         #[builder(default)]
-        pub field: ::std::vec::Vec<crate::xs::Field>,
+        pub field: ::std::vec::Vec<crate::Field>,
     }
 }
 #[derive(
@@ -4521,11 +5316,11 @@ pub struct Keyref {
     #[xattribute(name = "name", optional)]
     pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
     #[xattribute(name = "ref", optional)]
-    pub ref_: ::core::option::Option<crate::xs::types::QName>,
+    pub ref_: ::core::option::Option<crate::types::QName>,
     #[xattribute(name = "refer", optional)]
-    pub refer: ::core::option::Option<crate::xs::types::QName>,
+    pub refer: ::core::option::Option<crate::types::QName>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
     #[xvalue(default)]
     pub child_1: ::core::option::Option<keyref_items::Child1>,
 }
@@ -4541,9 +5336,9 @@ pub struct Keyref {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct Length(#[xgroup] pub ::std::boxed::Box<crate::xs::types::NumFacet>);
-impl ::core::convert::From<crate::xs::types::NumFacet> for Length {
-    fn from(value: crate::xs::types::NumFacet) -> Self {
+pub struct Length(#[xgroup] pub ::std::boxed::Box<crate::types::NumFacet>);
+impl ::core::convert::From<crate::types::NumFacet> for Length {
+    fn from(value: crate::types::NumFacet) -> Self {
         Length(::std::boxed::Box::new(value))
     }
 }
@@ -4565,9 +5360,9 @@ pub struct List {
     #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "itemType", optional)]
-    pub item_type: ::core::option::Option<crate::xs::types::QName>,
+    pub item_type: ::core::option::Option<crate::types::QName>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
     #[xelement(
         name = "simpleType",
         namespace = "http://www.w3.org/2001/XMLSchema",
@@ -4575,7 +5370,7 @@ pub struct List {
         optional
     )]
     pub simple_type: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::LocalSimpleType>,
+        ::std::boxed::Box<crate::types::LocalSimpleType>,
     >,
 }
 #[derive(
@@ -4590,9 +5385,9 @@ pub struct List {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct MaxExclusive(#[xgroup] pub ::std::boxed::Box<crate::xs::types::Facet>);
-impl ::core::convert::From<crate::xs::types::Facet> for MaxExclusive {
-    fn from(value: crate::xs::types::Facet) -> Self {
+pub struct MaxExclusive(#[xgroup] pub ::std::boxed::Box<crate::types::Facet>);
+impl ::core::convert::From<crate::types::Facet> for MaxExclusive {
+    fn from(value: crate::types::Facet) -> Self {
         MaxExclusive(::std::boxed::Box::new(value))
     }
 }
@@ -4608,9 +5403,9 @@ impl ::core::convert::From<crate::xs::types::Facet> for MaxExclusive {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct MaxInclusive(#[xgroup] pub ::std::boxed::Box<crate::xs::types::Facet>);
-impl ::core::convert::From<crate::xs::types::Facet> for MaxInclusive {
-    fn from(value: crate::xs::types::Facet) -> Self {
+pub struct MaxInclusive(#[xgroup] pub ::std::boxed::Box<crate::types::Facet>);
+impl ::core::convert::From<crate::types::Facet> for MaxInclusive {
+    fn from(value: crate::types::Facet) -> Self {
         MaxInclusive(::std::boxed::Box::new(value))
     }
 }
@@ -4626,9 +5421,9 @@ impl ::core::convert::From<crate::xs::types::Facet> for MaxInclusive {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct MaxLength(#[xgroup] pub ::std::boxed::Box<crate::xs::types::NumFacet>);
-impl ::core::convert::From<crate::xs::types::NumFacet> for MaxLength {
-    fn from(value: crate::xs::types::NumFacet) -> Self {
+pub struct MaxLength(#[xgroup] pub ::std::boxed::Box<crate::types::NumFacet>);
+impl ::core::convert::From<crate::types::NumFacet> for MaxLength {
+    fn from(value: crate::types::NumFacet) -> Self {
         MaxLength(::std::boxed::Box::new(value))
     }
 }
@@ -4644,9 +5439,9 @@ impl ::core::convert::From<crate::xs::types::NumFacet> for MaxLength {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct MinExclusive(#[xgroup] pub ::std::boxed::Box<crate::xs::types::Facet>);
-impl ::core::convert::From<crate::xs::types::Facet> for MinExclusive {
-    fn from(value: crate::xs::types::Facet) -> Self {
+pub struct MinExclusive(#[xgroup] pub ::std::boxed::Box<crate::types::Facet>);
+impl ::core::convert::From<crate::types::Facet> for MinExclusive {
+    fn from(value: crate::types::Facet) -> Self {
         MinExclusive(::std::boxed::Box::new(value))
     }
 }
@@ -4662,9 +5457,9 @@ impl ::core::convert::From<crate::xs::types::Facet> for MinExclusive {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct MinInclusive(#[xgroup] pub ::std::boxed::Box<crate::xs::types::Facet>);
-impl ::core::convert::From<crate::xs::types::Facet> for MinInclusive {
-    fn from(value: crate::xs::types::Facet) -> Self {
+pub struct MinInclusive(#[xgroup] pub ::std::boxed::Box<crate::types::Facet>);
+impl ::core::convert::From<crate::types::Facet> for MinInclusive {
+    fn from(value: crate::types::Facet) -> Self {
         MinInclusive(::std::boxed::Box::new(value))
     }
 }
@@ -4680,9 +5475,9 @@ impl ::core::convert::From<crate::xs::types::Facet> for MinInclusive {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct MinLength(#[xgroup] pub ::std::boxed::Box<crate::xs::types::NumFacet>);
-impl ::core::convert::From<crate::xs::types::NumFacet> for MinLength {
-    fn from(value: crate::xs::types::NumFacet) -> Self {
+pub struct MinLength(#[xgroup] pub ::std::boxed::Box<crate::types::NumFacet>);
+impl ::core::convert::From<crate::types::NumFacet> for MinLength {
+    fn from(value: crate::types::NumFacet) -> Self {
         MinLength(::std::boxed::Box::new(value))
     }
 }
@@ -4706,11 +5501,11 @@ pub struct Notation {
     #[xattribute(name = "name")]
     pub name: ::xmlity::LocalName<'static>,
     #[xattribute(name = "public", optional)]
-    pub public: ::core::option::Option<::std::boxed::Box<crate::xs::types::Public>>,
+    pub public: ::core::option::Option<::std::boxed::Box<crate::types::Public>>,
     #[xattribute(name = "system", optional)]
-    pub system: ::core::option::Option<crate::xs::types::TargetNamespace>,
+    pub system: ::core::option::Option<crate::types::TargetNamespace>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
 }
 pub mod open_content_items {
     #[derive(
@@ -4821,14 +5616,14 @@ pub struct OpenContent {
     #[xattribute(name = "mode", optional)]
     pub mode: ::core::option::Option<open_content_items::ModeValue>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
     #[xelement(
         name = "any",
         namespace = "http://www.w3.org/2001/XMLSchema",
         group,
         optional
     )]
-    pub any: ::core::option::Option<::std::boxed::Box<crate::xs::types::Wildcard>>,
+    pub any: ::core::option::Option<::std::boxed::Box<crate::types::Wildcard>>,
 }
 #[derive(
     ::core::fmt::Debug,
@@ -4846,14 +5641,14 @@ pub struct OpenContent {
 )]
 pub struct Override {
     #[xattribute(name = "schemaLocation")]
-    pub schema_location: crate::xs::types::TargetNamespace,
+    pub schema_location: crate::types::TargetNamespace,
     #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
     #[xvalue(default)]
     #[builder(default)]
-    pub schema_top: ::std::vec::Vec<crate::xs::groups::SchemaTop>,
+    pub schema_top: ::std::vec::Vec<crate::groups::SchemaTop>,
 }
 #[derive(
     ::core::fmt::Debug,
@@ -4875,16 +5670,16 @@ pub struct Pattern {
     #[xattribute(name = "value")]
     pub value: String,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
 }
 pub mod redefine_items {
-    impl ::core::convert::From<crate::xs::Annotation> for Redefine {
-        fn from(value: crate::xs::Annotation) -> Self {
+    impl ::core::convert::From<crate::Annotation> for Redefine {
+        fn from(value: crate::Annotation) -> Self {
             Redefine::Annotation(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::groups::Redefinable> for Redefine {
-        fn from(value: crate::xs::groups::Redefinable) -> Self {
+    impl ::core::convert::From<crate::groups::Redefinable> for Redefine {
+        fn from(value: crate::groups::Redefinable) -> Self {
             Redefine::Redefinable(::std::boxed::Box::new(value))
         }
     }
@@ -4896,8 +5691,8 @@ pub mod redefine_items {
         ::core::clone::Clone
     )]
     pub enum Redefine {
-        Annotation(::std::boxed::Box<crate::xs::Annotation>),
-        Redefinable(::std::boxed::Box<crate::xs::groups::Redefinable>),
+        Annotation(::std::boxed::Box<crate::Annotation>),
+        Redefinable(::std::boxed::Box<crate::groups::Redefinable>),
     }
 }
 #[derive(
@@ -4915,7 +5710,7 @@ pub mod redefine_items {
 )]
 pub struct Redefine {
     #[xattribute(name = "schemaLocation")]
-    pub schema_location: crate::xs::types::TargetNamespace,
+    pub schema_location: crate::types::TargetNamespace,
     #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xvalue(default)]
@@ -4940,10 +5735,10 @@ pub struct Restriction {
     #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "base", optional)]
-    pub base: ::core::option::Option<crate::xs::types::QName>,
+    pub base: ::core::option::Option<crate::types::QName>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
-    pub simple_restriction_model: crate::xs::groups::SimpleRestrictionModel,
+    pub annotation: ::core::option::Option<crate::Annotation>,
+    pub simple_restriction_model: crate::groups::SimpleRestrictionModel,
 }
 pub mod schema_items {
     #[derive(
@@ -4956,10 +5751,10 @@ pub mod schema_items {
     )]
     #[xvalue(order = "strict")]
     pub struct Child1 {
-        pub default_open_content: crate::xs::DefaultOpenContent,
+        pub default_open_content: crate::DefaultOpenContent,
         #[xvalue(default)]
         #[builder(default)]
-        pub annotation: ::std::vec::Vec<crate::xs::Annotation>,
+        pub annotation: ::std::vec::Vec<crate::Annotation>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -4971,10 +5766,10 @@ pub mod schema_items {
     )]
     #[xvalue(order = "strict")]
     pub struct Child2 {
-        pub schema_top: crate::xs::groups::SchemaTop,
+        pub schema_top: crate::groups::SchemaTop,
         #[xvalue(default)]
         #[builder(default)]
-        pub annotation: ::std::vec::Vec<crate::xs::Annotation>,
+        pub annotation: ::std::vec::Vec<crate::Annotation>,
     }
 }
 #[derive(
@@ -4993,30 +5788,28 @@ pub mod schema_items {
 )]
 pub struct Schema {
     #[xattribute(name = "targetNamespace", optional)]
-    pub target_namespace: ::core::option::Option<crate::xs::types::TargetNamespace>,
+    pub target_namespace: ::core::option::Option<crate::types::TargetNamespace>,
     #[xattribute(name = "version", optional)]
     pub version: ::core::option::Option<String>,
     #[xattribute(name = "finalDefault", optional)]
     pub final_default: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::FullDerivationSet>,
+        ::std::boxed::Box<crate::types::FullDerivationSet>,
     >,
     #[xattribute(name = "blockDefault", optional)]
-    pub block_default: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::BlockSet>,
-    >,
+    pub block_default: ::core::option::Option<::std::boxed::Box<crate::types::BlockSet>>,
     #[xattribute(name = "attributeFormDefault", optional)]
     pub attribute_form_default: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::FormChoice>,
+        ::std::boxed::Box<crate::types::FormChoice>,
     >,
     #[xattribute(name = "elementFormDefault", optional)]
     pub element_form_default: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::FormChoice>,
+        ::std::boxed::Box<crate::types::FormChoice>,
     >,
     #[xattribute(name = "defaultAttributes", optional)]
-    pub default_attributes: ::core::option::Option<crate::xs::types::QName>,
+    pub default_attributes: ::core::option::Option<crate::types::QName>,
     #[xattribute(name = "xpathDefaultNamespace", optional)]
     pub xpath_default_namespace: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
+        ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
     >,
     #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
@@ -5026,7 +5819,7 @@ pub struct Schema {
     >,
     #[xvalue(default)]
     #[builder(default)]
-    pub composition: ::std::vec::Vec<crate::xs::groups::Composition>,
+    pub composition: ::std::vec::Vec<crate::groups::Composition>,
     #[xvalue(default)]
     pub child_1: ::core::option::Option<schema_items::Child1>,
     #[xvalue(default)]
@@ -5108,10 +5901,10 @@ pub struct Selector {
     pub xpath: selector_items::XpathValue,
     #[xattribute(name = "xpathDefaultNamespace", optional)]
     pub xpath_default_namespace: ::core::option::Option<
-        ::std::boxed::Box<crate::xs::types::XpathDefaultNamespace>,
+        ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
     >,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
 }
 #[derive(
     ::core::fmt::Debug,
@@ -5125,20 +5918,20 @@ pub struct Selector {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct Sequence(#[xgroup] pub ::std::boxed::Box<crate::xs::types::ExplicitGroup>);
-impl ::core::convert::From<crate::xs::types::ExplicitGroup> for Sequence {
-    fn from(value: crate::xs::types::ExplicitGroup) -> Self {
+pub struct Sequence(#[xgroup] pub ::std::boxed::Box<crate::types::ExplicitGroup>);
+impl ::core::convert::From<crate::types::ExplicitGroup> for Sequence {
+    fn from(value: crate::types::ExplicitGroup) -> Self {
         Sequence(::std::boxed::Box::new(value))
     }
 }
 pub mod simple_content_items {
-    impl ::core::convert::From<crate::xs::types::SimpleRestrictionType> for Child1 {
-        fn from(value: crate::xs::types::SimpleRestrictionType) -> Self {
+    impl ::core::convert::From<crate::types::SimpleRestrictionType> for Child1 {
+        fn from(value: crate::types::SimpleRestrictionType) -> Self {
             Child1::Restriction(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::xs::types::SimpleExtensionType> for Child1 {
-        fn from(value: crate::xs::types::SimpleExtensionType) -> Self {
+    impl ::core::convert::From<crate::types::SimpleExtensionType> for Child1 {
+        fn from(value: crate::types::SimpleExtensionType) -> Self {
             Child1::Extension(::std::boxed::Box::new(value))
         }
     }
@@ -5155,16 +5948,13 @@ pub mod simple_content_items {
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        Restriction(
-            #[xgroup]
-            ::std::boxed::Box<crate::xs::types::SimpleRestrictionType>,
-        ),
+        Restriction(#[xgroup] ::std::boxed::Box<crate::types::SimpleRestrictionType>),
         #[xelement(
             name = "extension",
             namespace = "http://www.w3.org/2001/XMLSchema",
             allow_unknown_attributes = "any"
         )]
-        Extension(#[xgroup] ::std::boxed::Box<crate::xs::types::SimpleExtensionType>),
+        Extension(#[xgroup] ::std::boxed::Box<crate::types::SimpleExtensionType>),
     }
 }
 #[derive(
@@ -5185,7 +5975,7 @@ pub struct SimpleContent {
     #[xattribute(name = "id", optional)]
     pub id: ::core::option::Option<String>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
     pub child_1: simple_content_items::Child1,
 }
 #[derive(
@@ -5200,12 +5990,9 @@ pub struct SimpleContent {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct SimpleType(
-    #[xgroup]
-    pub ::std::boxed::Box<crate::xs::types::TopLevelSimpleType>,
-);
-impl ::core::convert::From<crate::xs::types::TopLevelSimpleType> for SimpleType {
-    fn from(value: crate::xs::types::TopLevelSimpleType) -> Self {
+pub struct SimpleType(#[xgroup] pub ::std::boxed::Box<crate::types::TopLevelSimpleType>);
+impl ::core::convert::From<crate::types::TopLevelSimpleType> for SimpleType {
+    fn from(value: crate::types::TopLevelSimpleType) -> Self {
         SimpleType(::std::boxed::Box::new(value))
     }
 }
@@ -5231,11 +6018,11 @@ pub struct TotalDigits {
     #[xattribute(name = "fixed", optional)]
     pub fixed: ::core::option::Option<bool>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
 }
 pub mod union_items {
-    impl ::core::convert::From<crate::xs::types::LocalSimpleType> for SimpleType {
-        fn from(value: crate::xs::types::LocalSimpleType) -> Self {
+    impl ::core::convert::From<crate::types::LocalSimpleType> for SimpleType {
+        fn from(value: crate::types::LocalSimpleType) -> Self {
             SimpleType(::std::boxed::Box::new(value))
         }
     }
@@ -5253,7 +6040,7 @@ pub mod union_items {
     )]
     pub struct SimpleType(
         #[xgroup]
-        pub ::std::boxed::Box<crate::xs::types::LocalSimpleType>,
+        pub ::std::boxed::Box<crate::types::LocalSimpleType>,
     );
 }
 #[derive(
@@ -5275,10 +6062,10 @@ pub struct Union {
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "memberTypes", optional)]
     pub member_types: ::core::option::Option<
-        crate::xs::types::List<crate::xs::types::QName>,
+        crate::types::List<crate::types::QName>,
     >,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
     #[xvalue(default)]
     #[builder(default)]
     pub simple_type: ::std::vec::Vec<union_items::SimpleType>,
@@ -5295,9 +6082,9 @@ pub struct Union {
     namespace = "http://www.w3.org/2001/XMLSchema",
     allow_unknown_attributes = "any"
 )]
-pub struct Unique(#[xgroup] pub ::std::boxed::Box<crate::xs::types::Keybase>);
-impl ::core::convert::From<crate::xs::types::Keybase> for Unique {
-    fn from(value: crate::xs::types::Keybase) -> Self {
+pub struct Unique(#[xgroup] pub ::std::boxed::Box<crate::types::Keybase>);
+impl ::core::convert::From<crate::types::Keybase> for Unique {
+    fn from(value: crate::types::Keybase) -> Self {
         Unique(::std::boxed::Box::new(value))
     }
 }
@@ -5412,5 +6199,5 @@ pub struct WhiteSpace {
     #[xattribute(name = "fixed", optional)]
     pub fixed: ::core::option::Option<bool>,
     #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::xs::Annotation>,
+    pub annotation: ::core::option::Option<crate::Annotation>,
 }

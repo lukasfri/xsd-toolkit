@@ -250,11 +250,9 @@ impl From<xs::types::AllNNI> for AllNNI {
 impl<'a> From<&'a xs::types::AllNNI> for AllNNI {
     fn from(value: &'a xs::types::AllNNI) -> Self {
         match value {
-            xs::types::all_nni_items::AllNNI::Variant0(a) => Self::Bounded(**a),
-            xs::types::all_nni_items::AllNNI::Variant0_0(variant0) => match **variant0 {
-                xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded => {
-                    Self::Unbounded
-                }
+            xs::types::all_nni_items::AllNNI::NonNegativeInteger(a) => Self::Bounded(**a),
+            xs::types::all_nni_items::AllNNI::Variant0(variant0) => match **variant0 {
+                xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded => Self::Unbounded,
             },
         }
     }
@@ -263,10 +261,10 @@ impl<'a> From<&'a xs::types::AllNNI> for AllNNI {
 impl From<AllNNI> for xs::types::AllNNI {
     fn from(value: AllNNI) -> Self {
         match value {
-            AllNNI::Unbounded => xs::types::AllNNI::Variant0_0(Box::new(
-                xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded,
+            AllNNI::Unbounded => xs::types::AllNNI::Variant0(Box::new(
+                xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded,
             )),
-            AllNNI::Bounded(a) => xs::types::AllNNI::Variant0(Box::new(a)),
+            AllNNI::Bounded(a) => xs::types::AllNNI::NonNegativeInteger(Box::new(a)),
         }
     }
 }

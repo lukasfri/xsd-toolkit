@@ -187,7 +187,7 @@ mod tests {
             xs::types::ExplicitGroup::builder()
                 .max_occurs(
                     xs::types::AllNNI::from(
-                        xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded,
+                        xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded,
                     )
                     .into(),
                 )
@@ -360,7 +360,7 @@ mod tests {
             xs::types::ExplicitGroup::builder()
                 .max_occurs(
                     xs::types::AllNNI::from(
-                        xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded,
+                        xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded,
                     )
                     .into(),
                 )
@@ -416,7 +416,7 @@ mod tests {
                                                                 name.clone().into(),
                                                             ])
                                                             .max_occurs(
-                                                                xs::types::AllNNI::from(xs::types::all_nni_items::variant_0_variants::Variant0::Unbounded).into(),
+                                                                xs::types::AllNNI::from(xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded).into(),
                                                             )
                                                             .build()
                                                             .into(),

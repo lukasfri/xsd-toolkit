@@ -7,7 +7,7 @@ use xmlity::{
     Deserialize, ExpandedName, LocalName, NoopDeSerializer, Prefix, Serialize, XmlNamespace,
 };
 
-use crate::xs;
+use crate as xs;
 
 #[derive(Debug, Clone, PartialEq, derive_more::Display, derive_more::Error, derive_more::From)]
 pub enum Error {

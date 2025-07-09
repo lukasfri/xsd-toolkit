@@ -32,7 +32,7 @@ impl SimpleToTypeTemplate for sm::ListFragment {
             ident: None,
             template: ty.template.wrap(|ty: syn::Type| -> syn::Type {
                 parse_quote!(
-                    crate::xs::types::List<#ty>
+                    crate::types::List<#ty>
                 )
             }),
         })

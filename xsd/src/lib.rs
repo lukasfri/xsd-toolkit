@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-pub use xmlity_ns_xs::xs;
+pub use xmlity_ns_xs as xs;
 pub mod xsn;
 
 #[derive(Debug, Clone, PartialEq)]

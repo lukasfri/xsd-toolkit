@@ -1,5 +1,5 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xmlity_ns_xs::xs;
+use xmlity_ns_xs as xs;
 
 #[rstest::rstest]
 #[case::schema(XSD_SCHEMA, None)]
