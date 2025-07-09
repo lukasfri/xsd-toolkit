@@ -47,6 +47,7 @@ impl ComplexToTypeTemplate for cx::LocalAttributeFragment {
                 (Some(ident), template)
             }
             cx::LocalAttributeFragmentTypeMode::Reference(reference) => {
+                let ident = reference.name.local_name().to_item_ident();
                 let ty = context.resolve_named_attribute(&reference.name)?;
 
                 let ty = ty.wrap_if(optional, |a| parse_quote!(::core::option::Option<#a>));
@@ -59,7 +60,7 @@ impl ComplexToTypeTemplate for cx::LocalAttributeFragment {
                     default: false,
                 };
 
-                (None, template)
+                (Some(ident), template)
             }
         };
 
