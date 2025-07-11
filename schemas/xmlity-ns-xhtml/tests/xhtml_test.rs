@@ -26,12 +26,12 @@ const XHTML_HTML: &str = r###"
 fn xhtml_html() -> xhtml::Html {
     xhtml::Html {
         lang: None,
-        attribute_1: None,
+        lang_0: None,
         dir: None,
         id: None,
         head: xhtml::Head {
             lang: None,
-            attribute_1: None,
+            lang_0: None,
             dir: None,
             id: None,
             profile: None,
@@ -41,7 +41,7 @@ fn xhtml_html() -> xhtml::Html {
             variant: xhtml::head_items::variant_variants::Variant0 {
                 title: Box::new(xhtml::Title {
                     lang: None,
-                    attribute_1: None,
+                    lang_0: None,
                     dir: None,
                     id: None,
                 }),
@@ -58,7 +58,7 @@ fn xhtml_html() -> xhtml::Html {
             style: None,
             title: None,
             lang: None,
-            attribute_5: None,
+            lang_0: None,
             dir: None,
             onclick: None,
             ondblclick: None,

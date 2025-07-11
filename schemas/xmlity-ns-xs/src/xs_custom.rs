@@ -2,7 +2,7 @@ use core::fmt;
 use std::{borrow::Cow, fmt::Display, str::FromStr};
 
 use xmlity::{
-    de::{self, NamespaceContext},
+    de::{self, DeserializeContext},
     types::string::FromStrVisitor,
     Deserialize, ExpandedName, LocalName, NoopDeSerializer, Prefix, Serialize, XmlNamespace,
 };
@@ -19,17 +19,17 @@ pub enum Error {
     },
 }
 
-struct RefContext<'a, C: NamespaceContext> {
+struct RefContext<'a, C: DeserializeContext> {
     ctx: &'a C,
 }
 
-impl<'a, C: NamespaceContext> RefContext<'a, C> {
+impl<'a, C: DeserializeContext> RefContext<'a, C> {
     fn new(ctx: &'a C) -> Self {
         Self { ctx }
     }
 }
 
-impl<C: NamespaceContext> de::NamespaceContext for RefContext<'_, C> {
+impl<C: DeserializeContext> de::DeserializeContext for RefContext<'_, C> {
     fn default_namespace(&self) -> Option<XmlNamespace<'_>> {
         self.ctx.default_namespace()
     }
@@ -37,15 +37,22 @@ impl<C: NamespaceContext> de::NamespaceContext for RefContext<'_, C> {
     fn resolve_prefix(&self, prefix: Prefix<'_>) -> Option<XmlNamespace<'_>> {
         self.ctx.resolve_prefix(prefix)
     }
+
+    fn external_data<T>(&self) -> Option<&T>
+    where
+        T: core::any::Any,
+    {
+        self.ctx.external_data::<T>()
+    }
 }
 
-struct SubStrDeserializer<'a, 'c, C: NamespaceContext + 'c, E: xmlity::de::Error> {
+struct SubStrDeserializer<'a, 'c, C: DeserializeContext + 'c, E: xmlity::de::Error> {
     bytes: &'a str,
     ctx: &'c C,
     _marker: std::marker::PhantomData<E>,
 }
 
-impl<'a, 'c, C: NamespaceContext + 'c, E: xmlity::de::Error> SubStrDeserializer<'a, 'c, C, E> {
+impl<'a, 'c, C: DeserializeContext + 'c, E: xmlity::de::Error> SubStrDeserializer<'a, 'c, C, E> {
     fn new(bytes: &'a str, ctx: &'c C) -> Self {
         Self {
             bytes,
@@ -55,10 +62,10 @@ impl<'a, 'c, C: NamespaceContext + 'c, E: xmlity::de::Error> SubStrDeserializer<
     }
 }
 
-impl<'de, 'c, C: NamespaceContext, E: xmlity::de::Error> de::XmlText<'de>
+impl<'de, 'c, C: DeserializeContext, E: xmlity::de::Error> de::XmlText<'de>
     for SubStrDeserializer<'de, 'c, C, E>
 {
-    type NamespaceContext<'a>
+    type DeserializeContext<'a>
         = RefContext<'c, C>
     where
         Self: 'a;
@@ -79,12 +86,12 @@ impl<'de, 'c, C: NamespaceContext, E: xmlity::de::Error> de::XmlText<'de>
         self.bytes
     }
 
-    fn namespace_context(&self) -> Self::NamespaceContext<'_> {
+    fn context(&self) -> Self::DeserializeContext<'_> {
         RefContext::new(self.ctx)
     }
 }
 
-impl<'de, 'c, C: NamespaceContext, E: xmlity::de::Error> de::Deserializer<'de>
+impl<'de, 'c, C: DeserializeContext, E: xmlity::de::Error> de::Deserializer<'de>
     for SubStrDeserializer<'de, 'c, C, E>
 {
     type Error = E;
@@ -301,9 +308,7 @@ pub mod types {
                         .as_str()
                         .split([' ', '|', ',', ';'])
                         .filter(|v| !v.is_empty())
-                        .map(|s| {
-                            T::deserialize(SubStrDeserializer::new(s, &value.namespace_context()))
-                        })
+                        .map(|s| T::deserialize(SubStrDeserializer::new(s, &value.context())))
                         .collect::<Result<Vec<_>, _>>()
                         .map(List)
                 }
@@ -359,7 +364,7 @@ pub mod types {
                     E: xmlity::de::Error,
                     V: xmlity::de::XmlText<'de>,
                 {
-                    let ctx = value.namespace_context();
+                    let ctx = value.context();
 
                     let mut qname_parts = value.as_str().split(":");
                     let first_part = qname_parts.next().expect("Always has at least one part.");
