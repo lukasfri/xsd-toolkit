@@ -785,7 +785,7 @@ fn xsd_total_digits() -> xs::Element {
     xs::types::TopLevelElement::builder()
         .name(LocalName::new_dangerous("totalDigits"))
         .id("totalDigits".to_string())
-        .substitution_group(xs::types::List(vec![
+        .substitution_group(xmlity_ns::List(vec![
           xs::types::QName(ExpandedName::new(
             LocalName::new_dangerous("facet"),
             Some(XmlNamespace::XS),
@@ -964,7 +964,7 @@ fn xsd_white_space() -> xs::Element {
         xs::types::TopLevelElement::builder()
             .name(LocalName::new_dangerous("whiteSpace"))
             .id("whiteSpace".to_string())
-            .substitution_group(xs::types::List(vec![
+            .substitution_group(xmlity_ns::List(vec![
           xs::types::QName(ExpandedName::new(
             LocalName::new_dangerous("facet"),
             Some(XmlNamespace::XS),

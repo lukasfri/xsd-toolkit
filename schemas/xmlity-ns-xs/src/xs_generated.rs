@@ -225,7 +225,7 @@ pub mod types {
             Variant0(::std::boxed::Box<basic_namespace_list_variants::Variant0>),
         }
     }
-    pub type BasicNamespaceList = crate::types::List<
+    pub type BasicNamespaceList = ::xmlity_ns::List<
         basic_namespace_list_items::BasicNamespaceList,
     >;
     pub mod block_set_items {
@@ -414,9 +414,9 @@ pub mod types {
                 BlockSet::Variant0(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::types::List<variant_variants::Variant1>>
+        impl ::core::convert::From<::xmlity_ns::List<variant_variants::Variant1>>
         for BlockSet {
-            fn from(value: crate::types::List<variant_variants::Variant1>) -> Self {
+            fn from(value: ::xmlity_ns::List<variant_variants::Variant1>) -> Self {
                 BlockSet::Variant1(::std::boxed::Box::new(value))
             }
         }
@@ -430,7 +430,7 @@ pub mod types {
         pub enum BlockSet {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
             Variant1(
-                ::std::boxed::Box<crate::types::List<variant_variants::Variant1>>,
+                ::std::boxed::Box<::xmlity_ns::List<variant_variants::Variant1>>,
             ),
         }
     }
@@ -634,12 +634,12 @@ pub mod types {
             }
         }
         impl ::core::convert::From<
-            crate::types::List<
+            ::xmlity_ns::List<
                 ::std::boxed::Box<crate::types::ReducedDerivationControl>,
             >,
         > for DerivationSet {
             fn from(
-                value: crate::types::List<
+                value: ::xmlity_ns::List<
                     ::std::boxed::Box<crate::types::ReducedDerivationControl>,
                 >,
             ) -> Self {
@@ -657,7 +657,7 @@ pub mod types {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
             Variant1(
                 ::std::boxed::Box<
-                    crate::types::List<
+                    ::xmlity_ns::List<
                         ::std::boxed::Box<crate::types::ReducedDerivationControl>,
                     >,
                 >,
@@ -848,12 +848,12 @@ pub mod types {
             }
         }
         impl ::core::convert::From<
-            crate::types::List<
+            ::xmlity_ns::List<
                 ::std::boxed::Box<crate::types::TypeDerivationControl>,
             >,
         > for FullDerivationSet {
             fn from(
-                value: crate::types::List<
+                value: ::xmlity_ns::List<
                     ::std::boxed::Box<crate::types::TypeDerivationControl>,
                 >,
             ) -> Self {
@@ -871,7 +871,7 @@ pub mod types {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
             Variant1(
                 ::std::boxed::Box<
-                    crate::types::List<
+                    ::xmlity_ns::List<
                         ::std::boxed::Box<crate::types::TypeDerivationControl>,
                     >,
                 >,
@@ -1074,7 +1074,7 @@ pub mod types {
             Variant0(::std::boxed::Box<qname_list_variants::Variant0>),
         }
     }
-    pub type QnameList = crate::types::List<qname_list_items::QnameList>;
+    pub type QnameList = ::xmlity_ns::List<qname_list_items::QnameList>;
     pub mod qname_list_a_items {
         pub mod qname_list_a_variants {
             #[derive(
@@ -1184,7 +1184,7 @@ pub mod types {
             Variant0(::std::boxed::Box<qname_list_a_variants::Variant0>),
         }
     }
-    pub type QnameListA = crate::types::List<qname_list_a_items::QnameListA>;
+    pub type QnameListA = ::xmlity_ns::List<qname_list_a_items::QnameListA>;
     pub mod reduced_derivation_control_items {
         #[derive(
             ::core::fmt::Debug,
@@ -1468,9 +1468,9 @@ pub mod types {
                 SimpleDerivationSet::Variant0(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<crate::types::List<variant_variants::Variant1>>
+        impl ::core::convert::From<::xmlity_ns::List<variant_variants::Variant1>>
         for SimpleDerivationSet {
-            fn from(value: crate::types::List<variant_variants::Variant1>) -> Self {
+            fn from(value: ::xmlity_ns::List<variant_variants::Variant1>) -> Self {
                 SimpleDerivationSet::Variant1(::std::boxed::Box::new(value))
             }
         }
@@ -1484,7 +1484,7 @@ pub mod types {
         pub enum SimpleDerivationSet {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
             Variant1(
-                ::std::boxed::Box<crate::types::List<variant_variants::Variant1>>,
+                ::std::boxed::Box<::xmlity_ns::List<variant_variants::Variant1>>,
             ),
         }
     }
@@ -2433,7 +2433,7 @@ pub mod types {
         pub type_attribute: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "substitutionGroup", optional)]
         pub substitution_group: ::core::option::Option<
-            crate::types::List<crate::types::QName>,
+            ::xmlity_ns::List<crate::types::QName>,
         >,
         #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
@@ -3240,7 +3240,7 @@ pub mod types {
         pub type_attribute: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "substitutionGroup", optional)]
         pub substitution_group: ::core::option::Option<
-            crate::types::List<crate::types::QName>,
+            ::xmlity_ns::List<crate::types::QName>,
         >,
         #[xattribute(name = "default", optional)]
         pub default: ::core::option::Option<String>,
@@ -3514,7 +3514,7 @@ pub mod types {
         >,
         #[xattribute(name = "notNamespace", optional)]
         pub not_namespace: ::core::option::Option<
-            crate::types::List<wildcard_items::NotNamespaceValue>,
+            ::xmlity_ns::List<wildcard_items::NotNamespaceValue>,
         >,
         #[xattribute(name = "processContents", optional)]
         pub process_contents: ::core::option::Option<
@@ -4367,7 +4367,7 @@ pub struct Any {
     >,
     #[xattribute(name = "notNamespace", optional)]
     pub not_namespace: ::core::option::Option<
-        crate::types::List<any_items::NotNamespaceValue>,
+        ::xmlity_ns::List<any_items::NotNamespaceValue>,
     >,
     #[xattribute(name = "processContents", optional)]
     pub process_contents: ::core::option::Option<any_items::ProcessContentsValue>,
@@ -4605,7 +4605,7 @@ pub struct AnyAttribute {
     >,
     #[xattribute(name = "notNamespace", optional)]
     pub not_namespace: ::core::option::Option<
-        crate::types::List<any_attribute_items::NotNamespaceValue>,
+        ::xmlity_ns::List<any_attribute_items::NotNamespaceValue>,
     >,
     #[xattribute(name = "processContents", optional)]
     pub process_contents: ::core::option::Option<
@@ -6062,7 +6062,7 @@ pub struct Union {
     pub id: ::core::option::Option<String>,
     #[xattribute(name = "memberTypes", optional)]
     pub member_types: ::core::option::Option<
-        crate::types::List<crate::types::QName>,
+        ::xmlity_ns::List<crate::types::QName>,
     >,
     #[xvalue(default)]
     pub annotation: ::core::option::Option<crate::Annotation>,

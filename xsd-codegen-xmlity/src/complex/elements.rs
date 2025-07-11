@@ -2,16 +2,19 @@ use crate::{
     misc::TypeReference,
     simple::SimpleContext,
     templates::{
+        choice,
         element_record::{
             AllowUnknown, ElementField, ElementFieldGroup, ElementFieldType, ElementRecord,
         },
         group_record::GroupRecord,
-        value_record::ItemFieldItem,
+        value_record::{self, ItemFieldItem},
         ItemOrder,
     },
     Result, ToIdentTypesExt, TypeType,
 };
 
+use quote::format_ident;
+use syn::parse_quote;
 use xsd_fragments::fragments::complex::{self as cx, AllNNI};
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
@@ -166,8 +169,24 @@ impl ComplexToTypeTemplate for cx::LocalElementFragment {
     }
 }
 
+pub enum TopLevelElementTemplate {
+    ElementRecord(ElementRecord),
+    Choice(choice::Choice),
+}
+
+impl TopLevelElementTemplate {
+    pub fn to_item(&self, item_name: &syn::Ident, path: Option<&syn::Path>) -> syn::Item {
+        match self {
+            TopLevelElementTemplate::ElementRecord(element_record) => {
+                element_record.to_struct(item_name, path).into()
+            }
+            TopLevelElementTemplate::Choice(choice) => choice.to_enum(item_name, path).into(),
+        }
+    }
+}
+
 impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
-    type TypeTemplate = ElementRecord;
+    type TypeTemplate = TopLevelElementTemplate;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
@@ -179,7 +198,9 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
 
         let type_ = self.type_.as_ref();
 
-        let template = match type_ {
+        let substitute_group = true;
+
+        let element_record = match type_ {
             Some(xsd_fragments::NamedOrAnonymous::Named(expanded_name)) => {
                 let bound_type = context.resolve_named_type(expanded_name)?;
 
@@ -202,10 +223,41 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
             None => ElementRecord::new_empty(name),
         };
 
-        Ok(ToTypeTemplateData {
-            ident: Some(ident),
-            template,
-        })
+        if substitute_group {
+            let substitute_group_ty =
+                TypeReference::new_static(parse_quote!(::xmlity_ns::SubstitutionGroup<Self>));
+
+            let choice = choice::Choice {
+                variants: vec![
+                    (
+                        ident.to_item_ident(),
+                        choice::ChoiceVariantType::Element(element_record),
+                    ),
+                    (
+                        format_ident!("SubstitutionGroup"),
+                        choice::ChoiceVariantType::Item(
+                            value_record::ItemRecord::new_single_field(
+                                None,
+                                value_record::ItemField::Item(ItemFieldItem {
+                                    ty: substitute_group_ty,
+                                    default: false,
+                                }),
+                            ),
+                        ),
+                    ),
+                ],
+            };
+
+            Ok(ToTypeTemplateData {
+                ident: Some(ident),
+                template: TopLevelElementTemplate::Choice(choice),
+            })
+        } else {
+            Ok(ToTypeTemplateData {
+                ident: Some(ident),
+                template: TopLevelElementTemplate::ElementRecord(element_record),
+            })
+        }
     }
 }
 
@@ -217,7 +269,7 @@ mod tests {
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::xs;
     use xsd::xsn;
-    use xsd_fragments::{ XmlnsContext};
+    use xsd_fragments::XmlnsContext;
 
     use crate::misc::TypeReference;
     use crate::BoundType;
@@ -299,7 +351,7 @@ mod tests {
     fn two_child_sequence_element() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
-            
+
         let sequence = xs::types::TopLevelElement::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .type_(
@@ -356,10 +408,7 @@ mod tests {
         let mut ctx = XmlnsContext::new();
         let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let sequence = ns
-            .import_top_level_element(&sequence)
-            .unwrap()
-            .into_owned();
+        let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
 
@@ -396,7 +445,7 @@ mod tests {
     fn two_attribute_sequence_element() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
-            
+
         let sequence = xs::Element(
             xs::types::TopLevelElement::builder()
                 .name(LocalName::new_dangerous("SimpleSequence"))
@@ -454,15 +503,10 @@ mod tests {
                 .into(),
         );
 
-
         let mut ctx = XmlnsContext::new();
         let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let sequence = ns
-            .import_top_level_element(&sequence)
-            .unwrap()
-            .into_owned();
-
+        let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
 
@@ -499,7 +543,7 @@ mod tests {
     fn two_sequence_deep_element() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
-            
+
         let sequence = xs::types::TopLevelElement::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .type_(
@@ -568,15 +612,10 @@ mod tests {
             .build()
             .into();
 
-
         let mut ctx = XmlnsContext::new();
         let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let sequence = ns
-            .import_top_level_element(&sequence)
-            .unwrap()
-            .into_owned();
-
+        let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
 
@@ -624,7 +663,7 @@ mod tests {
     fn two_attribute_two_children_sequence_element() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
-            
+
         let sequence = xs::types::TopLevelElement::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .type_(
@@ -698,15 +737,10 @@ mod tests {
             .build()
             .into();
 
-
         let mut ctx = XmlnsContext::new();
         let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let sequence = ns
-            .import_top_level_element(&sequence)
-            .unwrap()
-            .into_owned();
-
+        let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
 
@@ -747,7 +781,7 @@ mod tests {
     fn complex_reference_type_local_element() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
-            
+
         let child_type_expanded_name = ExpandedName::new(
             LocalName::new_dangerous("childType"),
             XmlNamespace::XS.into(),
@@ -799,15 +833,10 @@ mod tests {
             .build()
             .into();
 
-
         let mut ctx = XmlnsContext::new();
         let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let sequence = ns
-            .import_top_level_element(&sequence)
-            .unwrap()
-            .into_owned();
-
+        let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
 
@@ -849,22 +878,17 @@ mod tests {
     fn simple_reference_type_top_level_element() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
-            
+
         let sequence = xs::types::TopLevelElement::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .type_attribute(xs::types::QName(xsn::STRING.clone()))
             .build()
             .into();
 
-
         let mut ctx = XmlnsContext::new();
         let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let sequence = ns
-            .import_top_level_element(&sequence)
-            .unwrap()
-            .into_owned();
-
+        let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
 
@@ -896,7 +920,7 @@ mod tests {
     fn complex_reference_type_top_level_element() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
-            
+
         let child_type_expanded_name = ExpandedName::new(
             LocalName::new_dangerous("childType"),
             XmlNamespace::XS.into(),
@@ -908,15 +932,10 @@ mod tests {
             .build()
             .into();
 
-
         let mut ctx = XmlnsContext::new();
         let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let sequence = ns
-            .import_top_level_element(&sequence)
-            .unwrap()
-            .into_owned();
-
+        let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
 
@@ -956,7 +975,7 @@ mod tests {
     fn element_ref_element() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
-            
+
         let child_element_expanded_name = ExpandedName::new(
             LocalName::new_dangerous("ChildElement"),
             XmlNamespace::XS.into(),
@@ -1007,15 +1026,10 @@ mod tests {
             .build()
             .into();
 
-
         let mut ctx = XmlnsContext::new();
         let ns = ctx.init_namespace(TEST_NAMESPACE);
 
-        let sequence = ns
-            .import_top_level_element(&sequence)
-            .unwrap()
-            .into_owned();
-
+        let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
 

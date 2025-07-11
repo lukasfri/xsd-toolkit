@@ -1,5 +1,5 @@
 [package]
-name = "xmlity-ns-xs"
+name = "xmlity-ns"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,15 +8,11 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-thiserror.workspace = true
-bon = "3.6.3"
 xmlity.workspace = true
-xmlity-quick-xml.workspace = true
 derive_more = { version = "2.0.1", features = ["full"] }
-xmlity-ns-xml = { path = "../xmlity-ns-xml" }
-xmlity-ns = { path = "../xmlity-ns" }
 
 [dev-dependencies]
 rstest.workspace = true
 pretty_assertions.workspace = true
 ntest.workspace = true
+xmlity-quick-xml.workspace = true

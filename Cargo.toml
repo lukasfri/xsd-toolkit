@@ -6,6 +6,7 @@ members = [
   "xsd-fragments",
   "xsd-fragments-transformer",
   "xmlity-build",
+  "schemas/xmlity-ns",
   "schemas/xmlity-ns-xhtml",
   "schemas/xmlity-ns-xs",
   "schemas/xmlity-ns-xsi",
