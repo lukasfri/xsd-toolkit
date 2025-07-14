@@ -22,6 +22,20 @@ pub struct SubstitutionGroup<T> {
     value: XmlElement,
     _marker: PhantomData<T>,
 }
+
+impl<T> SubstitutionGroup<T> {
+    pub fn new(value: XmlElement) -> Self {
+        SubstitutionGroup {
+            value,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn into_inner(self) -> XmlElement {
+        self.value
+    }
+}
+
 impl<'de, T: 'static> Deserialize<'de> for SubstitutionGroup<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -42,21 +56,29 @@ impl<'de, T: 'static> Deserialize<'de> for SubstitutionGroup<T> {
             where
                 A: de::ElementAccess<'de>,
             {
-                let ctx = element.context();
-                let item_ctx =
-                    de::DeserializeContext::external_data::<SubstitutionGroupContext<T>>(&ctx)
-                        .ok_or_else(|| de::Error::custom("Missing ItemSubstitutionGroupContext"))?;
+                {
+                    let ctx = element.context();
+                    let item_ctx = de::DeserializeContext::external_data::<
+                        SubstitutionGroupContext<T>,
+                    >(&ctx)
+                    .ok_or_else(|| de::Error::custom("Missing ItemSubstitutionGroupContext"))?;
 
-                let name = element.name();
+                    let name = element.name();
 
-                if !item_ctx.allowed_names.contains(&name) {
-                    return Err(de::Error::custom(format!(
-                        "Unexpected element name: {:?}. Expected one of: {:?}",
-                        name, item_ctx.allowed_names
-                    )));
+                    if !item_ctx.allowed_names.contains(&name) {
+                        return Err(de::Error::custom(format!(
+                            "Unexpected element name: {:?}. Expected one of: {:?}",
+                            name, item_ctx.allowed_names
+                        )));
+                    }
                 }
 
-                todo!()
+                xmlity::value::deserialize::XmlElementVisitor::new()
+                    .visit_element(element)
+                    .map(|value| SubstitutionGroup {
+                        value,
+                        _marker: PhantomData,
+                    })
             }
         }
 
@@ -65,6 +87,7 @@ impl<'de, T: 'static> Deserialize<'de> for SubstitutionGroup<T> {
         })
     }
 }
+
 impl<T: 'static> Serialize for SubstitutionGroup<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
