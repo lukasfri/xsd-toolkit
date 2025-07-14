@@ -2,6 +2,7 @@ use std::ops::Deref;
 
 pub use xmlity_ns_xs as xs;
 pub mod xsn;
+pub use xmlity_ns as ns;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct XmlSchema {
@@ -13,12 +14,21 @@ impl XmlSchema {
         Self { underlying_schema }
     }
 
+    pub fn schema(&self) -> &xs::schema_items::Schema {
+        match &self.underlying_schema {
+            xmlity_ns_xs::Schema::Schema(schema) => schema,
+            xmlity_ns_xs::Schema::SubstitutionGroup(_) => {
+                panic!("Expected a schema, but found a substitution group:",)
+            }
+        }
+    }
+
     pub fn namespace(&self) -> &xmlity::XmlNamespace<'static> {
-        &self.underlying_schema.target_namespace.as_ref().unwrap().0
+        &self.schema().target_namespace.as_ref().unwrap().0
     }
 
     pub fn compositions(&self) -> impl Iterator<Item = &xs::groups::Composition> {
-        self.underlying_schema.composition.iter()
+        self.schema().composition.iter()
     }
 
     pub fn includes(&self) -> impl Iterator<Item = &xs::Include> + use<'_> {
@@ -36,7 +46,7 @@ impl XmlSchema {
     }
 
     pub fn schema_tops(&self) -> impl Iterator<Item = &xs::groups::SchemaTop> {
-        self.underlying_schema.child_2.iter().map(|a| &a.schema_top)
+        self.schema().child_2.iter().map(|a| &a.schema_top)
     }
 
     pub fn top_level_elements(&self) -> impl Iterator<Item = &xs::Element> {

@@ -130,7 +130,7 @@ mod tests {
         let ns = ctx.init_namespace(TEST_NAMESPACE);
 
         // Common for both
-        let sequence = xs::Sequence(
+        let sequence = xs::Sequence::from(
             xs::types::ExplicitGroup::builder()
                 .nested_particle(vec![
                     xs::types::LocalElement::builder()
@@ -144,8 +144,7 @@ mod tests {
                         .build()
                         .into(),
                 ])
-                .build()
-                .into(),
+                .build(),
         );
 
         // <xs:complexType name="length">
@@ -183,23 +182,25 @@ mod tests {
         let expected_output: xs::ComplexType = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("length"))
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .child_1(
-                                xs::types::complex_restriction_type_items::Child1::builder()
-                                    .type_def_particle(Box::new(sequence.clone().into()))
-                                    .build()
-                                    .into(),
-                            )
-                            .attr_decls(xs::groups::AttrDecls::builder().build().into())
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ComplexRestrictionType::builder()
+                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                .child_1(
+                                    xs::types::complex_restriction_type_items::Child1::builder()
+                                        .type_def_particle(Box::new(sequence.clone().into()))
+                                        .build()
+                                        .into(),
+                                )
+                                .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
             ))
             .build()
             .into();

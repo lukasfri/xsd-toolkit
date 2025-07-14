@@ -6,6 +6,7 @@ use std::{
 
 use url::Url;
 use xmlity::XmlNamespace;
+use xsd::xs;
 
 use crate::resolvers::{AsyncXmlSchemaResolver, XmlSchemaResolver};
 
@@ -86,6 +87,11 @@ impl XmlNamespaceMap {
         let imports = schema
             .imports()
             .map(|a| {
+                let a = match a {
+                    xs::Import::Import(a) => a,
+                    _ => panic!("Expected an import, but found: {:?}", a),
+                };
+
                 let namespace = a
                     .namespace
                     .as_ref()
@@ -120,6 +126,10 @@ impl XmlNamespaceMap {
 
         let includes = schema
             .includes()
+            .map(|a| match a {
+                xs::Include::Include(a) => a,
+                _ => panic!("Expected an include, but found: {:?}", a),
+            })
             .map(|a| Url::from_str(a.schema_location.0.as_str()).unwrap())
             .collect::<HashSet<_>>();
 

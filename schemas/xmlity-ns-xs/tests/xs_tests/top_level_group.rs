@@ -187,7 +187,7 @@ const XSD_ALL_MODEL: &str = r###"
 "###;
 
 fn xsd_all_model() -> xs::Group {
-    xs::Group(Box::new(
+    xs::Group::from(
     xs::types::NamedGroup::builder()
         .name(LocalName::new_dangerous("allModel"))
         .child_1(
@@ -201,18 +201,18 @@ fn xsd_all_model() -> xs::Group {
                         .min_occurs(0)
                         .build()
                         .into(),
-                    xs::Choice( xs::types::ExplicitGroup::builder()
+                    xs::Choice::from(xs::types::ExplicitGroup::builder()
                         .min_occurs(0)
                         .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded).into())
                         .annotation(
-                            xs::Annotation::builder()
-                            .annotation(vec![
-                              xs::Documentation::builder()
+                            xs::Annotation::from(xs::annotation_items::Annotation::builder()
+                            .annotation_content(vec![
+                              xs::Documentation::from(xs::documentation_items::Documentation::builder()
                                 .child_0(vec![xs::documentation_items::Child0 {
                                   child_0: XmlValue::Text(xmlity::xml!("This choice with min/max is here to\n                        avoid a pblm with the Elt:All/Choice/Seq\n                        Particle derivation constraint"))}])
-                                .build()
+                                .build())
                                 .into()
-                            ]).build().into()
+                            ]).build()).into()
                         )
                         .nested_particle(vec![
                             xs::types::LocalElement::builder()
@@ -232,13 +232,13 @@ fn xsd_all_model() -> xs::Group {
                                 .type_(
                                     xs::types::LocalComplexType::builder()
                                         .complex_type_model(Box::new(
-                                            xs::ComplexContent::builder()
+                                            xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                                                 .child_1(
                                                     xs::types::ComplexRestrictionType::builder()
                                                     .base(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("groupRef"), Some(XmlNamespace::XS))))
                                                     .child_1(
                                                       xs::types::complex_restriction_type_items::Child1::builder().type_def_particle(
-                                                        Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
+                                                        Box::new(xs::Sequence::from(xs::types::ExplicitGroup::builder()
                                                             .nested_particle(vec![
                                                                 
                                                                     xs::types::LocalElement::builder()
@@ -247,8 +247,7 @@ fn xsd_all_model() -> xs::Group {
                                                                         .build().into()
                                                                 
                                                             ])
-                                                            .build()
-                                                            .into()).into())
+                                                            .build()).into())
                                                       ).build().into()
                                                     )
                                                     .attr_decls(xs::groups::AttrDecls::builder().attribute(vec![
@@ -269,7 +268,7 @@ fn xsd_all_model() -> xs::Group {
                                                     .build()
                                                     .into()
                                                 )
-                                            .build()
+                                            .build())
                                             .into()
                                             )
                                         )
@@ -280,14 +279,13 @@ fn xsd_all_model() -> xs::Group {
                                 .into(),
                               
                         ])
-                        .build()
-                        .into()).into(),
+                        .build()).into(),
                 ])
                 .build()
                 .into(),
         ))
         .build()
-    ))
+    )
 }
 
 const XSD_IDENTITY_CONSTRAINT: &str = r###"

@@ -44,6 +44,18 @@ pub mod types {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct QName(pub ExpandedName<'static>);
 
+    impl From<QName> for ExpandedName<'static> {
+        fn from(qname: QName) -> Self {
+            qname.0
+        }
+    }
+
+    impl From<ExpandedName<'static>> for QName {
+        fn from(expanded_name: ExpandedName<'static>) -> Self {
+            Self(expanded_name)
+        }
+    }
+
     impl<'de> Deserialize<'de> for QName {
         fn deserialize<D: xmlity::Deserializer<'de>>(reader: D) -> Result<Self, D::Error> {
             struct QNameVisitor;

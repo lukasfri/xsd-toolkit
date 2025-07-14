@@ -583,24 +583,23 @@ const XSD_ALL: &str = r###"
 "###;
 
 fn xsd_all() -> xs::ComplexType {
-    xs::ComplexType(
-        xs::types::TopLevelComplexType::builder()
+    xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("all"))
             .annotation(
-                xs::Annotation::builder()
-                    .annotation(vec![xs::Documentation::builder()
+                xs::Annotation::from(xs::annotation_items::Annotation::builder()
+                    .annotation_content(vec![xs::Documentation::from(xs::documentation_items::Documentation::builder()
                         .child_0(vec![xs::documentation_items::Child0 {
                             child_0: xmlity::XmlValue::Text(xmlity::xml!(
                                 "\n  Only elements allowed inside"
                             )),
                         }])
-                        .build()
+                        .build())
                         .into()])
-                    .build()
+                    .build())
                     .into(),
             )
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
+                xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(ExpandedName::new(
@@ -632,7 +631,7 @@ fn xsd_all() -> xs::ComplexType {
                                                 xs::types::LocalSimpleType::builder()
                                                     .simple_derivation(
                                                       Box::new(
-                                                      xs::Restriction::builder()
+                                                      xs::Restriction::from(xs::restriction_items::Restriction::builder()
                                                             .base(xs::types::QName(
                                                                 ExpandedName::new(
                                                                     LocalName::new_dangerous(
@@ -644,25 +643,23 @@ fn xsd_all() -> xs::ComplexType {
                                                             .simple_restriction_model(
                                                               xs::groups::SimpleRestrictionModel::builder()
                                                                 .child_1(vec![
-                                                                    xs::Facet::from(xs::Enumeration(
+                                                                    xs::Facet::from(xs::Enumeration::from(
                                                                         xs::types::NoFixedFacet::builder()
                                                                             .value("0".to_string())
                                                                             .build()
-                                                                            .into(),
                                                                     ))
                                                                     .into(),
-                                                                    xs::Facet::from(xs::Enumeration(
+                                                                    xs::Facet::from(xs::Enumeration::from(
                                                                         xs::types::NoFixedFacet::builder()
                                                                             .value("1".to_string())
                                                                             .build()
-                                                                            .into(),
                                                                     ))
                                                                     .into(),
                                                                 ])
                                                                 .build()
                                                                 .into()
                                                             )
-                                                            .build()
+                                                            .build())
                                                             .into()
                                                           ),
                                                     )
@@ -679,7 +676,7 @@ fn xsd_all() -> xs::ComplexType {
                                             .simple_type(
                                                 xs::types::LocalSimpleType::builder()
                                                     .simple_derivation(Box::new(
-                                                        xs::Restriction::builder()
+                                                        xs::Restriction::from(xs::restriction_items::Restriction::builder()
                                                             .base(xs::types::QName(
                                                                 ExpandedName::new(
                                                                     LocalName::new_dangerous(
@@ -691,24 +688,22 @@ fn xsd_all() -> xs::ComplexType {
                                                             .simple_restriction_model(
                                                               xs::groups::SimpleRestrictionModel::builder()
                                                               .child_1(vec![
-                                                                  xs::Facet::from(xs::Enumeration(
+                                                                  xs::Facet::from(xs::Enumeration::from(
                                                                       xs::types::NoFixedFacet::builder()
                                                                           .value("0".to_string())
                                                                           .build()
-                                                                          .into(),
                                                                   ))
                                                                   .into(),
-                                                                  xs::Facet::from(xs::Enumeration(
+                                                                  xs::Facet::from(xs::Enumeration::from(
                                                                       xs::types::NoFixedFacet::builder()
                                                                           .value("1".to_string())
                                                                           .build()
-                                                                          .into(),
                                                                   ))
                                                                   .into(),
                                                               ])
                                                               .build()
                                                             )
-                                                            .build()
+                                                            .build())
                                                             .into(),
                                                     ))
                                                     .build()
@@ -718,12 +713,12 @@ fn xsd_all() -> xs::ComplexType {
                                             .into(),
                                     ])
                                     .any_attribute(
-                                        xs::AnyAttribute::builder()
+                                        xs::AnyAttribute::from(xs::any_attribute_items::AnyAttribute::builder()
                                             .namespace(xs::types::NamespaceList::from(xs::types::SpecialNamespaceList::Other).into())
                                             .process_contents(
                                                 xs::any_attribute_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
                                             )
-                                            .build().into(),
+                                            .build()).into(),
                                     )
                                     .build()
                                     .into(),
@@ -732,12 +727,11 @@ fn xsd_all() -> xs::ComplexType {
                             .build()
                             .into(),
                     )
-                    .build()
+                    .build())
                     .into(),
             ))
             .build()
-            .into(),
-    )
+            .into()
 }
 
 const XSD_WILDCARD: &str = r###"
@@ -833,60 +827,57 @@ const XSD_ANY_TYPE: &str = r###"
 "###;
 
 fn xsd_any_type() -> xs::ComplexType {
-    xs::ComplexType(
-        xs::types::TopLevelComplexType::builder()
-            .name(LocalName::new_dangerous("anyType"))
-            .mixed(true)
-            .annotation(
-                xs::Annotation::builder()
-                    .annotation(vec![xs::Documentation::builder()
-                        .child_0(vec![xs::documentation_items::Child0 {
-                            child_0: XmlValue::Text(xmlity::xml!(
-                                "\n  Not the real urType, but as close an approximation as we can
+    xs::types::TopLevelComplexType::builder()
+        .name(LocalName::new_dangerous("anyType"))
+        .mixed(true)
+        .annotation(
+            xs::Annotation::from(xs::annotation_items::Annotation::builder()
+                .annotation_content(vec![xs::Documentation::from(xs::documentation_items::Documentation::builder()
+                    .child_0(vec![xs::documentation_items::Child0 {
+                        child_0: XmlValue::Text(xmlity::xml!(
+                            "\n  Not the real urType, but as close an approximation as we can
   get in the XML representation"
-                            )),
-                        }])
-                        .build()
-                        .into()])
-                    .build()
-                    .into(),
-            )
-            .complex_type_model(Box::new(
-                xs::groups::complex_type_model_items::complex_type_model_variants::Variant2 {
-                    open_content: None,
-                    type_def_particle: Some(Box::new(
-                        xs::Sequence(
-                            xs::types::ExplicitGroup::builder()
-                                .nested_particle(vec![xs::Any::builder()
-                                    .min_occurs(0)
-                                    .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded).into())
-                                    .process_contents(
-                                        xs::any_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
-                                    )
-                                    .build()
-                                    .into()])
-                                .build()
-                                .into(),
-                        )
-                        .into(),
-                    )),
-                    attr_decls: xs::groups::AttrDecls::builder()
-                        .any_attribute(
-                            xs::AnyAttribute::builder()
-                                .process_contents(
-                                    xs::any_attribute_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
-                                )
-                                .build()
-                                .into(),
-                        )
-                        .build(),
-                    assertions: xs::groups::Assertions::builder().build(),
-                }
+                        )),
+                    }])
+                    .build())
+                    .into()])
+                .build())
                 .into(),
-            ))
-            .build()
+        )
+        .complex_type_model(Box::new(
+            xs::groups::complex_type_model_items::complex_type_model_variants::Variant2 {
+                open_content: None,
+                type_def_particle: Some(Box::new(
+                    xs::Sequence::from(
+                        xs::types::ExplicitGroup::builder()
+                            .nested_particle(vec![xs::Any::from(xs::any_items::Any::builder()
+                                .min_occurs(0)
+                                .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded).into())
+                                .process_contents(
+                                    xs::any_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
+                                )
+                                .build())
+                                .into()])
+                            .build()
+                    )
+                    .into(),
+                )),
+                attr_decls: xs::groups::AttrDecls::builder()
+                    .any_attribute(
+                        xs::AnyAttribute::from(xs::any_attribute_items::AnyAttribute::builder()
+                            .process_contents(
+                                xs::any_attribute_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
+                            )
+                            .build())
+                            .into(),
+                    )
+                    .build(),
+                assertions: xs::groups::Assertions::builder().build(),
+            }
             .into(),
-    )
+        ))
+        .build()
+        .into()
 }
 
 const XSD_SIMPLE_BASE_TYPE: &str = r###"

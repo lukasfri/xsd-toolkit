@@ -197,8 +197,10 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
         let ident = self.name.to_item_ident();
 
         let type_ = self.type_.as_ref();
+        let self_type = context.resolve_named_element(&name)?;
 
-        let substitute_group = true;
+        let substitute_group_setting = true;
+        let element_type_standalone = substitute_group_setting;
 
         let element_record = match type_ {
             Some(xsd_fragments::NamedOrAnonymous::Named(expanded_name)) => {
@@ -218,14 +220,31 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
             Some(xsd_fragments::NamedOrAnonymous::Anonymous(anonymous)) => {
                 let sub_type = context.resolve_fragment(anonymous, scope)?;
 
-                sub_type.template.into_element_record(name)
+                if element_type_standalone {
+                    let type_ = sub_type.template.to_struct(&ident, None);
+
+                    let ty = scope.add_item(type_)?;
+
+                    ElementRecord {
+                        name,
+                        attribute_order: ItemOrder::None,
+                        children_order: ItemOrder::None,
+                        fields: ElementFieldType::Unnamed(vec![ElementField::Group(
+                            ElementFieldGroup { ty },
+                        )]),
+                        allow_unknown_attributes: AllowUnknown::Any,
+                        allow_unknown_children: AllowUnknown::AtEnd,
+                    }
+                } else {
+                    sub_type.template.into_element_record(name)
+                }
             }
             None => ElementRecord::new_empty(name),
         };
 
-        if substitute_group {
+        if substitute_group_setting {
             let substitute_group_ty =
-                TypeReference::new_static(parse_quote!(::xmlity_ns::SubstitutionGroup<Self>));
+                self_type.wrap(|ty| parse_quote!(::xmlity_ns::SubstitutionGroup<#ty>));
 
             let choice = choice::Choice {
                 variants: vec![
@@ -285,7 +304,7 @@ mod tests {
             .type_(
                 xs::types::LocalComplexType::builder()
                     .complex_type_model(Box::new(
-                        xs::ComplexContent::builder()
+                        xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
@@ -293,11 +312,10 @@ mod tests {
                                         xs::types::complex_restriction_type_items::Child1::builder(
                                         )
                                         .type_def_particle(Box::new(
-                                            xs::Sequence(
+                                            xs::Sequence::from(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![])
                                                     .build()
-                                                    .into(),
                                             )
                                             .into(),
                                         ))
@@ -309,7 +327,7 @@ mod tests {
                                     .build()
                                     .into(),
                             )
-                            .build()
+                            .build())
                             .into(),
                     ))
                     .build()
@@ -323,7 +341,9 @@ mod tests {
 
         let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
-        let generator = Generator::new(&ctx);
+        let mut generator = Generator::new(&ctx);
+
+        generator.bind_namespace(TEST_NAMESPACE, parse_quote!(test_ns));
 
         let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
 
@@ -335,9 +355,24 @@ mod tests {
 
         #[rustfmt::skip]
         let expected: syn::File = parse_quote!(
+            pub mod simple_sequence_items {
+                #[derive(
+                    ::core::fmt::Debug,
+                    ::xmlity::SerializationGroup,
+                    ::xmlity::DeserializationGroup
+                )]
+                #[xgroup(children_order = "strict")]
+                pub struct SimpleSequence;
+            }
+
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
-            pub struct SimpleSequence;
+            pub enum SimpleSequence {
+                #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
+                SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
+                SubstitutionGroup(
+                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                ),
+            }
         );
 
         let expected = prettyplease::unparse(&expected);
@@ -357,7 +392,7 @@ mod tests {
             .type_(
                 xs::types::LocalComplexType::builder()
                     .complex_type_model(Box::new(
-                        xs::ComplexContent::builder()
+                        xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
@@ -365,7 +400,7 @@ mod tests {
                                         xs::types::complex_restriction_type_items::Child1::builder(
                                         )
                                         .type_def_particle(Box::new(
-                                            xs::Sequence(
+                                            xs::Sequence::from(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
                                                         xs::types::LocalElement::builder()
@@ -384,7 +419,6 @@ mod tests {
                                                             .into(),
                                                     ])
                                                     .build()
-                                                    .into(),
                                             )
                                             .into(),
                                         ))
@@ -396,7 +430,7 @@ mod tests {
                                     .build()
                                     .into(),
                             )
-                            .build()
+                            .build())
                             .into(),
                     ))
                     .build()
@@ -412,6 +446,8 @@ mod tests {
 
         let mut generator = Generator::new(&ctx);
 
+        generator.bind_namespace(TEST_NAMESPACE, parse_quote!(test_ns));
+
         generator.bind_types(crate::binds::StdXsdTypes);
 
         let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
@@ -424,13 +460,32 @@ mod tests {
 
         #[rustfmt::skip]
         let expected: syn::File = parse_quote!(
+            pub mod simple_sequence_items {
+                #[derive(
+                    ::core::fmt::Debug,
+                    ::xmlity::SerializationGroup,
+                    ::xmlity::DeserializationGroup
+                )]
+                #[xgroup(children_order = "strict")]
+                pub struct SimpleSequence {
+                    #[xelement(name = "a", namespace = "http://example.com")]
+                    pub a: i32,
+                    #[xelement(name = "b", namespace = "http://example.com")]
+                    pub b: String,
+                }
+            }
+
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
-            pub struct SimpleSequence {
-                #[xelement(name = "a", namespace = "http://example.com")]
-                pub a: i32,
-                #[xelement(name = "b", namespace = "http://example.com")]
-                pub b: String,
+            pub enum SimpleSequence {
+                #[xelement(
+                    name = "SimpleSequence",
+                    namespace = "http://example.com",
+                    allow_unknown_attributes = "any"
+                )]
+                SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
+                SubstitutionGroup(
+                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                ),
             }
         );
 
@@ -446,22 +501,21 @@ mod tests {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
 
-        let sequence = xs::Element(
+        let sequence = xs::Element::from(
             xs::types::TopLevelElement::builder()
                 .name(LocalName::new_dangerous("SimpleSequence"))
                 .type_(
                     xs::types::LocalComplexType::builder()
                         .complex_type_model(Box::new(
-                            xs::ComplexContent::builder()
+                            xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                                 .child_1(
                                     xs::types::ComplexRestrictionType::builder()
                                         .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                                         .child_1(
                                             xs::types::complex_restriction_type_items::Child1::builder()
-                                            .type_def_particle(Box::new(xs::Sequence(xs::types::ExplicitGroup::builder()
+                                            .type_def_particle(Box::new(xs::Sequence::from(xs::types::ExplicitGroup::builder()
                                                 .nested_particle(vec![])
-                                                .build()
-                                                .into()).into()))
+                                                .build()).into()))
                                                 .build()
                                                 .into()
                                         )
@@ -493,14 +547,13 @@ mod tests {
                                         .build()
                                         .into(),
                                 )
-                                .build()
+                                .build())
                                 .into(),
                         ))
                         .build()
                         .into(),
                 )
-                .build()
-                .into(),
+                .build(),
         );
 
         let mut ctx = XmlnsContext::new();
@@ -509,6 +562,8 @@ mod tests {
         let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
+
+        generator.bind_namespace(TEST_NAMESPACE, parse_quote!(test_ns));
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
@@ -522,13 +577,32 @@ mod tests {
 
         #[rustfmt::skip]
         let expected: syn::File = parse_quote!(
+            pub mod simple_sequence_items {
+                #[derive(
+                    ::core::fmt::Debug,
+                    ::xmlity::SerializationGroup,
+                    ::xmlity::DeserializationGroup
+                )]
+                #[xgroup(children_order = "strict")]
+                pub struct SimpleSequence {
+                    #[xattribute(name = "a")]
+                    pub a: i32,
+                    #[xattribute(name = "b")]
+                    pub b: String,
+                }
+            }
+
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
-            pub struct SimpleSequence {
-                #[xattribute(name = "a")]
-                pub a: i32,
-                #[xattribute(name = "b")]
-                pub b: String,
+            pub enum SimpleSequence {
+                #[xelement(
+                    name = "SimpleSequence",
+                    namespace = "http://example.com",
+                    allow_unknown_attributes = "any"
+                )]
+                SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
+                SubstitutionGroup(
+                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                ),
             }
         );
 
@@ -549,7 +623,7 @@ mod tests {
             .type_(
                 xs::types::LocalComplexType::builder()
                     .complex_type_model(Box::new(
-                        xs::ComplexContent::builder()
+                        xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
@@ -557,10 +631,10 @@ mod tests {
                                         xs::types::complex_restriction_type_items::Child1::builder(
                                         )
                                         .type_def_particle(Box::new(
-                                            xs::Sequence(
+                                            xs::Sequence::from(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
-                                                        xs::Sequence(
+                                                        xs::Sequence::from(
                                                             xs::types::ExplicitGroup::builder()
                                                                 .nested_particle(vec![
                                                             xs::types::LocalElement::builder()
@@ -578,8 +652,7 @@ mod tests {
                                                                 .build()
                                                                 .into(),
                                                         ])
-                                                                .build()
-                                                                .into(),
+                                                                .build(),
                                                         )
                                                         .into(),
                                                         xs::types::LocalElement::builder()
@@ -590,8 +663,7 @@ mod tests {
                                                             .build()
                                                             .into(),
                                                     ])
-                                                    .build()
-                                                    .into(),
+                                                    .build(),
                                             )
                                             .into(),
                                         ))
@@ -603,7 +675,7 @@ mod tests {
                                     .build()
                                     .into(),
                             )
-                            .build()
+                            .build())
                             .into(),
                     ))
                     .build()
@@ -618,6 +690,8 @@ mod tests {
         let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
+
+        generator.bind_namespace(TEST_NAMESPACE, parse_quote!(test_ns));
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
@@ -640,15 +714,31 @@ mod tests {
                     #[xelement(name = "b", namespace = "http://example.com")]
                     pub b: String,
                 }
+
+                #[derive(
+                    ::core::fmt::Debug,
+                    ::xmlity::SerializationGroup,
+                    ::xmlity::DeserializationGroup
+                )]
+                #[xgroup(children_order = "strict")]
+                pub struct SimpleSequence {
+                    pub child_0: Child0,
+                    #[xelement(name = "c", namespace = "http://example.com")]
+                    pub c: String,
+                }
             }
             
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
-            pub struct SimpleSequence {
-                pub child_0: simple_sequence_items::Child0,
-                #[xelement(name = "c", namespace = "http://example.com")]
-                pub c: String,
-
+            pub enum SimpleSequence {
+                #[xelement(
+                    name = "SimpleSequence",
+                    namespace = "http://example.com",
+                    allow_unknown_attributes = "any"
+                )]
+                SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
+                SubstitutionGroup(
+                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                ),
             }
         );
 
@@ -669,7 +759,7 @@ mod tests {
             .type_(
                 xs::types::LocalComplexType::builder()
                     .complex_type_model(Box::new(
-                        xs::ComplexContent::builder()
+                        xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
@@ -677,7 +767,7 @@ mod tests {
                                         xs::types::complex_restriction_type_items::Child1::builder(
                                         )
                                         .type_def_particle(Box::new(
-                                            xs::Sequence(
+                                            xs::Sequence::from(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
                                                         xs::types::LocalElement::builder()
@@ -695,8 +785,7 @@ mod tests {
                                                             .build()
                                                             .into(),
                                                     ])
-                                                    .build()
-                                                    .into(),
+                                                    .build(),
                                             )
                                             .into(),
                                         ))
@@ -728,7 +817,7 @@ mod tests {
                                     .build()
                                     .into(),
                             )
-                            .build()
+                            .build())
                             .into(),
                     ))
                     .build()
@@ -744,6 +833,8 @@ mod tests {
 
         let mut generator = Generator::new(&ctx);
 
+        generator.bind_namespace(TEST_NAMESPACE, parse_quote!(test_ns));
+
         generator.bind_types(crate::binds::StdXsdTypes);
 
         let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
@@ -756,17 +847,36 @@ mod tests {
 
         #[rustfmt::skip]
         let expected: syn::File = parse_quote!(
+            pub mod simple_sequence_items {
+                #[derive(
+                    ::core::fmt::Debug,
+                    ::xmlity::SerializationGroup,
+                    ::xmlity::DeserializationGroup
+                )]
+                #[xgroup(children_order = "strict")]
+                pub struct SimpleSequence {
+                    #[xattribute(name = "c")]
+                    pub c: i32,
+                    #[xattribute(name = "d")]
+                    pub d: String,
+                    #[xelement(name = "a", namespace = "http://example.com")]
+                    pub a: i32,
+                    #[xelement(name = "b", namespace = "http://example.com")]
+                    pub b: String,
+                }
+            }
+
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
-            pub struct SimpleSequence {
-                #[xattribute(name = "c")]
-                pub c: i32,
-                #[xattribute(name = "d")]
-                pub d: String,
-                #[xelement(name = "a", namespace = "http://example.com")]
-                pub a: i32,
-                #[xelement(name = "b", namespace = "http://example.com")]
-                pub b: String,
+            pub enum SimpleSequence {
+                #[xelement(
+                    name = "SimpleSequence",
+                    namespace = "http://example.com",
+                    allow_unknown_attributes = "any"
+                )]
+                SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
+                SubstitutionGroup(
+                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                ),
             }
         );
 
@@ -792,7 +902,7 @@ mod tests {
             .type_(
                 xs::types::LocalComplexType::builder()
                     .complex_type_model(Box::new(
-                        xs::ComplexContent::builder()
+                        xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
@@ -800,7 +910,7 @@ mod tests {
                                         xs::types::complex_restriction_type_items::Child1::builder(
                                         )
                                         .type_def_particle(Box::new(
-                                            xs::Sequence(
+                                            xs::Sequence::from(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
                                                         xs::types::LocalElement::builder()
@@ -811,8 +921,7 @@ mod tests {
                                                             .build()
                                                             .into(),
                                                     ])
-                                                    .build()
-                                                    .into(),
+                                                    .build(),
                                             )
                                             .into(),
                                         ))
@@ -824,7 +933,7 @@ mod tests {
                                     .build()
                                     .into(),
                             )
-                            .build()
+                            .build())
                             .into(),
                     ))
                     .build()
@@ -839,6 +948,8 @@ mod tests {
         let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
+
+        generator.bind_namespace(TEST_NAMESPACE, parse_quote!(test_ns));
 
         generator.bind_type(
             child_type_expanded_name,
@@ -860,11 +971,30 @@ mod tests {
 
         #[rustfmt::skip]
         let expected: syn::File = parse_quote!(
+            pub mod simple_sequence_items {
+                #[derive(
+                    ::core::fmt::Debug,
+                    ::xmlity::SerializationGroup,
+                    ::xmlity::DeserializationGroup
+                )]
+                #[xgroup(children_order = "strict")]
+                pub struct SimpleSequence {
+                    #[xelement(name = "a", namespace = "http://example.com", group)]
+                    pub a: types::ChildType,
+                }
+            }
+
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
-            pub struct SimpleSequence {
-                #[xelement(name = "a", namespace = "http://example.com", group)]
-                pub a: types::ChildType,
+            pub enum SimpleSequence {
+                #[xelement(
+                    name = "SimpleSequence",
+                    namespace = "http://example.com",
+                    allow_unknown_attributes = "any"
+                )]
+                SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
+                SubstitutionGroup(
+                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                ),
             }
         );
 
@@ -892,6 +1022,8 @@ mod tests {
 
         let mut generator = Generator::new(&ctx);
 
+        generator.bind_namespace(TEST_NAMESPACE, parse_quote!(test_ns));
+
         generator.bind_types(crate::binds::StdXsdTypes);
 
         let (type_, actual_items) = generator.generate_element(&sequence).unwrap();
@@ -905,8 +1037,13 @@ mod tests {
         #[rustfmt::skip]
         let expected: syn::File = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
-            pub struct SimpleSequence(pub String);
+            pub enum SimpleSequence {
+                #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
+                SimpleSequence(String),
+                SubstitutionGroup(
+                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                ),
+            }
         );
 
         let expected = prettyplease::unparse(&expected);
@@ -939,6 +1076,8 @@ mod tests {
 
         let mut generator = Generator::new(&ctx);
 
+        generator.bind_namespace(TEST_NAMESPACE, parse_quote!(test_ns));
+
         generator.bind_type(
             child_type_expanded_name,
             BoundType {
@@ -960,8 +1099,13 @@ mod tests {
         #[rustfmt::skip]
         let expected: syn::File = parse_quote!(
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
-            pub struct SimpleSequence(#[xgroup] pub types::ChildType);
+            pub enum SimpleSequence {
+                #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
+                SimpleSequence(#[xgroup] types::ChildType),
+                SubstitutionGroup(
+                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                ),
+            }
         );
 
         let expected = prettyplease::unparse(&expected);
@@ -986,7 +1130,7 @@ mod tests {
             .type_(
                 xs::types::LocalComplexType::builder()
                     .complex_type_model(Box::new(
-                        xs::ComplexContent::builder()
+                        xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                             .child_1(
                                 xs::types::ComplexRestrictionType::builder()
                                     .base(xs::types::QName(xsn::ANY_TYPE.clone()))
@@ -994,7 +1138,7 @@ mod tests {
                                         xs::types::complex_restriction_type_items::Child1::builder(
                                         )
                                         .type_def_particle(Box::new(
-                                            xs::Sequence(
+                                            xs::Sequence::from(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
                                                         xs::types::LocalElement::builder()
@@ -1004,8 +1148,7 @@ mod tests {
                                                             .build()
                                                             .into(),
                                                     ])
-                                                    .build()
-                                                    .into(),
+                                                    .build(),
                                             )
                                             .into(),
                                         ))
@@ -1017,7 +1160,7 @@ mod tests {
                                     .build()
                                     .into(),
                             )
-                            .build()
+                            .build())
                             .into(),
                     ))
                     .build()
@@ -1032,6 +1175,8 @@ mod tests {
         let sequence = ns.import_top_level_element(&sequence).unwrap().into_owned();
 
         let mut generator = Generator::new(&ctx);
+
+        generator.bind_namespace(TEST_NAMESPACE, parse_quote!(test_ns));
 
         generator.bind_element(
             child_element_expanded_name,
@@ -1048,10 +1193,29 @@ mod tests {
 
         #[rustfmt::skip]
         let expected: syn::File = parse_quote!(
+            pub mod simple_sequence_items {
+                #[derive(
+                    ::core::fmt::Debug,
+                    ::xmlity::SerializationGroup,
+                    ::xmlity::DeserializationGroup
+                )]
+                #[xgroup(children_order = "strict")]
+                pub struct SimpleSequence {
+                    pub child_element: types::ChildElement,
+                }
+            }
+
             #[derive(::core::fmt::Debug, ::xmlity::Serialize, ::xmlity::Deserialize)]
-            #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any", children_order = "strict")]
-            pub struct SimpleSequence {
-                pub child_element: types::ChildElement,
+            pub enum SimpleSequence {
+                #[xelement(
+                    name = "SimpleSequence",
+                    namespace = "http://example.com",
+                    allow_unknown_attributes = "any"
+                )]
+                SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
+                SubstitutionGroup(
+                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                ),
             }
         );
 

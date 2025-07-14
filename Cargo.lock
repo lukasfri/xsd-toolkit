@@ -2373,6 +2373,7 @@ dependencies = [
  "thiserror",
  "xmlity",
  "xmlity-build",
+ "xmlity-ns",
  "xmlity-ns-xml",
  "xmlity-ns-xs",
  "xmlity-quick-xml",
@@ -2445,6 +2446,7 @@ dependencies = [
  "pretty_assertions",
  "rstest",
  "xmlity",
+ "xmlity-ns",
  "xmlity-ns-xs",
  "xmlity-quick-xml",
 ]

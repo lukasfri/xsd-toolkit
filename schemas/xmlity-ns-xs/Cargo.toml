@@ -13,8 +13,8 @@ bon = "3.6.3"
 xmlity.workspace = true
 xmlity-quick-xml.workspace = true
 derive_more = { version = "2.0.1", features = ["full"] }
-xmlity-ns-xml = { path = "../xmlity-ns-xml" }
-xmlity-ns = { path = "../xmlity-ns" }
+xmlity-ns-xml.workspace = true
+xmlity-ns.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true

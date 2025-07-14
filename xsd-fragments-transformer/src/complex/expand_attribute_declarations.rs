@@ -252,28 +252,30 @@ mod tests {
         let input: xs::ComplexType = xs::types::TopLevelComplexType::builder()
             .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .attr_decls(
-                                xs::groups::AttrDecls::builder()
-                                    .attribute(vec![xs::types::AttributeGroupRef::builder()
-                                        .ref_(xs::types::QName(ExpandedName::new(
-                                            TEST_ATTRIBUTE_GROUP_NAME,
-                                            Some(TEST_NAMESPACE),
-                                        )))
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ComplexRestrictionType::builder()
+                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                .attr_decls(
+                                    xs::groups::AttrDecls::builder()
+                                        .attribute(vec![xs::types::AttributeGroupRef::builder()
+                                            .ref_(xs::types::QName(ExpandedName::new(
+                                                TEST_ATTRIBUTE_GROUP_NAME,
+                                                Some(TEST_NAMESPACE),
+                                            )))
+                                            .build()
+                                            .into()])
                                         .build()
-                                        .into()])
-                                    .build()
-                                    .into(),
-                            )
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
+                                        .into(),
+                                )
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
             ))
             .build()
             .into();
@@ -300,26 +302,28 @@ mod tests {
         let expected: xs::ComplexType = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("test"))
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .attr_decls(
-                                xs::groups::AttrDecls::builder()
-                                    .attribute(vec![xs::types::Attribute::builder()
-                                        .name(LocalName::new_dangerous("test-attr"))
-                                        .type_(xs::types::QName(xsn::STRING.clone()))
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ComplexRestrictionType::builder()
+                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                .attr_decls(
+                                    xs::groups::AttrDecls::builder()
+                                        .attribute(vec![xs::types::Attribute::builder()
+                                            .name(LocalName::new_dangerous("test-attr"))
+                                            .type_(xs::types::QName(xsn::STRING.clone()))
+                                            .build()
+                                            .into()])
                                         .build()
-                                        .into()])
-                                    .build()
-                                    .into(),
-                            )
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
+                                        .into(),
+                                )
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
             ))
             .build()
             .into();
@@ -355,16 +359,18 @@ mod tests {
 
         const TOP_LEVEL_COMPLEX_TYPE_NAME: LocalName<'static> = LocalName::new_dangerous("test");
 
-        let input = xs::types::TopLevelComplexType::builder()
-            .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
-            .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .attr_decls(
-                                xs::groups::AttrDecls::builder()
-                                    .attribute(vec![
+        let input =
+            xs::types::TopLevelComplexType::builder()
+                .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
+                .complex_type_model(Box::new(
+                    xs::ComplexContent::from(
+                        xs::complex_content_items::ComplexContent::builder()
+                            .child_1(
+                                xs::types::ComplexRestrictionType::builder()
+                                    .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                    .attr_decls(
+                                        xs::groups::AttrDecls::builder()
+                                            .attribute(vec![
                                         xs::types::AttributeGroupRef::builder()
                                             .ref_(xs::types::QName(ExpandedName::new(
                                                 TEST_ATTRIBUTE_GROUP_NAME,
@@ -379,18 +385,19 @@ mod tests {
                                             .build()
                                             .into(),
                                     ])
+                                            .build()
+                                            .into(),
+                                    )
+                                    .assertions(xs::groups::Assertions::builder().build().into())
                                     .build()
                                     .into(),
                             )
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
+                            .build(),
                     )
-                    .build()
                     .into(),
-            ))
-            .build()
-            .into();
+                ))
+                .build()
+                .into();
 
         let mut ctx = XmlnsContext::new();
         let ns = ctx.init_namespace(TEST_NAMESPACE);
@@ -415,27 +422,29 @@ mod tests {
         let expected: xs::ComplexType = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("test"))
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .attr_decls(
-                                xs::groups::AttrDecls::builder()
-                                    .attribute(vec![xs::types::Attribute::builder()
-                                        .name(LocalName::new_dangerous("test-attr"))
-                                        .type_(xs::types::QName(xsn::STRING.clone()))
-                                        .use_(xs::types::attribute_items::UseValue::Optional)
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ComplexRestrictionType::builder()
+                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                .attr_decls(
+                                    xs::groups::AttrDecls::builder()
+                                        .attribute(vec![xs::types::Attribute::builder()
+                                            .name(LocalName::new_dangerous("test-attr"))
+                                            .type_(xs::types::QName(xsn::STRING.clone()))
+                                            .use_(xs::types::attribute_items::UseValue::Optional)
+                                            .build()
+                                            .into()])
                                         .build()
-                                        .into()])
-                                    .build()
-                                    .into(),
-                            )
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
+                                        .into(),
+                                )
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
             ))
             .build()
             .into();
@@ -472,16 +481,18 @@ mod tests {
 
         const TOP_LEVEL_COMPLEX_TYPE_NAME: LocalName<'static> = LocalName::new_dangerous("test");
 
-        let input = xs::types::TopLevelComplexType::builder()
-            .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
-            .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .attr_decls(
-                                xs::groups::AttrDecls::builder()
-                                    .attribute(vec![
+        let input =
+            xs::types::TopLevelComplexType::builder()
+                .name(TOP_LEVEL_COMPLEX_TYPE_NAME)
+                .complex_type_model(Box::new(
+                    xs::ComplexContent::from(
+                        xs::complex_content_items::ComplexContent::builder()
+                            .child_1(
+                                xs::types::ComplexRestrictionType::builder()
+                                    .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                    .attr_decls(
+                                        xs::groups::AttrDecls::builder()
+                                            .attribute(vec![
                                         xs::types::Attribute::builder()
                                             .name(TEST_ATTRIBUTE_NAME)
                                             .type_(xs::types::QName(xsn::STRING.clone()))
@@ -496,18 +507,19 @@ mod tests {
                                             .build()
                                             .into(),
                                     ])
+                                            .build()
+                                            .into(),
+                                    )
+                                    .assertions(xs::groups::Assertions::builder().build().into())
                                     .build()
                                     .into(),
                             )
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
+                            .build(),
                     )
-                    .build()
                     .into(),
-            ))
-            .build()
-            .into();
+                ))
+                .build()
+                .into();
 
         let mut ctx = XmlnsContext::new();
         let ns = ctx.init_namespace(TEST_NAMESPACE);
@@ -532,27 +544,29 @@ mod tests {
         let expected: xs::ComplexType = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("test"))
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .attr_decls(
-                                xs::groups::AttrDecls::builder()
-                                    .attribute(vec![xs::types::Attribute::builder()
-                                        .name(LocalName::new_dangerous("test-attr"))
-                                        .type_(xs::types::QName(xsn::STRING.clone()))
-                                        .use_(xs::types::attribute_items::UseValue::Prohibited)
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ComplexRestrictionType::builder()
+                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                .attr_decls(
+                                    xs::groups::AttrDecls::builder()
+                                        .attribute(vec![xs::types::Attribute::builder()
+                                            .name(LocalName::new_dangerous("test-attr"))
+                                            .type_(xs::types::QName(xsn::STRING.clone()))
+                                            .use_(xs::types::attribute_items::UseValue::Prohibited)
+                                            .build()
+                                            .into()])
                                         .build()
-                                        .into()])
-                                    .build()
-                                    .into(),
-                            )
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
+                                        .into(),
+                                )
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
             ))
             .build()
             .into();

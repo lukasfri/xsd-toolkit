@@ -429,9 +429,7 @@ pub mod types {
         )]
         pub enum BlockSet {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
-            Variant1(
-                ::std::boxed::Box<::xmlity_ns::List<variant_variants::Variant1>>,
-            ),
+            Variant1(::std::boxed::Box<::xmlity_ns::List<variant_variants::Variant1>>),
         }
     }
     pub type BlockSet = block_set_items::BlockSet;
@@ -634,9 +632,7 @@ pub mod types {
             }
         }
         impl ::core::convert::From<
-            ::xmlity_ns::List<
-                ::std::boxed::Box<crate::types::ReducedDerivationControl>,
-            >,
+            ::xmlity_ns::List<::std::boxed::Box<crate::types::ReducedDerivationControl>>,
         > for DerivationSet {
             fn from(
                 value: ::xmlity_ns::List<
@@ -848,9 +844,7 @@ pub mod types {
             }
         }
         impl ::core::convert::From<
-            ::xmlity_ns::List<
-                ::std::boxed::Box<crate::types::TypeDerivationControl>,
-            >,
+            ::xmlity_ns::List<::std::boxed::Box<crate::types::TypeDerivationControl>>,
         > for FullDerivationSet {
             fn from(
                 value: ::xmlity_ns::List<
@@ -1483,9 +1477,7 @@ pub mod types {
         )]
         pub enum SimpleDerivationSet {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
-            Variant1(
-                ::std::boxed::Box<::xmlity_ns::List<variant_variants::Variant1>>,
-            ),
+            Variant1(::std::boxed::Box<::xmlity_ns::List<variant_variants::Variant1>>),
         }
     }
     pub type SimpleDerivationSet = simple_derivation_set_items::SimpleDerivationSet;
@@ -3381,8 +3373,7 @@ pub mod types {
                 }
             }
         }
-        impl ::core::convert::From<crate::types::TargetNamespace>
-        for NotNamespaceValue {
+        impl ::core::convert::From<crate::types::TargetNamespace> for NotNamespaceValue {
             fn from(value: crate::types::TargetNamespace) -> Self {
                 NotNamespaceValue::AnyURI(::std::boxed::Box::new(value))
             }
@@ -4087,26 +4078,37 @@ pub mod groups {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "all",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct All(#[xgroup] pub ::std::boxed::Box<crate::types::All>);
+pub enum All {
+    #[xelement(
+        name = "all",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    All(#[xgroup] ::std::boxed::Box<crate::types::All>),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::All>>),
+}
 impl ::core::convert::From<crate::types::All> for All {
     fn from(value: crate::types::All) -> Self {
-        All(::std::boxed::Box::new(value))
+        All::All(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::All>>>
+for All {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::All>>,
+    ) -> Self {
+        All::SubstitutionGroup(value)
     }
 }
 pub mod annotation_items {
-    impl ::core::convert::From<crate::Appinfo> for Annotation {
+    impl ::core::convert::From<crate::Appinfo> for AnnotationContent {
         fn from(value: crate::Appinfo) -> Self {
-            Annotation::Appinfo(::std::boxed::Box::new(value))
+            AnnotationContent::Appinfo(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::Documentation> for Annotation {
+    impl ::core::convert::From<crate::Documentation> for AnnotationContent {
         fn from(value: crate::Documentation) -> Self {
-            Annotation::Documentation(::std::boxed::Box::new(value))
+            AnnotationContent::Documentation(::std::boxed::Box::new(value))
         }
     }
     #[derive(
@@ -4116,30 +4118,57 @@ pub mod annotation_items {
         ::core::cmp::PartialEq,
         ::core::clone::Clone
     )]
-    pub enum Annotation {
+    pub enum AnnotationContent {
         Appinfo(::std::boxed::Box<crate::Appinfo>),
         Documentation(::std::boxed::Box<crate::Documentation>),
+    }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    pub struct Annotation {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xvalue(default)]
+        #[builder(default)]
+        pub annotation_content: ::std::vec::Vec<AnnotationContent>,
     }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "annotation",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct Annotation {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xvalue(default)]
-    #[builder(default)]
-    pub annotation: ::std::vec::Vec<annotation_items::Annotation>,
+pub enum Annotation {
+    #[xelement(
+        name = "annotation",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Annotation(#[xgroup] annotation_items::Annotation),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Annotation>>,
+    ),
+}
+impl ::core::convert::From<annotation_items::Annotation> for Annotation {
+    fn from(value: annotation_items::Annotation) -> Self {
+        Annotation::Annotation(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Annotation>>,
+> for Annotation {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Annotation>>,
+    ) -> Self {
+        Annotation::SubstitutionGroup(value)
+    }
 }
 pub mod any_items {
     pub mod not_namespace_value_variants {
@@ -4343,42 +4372,66 @@ pub mod any_items {
             }
         }
     }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Any {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "namespace", optional)]
+        pub namespace: ::core::option::Option<
+            ::std::boxed::Box<crate::types::NamespaceList>,
+        >,
+        #[xattribute(name = "notNamespace", optional)]
+        pub not_namespace: ::core::option::Option<::xmlity_ns::List<NotNamespaceValue>>,
+        #[xattribute(name = "processContents", optional)]
+        pub process_contents: ::core::option::Option<ProcessContentsValue>,
+        #[xattribute(name = "notQName", optional)]
+        pub not_q_name: ::core::option::Option<
+            ::std::boxed::Box<crate::types::QnameList>,
+        >,
+        #[xattribute(name = "minOccurs", optional)]
+        pub min_occurs: ::core::option::Option<usize>,
+        #[xattribute(name = "maxOccurs", optional)]
+        pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "any",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct Any {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "namespace", optional)]
-    pub namespace: ::core::option::Option<
-        ::std::boxed::Box<crate::types::NamespaceList>,
-    >,
-    #[xattribute(name = "notNamespace", optional)]
-    pub not_namespace: ::core::option::Option<
-        ::xmlity_ns::List<any_items::NotNamespaceValue>,
-    >,
-    #[xattribute(name = "processContents", optional)]
-    pub process_contents: ::core::option::Option<any_items::ProcessContentsValue>,
-    #[xattribute(name = "notQName", optional)]
-    pub not_q_name: ::core::option::Option<::std::boxed::Box<crate::types::QnameList>>,
-    #[xattribute(name = "minOccurs", optional)]
-    pub min_occurs: ::core::option::Option<usize>,
-    #[xattribute(name = "maxOccurs", optional)]
-    pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
+pub enum Any {
+    #[xelement(
+        name = "any",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Any(#[xgroup] any_items::Any),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Any>>),
+}
+impl ::core::convert::From<any_items::Any> for Any {
+    fn from(value: any_items::Any) -> Self {
+        Any::Any(value)
+    }
+}
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Any>>>
+for Any {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Any>>,
+    ) -> Self {
+        Any::SubstitutionGroup(value)
+    }
 }
 pub mod any_attribute_items {
     pub mod not_namespace_value_variants {
@@ -4582,37 +4635,62 @@ pub mod any_attribute_items {
             }
         }
     }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    pub struct AnyAttribute {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "namespace", optional)]
+        pub namespace: ::core::option::Option<
+            ::std::boxed::Box<crate::types::NamespaceList>,
+        >,
+        #[xattribute(name = "notNamespace", optional)]
+        pub not_namespace: ::core::option::Option<::xmlity_ns::List<NotNamespaceValue>>,
+        #[xattribute(name = "processContents", optional)]
+        pub process_contents: ::core::option::Option<ProcessContentsValue>,
+        #[xattribute(name = "notQName", optional)]
+        pub not_q_name: ::core::option::Option<
+            ::std::boxed::Box<crate::types::QnameListA>,
+        >,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "anyAttribute",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct AnyAttribute {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "namespace", optional)]
-    pub namespace: ::core::option::Option<
-        ::std::boxed::Box<crate::types::NamespaceList>,
-    >,
-    #[xattribute(name = "notNamespace", optional)]
-    pub not_namespace: ::core::option::Option<
-        ::xmlity_ns::List<any_attribute_items::NotNamespaceValue>,
-    >,
-    #[xattribute(name = "processContents", optional)]
-    pub process_contents: ::core::option::Option<
-        any_attribute_items::ProcessContentsValue,
-    >,
-    #[xattribute(name = "notQName", optional)]
-    pub not_q_name: ::core::option::Option<::std::boxed::Box<crate::types::QnameListA>>,
+pub enum AnyAttribute {
+    #[xelement(
+        name = "anyAttribute",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    AnyAttribute(#[xgroup] any_attribute_items::AnyAttribute),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::AnyAttribute>>,
+    ),
+}
+impl ::core::convert::From<any_attribute_items::AnyAttribute> for AnyAttribute {
+    fn from(value: any_attribute_items::AnyAttribute) -> Self {
+        AnyAttribute::AnyAttribute(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::AnyAttribute>>,
+> for AnyAttribute {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::AnyAttribute>>,
+    ) -> Self {
+        AnyAttribute::SubstitutionGroup(value)
+    }
 }
 pub mod appinfo_items {
     #[derive(
@@ -4627,26 +4705,21 @@ pub mod appinfo_items {
     pub struct Child0 {
         pub child_0: ::xmlity::XmlValue,
     }
-}
-#[derive(
-    ::core::fmt::Debug,
-    ::xmlity::Serialize,
-    ::xmlity::Deserialize,
-    ::bon::Builder,
-    ::core::cmp::PartialEq,
-    ::core::clone::Clone
-)]
-#[xelement(
-    name = "appinfo",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct Appinfo {
-    #[xattribute(name = "source", optional)]
-    pub source: ::core::option::Option<crate::types::TargetNamespace>,
-    #[xvalue(default)]
-    #[builder(default)]
-    pub child_0: ::std::vec::Vec<appinfo_items::Child0>,
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    pub struct Appinfo {
+        #[xattribute(name = "source", optional)]
+        pub source: ::core::option::Option<crate::types::TargetNamespace>,
+        #[xvalue(default)]
+        #[builder(default)]
+        pub child_0: ::std::vec::Vec<Child0>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
@@ -4655,15 +4728,59 @@ pub struct Appinfo {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "assertion",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
+pub enum Appinfo {
+    #[xelement(
+        name = "appinfo",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Appinfo(#[xgroup] appinfo_items::Appinfo),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Appinfo>>),
+}
+impl ::core::convert::From<appinfo_items::Appinfo> for Appinfo {
+    fn from(value: appinfo_items::Appinfo) -> Self {
+        Appinfo::Appinfo(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Appinfo>>,
+> for Appinfo {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Appinfo>>,
+    ) -> Self {
+        Appinfo::SubstitutionGroup(value)
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
 )]
-pub struct Assertion(#[xgroup] pub ::std::boxed::Box<crate::types::Assertion>);
+pub enum Assertion {
+    #[xelement(
+        name = "assertion",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Assertion(#[xgroup] ::std::boxed::Box<crate::types::Assertion>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Assertion>>,
+    ),
+}
 impl ::core::convert::From<crate::types::Assertion> for Assertion {
     fn from(value: crate::types::Assertion) -> Self {
-        Assertion(::std::boxed::Box::new(value))
+        Assertion::Assertion(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Assertion>>,
+> for Assertion {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Assertion>>,
+    ) -> Self {
+        Assertion::SubstitutionGroup(value)
     }
 }
 #[derive(
@@ -4673,15 +4790,29 @@ impl ::core::convert::From<crate::types::Assertion> for Assertion {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "attribute",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct Attribute(#[xgroup] pub ::std::boxed::Box<crate::types::TopLevelAttribute>);
+pub enum Attribute {
+    #[xelement(
+        name = "attribute",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Attribute(#[xgroup] ::std::boxed::Box<crate::types::TopLevelAttribute>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Attribute>>,
+    ),
+}
 impl ::core::convert::From<crate::types::TopLevelAttribute> for Attribute {
     fn from(value: crate::types::TopLevelAttribute) -> Self {
-        Attribute(::std::boxed::Box::new(value))
+        Attribute::Attribute(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Attribute>>,
+> for Attribute {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Attribute>>,
+    ) -> Self {
+        Attribute::SubstitutionGroup(value)
     }
 }
 #[derive(
@@ -4691,18 +4822,29 @@ impl ::core::convert::From<crate::types::TopLevelAttribute> for Attribute {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "attributeGroup",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct AttributeGroup(
-    #[xgroup]
-    pub ::std::boxed::Box<crate::types::NamedAttributeGroup>,
-);
+pub enum AttributeGroup {
+    #[xelement(
+        name = "attributeGroup",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    AttributeGroup(#[xgroup] ::std::boxed::Box<crate::types::NamedAttributeGroup>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::AttributeGroup>>,
+    ),
+}
 impl ::core::convert::From<crate::types::NamedAttributeGroup> for AttributeGroup {
     fn from(value: crate::types::NamedAttributeGroup) -> Self {
-        AttributeGroup(::std::boxed::Box::new(value))
+        AttributeGroup::AttributeGroup(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::AttributeGroup>>,
+> for AttributeGroup {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::AttributeGroup>>,
+    ) -> Self {
+        AttributeGroup::SubstitutionGroup(value)
     }
 }
 #[derive(
@@ -4712,15 +4854,27 @@ impl ::core::convert::From<crate::types::NamedAttributeGroup> for AttributeGroup
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "choice",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct Choice(#[xgroup] pub ::std::boxed::Box<crate::types::ExplicitGroup>);
+pub enum Choice {
+    #[xelement(
+        name = "choice",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Choice(#[xgroup] ::std::boxed::Box<crate::types::ExplicitGroup>),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Choice>>),
+}
 impl ::core::convert::From<crate::types::ExplicitGroup> for Choice {
     fn from(value: crate::types::ExplicitGroup) -> Self {
-        Choice(::std::boxed::Box::new(value))
+        Choice::Choice(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Choice>>,
+> for Choice {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Choice>>,
+    ) -> Self {
+        Choice::SubstitutionGroup(value)
     }
 }
 pub mod complex_content_items {
@@ -4755,29 +4909,24 @@ pub mod complex_content_items {
         )]
         Extension(#[xgroup] ::std::boxed::Box<crate::types::ExtensionType>),
     }
-}
-#[derive(
-    ::core::fmt::Debug,
-    ::xmlity::Serialize,
-    ::xmlity::Deserialize,
-    ::bon::Builder,
-    ::core::cmp::PartialEq,
-    ::core::clone::Clone
-)]
-#[xelement(
-    name = "complexContent",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct ComplexContent {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "mixed", optional)]
-    pub mixed: ::core::option::Option<bool>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
-    pub child_1: complex_content_items::Child1,
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct ComplexContent {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "mixed", optional)]
+        pub mixed: ::core::option::Option<bool>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+        pub child_1: Child1,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
@@ -4786,18 +4935,61 @@ pub struct ComplexContent {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "complexType",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
+pub enum ComplexContent {
+    #[xelement(
+        name = "complexContent",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    ComplexContent(#[xgroup] complex_content_items::ComplexContent),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::ComplexContent>>,
+    ),
+}
+impl ::core::convert::From<complex_content_items::ComplexContent> for ComplexContent {
+    fn from(value: complex_content_items::ComplexContent) -> Self {
+        ComplexContent::ComplexContent(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::ComplexContent>>,
+> for ComplexContent {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::ComplexContent>>,
+    ) -> Self {
+        ComplexContent::SubstitutionGroup(value)
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
 )]
-pub struct ComplexType(
-    #[xgroup]
-    pub ::std::boxed::Box<crate::types::TopLevelComplexType>,
-);
+pub enum ComplexType {
+    #[xelement(
+        name = "complexType",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    ComplexType(#[xgroup] ::std::boxed::Box<crate::types::TopLevelComplexType>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::ComplexType>>,
+    ),
+}
 impl ::core::convert::From<crate::types::TopLevelComplexType> for ComplexType {
     fn from(value: crate::types::TopLevelComplexType) -> Self {
-        ComplexType(::std::boxed::Box::new(value))
+        ComplexType::ComplexType(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::ComplexType>>,
+> for ComplexType {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::ComplexType>>,
+    ) -> Self {
+        ComplexType::SubstitutionGroup(value)
     }
 }
 pub mod default_open_content_items {
@@ -4885,32 +5077,62 @@ pub mod default_open_content_items {
             }
         }
     }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct DefaultOpenContent {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "appliesToEmpty", optional)]
+        pub applies_to_empty: ::core::option::Option<bool>,
+        #[xattribute(name = "mode", optional)]
+        pub mode: ::core::option::Option<ModeValue>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+        #[xelement(name = "any", namespace = "http://www.w3.org/2001/XMLSchema", group)]
+        pub any: ::std::boxed::Box<crate::types::Wildcard>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "defaultOpenContent",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct DefaultOpenContent {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "appliesToEmpty", optional)]
-    pub applies_to_empty: ::core::option::Option<bool>,
-    #[xattribute(name = "mode", optional)]
-    pub mode: ::core::option::Option<default_open_content_items::ModeValue>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
-    #[xelement(name = "any", namespace = "http://www.w3.org/2001/XMLSchema", group)]
-    pub any: ::std::boxed::Box<crate::types::Wildcard>,
+pub enum DefaultOpenContent {
+    #[xelement(
+        name = "defaultOpenContent",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    DefaultOpenContent(#[xgroup] default_open_content_items::DefaultOpenContent),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::DefaultOpenContent>>,
+    ),
+}
+impl ::core::convert::From<default_open_content_items::DefaultOpenContent>
+for DefaultOpenContent {
+    fn from(value: default_open_content_items::DefaultOpenContent) -> Self {
+        DefaultOpenContent::DefaultOpenContent(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::DefaultOpenContent>>,
+> for DefaultOpenContent {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<
+            ::std::boxed::Box<crate::DefaultOpenContent>,
+        >,
+    ) -> Self {
+        DefaultOpenContent::SubstitutionGroup(value)
+    }
 }
 pub mod documentation_items {
     #[derive(
@@ -4925,47 +5147,24 @@ pub mod documentation_items {
     pub struct Child0 {
         pub child_0: ::xmlity::XmlValue,
     }
-}
-#[derive(
-    ::core::fmt::Debug,
-    ::xmlity::Serialize,
-    ::xmlity::Deserialize,
-    ::bon::Builder,
-    ::core::cmp::PartialEq,
-    ::core::clone::Clone
-)]
-#[xelement(
-    name = "documentation",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct Documentation {
-    #[xattribute(name = "source", optional)]
-    pub source: ::core::option::Option<crate::types::TargetNamespace>,
-    #[xattribute(deferred = true, optional)]
-    pub attribute_1: ::core::option::Option<
-        ::std::boxed::Box<xmlity_ns_xml::attributes::Lang>,
-    >,
-    #[xvalue(default)]
-    #[builder(default)]
-    pub child_0: ::std::vec::Vec<documentation_items::Child0>,
-}
-#[derive(
-    ::core::fmt::Debug,
-    ::xmlity::Serialize,
-    ::xmlity::Deserialize,
-    ::core::cmp::PartialEq,
-    ::core::clone::Clone
-)]
-#[xelement(
-    name = "element",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct Element(#[xgroup] pub ::std::boxed::Box<crate::types::TopLevelElement>);
-impl ::core::convert::From<crate::types::TopLevelElement> for Element {
-    fn from(value: crate::types::TopLevelElement) -> Self {
-        Element(::std::boxed::Box::new(value))
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    pub struct Documentation {
+        #[xattribute(name = "source", optional)]
+        pub source: ::core::option::Option<crate::types::TargetNamespace>,
+        #[xattribute(deferred = true, optional)]
+        pub lang: ::core::option::Option<
+            ::std::boxed::Box<xmlity_ns_xml::attributes::Lang>,
+        >,
+        #[xvalue(default)]
+        #[builder(default)]
+        pub child_0: ::std::vec::Vec<Child0>,
     }
 }
 #[derive(
@@ -4975,15 +5174,91 @@ impl ::core::convert::From<crate::types::TopLevelElement> for Element {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "enumeration",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
+pub enum Documentation {
+    #[xelement(
+        name = "documentation",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Documentation(#[xgroup] documentation_items::Documentation),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Documentation>>,
+    ),
+}
+impl ::core::convert::From<documentation_items::Documentation> for Documentation {
+    fn from(value: documentation_items::Documentation) -> Self {
+        Documentation::Documentation(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Documentation>>,
+> for Documentation {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Documentation>>,
+    ) -> Self {
+        Documentation::SubstitutionGroup(value)
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
 )]
-pub struct Enumeration(#[xgroup] pub ::std::boxed::Box<crate::types::NoFixedFacet>);
+pub enum Element {
+    #[xelement(
+        name = "element",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Element(#[xgroup] ::std::boxed::Box<crate::types::TopLevelElement>),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Element>>),
+}
+impl ::core::convert::From<crate::types::TopLevelElement> for Element {
+    fn from(value: crate::types::TopLevelElement) -> Self {
+        Element::Element(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Element>>,
+> for Element {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Element>>,
+    ) -> Self {
+        Element::SubstitutionGroup(value)
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
+)]
+pub enum Enumeration {
+    #[xelement(
+        name = "enumeration",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Enumeration(#[xgroup] ::std::boxed::Box<crate::types::NoFixedFacet>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Enumeration>>,
+    ),
+}
 impl ::core::convert::From<crate::types::NoFixedFacet> for Enumeration {
     fn from(value: crate::types::NoFixedFacet) -> Self {
-        Enumeration(::std::boxed::Box::new(value))
+        Enumeration::Enumeration(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Enumeration>>,
+> for Enumeration {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Enumeration>>,
+    ) -> Self {
+        Enumeration::SubstitutionGroup(value)
     }
 }
 pub mod explicit_timezone_items {
@@ -5074,30 +5349,58 @@ pub mod explicit_timezone_items {
             }
         }
     }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct ExplicitTimezone {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "value")]
+        pub value: ValueValue,
+        #[xattribute(name = "fixed", optional)]
+        pub fixed: ::core::option::Option<bool>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "explicitTimezone",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct ExplicitTimezone {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "value")]
-    pub value: explicit_timezone_items::ValueValue,
-    #[xattribute(name = "fixed", optional)]
-    pub fixed: ::core::option::Option<bool>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
+pub enum ExplicitTimezone {
+    #[xelement(
+        name = "explicitTimezone",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    ExplicitTimezone(#[xgroup] explicit_timezone_items::ExplicitTimezone),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::ExplicitTimezone>>,
+    ),
+}
+impl ::core::convert::From<explicit_timezone_items::ExplicitTimezone>
+for ExplicitTimezone {
+    fn from(value: explicit_timezone_items::ExplicitTimezone) -> Self {
+        ExplicitTimezone::ExplicitTimezone(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::ExplicitTimezone>>,
+> for ExplicitTimezone {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::ExplicitTimezone>>,
+    ) -> Self {
+        ExplicitTimezone::SubstitutionGroup(value)
+    }
 }
 pub mod field_items {
     impl ::core::convert::From<::std::string::String> for XpathValue {
@@ -5152,32 +5455,27 @@ pub mod field_items {
             value.0
         }
     }
-}
-#[derive(
-    ::core::fmt::Debug,
-    ::xmlity::Serialize,
-    ::xmlity::Deserialize,
-    ::bon::Builder,
-    ::core::cmp::PartialEq,
-    ::core::clone::Clone
-)]
-#[xelement(
-    name = "field",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct Field {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "xpath")]
-    pub xpath: field_items::XpathValue,
-    #[xattribute(name = "xpathDefaultNamespace", optional)]
-    pub xpath_default_namespace: ::core::option::Option<
-        ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
-    >,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Field {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "xpath")]
+        pub xpath: XpathValue,
+        #[xattribute(name = "xpathDefaultNamespace", optional)]
+        pub xpath_default_namespace: ::core::option::Option<
+            ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
+        >,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
@@ -5186,15 +5484,59 @@ pub struct Field {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "fractionDigits",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
+pub enum Field {
+    #[xelement(
+        name = "field",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Field(#[xgroup] field_items::Field),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Field>>),
+}
+impl ::core::convert::From<field_items::Field> for Field {
+    fn from(value: field_items::Field) -> Self {
+        Field::Field(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Field>>,
+> for Field {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Field>>,
+    ) -> Self {
+        Field::SubstitutionGroup(value)
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
 )]
-pub struct FractionDigits(#[xgroup] pub ::std::boxed::Box<crate::types::NumFacet>);
+pub enum FractionDigits {
+    #[xelement(
+        name = "fractionDigits",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    FractionDigits(#[xgroup] ::std::boxed::Box<crate::types::NumFacet>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::FractionDigits>>,
+    ),
+}
 impl ::core::convert::From<crate::types::NumFacet> for FractionDigits {
     fn from(value: crate::types::NumFacet) -> Self {
-        FractionDigits(::std::boxed::Box::new(value))
+        FractionDigits::FractionDigits(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::FractionDigits>>,
+> for FractionDigits {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::FractionDigits>>,
+    ) -> Self {
+        FractionDigits::SubstitutionGroup(value)
     }
 }
 #[derive(
@@ -5204,62 +5546,128 @@ impl ::core::convert::From<crate::types::NumFacet> for FractionDigits {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "group",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct Group(#[xgroup] pub ::std::boxed::Box<crate::types::NamedGroup>);
+pub enum Group {
+    #[xelement(
+        name = "group",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Group(#[xgroup] ::std::boxed::Box<crate::types::NamedGroup>),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Group>>),
+}
 impl ::core::convert::From<crate::types::NamedGroup> for Group {
     fn from(value: crate::types::NamedGroup) -> Self {
-        Group(::std::boxed::Box::new(value))
+        Group::Group(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Group>>,
+> for Group {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Group>>,
+    ) -> Self {
+        Group::SubstitutionGroup(value)
+    }
+}
+pub mod import_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Import {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "namespace", optional)]
+        pub namespace: ::core::option::Option<crate::types::TargetNamespace>,
+        #[xattribute(name = "schemaLocation", optional)]
+        pub schema_location: ::core::option::Option<crate::types::TargetNamespace>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
     }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "import",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct Import {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "namespace", optional)]
-    pub namespace: ::core::option::Option<crate::types::TargetNamespace>,
-    #[xattribute(name = "schemaLocation", optional)]
-    pub schema_location: ::core::option::Option<crate::types::TargetNamespace>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
+pub enum Import {
+    #[xelement(
+        name = "import",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Import(#[xgroup] import_items::Import),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Import>>),
+}
+impl ::core::convert::From<import_items::Import> for Import {
+    fn from(value: import_items::Import) -> Self {
+        Import::Import(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Import>>,
+> for Import {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Import>>,
+    ) -> Self {
+        Import::SubstitutionGroup(value)
+    }
+}
+pub mod include_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Include {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "schemaLocation")]
+        pub schema_location: crate::types::TargetNamespace,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "include",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct Include {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "schemaLocation")]
-    pub schema_location: crate::types::TargetNamespace,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
+pub enum Include {
+    #[xelement(
+        name = "include",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Include(#[xgroup] include_items::Include),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Include>>),
+}
+impl ::core::convert::From<include_items::Include> for Include {
+    fn from(value: include_items::Include) -> Self {
+        Include::Include(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Include>>,
+> for Include {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Include>>,
+    ) -> Self {
+        Include::SubstitutionGroup(value)
+    }
 }
 #[derive(
     ::core::fmt::Debug,
@@ -5268,15 +5676,26 @@ pub struct Include {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "key",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct Key(#[xgroup] pub ::std::boxed::Box<crate::types::Keybase>);
+pub enum Key {
+    #[xelement(
+        name = "key",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Key(#[xgroup] ::std::boxed::Box<crate::types::Keybase>),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Key>>),
+}
 impl ::core::convert::From<crate::types::Keybase> for Key {
     fn from(value: crate::types::Keybase) -> Self {
-        Key(::std::boxed::Box::new(value))
+        Key::Key(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Key>>>
+for Key {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Key>>,
+    ) -> Self {
+        Key::SubstitutionGroup(value)
     }
 }
 pub mod keyref_items {
@@ -5295,34 +5714,29 @@ pub mod keyref_items {
         #[builder(default)]
         pub field: ::std::vec::Vec<crate::Field>,
     }
-}
-#[derive(
-    ::core::fmt::Debug,
-    ::xmlity::Serialize,
-    ::xmlity::Deserialize,
-    ::bon::Builder,
-    ::core::cmp::PartialEq,
-    ::core::clone::Clone
-)]
-#[xelement(
-    name = "keyref",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct Keyref {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "name", optional)]
-    pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-    #[xattribute(name = "ref", optional)]
-    pub ref_: ::core::option::Option<crate::types::QName>,
-    #[xattribute(name = "refer", optional)]
-    pub refer: ::core::option::Option<crate::types::QName>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
-    #[xvalue(default)]
-    pub child_1: ::core::option::Option<keyref_items::Child1>,
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Keyref {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "name", optional)]
+        pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
+        #[xattribute(name = "ref", optional)]
+        pub ref_: ::core::option::Option<crate::types::QName>,
+        #[xattribute(name = "refer", optional)]
+        pub refer: ::core::option::Option<crate::types::QName>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+        #[xvalue(default)]
+        pub child_1: ::core::option::Option<Child1>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
@@ -5331,47 +5745,116 @@ pub struct Keyref {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "length",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
+pub enum Keyref {
+    #[xelement(
+        name = "keyref",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Keyref(#[xgroup] keyref_items::Keyref),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Keyref>>),
+}
+impl ::core::convert::From<keyref_items::Keyref> for Keyref {
+    fn from(value: keyref_items::Keyref) -> Self {
+        Keyref::Keyref(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Keyref>>,
+> for Keyref {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Keyref>>,
+    ) -> Self {
+        Keyref::SubstitutionGroup(value)
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
 )]
-pub struct Length(#[xgroup] pub ::std::boxed::Box<crate::types::NumFacet>);
+pub enum Length {
+    #[xelement(
+        name = "length",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Length(#[xgroup] ::std::boxed::Box<crate::types::NumFacet>),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Length>>),
+}
 impl ::core::convert::From<crate::types::NumFacet> for Length {
     fn from(value: crate::types::NumFacet) -> Self {
-        Length(::std::boxed::Box::new(value))
+        Length::Length(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Length>>,
+> for Length {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Length>>,
+    ) -> Self {
+        Length::SubstitutionGroup(value)
+    }
+}
+pub mod list_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct List {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "itemType", optional)]
+        pub item_type: ::core::option::Option<crate::types::QName>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+        #[xelement(
+            name = "simpleType",
+            namespace = "http://www.w3.org/2001/XMLSchema",
+            group,
+            optional
+        )]
+        pub simple_type: ::core::option::Option<
+            ::std::boxed::Box<crate::types::LocalSimpleType>,
+        >,
     }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "list",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct List {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "itemType", optional)]
-    pub item_type: ::core::option::Option<crate::types::QName>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
+pub enum List {
     #[xelement(
-        name = "simpleType",
+        name = "list",
         namespace = "http://www.w3.org/2001/XMLSchema",
-        group,
-        optional
+        allow_unknown_attributes = "any"
     )]
-    pub simple_type: ::core::option::Option<
-        ::std::boxed::Box<crate::types::LocalSimpleType>,
-    >,
+    List(#[xgroup] list_items::List),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::List>>),
+}
+impl ::core::convert::From<list_items::List> for List {
+    fn from(value: list_items::List) -> Self {
+        List::List(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::List>>,
+> for List {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::List>>,
+    ) -> Self {
+        List::SubstitutionGroup(value)
+    }
 }
 #[derive(
     ::core::fmt::Debug,
@@ -5380,15 +5863,29 @@ pub struct List {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "maxExclusive",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct MaxExclusive(#[xgroup] pub ::std::boxed::Box<crate::types::Facet>);
+pub enum MaxExclusive {
+    #[xelement(
+        name = "maxExclusive",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    MaxExclusive(#[xgroup] ::std::boxed::Box<crate::types::Facet>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MaxExclusive>>,
+    ),
+}
 impl ::core::convert::From<crate::types::Facet> for MaxExclusive {
     fn from(value: crate::types::Facet) -> Self {
-        MaxExclusive(::std::boxed::Box::new(value))
+        MaxExclusive::MaxExclusive(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MaxExclusive>>,
+> for MaxExclusive {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MaxExclusive>>,
+    ) -> Self {
+        MaxExclusive::SubstitutionGroup(value)
     }
 }
 #[derive(
@@ -5398,15 +5895,29 @@ impl ::core::convert::From<crate::types::Facet> for MaxExclusive {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "maxInclusive",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct MaxInclusive(#[xgroup] pub ::std::boxed::Box<crate::types::Facet>);
+pub enum MaxInclusive {
+    #[xelement(
+        name = "maxInclusive",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    MaxInclusive(#[xgroup] ::std::boxed::Box<crate::types::Facet>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MaxInclusive>>,
+    ),
+}
 impl ::core::convert::From<crate::types::Facet> for MaxInclusive {
     fn from(value: crate::types::Facet) -> Self {
-        MaxInclusive(::std::boxed::Box::new(value))
+        MaxInclusive::MaxInclusive(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MaxInclusive>>,
+> for MaxInclusive {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MaxInclusive>>,
+    ) -> Self {
+        MaxInclusive::SubstitutionGroup(value)
     }
 }
 #[derive(
@@ -5416,15 +5927,29 @@ impl ::core::convert::From<crate::types::Facet> for MaxInclusive {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "maxLength",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct MaxLength(#[xgroup] pub ::std::boxed::Box<crate::types::NumFacet>);
+pub enum MaxLength {
+    #[xelement(
+        name = "maxLength",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    MaxLength(#[xgroup] ::std::boxed::Box<crate::types::NumFacet>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MaxLength>>,
+    ),
+}
 impl ::core::convert::From<crate::types::NumFacet> for MaxLength {
     fn from(value: crate::types::NumFacet) -> Self {
-        MaxLength(::std::boxed::Box::new(value))
+        MaxLength::MaxLength(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MaxLength>>,
+> for MaxLength {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MaxLength>>,
+    ) -> Self {
+        MaxLength::SubstitutionGroup(value)
     }
 }
 #[derive(
@@ -5434,15 +5959,29 @@ impl ::core::convert::From<crate::types::NumFacet> for MaxLength {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "minExclusive",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct MinExclusive(#[xgroup] pub ::std::boxed::Box<crate::types::Facet>);
+pub enum MinExclusive {
+    #[xelement(
+        name = "minExclusive",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    MinExclusive(#[xgroup] ::std::boxed::Box<crate::types::Facet>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MinExclusive>>,
+    ),
+}
 impl ::core::convert::From<crate::types::Facet> for MinExclusive {
     fn from(value: crate::types::Facet) -> Self {
-        MinExclusive(::std::boxed::Box::new(value))
+        MinExclusive::MinExclusive(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MinExclusive>>,
+> for MinExclusive {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MinExclusive>>,
+    ) -> Self {
+        MinExclusive::SubstitutionGroup(value)
     }
 }
 #[derive(
@@ -5452,15 +5991,29 @@ impl ::core::convert::From<crate::types::Facet> for MinExclusive {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "minInclusive",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct MinInclusive(#[xgroup] pub ::std::boxed::Box<crate::types::Facet>);
+pub enum MinInclusive {
+    #[xelement(
+        name = "minInclusive",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    MinInclusive(#[xgroup] ::std::boxed::Box<crate::types::Facet>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MinInclusive>>,
+    ),
+}
 impl ::core::convert::From<crate::types::Facet> for MinInclusive {
     fn from(value: crate::types::Facet) -> Self {
-        MinInclusive(::std::boxed::Box::new(value))
+        MinInclusive::MinInclusive(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MinInclusive>>,
+> for MinInclusive {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MinInclusive>>,
+    ) -> Self {
+        MinInclusive::SubstitutionGroup(value)
     }
 }
 #[derive(
@@ -5470,42 +6023,85 @@ impl ::core::convert::From<crate::types::Facet> for MinInclusive {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "minLength",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct MinLength(#[xgroup] pub ::std::boxed::Box<crate::types::NumFacet>);
+pub enum MinLength {
+    #[xelement(
+        name = "minLength",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    MinLength(#[xgroup] ::std::boxed::Box<crate::types::NumFacet>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MinLength>>,
+    ),
+}
 impl ::core::convert::From<crate::types::NumFacet> for MinLength {
     fn from(value: crate::types::NumFacet) -> Self {
-        MinLength(::std::boxed::Box::new(value))
+        MinLength::MinLength(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MinLength>>,
+> for MinLength {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::MinLength>>,
+    ) -> Self {
+        MinLength::SubstitutionGroup(value)
+    }
+}
+pub mod notation_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Notation {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "name")]
+        pub name: ::xmlity::LocalName<'static>,
+        #[xattribute(name = "public", optional)]
+        pub public: ::core::option::Option<::std::boxed::Box<crate::types::Public>>,
+        #[xattribute(name = "system", optional)]
+        pub system: ::core::option::Option<crate::types::TargetNamespace>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
     }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "notation",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct Notation {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "name")]
-    pub name: ::xmlity::LocalName<'static>,
-    #[xattribute(name = "public", optional)]
-    pub public: ::core::option::Option<::std::boxed::Box<crate::types::Public>>,
-    #[xattribute(name = "system", optional)]
-    pub system: ::core::option::Option<crate::types::TargetNamespace>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
+pub enum Notation {
+    #[xelement(
+        name = "notation",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Notation(#[xgroup] notation_items::Notation),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Notation>>,
+    ),
+}
+impl ::core::convert::From<notation_items::Notation> for Notation {
+    fn from(value: notation_items::Notation) -> Self {
+        Notation::Notation(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Notation>>,
+> for Notation {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Notation>>,
+    ) -> Self {
+        Notation::SubstitutionGroup(value)
+    }
 }
 pub mod open_content_items {
     #[derive(
@@ -5595,92 +6191,175 @@ pub mod open_content_items {
             }
         }
     }
-}
-#[derive(
-    ::core::fmt::Debug,
-    ::xmlity::Serialize,
-    ::xmlity::Deserialize,
-    ::bon::Builder,
-    ::core::cmp::PartialEq,
-    ::core::clone::Clone
-)]
-#[xelement(
-    name = "openContent",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct OpenContent {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "mode", optional)]
-    pub mode: ::core::option::Option<open_content_items::ModeValue>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
-    #[xelement(
-        name = "any",
-        namespace = "http://www.w3.org/2001/XMLSchema",
-        group,
-        optional
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
     )]
-    pub any: ::core::option::Option<::std::boxed::Box<crate::types::Wildcard>>,
+    #[xgroup(children_order = "strict")]
+    pub struct OpenContent {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "mode", optional)]
+        pub mode: ::core::option::Option<ModeValue>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+        #[xelement(
+            name = "any",
+            namespace = "http://www.w3.org/2001/XMLSchema",
+            group,
+            optional
+        )]
+        pub any: ::core::option::Option<::std::boxed::Box<crate::types::Wildcard>>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "override",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct Override {
-    #[xattribute(name = "schemaLocation")]
-    pub schema_location: crate::types::TargetNamespace,
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
-    #[xvalue(default)]
-    #[builder(default)]
-    pub schema_top: ::std::vec::Vec<crate::groups::SchemaTop>,
+pub enum OpenContent {
+    #[xelement(
+        name = "openContent",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    OpenContent(#[xgroup] open_content_items::OpenContent),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::OpenContent>>,
+    ),
+}
+impl ::core::convert::From<open_content_items::OpenContent> for OpenContent {
+    fn from(value: open_content_items::OpenContent) -> Self {
+        OpenContent::OpenContent(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::OpenContent>>,
+> for OpenContent {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::OpenContent>>,
+    ) -> Self {
+        OpenContent::SubstitutionGroup(value)
+    }
+}
+pub mod override_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Override {
+        #[xattribute(name = "schemaLocation")]
+        pub schema_location: crate::types::TargetNamespace,
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+        #[xvalue(default)]
+        #[builder(default)]
+        pub schema_top: ::std::vec::Vec<crate::groups::SchemaTop>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "pattern",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
+pub enum Override {
+    #[xelement(
+        name = "override",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Override(#[xgroup] override_items::Override),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Override>>,
+    ),
+}
+impl ::core::convert::From<override_items::Override> for Override {
+    fn from(value: override_items::Override) -> Self {
+        Override::Override(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Override>>,
+> for Override {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Override>>,
+    ) -> Self {
+        Override::SubstitutionGroup(value)
+    }
+}
+pub mod pattern_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Pattern {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "value")]
+        pub value: String,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
 )]
-pub struct Pattern {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "value")]
-    pub value: String,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
+pub enum Pattern {
+    #[xelement(
+        name = "pattern",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Pattern(#[xgroup] pattern_items::Pattern),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Pattern>>),
+}
+impl ::core::convert::From<pattern_items::Pattern> for Pattern {
+    fn from(value: pattern_items::Pattern) -> Self {
+        Pattern::Pattern(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Pattern>>,
+> for Pattern {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Pattern>>,
+    ) -> Self {
+        Pattern::SubstitutionGroup(value)
+    }
 }
 pub mod redefine_items {
-    impl ::core::convert::From<crate::Annotation> for Redefine {
+    impl ::core::convert::From<crate::Annotation> for RedefineContent {
         fn from(value: crate::Annotation) -> Self {
-            Redefine::Annotation(::std::boxed::Box::new(value))
+            RedefineContent::Annotation(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<crate::groups::Redefinable> for Redefine {
+    impl ::core::convert::From<crate::groups::Redefinable> for RedefineContent {
         fn from(value: crate::groups::Redefinable) -> Self {
-            Redefine::Redefinable(::std::boxed::Box::new(value))
+            RedefineContent::Redefinable(::std::boxed::Box::new(value))
         }
     }
     #[derive(
@@ -5690,55 +6369,111 @@ pub mod redefine_items {
         ::core::cmp::PartialEq,
         ::core::clone::Clone
     )]
-    pub enum Redefine {
+    pub enum RedefineContent {
         Annotation(::std::boxed::Box<crate::Annotation>),
         Redefinable(::std::boxed::Box<crate::groups::Redefinable>),
+    }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    pub struct Redefine {
+        #[xattribute(name = "schemaLocation")]
+        pub schema_location: crate::types::TargetNamespace,
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xvalue(default)]
+        #[builder(default)]
+        pub redefine_content: ::std::vec::Vec<RedefineContent>,
     }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "redefine",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct Redefine {
-    #[xattribute(name = "schemaLocation")]
-    pub schema_location: crate::types::TargetNamespace,
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xvalue(default)]
-    #[builder(default)]
-    pub redefine: ::std::vec::Vec<redefine_items::Redefine>,
+pub enum Redefine {
+    #[xelement(
+        name = "redefine",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Redefine(#[xgroup] redefine_items::Redefine),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Redefine>>,
+    ),
+}
+impl ::core::convert::From<redefine_items::Redefine> for Redefine {
+    fn from(value: redefine_items::Redefine) -> Self {
+        Redefine::Redefine(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Redefine>>,
+> for Redefine {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Redefine>>,
+    ) -> Self {
+        Redefine::SubstitutionGroup(value)
+    }
+}
+pub mod restriction_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Restriction {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "base", optional)]
+        pub base: ::core::option::Option<crate::types::QName>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+        pub simple_restriction_model: crate::groups::SimpleRestrictionModel,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "restriction",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct Restriction {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "base", optional)]
-    pub base: ::core::option::Option<crate::types::QName>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
-    pub simple_restriction_model: crate::groups::SimpleRestrictionModel,
+pub enum Restriction {
+    #[xelement(
+        name = "restriction",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Restriction(#[xgroup] restriction_items::Restriction),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Restriction>>,
+    ),
+}
+impl ::core::convert::From<restriction_items::Restriction> for Restriction {
+    fn from(value: restriction_items::Restriction) -> Self {
+        Restriction::Restriction(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Restriction>>,
+> for Restriction {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Restriction>>,
+    ) -> Self {
+        Restriction::SubstitutionGroup(value)
+    }
 }
 pub mod schema_items {
     #[derive(
@@ -5771,60 +6506,87 @@ pub mod schema_items {
         #[builder(default)]
         pub annotation: ::std::vec::Vec<crate::Annotation>,
     }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Schema {
+        #[xattribute(name = "targetNamespace", optional)]
+        pub target_namespace: ::core::option::Option<crate::types::TargetNamespace>,
+        #[xattribute(name = "version", optional)]
+        pub version: ::core::option::Option<String>,
+        #[xattribute(name = "finalDefault", optional)]
+        pub final_default: ::core::option::Option<
+            ::std::boxed::Box<crate::types::FullDerivationSet>,
+        >,
+        #[xattribute(name = "blockDefault", optional)]
+        pub block_default: ::core::option::Option<
+            ::std::boxed::Box<crate::types::BlockSet>,
+        >,
+        #[xattribute(name = "attributeFormDefault", optional)]
+        pub attribute_form_default: ::core::option::Option<
+            ::std::boxed::Box<crate::types::FormChoice>,
+        >,
+        #[xattribute(name = "elementFormDefault", optional)]
+        pub element_form_default: ::core::option::Option<
+            ::std::boxed::Box<crate::types::FormChoice>,
+        >,
+        #[xattribute(name = "defaultAttributes", optional)]
+        pub default_attributes: ::core::option::Option<crate::types::QName>,
+        #[xattribute(name = "xpathDefaultNamespace", optional)]
+        pub xpath_default_namespace: ::core::option::Option<
+            ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
+        >,
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(deferred = true, optional)]
+        pub lang: ::core::option::Option<
+            ::std::boxed::Box<xmlity_ns_xml::attributes::Lang>,
+        >,
+        #[xvalue(default)]
+        #[builder(default)]
+        pub composition: ::std::vec::Vec<crate::groups::Composition>,
+        #[xvalue(default)]
+        pub child_1: ::core::option::Option<Child1>,
+        #[xvalue(default)]
+        #[builder(default)]
+        pub child_2: ::std::vec::Vec<Child2>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "schema",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct Schema {
-    #[xattribute(name = "targetNamespace", optional)]
-    pub target_namespace: ::core::option::Option<crate::types::TargetNamespace>,
-    #[xattribute(name = "version", optional)]
-    pub version: ::core::option::Option<String>,
-    #[xattribute(name = "finalDefault", optional)]
-    pub final_default: ::core::option::Option<
-        ::std::boxed::Box<crate::types::FullDerivationSet>,
-    >,
-    #[xattribute(name = "blockDefault", optional)]
-    pub block_default: ::core::option::Option<::std::boxed::Box<crate::types::BlockSet>>,
-    #[xattribute(name = "attributeFormDefault", optional)]
-    pub attribute_form_default: ::core::option::Option<
-        ::std::boxed::Box<crate::types::FormChoice>,
-    >,
-    #[xattribute(name = "elementFormDefault", optional)]
-    pub element_form_default: ::core::option::Option<
-        ::std::boxed::Box<crate::types::FormChoice>,
-    >,
-    #[xattribute(name = "defaultAttributes", optional)]
-    pub default_attributes: ::core::option::Option<crate::types::QName>,
-    #[xattribute(name = "xpathDefaultNamespace", optional)]
-    pub xpath_default_namespace: ::core::option::Option<
-        ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
-    >,
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(deferred = true, optional)]
-    pub attribute_9: ::core::option::Option<
-        ::std::boxed::Box<xmlity_ns_xml::attributes::Lang>,
-    >,
-    #[xvalue(default)]
-    #[builder(default)]
-    pub composition: ::std::vec::Vec<crate::groups::Composition>,
-    #[xvalue(default)]
-    pub child_1: ::core::option::Option<schema_items::Child1>,
-    #[xvalue(default)]
-    #[builder(default)]
-    pub child_2: ::std::vec::Vec<schema_items::Child2>,
+pub enum Schema {
+    #[xelement(
+        name = "schema",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Schema(#[xgroup] schema_items::Schema),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Schema>>),
+}
+impl ::core::convert::From<schema_items::Schema> for Schema {
+    fn from(value: schema_items::Schema) -> Self {
+        Schema::Schema(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Schema>>,
+> for Schema {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Schema>>,
+    ) -> Self {
+        Schema::SubstitutionGroup(value)
+    }
 }
 pub mod selector_items {
     impl ::core::convert::From<::std::string::String> for XpathValue {
@@ -5879,32 +6641,27 @@ pub mod selector_items {
             value.0
         }
     }
-}
-#[derive(
-    ::core::fmt::Debug,
-    ::xmlity::Serialize,
-    ::xmlity::Deserialize,
-    ::bon::Builder,
-    ::core::cmp::PartialEq,
-    ::core::clone::Clone
-)]
-#[xelement(
-    name = "selector",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct Selector {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "xpath")]
-    pub xpath: selector_items::XpathValue,
-    #[xattribute(name = "xpathDefaultNamespace", optional)]
-    pub xpath_default_namespace: ::core::option::Option<
-        ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
-    >,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Selector {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "xpath")]
+        pub xpath: XpathValue,
+        #[xattribute(name = "xpathDefaultNamespace", optional)]
+        pub xpath_default_namespace: ::core::option::Option<
+            ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
+        >,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
@@ -5913,15 +6670,61 @@ pub struct Selector {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "sequence",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
+pub enum Selector {
+    #[xelement(
+        name = "selector",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Selector(#[xgroup] selector_items::Selector),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Selector>>,
+    ),
+}
+impl ::core::convert::From<selector_items::Selector> for Selector {
+    fn from(value: selector_items::Selector) -> Self {
+        Selector::Selector(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Selector>>,
+> for Selector {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Selector>>,
+    ) -> Self {
+        Selector::SubstitutionGroup(value)
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
 )]
-pub struct Sequence(#[xgroup] pub ::std::boxed::Box<crate::types::ExplicitGroup>);
+pub enum Sequence {
+    #[xelement(
+        name = "sequence",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Sequence(#[xgroup] ::std::boxed::Box<crate::types::ExplicitGroup>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Sequence>>,
+    ),
+}
 impl ::core::convert::From<crate::types::ExplicitGroup> for Sequence {
     fn from(value: crate::types::ExplicitGroup) -> Self {
-        Sequence(::std::boxed::Box::new(value))
+        Sequence::Sequence(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Sequence>>,
+> for Sequence {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Sequence>>,
+    ) -> Self {
+        Sequence::SubstitutionGroup(value)
     }
 }
 pub mod simple_content_items {
@@ -5956,69 +6759,139 @@ pub mod simple_content_items {
         )]
         Extension(#[xgroup] ::std::boxed::Box<crate::types::SimpleExtensionType>),
     }
-}
-#[derive(
-    ::core::fmt::Debug,
-    ::xmlity::Serialize,
-    ::xmlity::Deserialize,
-    ::bon::Builder,
-    ::core::cmp::PartialEq,
-    ::core::clone::Clone
-)]
-#[xelement(
-    name = "simpleContent",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct SimpleContent {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
-    pub child_1: simple_content_items::Child1,
-}
-#[derive(
-    ::core::fmt::Debug,
-    ::xmlity::Serialize,
-    ::xmlity::Deserialize,
-    ::core::cmp::PartialEq,
-    ::core::clone::Clone
-)]
-#[xelement(
-    name = "simpleType",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
-)]
-pub struct SimpleType(#[xgroup] pub ::std::boxed::Box<crate::types::TopLevelSimpleType>);
-impl ::core::convert::From<crate::types::TopLevelSimpleType> for SimpleType {
-    fn from(value: crate::types::TopLevelSimpleType) -> Self {
-        SimpleType(::std::boxed::Box::new(value))
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct SimpleContent {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+        pub child_1: Child1,
     }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "totalDigits",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
+pub enum SimpleContent {
+    #[xelement(
+        name = "simpleContent",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    SimpleContent(#[xgroup] simple_content_items::SimpleContent),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::SimpleContent>>,
+    ),
+}
+impl ::core::convert::From<simple_content_items::SimpleContent> for SimpleContent {
+    fn from(value: simple_content_items::SimpleContent) -> Self {
+        SimpleContent::SimpleContent(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::SimpleContent>>,
+> for SimpleContent {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::SimpleContent>>,
+    ) -> Self {
+        SimpleContent::SubstitutionGroup(value)
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
 )]
-pub struct TotalDigits {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "value")]
-    pub value: ::core::num::NonZeroUsize,
-    #[xattribute(name = "fixed", optional)]
-    pub fixed: ::core::option::Option<bool>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
+pub enum SimpleType {
+    #[xelement(
+        name = "simpleType",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    SimpleType(#[xgroup] ::std::boxed::Box<crate::types::TopLevelSimpleType>),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::SimpleType>>,
+    ),
+}
+impl ::core::convert::From<crate::types::TopLevelSimpleType> for SimpleType {
+    fn from(value: crate::types::TopLevelSimpleType) -> Self {
+        SimpleType::SimpleType(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::SimpleType>>,
+> for SimpleType {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::SimpleType>>,
+    ) -> Self {
+        SimpleType::SubstitutionGroup(value)
+    }
+}
+pub mod total_digits_items {
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct TotalDigits {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "value")]
+        pub value: ::core::num::NonZeroUsize,
+        #[xattribute(name = "fixed", optional)]
+        pub fixed: ::core::option::Option<bool>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
+)]
+pub enum TotalDigits {
+    #[xelement(
+        name = "totalDigits",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    TotalDigits(#[xgroup] total_digits_items::TotalDigits),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::TotalDigits>>,
+    ),
+}
+impl ::core::convert::From<total_digits_items::TotalDigits> for TotalDigits {
+    fn from(value: total_digits_items::TotalDigits) -> Self {
+        TotalDigits::TotalDigits(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::TotalDigits>>,
+> for TotalDigits {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::TotalDigits>>,
+    ) -> Self {
+        TotalDigits::SubstitutionGroup(value)
+    }
 }
 pub mod union_items {
     impl ::core::convert::From<crate::types::LocalSimpleType> for SimpleType {
@@ -6042,33 +6915,26 @@ pub mod union_items {
         #[xgroup]
         pub ::std::boxed::Box<crate::types::LocalSimpleType>,
     );
-}
-#[derive(
-    ::core::fmt::Debug,
-    ::xmlity::Serialize,
-    ::xmlity::Deserialize,
-    ::bon::Builder,
-    ::core::cmp::PartialEq,
-    ::core::clone::Clone
-)]
-#[xelement(
-    name = "union",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct Union {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "memberTypes", optional)]
-    pub member_types: ::core::option::Option<
-        ::xmlity_ns::List<crate::types::QName>,
-    >,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
-    #[xvalue(default)]
-    #[builder(default)]
-    pub simple_type: ::std::vec::Vec<union_items::SimpleType>,
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct Union {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "memberTypes", optional)]
+        pub member_types: ::core::option::Option<::xmlity_ns::List<crate::types::QName>>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+        #[xvalue(default)]
+        #[builder(default)]
+        pub simple_type: ::std::vec::Vec<SimpleType>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
@@ -6077,15 +6943,57 @@ pub struct Union {
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "unique",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any"
+pub enum Union {
+    #[xelement(
+        name = "union",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Union(#[xgroup] union_items::Union),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Union>>),
+}
+impl ::core::convert::From<union_items::Union> for Union {
+    fn from(value: union_items::Union) -> Self {
+        Union::Union(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Union>>,
+> for Union {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Union>>,
+    ) -> Self {
+        Union::SubstitutionGroup(value)
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
 )]
-pub struct Unique(#[xgroup] pub ::std::boxed::Box<crate::types::Keybase>);
+pub enum Unique {
+    #[xelement(
+        name = "unique",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    Unique(#[xgroup] ::std::boxed::Box<crate::types::Keybase>),
+    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Unique>>),
+}
 impl ::core::convert::From<crate::types::Keybase> for Unique {
     fn from(value: crate::types::Keybase) -> Self {
-        Unique(::std::boxed::Box::new(value))
+        Unique::Unique(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Unique>>,
+> for Unique {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::Unique>>,
+    ) -> Self {
+        Unique::SubstitutionGroup(value)
     }
 }
 pub mod white_space_items {
@@ -6176,28 +7084,55 @@ pub mod white_space_items {
             }
         }
     }
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::SerializationGroup,
+        ::xmlity::DeserializationGroup,
+        ::bon::Builder,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone
+    )]
+    #[xgroup(children_order = "strict")]
+    pub struct WhiteSpace {
+        #[xattribute(name = "id", optional)]
+        pub id: ::core::option::Option<String>,
+        #[xattribute(name = "value")]
+        pub value: ValueValue,
+        #[xattribute(name = "fixed", optional)]
+        pub fixed: ::core::option::Option<bool>,
+        #[xvalue(default)]
+        pub annotation: ::core::option::Option<crate::Annotation>,
+    }
 }
 #[derive(
     ::core::fmt::Debug,
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
-    ::bon::Builder,
     ::core::cmp::PartialEq,
     ::core::clone::Clone
 )]
-#[xelement(
-    name = "whiteSpace",
-    namespace = "http://www.w3.org/2001/XMLSchema",
-    allow_unknown_attributes = "any",
-    children_order = "strict"
-)]
-pub struct WhiteSpace {
-    #[xattribute(name = "id", optional)]
-    pub id: ::core::option::Option<String>,
-    #[xattribute(name = "value")]
-    pub value: white_space_items::ValueValue,
-    #[xattribute(name = "fixed", optional)]
-    pub fixed: ::core::option::Option<bool>,
-    #[xvalue(default)]
-    pub annotation: ::core::option::Option<crate::Annotation>,
+pub enum WhiteSpace {
+    #[xelement(
+        name = "whiteSpace",
+        namespace = "http://www.w3.org/2001/XMLSchema",
+        allow_unknown_attributes = "any"
+    )]
+    WhiteSpace(#[xgroup] white_space_items::WhiteSpace),
+    SubstitutionGroup(
+        ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::WhiteSpace>>,
+    ),
+}
+impl ::core::convert::From<white_space_items::WhiteSpace> for WhiteSpace {
+    fn from(value: white_space_items::WhiteSpace) -> Self {
+        WhiteSpace::WhiteSpace(value)
+    }
+}
+impl ::core::convert::From<
+    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::WhiteSpace>>,
+> for WhiteSpace {
+    fn from(
+        value: ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<crate::WhiteSpace>>,
+    ) -> Self {
+        WhiteSpace::SubstitutionGroup(value)
+    }
 }

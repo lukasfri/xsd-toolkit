@@ -810,7 +810,7 @@ mod tests {
             .name(LocalName::new_dangerous("SimpleSequence"))
             .complex_type_model(
                 Box::new(
-                xs::ComplexContent::builder()
+                xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
@@ -818,12 +818,12 @@ mod tests {
                                 xs::types::complex_restriction_type_items::Child1::builder()
                                 .type_def_particle(
                                     Box::new(
-                                xs::Sequence(
+                                xs::Sequence::from(
                                     xs::types::ExplicitGroup::builder()
                                         .nested_particle(vec![
-                                            xs::Choice(xs::types::ExplicitGroup::builder()
+                                            xs::Choice::from(xs::types::ExplicitGroup::builder()
                                                 .nested_particle(vec![
-                                                    xs::Sequence(xs::types::ExplicitGroup::builder()
+                                                    xs::Sequence::from(xs::types::ExplicitGroup::builder()
                                                         .nested_particle(vec![xs::types::LocalElement::builder()
                                                             .name(LocalName::new_dangerous("a"))
                                                             .type_attribute(xs::types::QName(
@@ -831,8 +831,7 @@ mod tests {
                                                             ))
                                                             .build()
                                                             .into()])
-                                                        .build()
-                                                        .into()).into(),
+                                                        .build()).into(),
                                                     xs::types::LocalElement::builder()
                                                         .name(LocalName::new_dangerous("b"))
                                                         .type_attribute(xs::types::QName(
@@ -841,16 +840,14 @@ mod tests {
                                                         .build()
                                                         .into(),
                                                 ])
-                                                .build()
-                                                .into()).into(),
+                                                .build()).into(),
                                             xs::types::LocalElement::builder()
                                                 .name(LocalName::new_dangerous("c"))
                                                 .type_attribute(xs::types::QName(xsn::STRING.clone()))
                                                 .build()
                                                 .into(),
                                         ])
-                                        .build()
-                                        .into(),
+                                        .build(),
                                 )
                                 .into())
                                 ).build()
@@ -861,7 +858,7 @@ mod tests {
                             .build()
                             .into(),
                     )
-                    .build()
+                    .build())
                     .into(),
                 )
             )
@@ -936,21 +933,21 @@ mod tests {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
 
-        let sequence =
-            xs::types::TopLevelComplexType::builder()
-                .name(LocalName::new_dangerous("SimpleSequence"))
-                .complex_type_model(Box::new(
-                    xs::ComplexContent::builder()
+        let sequence = xs::types::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("SimpleSequence"))
+            .complex_type_model(Box::new(
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
                         .child_1(
                             xs::types::ComplexRestrictionType::builder()
                                 .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                                 .child_1(
                                     xs::types::complex_restriction_type_items::Child1::builder()
                                         .type_def_particle(Box::new(
-                                            xs::Sequence(
+                                            xs::Sequence::from(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
-                                                        xs::Sequence(
+                                                        xs::Sequence::from(
                                                             xs::types::ExplicitGroup::builder()
                                                                 .nested_particle(vec![
                                                     xs::types::LocalElement::builder()
@@ -970,8 +967,7 @@ mod tests {
                                                         .into(),
                                                 ])
                                                                 .min_occurs(0)
-                                                                .build()
-                                                                .into(),
+                                                                .build(),
                                                         )
                                                         .into(),
                                                         xs::types::LocalElement::builder()
@@ -982,8 +978,7 @@ mod tests {
                                                             .build()
                                                             .into(),
                                                     ])
-                                                    .build()
-                                                    .into(),
+                                                    .build(),
                                             )
                                             .into(),
                                         ))
@@ -995,11 +990,12 @@ mod tests {
                                 .build()
                                 .into(),
                         )
-                        .build()
-                        .into(),
-                ))
-                .build()
-                .into();
+                        .build(),
+                )
+                .into(),
+            ))
+            .build()
+            .into();
 
         let mut ctx = XmlnsContext::new();
         let ns = ctx.init_namespace(TEST_NAMESPACE);

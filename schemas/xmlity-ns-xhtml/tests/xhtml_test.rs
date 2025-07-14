@@ -24,12 +24,12 @@ const XHTML_HTML: &str = r###"
 "###;
 
 fn xhtml_html() -> xhtml::Html {
-    xhtml::Html {
+    xhtml::html_items::Html {
         lang: None,
         lang_0: None,
         dir: None,
         id: None,
-        head: xhtml::Head {
+        head: xhtml::head_items::Head {
             lang: None,
             lang_0: None,
             dir: None,
@@ -39,20 +39,24 @@ fn xhtml_html() -> xhtml::Html {
                 child_0: Vec::new(),
             },
             variant: xhtml::head_items::variant_variants::Variant0 {
-                title: Box::new(xhtml::Title {
-                    lang: None,
-                    lang_0: None,
-                    dir: None,
-                    id: None,
-                }),
+                title: Box::new(
+                    xhtml::title_items::Title {
+                        lang: None,
+                        lang_0: None,
+                        dir: None,
+                        id: None,
+                    }
+                    .into(),
+                ),
                 head_misc: xhtml::groups::HeadMisc {
                     child_0: Vec::new(),
                 },
                 child_2: None,
             }
             .into(),
-        },
-        body: xhtml::Body {
+        }
+        .into(),
+        body: xhtml::body_items::Body {
             id: None,
             class: None,
             style: None,
@@ -72,7 +76,9 @@ fn xhtml_html() -> xhtml::Html {
             onkeyup: None,
             onload: None,
             onunload: None,
-            body: vec![],
-        },
+            body_content: vec![],
+        }
+        .into(),
     }
+    .into()
 }

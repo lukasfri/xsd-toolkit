@@ -923,7 +923,7 @@ impl ComplexFragmentEquivalent for xs::Any {
     ) -> Result<Self, Error> {
         let _compiler = compiler.as_ref();
 
-        Ok(xs::Any::builder().build())
+        Ok(xs::Any::from(xs::any_items::Any::builder().build()))
     }
 }
 
@@ -1078,13 +1078,19 @@ impl ComplexFragmentEquivalent for xs::All {
         &self,
         mut compiler: T,
     ) -> Self::FragmentId {
+        let all = match self {
+            xs::All::All(all) => all,
+            _ => {
+                panic!("Expected xs::All::All, found: {:?}", self);
+            }
+        };
+
         let mut compiler = compiler.as_mut();
 
         let all = AllFragment {
             min_occurs: None,
             max_occurs: None,
-            fragments: self
-                .0
+            fragments: all
                 .all_model
                 .child_1
                 .iter()
@@ -1113,12 +1119,17 @@ impl ComplexFragmentEquivalent for xs::Choice {
         mut compiler: T,
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
+        let choice = match self {
+            xs::Choice::Choice(choice) => choice,
+            _ => {
+                panic!("Expected xs::Choice::Choice, found: {:?}", self);
+            }
+        };
 
         let all = ChoiceFragment {
-            min_occurs: self.0.min_occurs,
-            max_occurs: self.0.max_occurs.clone().map(|a| AllNNI::from(*a)),
-            fragments: self
-                .0
+            min_occurs: choice.min_occurs,
+            max_occurs: choice.max_occurs.clone().map(|a| AllNNI::from(*a)),
+            fragments: choice
                 .nested_particle
                 .iter()
                 .map(|content| content.to_complex_fragments(&mut compiler))
@@ -1135,7 +1146,7 @@ impl ComplexFragmentEquivalent for xs::Choice {
         let compiler = compiler.as_ref();
         let fragment = compiler.get_fragment(fragment_id).unwrap();
 
-        Ok(xs::Choice(
+        Ok(xs::Choice::from(
             xs::types::ExplicitGroup::builder()
                 .maybe_min_occurs(fragment.min_occurs)
                 .maybe_max_occurs(fragment.max_occurs.map(From::from).map(Box::new))
@@ -1148,8 +1159,7 @@ impl ComplexFragmentEquivalent for xs::Choice {
                         })
                         .collect::<Result<_, _>>()?,
                 )
-                .build()
-                .into(),
+                .build(),
         ))
     }
 }
@@ -1163,12 +1173,18 @@ impl ComplexFragmentEquivalent for xs::Sequence {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
+        let sequence = match self {
+            xs::Sequence::Sequence(sequence) => sequence,
+            _ => {
+                panic!("Expected xs::Sequence::Sequence, found: {:?}", self);
+            }
+        };
+
         let seq = SequenceFragment {
-            id: self.0.id.clone(),
-            min_occurs: self.0.min_occurs,
-            max_occurs: self.0.max_occurs.clone().map(|a| AllNNI::from(*a)),
-            fragments: self
-                .0
+            id: sequence.id.clone(),
+            min_occurs: sequence.min_occurs,
+            max_occurs: sequence.max_occurs.clone().map(|a| AllNNI::from(*a)),
+            fragments: sequence
                 .nested_particle
                 .iter()
                 .map(|content| content.to_complex_fragments(&mut compiler))
@@ -1185,7 +1201,7 @@ impl ComplexFragmentEquivalent for xs::Sequence {
         let compiler = compiler.as_ref();
         let fragment = compiler.get_fragment(fragment_id).unwrap();
 
-        Ok(xs::Sequence(Box::new(
+        Ok(xs::Sequence::from(
             xs::types::ExplicitGroup::builder()
                 .maybe_min_occurs(fragment.min_occurs)
                 .maybe_max_occurs(fragment.max_occurs.map(From::from).map(Box::new))
@@ -1199,7 +1215,7 @@ impl ComplexFragmentEquivalent for xs::Sequence {
                         .collect::<Result<_, _>>()?,
                 )
                 .build(),
-        )))
+        ))
     }
 }
 
@@ -1611,7 +1627,17 @@ impl ComplexFragmentEquivalent for xs::SimpleContent {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let content_fragment = match &self.child_1 {
+        let simple_content = match self {
+            xs::SimpleContent::SimpleContent(simple_content) => simple_content,
+            _ => {
+                panic!(
+                    "Expected xs::SimpleContent::SimpleContent, found: {:?}",
+                    self
+                );
+            }
+        };
+
+        let content_fragment = match &simple_content.child_1 {
             xs::simple_content_items::Child1::Extension(extension) => {
                 let fragment_id = extension.to_complex_fragments(&mut compiler);
 
@@ -1647,7 +1673,17 @@ impl ComplexFragmentEquivalent for xs::ComplexContent {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let content_fragment = match &self.child_1 {
+        let complex_content = match self {
+            xs::ComplexContent::ComplexContent(complex_content) => complex_content,
+            _ => {
+                panic!(
+                    "Expected xs::ComplexContent::ComplexContent, found: {:?}",
+                    self
+                );
+            }
+        };
+
+        let content_fragment = match &complex_content.child_1 {
             xs::complex_content_items::Child1::Extension(extension) => {
                 let fragment_id = extension.to_complex_fragments(&mut compiler);
 
@@ -1662,7 +1698,7 @@ impl ComplexFragmentEquivalent for xs::ComplexContent {
 
         compiler.push_fragment(ComplexContentFragment {
             content_fragment,
-            mixed: self.mixed,
+            mixed: complex_content.mixed,
         })
     }
 
@@ -1683,12 +1719,14 @@ impl ComplexFragmentEquivalent for xs::ComplexContent {
             }
         };
 
-        Ok(xs::ComplexContent {
-            annotation: None,
-            id: None,
-            mixed: fragment.mixed,
-            child_1,
-        })
+        Ok(xs::ComplexContent::from(
+            xs::complex_content_items::ComplexContent {
+                annotation: None,
+                id: None,
+                mixed: fragment.mixed,
+                child_1,
+            },
+        ))
     }
 }
 
@@ -2071,7 +2109,9 @@ impl ComplexFragmentEquivalent for xs::AnyAttribute {
     ) -> Result<Self, Error> {
         let _compiler = compiler.as_ref();
 
-        Ok(xs::AnyAttribute::builder().build())
+        Ok(xs::AnyAttribute::from(
+            xs::any_attribute_items::AnyAttribute::builder().build(),
+        ))
     }
 }
 

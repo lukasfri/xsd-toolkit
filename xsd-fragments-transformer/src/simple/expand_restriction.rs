@@ -156,6 +156,7 @@ impl XmlnsContextTransformer for ExpandSimpleRestriction<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
     use std::collections::HashSet;
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
@@ -196,8 +197,7 @@ mod tests {
                 .map(|name| (*name).clone())
                 .collect();
 
-        const TEST_NAMESPACE: XmlNamespace<'static> =
-            XmlNamespace::new_dangerous("http://example.com/test");
+        const TEST_NAMESPACE: XmlNamespace<'static> = XmlNamespace::XS;
 
         let mut ctx = XmlnsContext::new();
 
@@ -265,8 +265,7 @@ mod tests {
                 .map(|name| (*name).clone())
                 .collect();
 
-        const TEST_NAMESPACE: XmlNamespace<'static> =
-            XmlNamespace::new_dangerous("http://example.com/test");
+        const TEST_NAMESPACE: XmlNamespace<'static> = XmlNamespace::XS;
 
         let mut ctx = XmlnsContext::new();
 

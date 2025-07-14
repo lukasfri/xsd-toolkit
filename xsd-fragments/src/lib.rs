@@ -70,7 +70,12 @@ impl XmlnsContext {
     }
 
     pub fn import_redefine(&mut self, redefine: &xs::Redefine) -> Result<(), Error> {
-        use xs::redefine_items::Redefine;
+        use xs::redefine_items::RedefineContent;
+        let redefine = match redefine {
+            xs::Redefine::Redefine(redefine) => redefine,
+            _ => panic!("Expected a redefine, but found: {:?}", redefine),
+        };
+
         let namespace = &redefine.schema_location.0;
 
         let compiled_namespace =
@@ -80,11 +85,11 @@ impl XmlnsContext {
                 })?;
 
         redefine
-            .redefine
+            .redefine_content
             .iter()
             .filter_map(|r| match r {
-                Redefine::Annotation(_) => None,
-                Redefine::Redefinable(redefinable) => Some(redefinable.deref()),
+                RedefineContent::Annotation(_) => None,
+                RedefineContent::Redefinable(redefinable) => Some(redefinable.deref()),
             })
             .map(|r| compiled_namespace.import_redefineable(r))
             .collect::<Result<(), Error>>()
@@ -172,6 +177,11 @@ impl CompiledNamespace {
     }
 
     pub fn import_include(&mut self, include: &xs::Include) -> Result<(), Error> {
+        let include = match include {
+            xs::Include::Include(include) => include,
+            _ => panic!("Expected an include, but found: {:?}", include),
+        };
+
         let include_namespace = &include.schema_location.0;
         todo!()
     }
@@ -223,14 +233,19 @@ impl CompiledNamespace {
         &mut self,
         simple_type: &xs::SimpleType,
     ) -> Result<ExpandedName<'_>, Error> {
-        let local_name = simple_type.0.name.clone();
+        let simple_type = match simple_type {
+            xs::SimpleType::SimpleType(simple_type) => simple_type,
+            _ => panic!("Expected a simple type, but found: {:?}", simple_type),
+        };
+
+        let local_name = simple_type.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
         if self.top_level_types.contains_key(&local_name) {
             return Ok(name);
         }
 
-        let root_fragment = simple_type.0.to_simple_fragments(&mut self.complex_type);
+        let root_fragment = simple_type.to_simple_fragments(&mut self.complex_type);
         let type_ = TopLevelType::Simple(TopLevelSimpleType { root_fragment });
         self.top_level_types.insert(local_name.clone(), type_);
 
@@ -251,21 +266,26 @@ impl CompiledNamespace {
             xs::types::TopLevelSimpleType::from_simple_fragments(&self.complex_type, fragment_id)
                 .unwrap();
 
-        Ok(Some(xs::SimpleType(type_.into())))
+        Ok(Some(xs::SimpleType::from(type_)))
     }
 
     pub fn import_top_level_complex_type(
         &mut self,
         complex_type: &xs::ComplexType,
     ) -> Result<ExpandedName<'_>, Error> {
-        let local_name = complex_type.0.name.clone();
+        let complex_type = match complex_type {
+            xs::ComplexType::ComplexType(complex_type) => complex_type,
+            _ => panic!("Expected a complex type, but found: {:?}", complex_type),
+        };
+
+        let local_name = complex_type.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
         if self.top_level_types.contains_key(&local_name) {
             return Ok(name);
         }
 
-        let root_fragment = complex_type.0.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = complex_type.to_complex_fragments(&mut self.complex_type);
 
         let type_ = TopLevelType::Complex(TopLevelComplexType { root_fragment });
         self.top_level_types.insert(local_name.clone(), type_);
@@ -287,21 +307,26 @@ impl CompiledNamespace {
             xs::types::TopLevelComplexType::from_complex_fragments(&self.complex_type, fragment_id)
                 .unwrap();
 
-        Ok(Some(xs::ComplexType(type_.into())))
+        Ok(Some(xs::ComplexType::from(type_)))
     }
 
     pub fn import_top_level_element(
         &mut self,
         element: &xs::Element,
     ) -> Result<ExpandedName<'_>, Error> {
-        let local_name = element.0.name.clone();
+        let element = match element {
+            xs::Element::Element(element) => element,
+            _ => panic!("Expected an element, but found: {:?}", element),
+        };
+
+        let local_name = element.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
         if self.top_level_elements.contains_key(&local_name) {
             return Ok(name);
         }
 
-        let root_fragment = element.0.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = element.to_complex_fragments(&mut self.complex_type);
 
         self.top_level_elements
             .insert(local_name.clone(), TopLevelElement { root_fragment });
@@ -323,21 +348,26 @@ impl CompiledNamespace {
             xs::types::TopLevelElement::from_complex_fragments(&self.complex_type, fragment_id)
                 .unwrap();
 
-        Ok(Some(xs::Element(element.into())))
+        Ok(Some(xs::Element::from(element)))
     }
 
     pub fn import_top_level_attribute(
         &mut self,
         attribute: &xs::Attribute,
     ) -> Result<ExpandedName<'_>, Error> {
-        let local_name = attribute.0.name.clone();
+        let attribute = match attribute {
+            xs::Attribute::Attribute(attribute) => attribute,
+            _ => panic!("Expected an attribute, but found: {:?}", attribute),
+        };
+
+        let local_name = attribute.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
         if self.top_level_attributes.contains_key(&local_name) {
             return Ok(name);
         }
 
-        let root_fragment = attribute.0.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = attribute.to_complex_fragments(&mut self.complex_type);
 
         self.top_level_attributes
             .insert(local_name.clone(), TopLevelAttribute { root_fragment });
@@ -346,14 +376,21 @@ impl CompiledNamespace {
     }
 
     pub fn import_top_level_group(&mut self, group: &xs::Group) -> Result<ExpandedName<'_>, Error> {
-        let local_name = group.0.name.clone();
+        let group = match group {
+            xs::Group::Group(group) => group,
+            _ => {
+                panic!("Expected a group, but found: {:?}", group);
+            }
+        };
+
+        let local_name = group.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
         if self.top_level_groups.contains_key(&local_name) {
             return Ok(name);
         }
 
-        let root_fragment = group.0.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = group.to_complex_fragments(&mut self.complex_type);
         let type_ = TopLevelGroup { root_fragment };
         self.top_level_groups.insert(local_name.clone(), type_);
 
@@ -364,16 +401,24 @@ impl CompiledNamespace {
         &mut self,
         attribute_group: &xs::AttributeGroup,
     ) -> Result<ExpandedName<'_>, Error> {
-        let local_name = attribute_group.0.name.clone();
+        let attribute_group = match attribute_group {
+            xs::AttributeGroup::AttributeGroup(attribute_group) => attribute_group,
+            _ => {
+                panic!(
+                    "Expected an attribute group, but found: {:?}",
+                    attribute_group
+                );
+            }
+        };
+
+        let local_name = attribute_group.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
         if self.top_level_groups.contains_key(&local_name) {
             return Ok(name);
         }
 
-        let root_fragment = attribute_group
-            .0
-            .to_complex_fragments(&mut self.complex_type);
+        let root_fragment = attribute_group.to_complex_fragments(&mut self.complex_type);
         let type_ = TopLevelAttributeGroup { root_fragment };
         self.top_level_attribute_groups
             .insert(local_name.clone(), type_);

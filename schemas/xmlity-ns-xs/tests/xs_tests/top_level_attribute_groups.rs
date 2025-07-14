@@ -63,7 +63,7 @@ const XSD_ANY_ATTR_GROUP: &str = r###"
 "###;
 
 fn xsd_any_attr_group() -> xs::AttributeGroup {
-    xs::AttributeGroup(Box::new(
+    xs::AttributeGroup::AttributeGroup(Box::new(
         xs::types::NamedAttributeGroup::builder()
             .name(LocalName::new_dangerous("anyAttrGroup"))
             .attr_decls(Box::new(
@@ -84,24 +84,28 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                             .simple_type(
                                 xs::types::LocalSimpleType::builder()
                                     .simple_derivation(Box::new(
-                                        xs::Restriction::builder()
-                                            .base(xs::types::QName(ExpandedName::new(
-                                                LocalName::new_dangerous("basicNamespaceList"),
-                                                Some(XmlNamespace::XS),
-                                            )))
-                                            .simple_restriction_model(
-                                                xs::groups::SimpleRestrictionModel::builder()
-                                                    .child_1(vec![xs::Facet::from(xs::MinLength(
-                                                        xs::types::NumFacet::builder()
-                                                            .value(1)
-                                                            .build()
-                                                            .into(),
-                                                    ))
-                                                    .into()])
-                                                    .build(),
-                                            )
-                                            .build()
-                                            .into(),
+                                        xs::Restriction::from(
+                                            xs::restriction_items::Restriction::builder()
+                                                .base(xs::types::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("basicNamespaceList"),
+                                                    Some(XmlNamespace::XS),
+                                                )))
+                                                .simple_restriction_model(
+                                                    xs::groups::SimpleRestrictionModel::builder()
+                                                        .child_1(vec![xs::Facet::from(
+                                                            xs::MinLength::MinLength(
+                                                                xs::types::NumFacet::builder()
+                                                                    .value(1)
+                                                                    .build()
+                                                                    .into(),
+                                                            ),
+                                                        )
+                                                        .into()])
+                                                        .build(),
+                                                )
+                                                .build(),
+                                        )
+                                        .into(),
                                     ))
                                     .build()
                                     .into(),
@@ -115,40 +119,48 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                             .simple_type(
                                 xs::types::LocalSimpleType::builder()
                                     .simple_derivation(Box::new(
-                                        xs::Restriction::builder()
-                                            .base(xs::types::QName(ExpandedName::new(
-                                                LocalName::new_dangerous("NMTOKEN"),
-                                                Some(XmlNamespace::XS),
-                                            )))
-                                            .simple_restriction_model(
-                                                xs::groups::SimpleRestrictionModel::builder()
-                                                    .child_1(vec![
-                                                        xs::Facet::from(xs::Enumeration(
-                                                            xs::types::NoFixedFacet::builder()
-                                                                .value("skip".to_string())
-                                                                .build()
-                                                                .into(),
-                                                        ))
+                                        xs::Restriction::from(
+                                            xs::restriction_items::Restriction::builder()
+                                                .base(xs::types::QName(ExpandedName::new(
+                                                    LocalName::new_dangerous("NMTOKEN"),
+                                                    Some(XmlNamespace::XS),
+                                                )))
+                                                .simple_restriction_model(
+                                                    xs::groups::SimpleRestrictionModel::builder()
+                                                        .child_1(vec![
+                                                        xs::Facet::from(
+                                                            xs::Enumeration::Enumeration(
+                                                                xs::types::NoFixedFacet::builder()
+                                                                    .value("skip".to_string())
+                                                                    .build()
+                                                                    .into(),
+                                                            ),
+                                                        )
                                                         .into(),
-                                                        xs::Facet::from(xs::Enumeration(
-                                                            xs::types::NoFixedFacet::builder()
-                                                                .value("lax".to_string())
-                                                                .build()
-                                                                .into(),
-                                                        ))
+                                                        xs::Facet::from(
+                                                            xs::Enumeration::Enumeration(
+                                                                xs::types::NoFixedFacet::builder()
+                                                                    .value("lax".to_string())
+                                                                    .build()
+                                                                    .into(),
+                                                            ),
+                                                        )
                                                         .into(),
-                                                        xs::Facet::from(xs::Enumeration(
-                                                            xs::types::NoFixedFacet::builder()
-                                                                .value("strict".to_string())
-                                                                .build()
-                                                                .into(),
-                                                        ))
+                                                        xs::Facet::from(
+                                                            xs::Enumeration::Enumeration(
+                                                                xs::types::NoFixedFacet::builder()
+                                                                    .value("strict".to_string())
+                                                                    .build()
+                                                                    .into(),
+                                                            ),
+                                                        )
                                                         .into(),
                                                     ])
-                                                    .build(),
-                                            )
-                                            .build()
-                                            .into(),
+                                                        .build(),
+                                                )
+                                                .build(),
+                                        )
+                                        .into(),
                                     ))
                                     .build()
                                     .into(),

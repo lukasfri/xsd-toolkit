@@ -183,7 +183,7 @@ mod tests {
             .type_attribute(xs::types::QName(xsn::STRING.clone()))
             .build();
 
-        let child_choice = xs::Choice(Box::new(
+        let child_choice = xs::Choice::from(
             xs::types::ExplicitGroup::builder()
                 .max_occurs(
                     xs::types::AllNNI::from(
@@ -203,9 +203,8 @@ mod tests {
                         .build()
                         .into(),
                 ])
-                .build()
-                .into(),
-        ));
+                .build(),
+        );
 
         // ```xml
         // <xs:complexType name="ShirtType">
@@ -226,43 +225,43 @@ mod tests {
         let non_flattened_shirt_type = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("ShirtType"))
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .child_1(
-                                xs::types::complex_restriction_type_items::Child1::builder()
-                                    .type_def_particle(Box::new(
-                                        xs::Sequence(Box::new(
-                                            xs::types::ExplicitGroup::builder()
-                                                .nested_particle(vec![
-                                                    xs::Sequence(
-                                                        xs::types::ExplicitGroup::builder()
-                                                            .nested_particle(vec![
-                                                                number.clone().into(),
-                                                                name.clone().into(),
-                                                            ])
-                                                            .build()
-                                                            .into(),
-                                                    )
-                                                    .into(),
-                                                    child_choice.clone().into(),
-                                                ])
-                                                .build()
-                                                .into(),
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ComplexRestrictionType::builder()
+                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                .child_1(
+                                    xs::types::complex_restriction_type_items::Child1::builder()
+                                        .type_def_particle(Box::new(
+                                            xs::Sequence::from(
+                                                xs::types::ExplicitGroup::builder()
+                                                    .nested_particle(vec![
+                                                        xs::Sequence::from(
+                                                            xs::types::ExplicitGroup::builder()
+                                                                .nested_particle(vec![
+                                                                    number.clone().into(),
+                                                                    name.clone().into(),
+                                                                ])
+                                                                .build(),
+                                                        )
+                                                        .into(),
+                                                        child_choice.clone().into(),
+                                                    ])
+                                                    .build(),
+                                            )
+                                            .into(),
                                         ))
+                                        .build()
                                         .into(),
-                                    ))
-                                    .build()
-                                    .into(),
-                            )
-                            .attr_decls(xs::groups::AttrDecls::builder().build().into())
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
+                                )
+                                .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
             ))
             .build()
             .into();
@@ -285,35 +284,37 @@ mod tests {
             xs::types::TopLevelComplexType::builder()
                 .name(LocalName::new_dangerous("ShirtType"))
                 .complex_type_model(Box::new(
-                    xs::ComplexContent::builder()
-                        .child_1(
-                            xs::types::ComplexRestrictionType::builder()
-                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                                .child_1(
-                                    xs::types::complex_restriction_type_items::Child1::builder()
+                    xs::ComplexContent::from(
+                        xs::complex_content_items::ComplexContent::builder()
+                            .child_1(
+                                xs::types::ComplexRestrictionType::builder()
+                                    .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                    .child_1(
+                                        xs::types::complex_restriction_type_items::Child1::builder(
+                                        )
                                         .type_def_particle(Box::new(
-                                            xs::Sequence(Box::new(
+                                            xs::Sequence::from(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
                                                         number.clone().into(),
                                                         name.clone().into(),
                                                         child_choice.into(),
                                                     ])
-                                                    .build()
-                                                    .into(),
-                                            ))
+                                                    .build(),
+                                            )
                                             .into(),
                                         ))
                                         .build()
                                         .into(),
-                                )
-                                .attr_decls(xs::groups::AttrDecls::builder().build().into())
-                                .assertions(xs::groups::Assertions::builder().build().into())
-                                .build()
-                                .into(),
-                        )
-                        .build()
-                        .into(),
+                                    )
+                                    .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                                    .assertions(xs::groups::Assertions::builder().build().into())
+                                    .build()
+                                    .into(),
+                            )
+                            .build(),
+                    )
+                    .into(),
                 ))
                 .build()
                 .into();
@@ -356,7 +357,7 @@ mod tests {
             .type_attribute(xs::types::QName(xsn::STRING.clone()))
             .build();
 
-        let child_choice = xs::Choice(
+        let child_choice = xs::Choice::from(
             xs::types::ExplicitGroup::builder()
                 .max_occurs(
                     xs::types::AllNNI::from(
@@ -376,8 +377,7 @@ mod tests {
                         .build()
                         .into(),
                 ])
-                .build()
-                .into(),
+                .build(),
         );
 
         // ```xml
@@ -399,17 +399,17 @@ mod tests {
         let non_flattened_shirt_type = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("ShirtType"))
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
+                xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                             .child_1(
                                 xs::types::complex_restriction_type_items::Child1::builder()
                                     .type_def_particle(Box::new(
-                                        xs::Sequence(
+                                        xs::Sequence::from(
                                             xs::types::ExplicitGroup::builder()
                                                 .nested_particle(vec![
-                                                    xs::Sequence(Box::new(
+                                                    xs::Sequence::from(
                                                         xs::types::ExplicitGroup::builder()
                                                             .nested_particle(vec![
                                                                 number.clone().into(),
@@ -419,13 +419,11 @@ mod tests {
                                                                 xs::types::AllNNI::from(xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded).into(),
                                                             )
                                                             .build()
-                                                            .into(),
-                                                    ))
+                                                    )
                                                     .into(),
                                                     child_choice.clone().into(),
                                                 ])
                                                 .build()
-                                                .into(),
                                         )
                                         .into(),
                                     ))
@@ -437,7 +435,7 @@ mod tests {
                             .build()
                             .into(),
                     )
-                    .build()
+                    .build())
                     .into(),
             ))
             .build()

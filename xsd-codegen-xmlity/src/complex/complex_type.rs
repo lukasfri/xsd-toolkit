@@ -83,7 +83,9 @@ impl ComplexToTypeTemplate for cx::RestrictionFragment {
         let mut template = self
             .content_fragment
             .map(|a| {
-                context.resolve_fragment(&a, scope).map(|a| {
+                context
+                .sub_context(format_ident!("{}Content", context.suggested_ident()))
+                .resolve_fragment(&a, scope).map(|a| {
                     let ident = a.ident.unwrap_or_else(|| format_ident!("Particle"));
 
                     match a.template {
@@ -152,7 +154,7 @@ impl ComplexToTypeTemplate for cx::SimpleExtensionFragment {
             });
         }
 
-        let mut template = GroupRecord::new_single_field(Some(format_ident!("Content")), ElementField::Item(ItemFieldItem {
+        let mut template = GroupRecord::new_single_field(Some(format_ident!("content")), ElementField::Item(ItemFieldItem {
                 ty: simple_type.ty,
                 default: false,
             }));
@@ -249,11 +251,13 @@ impl ComplexToTypeTemplate for cx::ComplexTypeModelId {
                 let (ident, mut template) = particle
                     .as_ref()
                     .map(|particle| {
-                        context.resolve_fragment(particle, scope).map(|a| {
+                        context
+                .sub_context(format_ident!("{}Content", context.suggested_ident()))
+                .resolve_fragment(particle, scope).map(|a| {
                             (
                                 a.ident,
                                 a.template
-                                    .into_group_record(Some(format_ident!("particle"))),
+                                    .into_group_record(Some(format_ident!("content"))),
                             )
                         })
                     })
@@ -312,17 +316,16 @@ mod tests {
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
+                xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
                             .child_1(
                                 xs::types::complex_restriction_type_items::Child1::builder()
                                 .type_def_particle(Box::new(
-                                    xs::Sequence(xs::types::ExplicitGroup::builder()
+                                    xs::Sequence::from(xs::types::ExplicitGroup::builder()
                                         .nested_particle(vec![])
                                         .build()
-                                        .into()
                                     ).into()
                                 ))
                                 .build()
@@ -332,7 +335,7 @@ mod tests {
                             .build()
                             .into(),
                     )
-                    .build()
+                    .build())
                     .into()
                 ),
             )
@@ -383,7 +386,7 @@ mod tests {
             .name(LocalName::new_dangerous("SimpleSequence"))
             .complex_type_model(
                 Box::new(
-                xs::ComplexContent::builder()
+                xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
@@ -391,7 +394,7 @@ mod tests {
                                 xs::types::complex_restriction_type_items::Child1::builder()
                                 .type_def_particle(
                                     Box::new(
-                                xs::Sequence(
+                                xs::Sequence::from(
                                     xs::types::ExplicitGroup::builder()
                                         .nested_particle(vec![
                                             xs::types::LocalElement::builder()
@@ -410,7 +413,6 @@ mod tests {
                                                 .into(),
                                         ])
                                         .build()
-                                        .into(),
                                 )
                                 .into())).build().into(),
                             )
@@ -419,7 +421,7 @@ mod tests {
                             .build()
                             .into(),
                     )
-                    .build()
+                    .build())
                     .into()
                 ),
             )
@@ -479,7 +481,7 @@ mod tests {
             .name(LocalName::new_dangerous("SimpleSequence"))
             .complex_type_model(
                 Box::new(
-                xs::ComplexContent::builder()
+                xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
@@ -487,8 +489,8 @@ mod tests {
                                 xs::types::complex_restriction_type_items::Child1::builder()
                                 .type_def_particle(
                                     Box::new(
-                                    xs::Sequence(
-                                    xs::types::ExplicitGroup::builder().nested_particle(vec![]).build().into()).into())
+                                    xs::Sequence::from(
+                                    xs::types::ExplicitGroup::builder().nested_particle(vec![]).build()).into())
                                 )
                                 .build()
                                 .into()
@@ -515,7 +517,7 @@ mod tests {
                             .build()
                             .into(),
                     )
-                    .build()
+                    .build())
                     .into()
                 ),
             )
@@ -575,7 +577,7 @@ mod tests {
             .name(LocalName::new_dangerous("SimpleSequence"))
             .complex_type_model(
                 Box::new(
-                xs::ComplexContent::builder()
+                xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
@@ -583,10 +585,10 @@ mod tests {
                                 xs::types::complex_restriction_type_items::Child1::builder()
                                 .type_def_particle(
                                     Box::new(
-                                xs::Sequence(
+                                xs::Sequence::from(
                                     xs::types::ExplicitGroup::builder()
                                         .nested_particle(vec![
-                                            xs::Sequence(
+                                            xs::Sequence::from(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
                                                         
@@ -606,7 +608,6 @@ mod tests {
                                                             .into(),
                                                     ])
                                                     .build()
-                                                    .into(),
                                             ).into(),
                                             xs::types::LocalElement::builder()
                                                 .name(LocalName::new_dangerous("c"))
@@ -615,7 +616,6 @@ mod tests {
                                                 .into(),
                                         ])
                                         .build()
-                                        .into(),
                                 ).into()))
                                 .build()
                                 .into()
@@ -625,7 +625,7 @@ mod tests {
                             .build()
                             .into(),
                     )
-                    .build()
+                    .build())
                     .into()
             ),
             )
@@ -695,7 +695,7 @@ mod tests {
             .name(LocalName::new_dangerous("SimpleSequence"))
             .complex_type_model(
                 Box::new(
-                xs::ComplexContent::builder()
+                xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(xsn::ANY_TYPE.clone()))
@@ -703,12 +703,12 @@ mod tests {
                                 xs::types::complex_restriction_type_items::Child1::builder()
                                 .type_def_particle(
                                     Box::new(
-                                xs::Sequence(
+                                xs::Sequence::from(
                                 xs::types::ExplicitGroup::builder()
                                     .nested_particle(vec![
-                                        xs::Sequence(xs::types::ExplicitGroup::builder()
+                                        xs::Sequence::from(xs::types::ExplicitGroup::builder()
                                             .nested_particle(vec![
-                                                xs::Sequence(xs::types::ExplicitGroup::builder()
+                                                xs::Sequence::from(xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
                                                         xs::types::LocalElement::builder()
                                                             .name(LocalName::new_dangerous("a"))
@@ -718,8 +718,7 @@ mod tests {
                                                             .build()
                                                             .into()
                                                     ])
-                                                    .build()
-                                                    .into())
+                                                    .build())
                                                 .into(),
                                                 xs::types::LocalElement::builder()
                                                     .name(LocalName::new_dangerous("b"))
@@ -727,8 +726,7 @@ mod tests {
                                                     .build()
                                                     .into(),
                                             ])
-                                            .build()
-                                            .into()).into(),
+                                            .build()).into(),
                                         xs::types::LocalElement::builder()
                                             .name(LocalName::new_dangerous("c"))
                                             .type_attribute(xs::types::QName(xsn::STRING.clone()))
@@ -736,14 +734,13 @@ mod tests {
                                             .into(),
                                     ])
                                     .build()
-                                    .into(),
                             ).into())).build().into())
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
                             .assertions(xs::groups::Assertions::builder().build().into())
                             .build()
                             .into(),
                     )
-                    .build()
+                    .build())
                     .into()
                 ),
             )

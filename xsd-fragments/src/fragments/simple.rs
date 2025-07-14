@@ -68,7 +68,17 @@ impl From<xs::white_space_items::ValueValue> for WhiteSpaceValue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+impl From<WhiteSpaceValue> for xs::white_space_items::ValueValue {
+    fn from(value: WhiteSpaceValue) -> Self {
+        match value {
+            WhiteSpaceValue::Preserve => xs::white_space_items::ValueValue::Preserve,
+            WhiteSpaceValue::Replace => xs::white_space_items::ValueValue::Replace,
+            WhiteSpaceValue::Collapse => xs::white_space_items::ValueValue::Collapse,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ExplicitTimezoneValue {
     Required,
     Prohibited,
@@ -83,6 +93,18 @@ impl From<xs::explicit_timezone_items::ValueValue> for ExplicitTimezoneValue {
                 ExplicitTimezoneValue::Prohibited
             }
             xs::explicit_timezone_items::ValueValue::Optional => ExplicitTimezoneValue::Optional,
+        }
+    }
+}
+
+impl From<ExplicitTimezoneValue> for xs::explicit_timezone_items::ValueValue {
+    fn from(value: ExplicitTimezoneValue) -> Self {
+        match value {
+            ExplicitTimezoneValue::Required => xs::explicit_timezone_items::ValueValue::Required,
+            ExplicitTimezoneValue::Prohibited => {
+                xs::explicit_timezone_items::ValueValue::Prohibited
+            }
+            ExplicitTimezoneValue::Optional => xs::explicit_timezone_items::ValueValue::Optional,
         }
     }
 }
@@ -267,10 +289,27 @@ impl SimpleFragmentEquivalent for xs::types::TopLevelSimpleType {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).ok_or(Error)?;
+
+        let name = fragment
+            .name
+            .clone()
+            .expect("Name should be present for top-level simple type");
+
+        let simple_derivation = xs::groups::SimpleDerivation::from_simple_fragments(
+            compiler,
+            &fragment.simple_derivation,
+        )?;
+
+        Ok(xs::types::TopLevelSimpleType::builder()
+            .name(name)
+            .simple_derivation(simple_derivation.into())
+            .build())
     }
 }
 
@@ -292,10 +331,21 @@ impl SimpleFragmentEquivalent for xs::types::LocalSimpleType {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).ok_or(Error)?;
+
+        let simple_derivation = xs::groups::SimpleDerivation::from_simple_fragments(
+            compiler,
+            &fragment.simple_derivation,
+        )?;
+
+        Ok(xs::types::LocalSimpleType::builder()
+            .simple_derivation(simple_derivation.into())
+            .build())
     }
 }
 
@@ -376,10 +426,82 @@ impl SimpleFragmentEquivalent for xs::Facet {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).unwrap();
+
+        let facet: xs::Facet = match fragment {
+            FacetFragment::Length { value } => {
+                xs::Length::from(xs::types::NumFacet::builder().value(*value).build()).into()
+            }
+            FacetFragment::MinLength { value } => {
+                xs::MinLength::from(xs::types::NumFacet::builder().value(*value).build()).into()
+            }
+            FacetFragment::MaxLength { value } => {
+                xs::MaxLength::from(xs::types::NumFacet::builder().value(*value).build()).into()
+            }
+            FacetFragment::MinExclusive { value } => {
+                xs::MinExclusive::from(xs::types::Facet::builder().value(value.0.clone()).build())
+                    .into()
+            }
+            FacetFragment::MinInclusive { value } => {
+                xs::MinInclusive::from(xs::types::Facet::builder().value(value.0.clone()).build())
+                    .into()
+            }
+            FacetFragment::MaxExclusive { value } => {
+                xs::MaxExclusive::from(xs::types::Facet::builder().value(value.0.clone()).build())
+                    .into()
+            }
+            FacetFragment::MaxInclusive { value } => {
+                xs::MaxInclusive::from(xs::types::Facet::builder().value(value.0.clone()).build())
+                    .into()
+            }
+            FacetFragment::Enumeration { value } => xs::Enumeration::from(
+                xs::types::NoFixedFacet::builder()
+                    .value(value.0.clone())
+                    .build(),
+            )
+            .into(),
+            FacetFragment::TotalDigits { value } => xs::TotalDigits::from(
+                xs::total_digits_items::TotalDigits::builder()
+                    .value(*value)
+                    .build(),
+            )
+            .into(),
+            FacetFragment::FractionDigits { value } => {
+                xs::FractionDigits::from(xs::types::NumFacet::builder().value(*value).build())
+                    .into()
+            }
+            FacetFragment::WhiteSpace { value } => xs::WhiteSpace::from(
+                xs::white_space_items::WhiteSpace::builder()
+                    .value(xs::white_space_items::ValueValue::from(*value))
+                    .build(),
+            )
+            .into(),
+            FacetFragment::Pattern { value } => xs::Pattern::from(
+                xs::pattern_items::Pattern::builder()
+                    .value(value.0.clone())
+                    .build(),
+            )
+            .into(),
+            FacetFragment::Assertion { test } => xs::Assertion::from(
+                xs::types::Assertion::builder()
+                    .maybe_test(test.as_ref().map(|a| a.0.clone()))
+                    .build(),
+            )
+            .into(),
+            FacetFragment::ExplicitTimezone { value } => xs::ExplicitTimezone::from(
+                xs::explicit_timezone_items::ExplicitTimezone::builder()
+                    .value(xs::explicit_timezone_items::ValueValue::from(*value))
+                    .build(),
+            )
+            .into(),
+        };
+
+        Ok(facet)
     }
 }
 
@@ -392,8 +514,13 @@ impl SimpleFragmentEquivalent for xs::MinExclusive {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
+        let facet = match self {
+            xs::MinExclusive::MinExclusive(facet) => facet,
+            _ => panic!("Expected a minExclusive facet"),
+        };
+
         compiler.push_fragment(FacetFragment::MinExclusive {
-            value: Value(self.0.value.clone()),
+            value: Value(facet.value.clone()),
         })
     }
 
@@ -414,8 +541,13 @@ impl SimpleFragmentEquivalent for xs::MinInclusive {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
+        let facet = match self {
+            xs::MinInclusive::MinInclusive(facet) => facet,
+            _ => panic!("Expected a minInclusive facet"),
+        };
+
         compiler.push_fragment(FacetFragment::MinInclusive {
-            value: Value(self.0.value.clone()),
+            value: Value(facet.value.clone()),
         })
     }
 
@@ -436,8 +568,13 @@ impl SimpleFragmentEquivalent for xs::MaxExclusive {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
+        let facet = match self {
+            xs::MaxExclusive::MaxExclusive(facet) => facet,
+            _ => panic!("Expected a maxExclusive facet"),
+        };
+
         compiler.push_fragment(FacetFragment::MaxExclusive {
-            value: Value(self.0.value.clone()),
+            value: Value(facet.value.clone()),
         })
     }
 
@@ -458,8 +595,13 @@ impl SimpleFragmentEquivalent for xs::MaxInclusive {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
+        let facet = match self {
+            xs::MaxInclusive::MaxInclusive(facet) => facet,
+            _ => panic!("Expected a maxInclusive facet"),
+        };
+
         compiler.push_fragment(FacetFragment::MaxInclusive {
-            value: Value(self.0.value.clone()),
+            value: Value(facet.value.clone()),
         })
     }
 
@@ -480,8 +622,13 @@ impl SimpleFragmentEquivalent for xs::Enumeration {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
+        let facet = match self {
+            xs::Enumeration::Enumeration(facet) => facet,
+            _ => panic!("Expected an enumeration facet"),
+        };
+
         compiler.push_fragment(FacetFragment::Enumeration {
-            value: Value(self.0.value.clone()),
+            value: Value(facet.value.clone()),
         })
     }
 
@@ -502,7 +649,12 @@ impl SimpleFragmentEquivalent for xs::TotalDigits {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(FacetFragment::TotalDigits { value: self.value })
+        let facet = match self {
+            xs::TotalDigits::TotalDigits(facet) => facet,
+            _ => panic!("Expected a total digits facet"),
+        };
+
+        compiler.push_fragment(FacetFragment::TotalDigits { value: facet.value })
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
@@ -522,9 +674,12 @@ impl SimpleFragmentEquivalent for xs::FractionDigits {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(FacetFragment::FractionDigits {
-            value: self.0.value,
-        })
+        let facet = match self {
+            xs::FractionDigits::FractionDigits(facet) => facet,
+            _ => panic!("Expected a fraction digits facet"),
+        };
+
+        compiler.push_fragment(FacetFragment::FractionDigits { value: facet.value })
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
@@ -544,9 +699,12 @@ impl SimpleFragmentEquivalent for xs::Length {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(FacetFragment::Length {
-            value: self.0.value,
-        })
+        let facet = match self {
+            xs::Length::Length(facet) => facet,
+            _ => panic!("Expected a length facet"),
+        };
+
+        compiler.push_fragment(FacetFragment::Length { value: facet.value })
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
@@ -566,9 +724,12 @@ impl SimpleFragmentEquivalent for xs::MinLength {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(FacetFragment::MinLength {
-            value: self.0.value,
-        })
+        let facet = match self {
+            xs::MinLength::MinLength(facet) => facet,
+            _ => panic!("Expected a min length facet"),
+        };
+
+        compiler.push_fragment(FacetFragment::MinLength { value: facet.value })
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
@@ -588,9 +749,12 @@ impl SimpleFragmentEquivalent for xs::MaxLength {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(FacetFragment::MaxLength {
-            value: self.0.value,
-        })
+        let facet = match self {
+            xs::MaxLength::MaxLength(facet) => facet,
+            _ => panic!("Expected a max length facet"),
+        };
+
+        compiler.push_fragment(FacetFragment::MaxLength { value: facet.value })
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
@@ -610,8 +774,13 @@ impl SimpleFragmentEquivalent for xs::WhiteSpace {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
+        let facet = match self {
+            xs::WhiteSpace::WhiteSpace(facet) => facet,
+            _ => panic!("Expected a white space facet"),
+        };
+
         compiler.push_fragment(FacetFragment::WhiteSpace {
-            value: self.value.into(),
+            value: facet.value.into(),
         })
     }
 
@@ -632,8 +801,13 @@ impl SimpleFragmentEquivalent for xs::Pattern {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
+        let facet = match self {
+            xs::Pattern::Pattern(facet) => facet,
+            _ => panic!("Expected a pattern facet"),
+        };
+
         compiler.push_fragment(FacetFragment::Pattern {
-            value: Pattern(self.value.clone()),
+            value: Pattern(facet.value.clone()),
         })
     }
 
@@ -654,8 +828,13 @@ impl SimpleFragmentEquivalent for xs::Assertion {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
+        let facet = match self {
+            xs::Assertion::Assertion(facet) => facet,
+            _ => panic!("Expected an assertion facet"),
+        };
+
         compiler.push_fragment(FacetFragment::Assertion {
-            test: self.0.test.clone().map(Assertion),
+            test: facet.test.clone().map(Assertion),
         })
     }
 
@@ -676,8 +855,13 @@ impl SimpleFragmentEquivalent for xs::ExplicitTimezone {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
+        let facet = match self {
+            xs::ExplicitTimezone::ExplicitTimezone(facet) => facet,
+            _ => panic!("Expected an explicit timezone facet"),
+        };
+
         compiler.push_fragment(FacetFragment::ExplicitTimezone {
-            value: self.value.into(),
+            value: facet.value.into(),
         })
     }
 
@@ -698,10 +882,15 @@ impl SimpleFragmentEquivalent for xs::List {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let item_type = if let Some(item_type) = self.item_type.as_ref() {
+        let list = match self {
+            xs::List::List(list) => list,
+            _ => panic!("Expected a list"),
+        };
+
+        let item_type = if let Some(item_type) = list.item_type.as_ref() {
             NamedOrAnonymous::Named(item_type.0.clone())
         } else {
-            let simple_type = self.simple_type.as_ref().unwrap();
+            let simple_type = list.simple_type.as_ref().unwrap();
 
             NamedOrAnonymous::Anonymous(simple_type.to_simple_fragments(&mut compiler))
         };
@@ -710,10 +899,29 @@ impl SimpleFragmentEquivalent for xs::List {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).ok_or(Error)?;
+
+        let (item_type, simple_type) = match &fragment.item_type {
+            NamedOrAnonymous::Named(name) => (Some(xs::types::QName(name.clone())), None),
+            NamedOrAnonymous::Anonymous(fragment_id) => (
+                None,
+                Some(Box::new(xs::types::LocalSimpleType::from_simple_fragments(
+                    compiler,
+                    fragment_id,
+                )?)),
+            ),
+        };
+
+        Ok(xs::list_items::List::builder()
+            .maybe_item_type(item_type)
+            .maybe_simple_type(simple_type)
+            .build()
+            .into())
     }
 }
 
@@ -728,10 +936,14 @@ impl SimpleFragmentEquivalent for xs::union_items::SimpleType {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let simple_type = xs::types::LocalSimpleType::from_simple_fragments(compiler, fragment_id)?;
+
+        Ok(simple_type.into())
     }
 }
 
@@ -744,13 +956,18 @@ impl SimpleFragmentEquivalent for xs::Union {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let member_types = self
+        let union = match self {
+            xs::Union::Union(union) => union,
+            _ => panic!("Expected a union"),
+        };
+
+        let member_types = union
             .member_types
             .as_ref()
             .map(|member_type| member_type.0.iter().map(|a| a.0.clone()).collect())
             .unwrap_or_default();
 
-        let simple_types = self
+        let simple_types = union
             .simple_type
             .iter()
             .map(|simple_type| simple_type.to_simple_fragments(&mut compiler))
@@ -763,10 +980,44 @@ impl SimpleFragmentEquivalent for xs::Union {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).ok_or(Error)?;
+
+        let member_types = fragment
+            .member_types
+            .iter()
+            .map(|name| xs::types::QName(name.clone()))
+            .collect::<xsd::ns::List<_>>();
+
+        let member_types = if member_types.is_empty() {
+            None
+        } else {
+            Some(member_types)
+        };
+
+        let simple_type = fragment
+            .simple_types
+            .iter()
+            .map(|simple_type| {
+                xs::union_items::SimpleType::from_simple_fragments(compiler, simple_type)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let simple_type = if simple_type.is_empty() {
+            None
+        } else {
+            Some(simple_type)
+        };
+
+        Ok(xs::union_items::Union::builder()
+            .maybe_member_types(member_types)
+            .maybe_simple_type(simple_type)
+            .build()
+            .into())
     }
 }
 
@@ -779,15 +1030,20 @@ impl SimpleFragmentEquivalent for xs::Restriction {
     ) -> Self::FragmentId {
         let mut compiler = compiler.as_mut();
 
-        let base = self.base.as_ref().map(|a| a.0.clone());
+        let restriction = match self {
+            xs::Restriction::Restriction(restriction) => restriction,
+            _ => panic!("Expected a restriction"),
+        };
 
-        let simple_type = self
+        let base = restriction.base.as_ref().map(|a| a.0.clone());
+
+        let simple_type = restriction
             .simple_restriction_model
             .simple_type
             .as_ref()
             .map(|simple_type| simple_type.to_simple_fragments(&mut compiler));
 
-        let facets = self
+        let facets = restriction
             .simple_restriction_model
             .child_1
             .iter()
@@ -806,10 +1062,50 @@ impl SimpleFragmentEquivalent for xs::Restriction {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler.get_fragment(fragment_id).ok_or(Error)?;
+
+        let base = fragment.base.clone().map(xs::types::QName);
+
+        let simple_type = fragment
+            .simple_type
+            .as_ref()
+            .map(|simple_type| {
+                xs::types::LocalSimpleType::from_simple_fragments(compiler, simple_type)
+            })
+            .transpose()?;
+
+        let facets = fragment
+            .facets
+            .iter()
+            .map(|facet| xs::Facet::from_simple_fragments(compiler, facet))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let child_1 = if facets.is_empty() {
+            None
+        } else {
+            Some(
+                facets
+                    .into_iter()
+                    .map(xs::groups::simple_restriction_model_items::Child1::from)
+                    .collect(),
+            )
+        };
+
+        Ok(xs::restriction_items::Restriction::builder()
+            .maybe_base(base)
+            .simple_restriction_model(
+                xs::groups::SimpleRestrictionModel::builder()
+                    .maybe_simple_type(simple_type.map(Box::new))
+                    .maybe_child_1(child_1)
+                    .build(),
+            )
+            .build()
+            .into())
     }
 }
 
@@ -854,10 +1150,23 @@ impl SimpleFragmentEquivalent for xs::groups::SimpleDerivation {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        match fragment_id {
+            SimpleDerivation::Restriction(fragment_id) => {
+                xs::Restriction::from_simple_fragments(compiler, fragment_id)
+                    .map(xs::groups::SimpleDerivation::from)
+            }
+            SimpleDerivation::List(fragment_id) => {
+                xs::List::from_simple_fragments(compiler, fragment_id)
+                    .map(xs::groups::SimpleDerivation::from)
+            }
+            SimpleDerivation::Union(fragment_id) => {
+                xs::Union::from_simple_fragments(compiler, fragment_id)
+                    .map(xs::groups::SimpleDerivation::from)
+            }
+        }
     }
 }
 

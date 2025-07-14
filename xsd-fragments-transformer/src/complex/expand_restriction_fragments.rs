@@ -284,46 +284,49 @@ mod tests {
         let product_type = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("ProductType"))
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .child_1(
-                                xs::types::complex_restriction_type_items::Child1::builder()
-                                    .type_def_particle(Box::new(
-                                        xs::Sequence(
-                                            xs::types::ExplicitGroup::builder()
-                                                .nested_particle(vec![
-                                                    xs::types::LocalElement::builder()
-                                                        .name(LocalName::new_dangerous("number"))
-                                                        .type_attribute(xs::types::QName(
-                                                            xsn::INTEGER.clone(),
-                                                        ))
-                                                        .build()
-                                                        .into(),
-                                                    xs::types::LocalElement::builder()
-                                                        .name(LocalName::new_dangerous("name"))
-                                                        .type_attribute(xs::types::QName(
-                                                            xsn::STRING.clone(),
-                                                        ))
-                                                        .build()
-                                                        .into(),
-                                                ])
-                                                .build()
-                                                .into(),
-                                        )
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ComplexRestrictionType::builder()
+                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                .child_1(
+                                    xs::types::complex_restriction_type_items::Child1::builder()
+                                        .type_def_particle(Box::new(
+                                            xs::Sequence::from(
+                                                xs::types::ExplicitGroup::builder()
+                                                    .nested_particle(vec![
+                                                        xs::types::LocalElement::builder()
+                                                            .name(LocalName::new_dangerous(
+                                                                "number",
+                                                            ))
+                                                            .type_attribute(xs::types::QName(
+                                                                xsn::INTEGER.clone(),
+                                                            ))
+                                                            .build()
+                                                            .into(),
+                                                        xs::types::LocalElement::builder()
+                                                            .name(LocalName::new_dangerous("name"))
+                                                            .type_attribute(xs::types::QName(
+                                                                xsn::STRING.clone(),
+                                                            ))
+                                                            .build()
+                                                            .into(),
+                                                    ])
+                                                    .build(),
+                                            )
+                                            .into(),
+                                        ))
+                                        .build()
                                         .into(),
-                                    ))
-                                    .build()
-                                    .into(),
-                            )
-                            .attr_decls(xs::groups::AttrDecls::builder().build().into())
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
+                                )
+                                .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
             ))
             .build()
             .into();
@@ -342,42 +345,45 @@ mod tests {
         let derived_shirt_type = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("ShirtType"))
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(ExpandedName::new(
-                                LocalName::new_dangerous("ProductType"),
-                                Some(TEST_NAMESPACE.clone()),
-                            )))
-                            .child_1(
-                                xs::types::complex_restriction_type_items::Child1::builder()
-                                    .type_def_particle(Box::new(
-                                        xs::Sequence(
-                                            xs::types::ExplicitGroup::builder()
-                                                .nested_particle(vec![
-                                                    xs::types::LocalElement::builder()
-                                                        .name(LocalName::new_dangerous("number"))
-                                                        .type_attribute(xs::types::QName(
-                                                            xsn::INTEGER.clone(),
-                                                        ))
-                                                        .build()
-                                                        .into(),
-                                                ])
-                                                .build()
-                                                .into(),
-                                        )
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ComplexRestrictionType::builder()
+                                .base(xs::types::QName(ExpandedName::new(
+                                    LocalName::new_dangerous("ProductType"),
+                                    Some(TEST_NAMESPACE.clone()),
+                                )))
+                                .child_1(
+                                    xs::types::complex_restriction_type_items::Child1::builder()
+                                        .type_def_particle(Box::new(
+                                            xs::Sequence::from(
+                                                xs::types::ExplicitGroup::builder()
+                                                    .nested_particle(vec![
+                                                        xs::types::LocalElement::builder()
+                                                            .name(LocalName::new_dangerous(
+                                                                "number",
+                                                            ))
+                                                            .type_attribute(xs::types::QName(
+                                                                xsn::INTEGER.clone(),
+                                                            ))
+                                                            .build()
+                                                            .into(),
+                                                    ])
+                                                    .build(),
+                                            )
+                                            .into(),
+                                        ))
+                                        .build()
                                         .into(),
-                                    ))
-                                    .build()
-                                    .into(),
-                            )
-                            .attr_decls(xs::groups::AttrDecls::builder().build().into())
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
+                                )
+                                .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
             ))
             .build()
             .into();
@@ -397,14 +403,16 @@ mod tests {
             xs::types::TopLevelComplexType::builder()
                 .name(LocalName::new_dangerous("ShirtType"))
                 .complex_type_model(Box::new(
-                    xs::ComplexContent::builder()
-                        .child_1(
-                            xs::types::ComplexRestrictionType::builder()
-                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                                .child_1(
-                                    xs::types::complex_restriction_type_items::Child1::builder()
+                    xs::ComplexContent::from(
+                        xs::complex_content_items::ComplexContent::builder()
+                            .child_1(
+                                xs::types::ComplexRestrictionType::builder()
+                                    .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                    .child_1(
+                                        xs::types::complex_restriction_type_items::Child1::builder(
+                                        )
                                         .type_def_particle(Box::new(
-                                            xs::Sequence(
+                                            xs::Sequence::from(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![
                                                         xs::types::LocalElement::builder()
@@ -417,21 +425,21 @@ mod tests {
                                                             .build()
                                                             .into(),
                                                     ])
-                                                    .build()
-                                                    .into(),
+                                                    .build(),
                                             )
                                             .into(),
                                         ))
                                         .build()
                                         .into(),
-                                )
-                                .attr_decls(xs::groups::AttrDecls::builder().build().into())
-                                .assertions(xs::groups::Assertions::builder().build().into())
-                                .build()
-                                .into(),
-                        )
-                        .build()
-                        .into(),
+                                    )
+                                    .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                                    .assertions(xs::groups::Assertions::builder().build().into())
+                                    .build()
+                                    .into(),
+                            )
+                            .build(),
+                    )
+                    .into(),
                 ))
                 .build()
                 .into();
@@ -479,16 +487,18 @@ mod tests {
         //   </xs:complexContent>
         // </xs:complexType>
         // ```
-        let product_type = xs::types::TopLevelComplexType::builder()
-            .name(LocalName::new_dangerous("ProductType"))
-            .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                            .attr_decls(
-                                xs::groups::AttrDecls::builder()
-                                    .attribute(vec![
+        let product_type =
+            xs::types::TopLevelComplexType::builder()
+                .name(LocalName::new_dangerous("ProductType"))
+                .complex_type_model(Box::new(
+                    xs::ComplexContent::from(
+                        xs::complex_content_items::ComplexContent::builder()
+                            .child_1(
+                                xs::types::ComplexRestrictionType::builder()
+                                    .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                    .attr_decls(
+                                        xs::groups::AttrDecls::builder()
+                                            .attribute(vec![
                                         xs::types::Attribute::builder()
                                             .name(LocalName::new_dangerous("number"))
                                             .type_(xs::types::QName(xsn::INTEGER.clone()))
@@ -504,18 +514,19 @@ mod tests {
                                             .build()
                                             .into(),
                                     ])
+                                            .build()
+                                            .into(),
+                                    )
+                                    .assertions(xs::groups::Assertions::builder().build().into())
                                     .build()
                                     .into(),
                             )
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
+                            .build(),
                     )
-                    .build()
                     .into(),
-            ))
-            .build()
-            .into();
+                ))
+                .build()
+                .into();
 
         // ```xml
         // <xs:complexType name="ShirtType">
@@ -529,31 +540,33 @@ mod tests {
         let derived_shirt_type = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("ShirtType"))
             .complex_type_model(Box::new(
-                xs::ComplexContent::builder()
-                    .child_1(
-                        xs::types::ComplexRestrictionType::builder()
-                            .base(xs::types::QName(ExpandedName::new(
-                                LocalName::new_dangerous("ProductType"),
-                                Some(TEST_NAMESPACE.clone()),
-                            )))
-                            .attr_decls(
-                                xs::groups::AttrDecls::builder()
-                                    .attribute(vec![xs::types::Attribute::builder()
-                                        .name(LocalName::new_dangerous("number"))
-                                        .type_(xs::types::QName(xsn::INTEGER.clone()))
-                                        // .use_(xs::AttributeUseType::Required)
-                                        .use_(xs::types::attribute_items::UseValue::Required)
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ComplexRestrictionType::builder()
+                                .base(xs::types::QName(ExpandedName::new(
+                                    LocalName::new_dangerous("ProductType"),
+                                    Some(TEST_NAMESPACE.clone()),
+                                )))
+                                .attr_decls(
+                                    xs::groups::AttrDecls::builder()
+                                        .attribute(vec![xs::types::Attribute::builder()
+                                            .name(LocalName::new_dangerous("number"))
+                                            .type_(xs::types::QName(xsn::INTEGER.clone()))
+                                            // .use_(xs::AttributeUseType::Required)
+                                            .use_(xs::types::attribute_items::UseValue::Required)
+                                            .build()
+                                            .into()])
                                         .build()
-                                        .into()])
-                                    .build()
-                                    .into(),
-                            )
-                            .assertions(xs::groups::Assertions::builder().build().into())
-                            .build()
-                            .into(),
-                    )
-                    .build()
-                    .into(),
+                                        .into(),
+                                )
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
             ))
             .build()
             .into();
@@ -572,13 +585,14 @@ mod tests {
             xs::types::TopLevelComplexType::builder()
                 .name(LocalName::new_dangerous("ShirtType"))
                 .complex_type_model(Box::new(
-                    xs::ComplexContent::builder()
-                        .child_1(
-                            xs::types::ComplexRestrictionType::builder()
-                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
-                                .attr_decls(
-                                    xs::groups::AttrDecls::builder()
-                                        .attribute(vec![
+                    xs::ComplexContent::from(
+                        xs::complex_content_items::ComplexContent::builder()
+                            .child_1(
+                                xs::types::ComplexRestrictionType::builder()
+                                    .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                    .attr_decls(
+                                        xs::groups::AttrDecls::builder()
+                                            .attribute(vec![
                                             xs::types::Attribute::builder()
                                                 .name(LocalName::new_dangerous("number"))
                                                 .type_(xs::types::QName(xsn::INTEGER.clone()))
@@ -598,15 +612,16 @@ mod tests {
                                                 .build()
                                                 .into(),
                                         ])
-                                        .build()
-                                        .into(),
-                                )
-                                .assertions(xs::groups::Assertions::builder().build().into())
-                                .build()
-                                .into(),
-                        )
-                        .build()
-                        .into(),
+                                            .build()
+                                            .into(),
+                                    )
+                                    .assertions(xs::groups::Assertions::builder().build().into())
+                                    .build()
+                                    .into(),
+                            )
+                            .build(),
+                    )
+                    .into(),
                 ))
                 .build()
                 .into();
