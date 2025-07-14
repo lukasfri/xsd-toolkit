@@ -1,5 +1,8 @@
 use core::fmt;
-use std::marker::PhantomData;
+use std::{
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
 
 use xmlity::{
     de, value::XmlElement, Deserialize, Deserializer, ExpandedName, Serialize, Serializer,
@@ -94,5 +97,19 @@ impl<T: 'static> Serialize for SubstitutionGroup<T> {
         S: Serializer,
     {
         self.value.serialize(serializer)
+    }
+}
+
+impl<T> Deref for SubstitutionGroup<T> {
+    type Target = XmlElement;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T> DerefMut for SubstitutionGroup<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
     }
 }

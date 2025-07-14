@@ -1,4 +1,4 @@
-use std::{collections::HashSet, convert::Infallible, path::PathBuf, str::FromStr};
+use std::{collections::HashSet, path::PathBuf, str::FromStr};
 
 use bon::Builder;
 use syn::parse_quote;
@@ -17,41 +17,10 @@ use xsd_fragments::XmlnsContext;
 use xsd_fragments_transformer::XmlnsContextExt;
 use xsd_namespace_map::{
     resolvers::{
-        reqwest::BlockingReqwestXmlSchemaResolver, std_fs::StdFsSchemaResolver, XmlSchemaResolver,
+        reqwest::BlockingReqwestXmlSchemaResolver, std_fs::StdFsSchemaResolver, PossibleResolverExt,
     },
     GlobError, XmlNamespaceMap,
 };
-
-pub struct MultiReader {
-    reqwest: BlockingReqwestXmlSchemaResolver,
-    fs: StdFsSchemaResolver,
-}
-
-impl MultiReader {
-    pub fn new() -> Self {
-        Self {
-            reqwest: BlockingReqwestXmlSchemaResolver::default(),
-            fs: StdFsSchemaResolver::default(),
-        }
-    }
-}
-
-impl XmlSchemaResolver for MultiReader {
-    type Error = Infallible;
-
-    fn resolve_schema(&self, location: &Url) -> Result<xsd::XmlSchema, Self::Error> {
-        match location.scheme() {
-            "file" => self
-                .fs
-                .resolve_schema(location)
-                .map_err(|e| panic!("Failed to resolve schema from file {}: {}", location, e,)),
-            _ => self
-                .reqwest
-                .resolve_schema(location)
-                .map_err(|e| panic!("Failed to resolve schema from URL {}: {}", location, e)),
-        }
-    }
-}
 
 #[derive(Debug, Builder)]
 pub struct BuildEngine {
@@ -103,7 +72,10 @@ impl BuildEngine {
 
         map.inform_locations(urls);
 
-        map.explore_locations(MultiReader::new());
+        let resolver = BlockingReqwestXmlSchemaResolver::default()
+            .try_possible(StdFsSchemaResolver::default(), |url| url.scheme() == "file");
+
+        map.explore_locations(resolver);
 
         let mut context = XmlnsContext::new();
         context.import_namespace_map(&map).unwrap();

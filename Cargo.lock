@@ -2541,6 +2541,7 @@ dependencies = [
 name = "xsd-namespace-map"
 version = "0.0.0"
 dependencies = [
+ "derive_more",
  "glob",
  "insta",
  "map-macro",
