@@ -1,5 +1,5 @@
 use crate::{
-    misc::TypeReference,
+    misc::{unbox_type, TypeReference},
     simple::SimpleContext,
     templates::{
         choice,
@@ -243,8 +243,14 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
         };
 
         if substitute_group_setting {
-            let substitute_group_ty =
-                self_type.wrap(|ty| parse_quote!(::xmlity_ns::SubstitutionGroup<#ty>));
+            let substitute_group_ty = self_type.wrap(|ty| {
+                let ty = match ty {
+                    syn::Type::Path(ty) => unbox_type(&ty).unwrap_or(syn::Type::Path(ty)),
+                    _ => ty,
+                };
+
+                parse_quote!(::xmlity_ns::SubstitutionGroup<#ty>)
+            });
 
             let choice = choice::Choice {
                 variants: vec![

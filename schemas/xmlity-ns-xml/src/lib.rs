@@ -28,7 +28,7 @@ pub mod attributes {
         }
     }
     pub mod lang_items {
-        pub mod variant_0_variants {
+        pub mod lang_variants {
             #[derive(
                 ::core::fmt::Debug,
                 ::core::clone::Clone,
@@ -116,12 +116,12 @@ pub mod attributes {
         }
         impl ::core::convert::From<String> for Lang {
             fn from(value: String) -> Self {
-                Lang::Variant0(::std::boxed::Box::new(value))
+                Lang::Language(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<variant_0_variants::Variant0> for Lang {
-            fn from(value: variant_0_variants::Variant0) -> Self {
-                Lang::Variant0_0(::std::boxed::Box::new(value))
+        impl ::core::convert::From<lang_variants::Variant0> for Lang {
+            fn from(value: lang_variants::Variant0) -> Self {
+                Lang::Variant0(::std::boxed::Box::new(value))
             }
         }
         #[derive(
@@ -132,8 +132,8 @@ pub mod attributes {
             ::core::clone::Clone
         )]
         pub enum Lang {
-            Variant0(::std::boxed::Box<String>),
-            Variant0_0(::std::boxed::Box<variant_0_variants::Variant0>),
+            Language(::std::boxed::Box<String>),
+            Variant0(::std::boxed::Box<lang_variants::Variant0>),
         }
     }
     #[derive(
@@ -150,6 +150,95 @@ pub mod attributes {
             Lang(value)
         }
     }
+    pub mod space_items {
+        #[derive(
+            ::core::fmt::Debug,
+            ::core::clone::Clone,
+            ::core::marker::Copy,
+            ::xmlity::Serialize,
+            ::xmlity::Deserialize,
+            ::core::cmp::PartialEq
+        )]
+        #[xvalue(with = space_with)]
+        pub enum Space {
+            Default,
+            Preserve,
+        }
+        pub mod space_with {
+            pub fn deserialize<'de, D>(
+                deserializer: D,
+            ) -> ::core::result::Result<super::Space, D::Error>
+            where
+                D: ::xmlity::Deserializer<'de>,
+            {
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
+                    deserializer,
+                )?;
+                let value: ::std::string::String = text
+                    .parse()
+                    .map_err(::xmlity::de::Error::custom)?;
+                super::Space::try_from(value).map_err(::xmlity::de::Error::custom)
+            }
+            pub fn serialize<S>(
+                value: &super::Space,
+                serializer: S,
+            ) -> ::core::result::Result<S::Ok, S::Error>
+            where
+                S: ::xmlity::Serializer,
+            {
+                let value: ::std::string::String = ::core::clone::Clone::clone(value)
+                    .into();
+                ::xmlity::Serialize::serialize(
+                    ::std::string::String::as_str(
+                        &::std::string::ToString::to_string(&value),
+                    ),
+                    serializer,
+                )
+            }
+        }
+        #[derive(::core::fmt::Debug)]
+        pub enum SpaceParseError {
+            NonExistent { value: ::std::string::String },
+        }
+        impl ::core::fmt::Display for SpaceParseError {
+            fn fmt(
+                &self,
+                f: &mut ::core::fmt::Formatter<'_>,
+            ) -> ::core::result::Result<(), ::core::fmt::Error> {
+                match self {
+                    SpaceParseError::NonExistent { value } => {
+                        write!(
+                            f, "Value '{:?}' does not exist in the enumeration", value
+                        )
+                    }
+                }
+            }
+        }
+        impl ::core::convert::TryFrom<::std::string::String> for Space {
+            type Error = SpaceParseError;
+            fn try_from(
+                value: ::std::string::String,
+            ) -> ::core::result::Result<Self, Self::Error> {
+                match ::std::string::String::as_str(&value) {
+                    "default" => Ok(Space::Default),
+                    "preserve" => Ok(Space::Preserve),
+                    _ => {
+                        Err(SpaceParseError::NonExistent {
+                            value,
+                        })
+                    }
+                }
+            }
+        }
+        impl ::core::convert::From<Space> for ::std::string::String {
+            fn from(value: Space) -> Self {
+                match value {
+                    Space::Default => ::std::string::String::from("default"),
+                    Space::Preserve => ::std::string::String::from("preserve"),
+                }
+            }
+        }
+    }
     #[derive(
         ::core::fmt::Debug,
         ::xmlity::SerializeAttribute,
@@ -158,9 +247,9 @@ pub mod attributes {
         ::core::clone::Clone
     )]
     #[xattribute(name = "space", namespace = "http://www.w3.org/XML/1998/namespace")]
-    pub struct Space(pub ::std::string::String);
-    impl ::core::convert::From<::std::string::String> for Space {
-        fn from(value: ::std::string::String) -> Self {
+    pub struct Space(pub space_items::Space);
+    impl ::core::convert::From<space_items::Space> for Space {
+        fn from(value: space_items::Space) -> Self {
             Space(value)
         }
     }
