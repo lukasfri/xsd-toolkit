@@ -75,7 +75,7 @@ impl BuildEngine {
         let resolver = BlockingReqwestXmlSchemaResolver::default()
             .try_possible(StdFsSchemaResolver::default(), |url| url.scheme() == "file");
 
-        map.explore_locations(resolver);
+        map.explore_locations(&resolver);
 
         let mut context = XmlnsContext::new();
         context.import_namespace_map(&map).unwrap();

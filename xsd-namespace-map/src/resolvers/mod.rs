@@ -5,6 +5,8 @@ pub mod reqwest;
 pub mod std_fs;
 pub mod tokio_fs;
 pub use chain::{PossibleResolver, PossibleResolverExt};
+mod cache;
+pub use cache::CacheSchemaResolver;
 
 pub trait XmlSchemaResolver {
     type Error: std::error::Error + Send + Sync;

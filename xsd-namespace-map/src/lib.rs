@@ -168,23 +168,23 @@ impl XmlNamespaceMap {
         self.load_location_internal(url, schema);
     }
 
-    pub fn explore_locations<T: XmlSchemaResolver>(&mut self, resolver: T) {
+    pub fn explore_locations<T: XmlSchemaResolver>(&mut self, resolver: &T) {
         while let Some(url) = self
             .locations
             .iter()
             .find_map(|(url, location)| location.is_none().then(|| url.clone()))
         {
-            self.load_location(&resolver, &url);
+            self.load_location(resolver, &url);
         }
     }
 
-    pub async fn explore_locations_async<T: AsyncXmlSchemaResolver>(&mut self, resolver: T) {
+    pub async fn explore_locations_async<T: AsyncXmlSchemaResolver>(&mut self, resolver: &T) {
         while let Some(url) = self
             .locations
             .iter()
             .find_map(|(url, location)| location.is_none().then(|| url.clone()))
         {
-            self.load_location_async(&resolver, &url).await;
+            self.load_location_async(resolver, &url).await;
         }
     }
 }

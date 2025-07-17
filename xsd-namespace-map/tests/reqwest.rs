@@ -12,7 +12,7 @@ async fn main() {
         &Url::from_str("https://xbrl.org/2003/xbrl-instance-2003-12-31.xsd").unwrap(),
     );
 
-    map.explore_locations_async(resolver).await;
+    map.explore_locations_async(&resolver).await;
 
     panic!(
         "{:#?}",

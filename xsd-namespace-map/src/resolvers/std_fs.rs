@@ -29,7 +29,6 @@ impl XmlSchemaResolver for StdFsSchemaResolver {
             ));
         }
 
-        println!("Resolving schema from file: {}", location.path());
         let schema_text = std::fs::read_to_string(location.path())?;
 
         let schema: XmlRoot<xs::Schema> = xmlity_quick_xml::from_str(schema_text.as_str()).unwrap();
