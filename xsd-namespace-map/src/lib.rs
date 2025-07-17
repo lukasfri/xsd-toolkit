@@ -98,20 +98,10 @@ impl XmlNamespaceMap {
                     .map(|ns| ns.0.clone())
                     .unwrap_or_else(|| XmlNamespace::new_dangerous(""));
 
-                let location = a.schema_location.as_ref().map(|sl| {
-                    let sl = sl.0.as_str();
-
-                    // If sub_location is relative, resolve it against the base URL
-                    let url = if sl.starts_with("http://") || sl.starts_with("https://") {
-                        Url::from_str(sl)
-                    } else {
-                        url.join(sl)
-                    };
-
-                    url.unwrap_or_else(|_| {
-                        panic!("Failed to parse schema location: {}", sl);
-                    })
-                });
+                let location = a
+                    .schema_location
+                    .as_ref()
+                    .map(|sl| resolve_xml_url(url, sl.0.as_str()).unwrap());
 
                 (namespace, location)
             })
@@ -130,7 +120,7 @@ impl XmlNamespaceMap {
                 xs::Include::Include(a) => a,
                 _ => panic!("Expected an include, but found: {:?}", a),
             })
-            .map(|a| Url::from_str(a.schema_location.0.as_str()).unwrap())
+            .map(|a| resolve_xml_url(url, a.schema_location.0.as_str()).unwrap())
             .collect::<HashSet<_>>();
 
         let location = SchemaLocation {
@@ -186,5 +176,41 @@ impl XmlNamespaceMap {
         {
             self.load_location_async(resolver, &url).await;
         }
+    }
+}
+
+pub fn resolve_xml_url(base_url: &Url, relative_url: &str) -> Result<Url, url::ParseError> {
+    match Url::from_str(relative_url) {
+        Err(url::ParseError::RelativeUrlWithoutBase) => {
+            let mut url = base_url.clone();
+
+            url.path_segments_mut().unwrap().pop();
+            url.path_segments_mut().unwrap().push(relative_url);
+
+            Ok(url)
+        }
+        r => r,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr as _;
+
+    use rstest::rstest;
+    use url::Url;
+
+    use crate::resolve_xml_url;
+
+    #[rstest]
+    #[case::relative_file(
+        Url::from_str("file:///XBRL-CONF-2025-01-14/Common/100-schema/102-01-SpecExample.xml").unwrap(),
+        "102-01-SpecExample.xsd",
+        Url::from_str("file:///XBRL-CONF-2025-01-14/Common/100-schema/102-01-SpecExample.xsd").unwrap()
+    )]
+    fn resolve_xml_url_test(#[case] base: Url, #[case] relative: &str, #[case] expected: Url) {
+        let actual = resolve_xml_url(&base, relative).unwrap();
+
+        assert_eq!(actual, expected);
     }
 }
