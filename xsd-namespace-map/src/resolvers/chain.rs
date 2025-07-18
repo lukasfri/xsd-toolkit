@@ -1,7 +1,7 @@
 use derive_more::{Display, Error};
 use url::Url;
 
-use crate::resolvers::{AsyncXmlSchemaResolver, XmlSchemaResolver};
+use crate::resolvers::{AsyncXmlResolver, XmlResolver};
 
 pub struct PossibleResolver<P, F, Filter: Fn(&Url) -> bool> {
     possible: P,
@@ -48,45 +48,50 @@ impl<F: 'static> PossibleResolverExt for F {
     }
 }
 
-impl<P, F, Filter> XmlSchemaResolver for PossibleResolver<P, F, Filter>
+impl<T: xmlity::DeserializeOwned, P, F, Filter> XmlResolver<T> for PossibleResolver<P, F, Filter>
 where
-    P: XmlSchemaResolver + 'static,
-    F: XmlSchemaResolver + 'static,
+    P: XmlResolver<T> + 'static,
+    <P as XmlResolver<T>>::Error: 'static,
+    F: XmlResolver<T> + 'static,
+    <F as XmlResolver<T>>::Error: 'static,
     Filter: Fn(&Url) -> bool,
 {
     type Error = Error<P::Error, F::Error>;
 
-    fn resolve_schema(&self, location: &Url) -> Result<xsd::XmlSchema, Self::Error> {
+    fn resolve_document(&self, location: &Url) -> Result<T, Self::Error> {
         if (self.filter)(location) {
             return self
                 .possible
-                .resolve_schema(location)
+                .resolve_document(location)
                 .map_err(Error::Possible);
         }
         self.fallback
-            .resolve_schema(location)
+            .resolve_document(location)
             .map_err(Error::Fallback)
     }
 }
 
-impl<P, F, Filter> AsyncXmlSchemaResolver for PossibleResolver<P, F, Filter>
+impl<T: xmlity::DeserializeOwned, P, F, Filter> AsyncXmlResolver<T>
+    for PossibleResolver<P, F, Filter>
 where
-    P: AsyncXmlSchemaResolver + 'static,
-    F: AsyncXmlSchemaResolver + 'static,
+    P: AsyncXmlResolver<T> + 'static,
+    <P as AsyncXmlResolver<T>>::Error: 'static,
+    F: AsyncXmlResolver<T> + 'static,
+    <F as AsyncXmlResolver<T>>::Error: 'static,
     Filter: Fn(&Url) -> bool,
 {
     type Error = Error<P::Error, F::Error>;
 
-    async fn resolve_schema(&self, location: &Url) -> Result<xsd::XmlSchema, Self::Error> {
+    async fn resolve_document(&self, location: &Url) -> Result<T, Self::Error> {
         if (self.filter)(location) {
             return self
                 .possible
-                .resolve_schema(location)
+                .resolve_document(location)
                 .await
                 .map_err(Error::Possible);
         }
         self.fallback
-            .resolve_schema(location)
+            .resolve_document(location)
             .await
             .map_err(Error::Fallback)
     }

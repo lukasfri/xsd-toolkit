@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::resolvers::XmlSchemaResolver;
+use crate::resolvers::XmlResolver;
 use derive_more::{Display, Error};
 use url::Url;
 
@@ -8,20 +8,20 @@ use url::Url;
 #[display("Not in cache.")]
 pub struct CacheError;
 
-pub struct CacheSchemaResolver {
-    caches: HashMap<Url, xsd::XmlSchema>,
+pub struct CacheSchemaResolver<T> {
+    caches: HashMap<Url, T>,
 }
 
-impl CacheSchemaResolver {
-    pub fn new(caches: HashMap<Url, xsd::XmlSchema>) -> Self {
+impl<T> CacheSchemaResolver<T> {
+    pub fn new(caches: HashMap<Url, T>) -> Self {
         Self { caches }
     }
 }
 
-impl XmlSchemaResolver for CacheSchemaResolver {
+impl<T: xmlity::DeserializeOwned + Clone> XmlResolver<T> for CacheSchemaResolver<T> {
     type Error = CacheError;
 
-    fn resolve_schema(&self, location: &Url) -> Result<xsd::XmlSchema, Self::Error> {
+    fn resolve_document(&self, location: &Url) -> Result<T, Self::Error> {
         self.caches.get(location).cloned().ok_or(CacheError)
     }
 }
