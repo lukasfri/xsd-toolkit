@@ -162,6 +162,7 @@ impl ComplexToTypeTemplate for cx::SimpleExtensionFragment {
         let mut template = GroupRecord::new_single_field(Some(format_ident!("content")), ElementField::Item(ItemFieldItem {
             ty: simple_type.ty,
             default: false,
+            // Todo: This should only be added to certain simple types that allow empty strings
             default_with: Some(parse_quote!(::xmlity_ns::empty_str_default)),
         }));
 

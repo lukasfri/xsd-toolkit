@@ -1,8 +1,9 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, convert::Infallible};
 
 use xmlity::{
     de::{self, DeserializeContext},
-    ser, Deserialize, ExpandedName, NoopDeSerializer, Prefix, Serialize, Serializer, XmlNamespace,
+    ser, Deserialize, DeserializeOwned, ExpandedName, NoopDeSerializer, Prefix, Serialize,
+    Serializer, XmlNamespace,
 };
 
 #[derive(Debug, Clone, PartialEq, derive_more::Display, derive_more::Error, derive_more::From)]
@@ -48,8 +49,9 @@ pub struct SubStrDeserializer<'a, 'c, C: DeserializeContext + 'c, E: de::Error> 
     _marker: std::marker::PhantomData<E>,
 }
 
-pub fn empty_str_default<'de, T: Deserialize<'de>, E: xmlity::de::Error>() -> Result<T, E> {
-    T::deserialize(SubStrDeserializer::new("", &()))
+pub fn empty_str_default<T: DeserializeOwned>() -> T {
+    T::deserialize(SubStrDeserializer::<_, Infallible>::new("", &()))
+        .unwrap_or_else(|_: Infallible| unreachable!())
 }
 
 impl<'a, 'c, C: DeserializeContext + 'c, E: de::Error> SubStrDeserializer<'a, 'c, C, E> {
