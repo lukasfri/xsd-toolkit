@@ -18,6 +18,7 @@ use super::{group_record::GroupRecord, FieldMode, ItemOrder};
 pub struct ItemFieldItem {
     pub ty: TypeReference<'static>,
     pub default: bool,
+    pub default_with: Option<syn::Path>,
 }
 
 impl ItemFieldItem {
@@ -28,7 +29,11 @@ impl ItemFieldItem {
             None
         };
 
-        default_option.into_iter()
+        let default_with_option: Option<syn::Meta> = self.default_with.as_ref().map(|path| {
+            parse_quote! { default_with = #path }
+        });
+
+        default_option.into_iter().chain(default_with_option)
     }
 
     pub fn value_attr(&self) -> Option<syn::Attribute> {
@@ -402,6 +407,7 @@ mod tests {
             ItemField::Item(ItemFieldItem {
                 ty: TypeReference::new_prefixed_type(parse_quote!(Child)),
                 default: false,
+                default_with: None,
             }),
         );
 
@@ -426,6 +432,7 @@ mod tests {
             ItemField::Item(ItemFieldItem {
                 ty: TypeReference::new_prefixed_type(parse_quote!(Child)),
                 default: false,
+                default_with: None,
             }),
         );
 

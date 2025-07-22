@@ -185,6 +185,7 @@ mod tests {
                 ElementField::Item(ItemFieldItem {
                     ty: TypeReference::new_static(parse_quote!(Child)),
                     default: false,
+                    default_with: None,
                 }),
             )]),
         };
@@ -212,6 +213,7 @@ mod tests {
             fields: ElementFieldType::Unnamed(vec![ElementField::Item(ItemFieldItem {
                 ty: TypeReference::new_static(parse_quote!(Child)),
                 default: false,
+                default_with: None,
             })]),
         };
 

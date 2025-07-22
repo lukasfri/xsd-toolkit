@@ -38,6 +38,7 @@ impl ComplexToTypeTemplate for cx::ElementTypeContentId {
                         ElementField::Item(ItemFieldItem {
                             ty: sub_type.template,
                             default: false,
+                            default_with: None,
                         }),
                     ),
                 }),
@@ -52,9 +53,14 @@ fn type_to_element_field(
     ty: TypeReference<'static>,
     ty_type: TypeType,
     default: bool,
+    default_with: Option<syn::Path>,
 ) -> ElementField {
     match ty_type {
-        TypeType::Simple => ElementField::Item(ItemFieldItem { ty, default }),
+        TypeType::Simple => ElementField::Item(ItemFieldItem {
+            ty,
+            default,
+            default_with,
+        }),
         TypeType::Complex => ElementField::Group(ElementFieldGroup { ty }),
     }
 }
@@ -74,7 +80,7 @@ impl ComplexToTypeTemplate for cx::DeclaredElementFragment {
             xsd_fragments::NamedOrAnonymous::Named(expanded_name) => {
                 let bound_type = context.resolve_named_type(expanded_name)?;
 
-                let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false);
+                let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false, None);
 
                 let template = ElementRecord::new_single_field(name, None, field);
 
@@ -107,7 +113,11 @@ impl ComplexToTypeTemplate for cx::ReferenceElementFragment {
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let ty = context.resolve_named_element(&self.name)?;
 
-        let template = ItemFieldItem { ty, default: false };
+        let template = ItemFieldItem {
+            ty,
+            default: false,
+            default_with: None,
+        };
 
         Ok(ToTypeTemplateData {
             ident: Some(self.name.local_name().to_item_ident()),
@@ -158,6 +168,7 @@ impl ComplexToTypeTemplate for cx::LocalElementFragment {
                 let template = LocalElementFragmentTemplate::Item(ItemFieldItem {
                     ty,
                     default: optional,
+                    default_with: None,
                 });
 
                 Ok(ToTypeTemplateData {
@@ -206,7 +217,7 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
             Some(xsd_fragments::NamedOrAnonymous::Named(expanded_name)) => {
                 let bound_type = context.resolve_named_type(expanded_name)?;
 
-                let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false);
+                let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false, None);
 
                 ElementRecord {
                     name,
@@ -266,6 +277,7 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
                                 value_record::ItemField::Item(ItemFieldItem {
                                     ty: substitute_group_ty,
                                     default: false,
+                                    default_with: None,
                                 }),
                             ),
                         ),

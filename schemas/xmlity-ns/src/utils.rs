@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use xmlity::{
     de::{self, DeserializeContext},
-    ser, ExpandedName, NoopDeSerializer, Prefix, Serialize, Serializer, XmlNamespace,
+    ser, Deserialize, ExpandedName, NoopDeSerializer, Prefix, Serialize, Serializer, XmlNamespace,
 };
 
 #[derive(Debug, Clone, PartialEq, derive_more::Display, derive_more::Error, derive_more::From)]
@@ -46,6 +46,10 @@ pub struct SubStrDeserializer<'a, 'c, C: DeserializeContext + 'c, E: de::Error> 
     bytes: &'a str,
     ctx: &'c C,
     _marker: std::marker::PhantomData<E>,
+}
+
+pub fn empty_str_default<'de, T: Deserialize<'de>, E: xmlity::de::Error>() -> Result<T, E> {
+    T::deserialize(SubStrDeserializer::new("", &()))
 }
 
 impl<'a, 'c, C: DeserializeContext + 'c, E: de::Error> SubStrDeserializer<'a, 'c, C, E> {

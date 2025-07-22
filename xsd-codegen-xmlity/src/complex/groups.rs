@@ -126,11 +126,13 @@ impl<T> ItemOrTemplate<T> {
                     (0, AllNNI::Bounded(1)) => Ok(Self::Item(ItemFieldItem {
                         ty: ty.wrap(TypeReference::option_wrapper),
                         default: true,
+                        default_with: None,
                     })),
                     (1, AllNNI::Bounded(1)) => unreachable!(),
                     _ => Ok(Self::Item(ItemFieldItem {
                         ty: ty.wrap(TypeReference::vec_non_boxed_wrapper),
                         default: true,
+                        default_with: None,
                     })),
                 }
             }
@@ -293,6 +295,7 @@ impl ComplexToTypeTemplate for cx::ChoiceFragment {
             ItemOrTemplate::Item(ItemFieldItem {
                 ty,
                 default: optional,
+                default_with: None,
             })
         } else {
             ItemOrTemplate::Template(template)
@@ -338,6 +341,7 @@ impl ComplexToTypeTemplate for cx::GroupRefFragment {
         let template = ItemFieldItem {
             ty,
             default: optional,
+            default_with: None,
         };
 
         let ident = self.ref_.local_name().to_item_ident();
@@ -385,7 +389,11 @@ impl GroupTypeContentTemplate {
 
                     Ok(ChoiceVariantType::Item(ItemRecord::new_single_field(
                         None,
-                        ItemField::Item(ItemFieldItem { ty, default }),
+                        ItemField::Item(ItemFieldItem {
+                            ty,
+                            default,
+                            default_with: None,
+                        }),
                     )))
                 }
             }
@@ -444,6 +452,7 @@ impl GroupTypeContentTemplate {
                 Ok(ItemField::Item(ItemFieldItem {
                     ty,
                     default: optional,
+                    default_with: None,
                 }))
             }
             GroupTypeContentTemplate::Item(mut item) => {
@@ -533,7 +542,11 @@ impl ComplexToTypeTemplate for cx::NestedParticleId {
 
                         let ty = scope.add_item(item)?;
 
-                        ItemFieldItem { ty, default: false }
+                        ItemFieldItem {
+                            ty,
+                            default: false,
+                            default_with: None,
+                        }
                     }
                     ItemOrTemplate::Item(item) => item,
                 };
@@ -569,7 +582,11 @@ impl ComplexToTypeTemplate for cx::NestedParticleId {
 
                         let ty = scope.add_item(item)?;
 
-                        ItemFieldItem { ty, default: false }
+                        ItemFieldItem {
+                            ty,
+                            default: false,
+                            default_with: None,
+                        }
                     }
                     ItemOrTemplate::Item(item) => {
                         scope.add_raw_items(sub_scope.finish());
@@ -592,7 +609,11 @@ impl ComplexToTypeTemplate for cx::NestedParticleId {
 
                 ToTypeTemplateData {
                     ident: template.ident,
-                    template: GroupTypeContentTemplate::Item(ItemFieldItem { ty, default: false }),
+                    template: GroupTypeContentTemplate::Item(ItemFieldItem {
+                        ty,
+                        default: false,
+                        default_with: None,
+                    }),
                 }
             }
         };

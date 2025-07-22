@@ -8,6 +8,7 @@ use crate::{
 };
 
 use quote::format_ident;
+use syn::parse_quote;
 use xsd_fragments::fragments::complex::{self as cx};
 
 use super::{groups::TypeDefParticleTemplate, ComplexContext, Scope, ComplexToTypeTemplate, ToTypeTemplateData};
@@ -99,7 +100,11 @@ impl ComplexToTypeTemplate for cx::RestrictionFragment {
 
                             GroupRecord::new_single_field(
                                 Some(ident.to_field_ident()),
-                                ElementField::Item(ItemFieldItem { ty, default: false }),
+                                ElementField::Item(ItemFieldItem {
+                                    ty,
+                                    default: false,
+                                    default_with: None,
+                                })
                             )
                         }
                         TypeDefParticleTemplate::Item(item) => GroupRecord::new_single_field(
@@ -155,9 +160,10 @@ impl ComplexToTypeTemplate for cx::SimpleExtensionFragment {
         }
 
         let mut template = GroupRecord::new_single_field(Some(format_ident!("content")), ElementField::Item(ItemFieldItem {
-                ty: simple_type.ty,
-                default: false,
-            }));
+            ty: simple_type.ty,
+            default: false,
+            default_with: Some(parse_quote!(::xmlity_ns::empty_str_default)),
+        }));
 
 
         let attributes = context.resolve_fragment_id(&self.attribute_declarations, scope)?;

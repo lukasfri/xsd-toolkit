@@ -114,6 +114,7 @@ impl SimpleToTypeTemplate for sm::UnionFragment {
                     ItemField::Item(ItemFieldItem {
                         ty: variant.clone(),
                         default: false,
+                        default_with: None,
                     }),
                 ));
 
