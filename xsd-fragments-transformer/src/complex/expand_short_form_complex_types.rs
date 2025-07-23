@@ -118,6 +118,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use xmlity::{LocalName, XmlNamespace};
+    use xsd::ns;
     use xsd::xs;
     use xsd::xsn;
     use xsd_fragments::XmlnsContext;
@@ -136,14 +137,17 @@ mod tests {
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("size"))
                         .type_attribute(xs::types::QName(xsn::NON_NEGATIVE_INTEGER.clone()))
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("unit"))
                         .type_attribute(xs::types::QName(xsn::NMTOKEN.clone()))
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                 ])
+                .any_attributes(ns::AnyAttributes::default())
                 .build(),
         );
 
@@ -155,17 +159,15 @@ mod tests {
         // </xs:complexType>
         let input = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("length"))
-            .complex_type_model(
-                Box::new(
-                xs::groups::complex_type_model_items::complex_type_model_variants::Variant2
-                ::builder()
-                .type_def_particle(Box::new(sequence.clone().into()))
-                .attr_decls(xs::groups::AttrDecls::builder().build())
-                .assertions(xs::groups::Assertions::builder().build())
-                .build()
-                .into()
-            )
-            )
+            .complex_type_model(Box::new(
+                xs::groups::complex_type_model_items::complex_type_model_variants::Variant2::builder()
+                    .type_def_particle(Box::new(sequence.clone().into()))
+                    .attr_decls(xs::groups::AttrDecls::builder().build())
+                    .assertions(xs::groups::Assertions::builder().build())
+                    .build()
+                    .into()
+            ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -195,6 +197,7 @@ mod tests {
                                 )
                                 .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
@@ -202,6 +205,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 

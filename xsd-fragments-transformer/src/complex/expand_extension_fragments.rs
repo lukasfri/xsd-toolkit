@@ -325,6 +325,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
+    use xsd::ns;
     use xsd::xs;
     use xsd::xsn;
     use xsd_fragments::XmlnsContext;
@@ -340,14 +341,17 @@ mod tests {
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("number"))
                         .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("name"))
                         .type_attribute(xs::types::QName(xsn::STRING.clone()))
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                 ])
+                .any_attributes(ns::AnyAttributes::default())
                 .build(),
         );
 
@@ -379,6 +383,7 @@ mod tests {
                                 )
                                 .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
@@ -386,6 +391,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -401,14 +407,17 @@ mod tests {
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("size"))
                         .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("color"))
                         .type_attribute(xs::types::QName(xsn::STRING.clone()))
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                 ])
+                .any_attributes(ns::AnyAttributes::default())
                 .build(),
         );
 
@@ -443,6 +452,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -483,6 +493,7 @@ mod tests {
                                                         parent_seq.into(),
                                                         child_choice.into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -492,6 +503,7 @@ mod tests {
                                     )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
@@ -499,6 +511,7 @@ mod tests {
                     )
                     .into(),
                 ))
+                .any_attributes(ns::AnyAttributes::default())
                 .build()
                 .into();
 
@@ -573,6 +586,7 @@ mod tests {
                                             .into(),
                                     )
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
@@ -580,6 +594,7 @@ mod tests {
                     )
                     .into(),
                 ))
+                .any_attributes(ns::AnyAttributes::default())
                 .build()
                 .into();
 
@@ -630,6 +645,7 @@ mod tests {
                     )
                     .into(),
                 ))
+                .any_attributes(ns::AnyAttributes::default())
                 .build()
                 .into();
 
@@ -683,6 +699,7 @@ mod tests {
                                             .into(),
                                     )
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
@@ -690,6 +707,7 @@ mod tests {
                     )
                     .into(),
                 ))
+                .any_attributes(ns::AnyAttributes::default())
                 .build()
                 .into();
 
@@ -753,6 +771,7 @@ mod tests {
                                                             LocalName::new_dangerous("block"),
                                                             Some(XmlNamespace::XHTML),
                                                         )))
+                                                        .any_attributes(ns::AnyAttributes::default())
                                                         .build()
                                                         .into(),
                                                     xs::types::LocalElement::builder()
@@ -760,6 +779,7 @@ mod tests {
                                                             LocalName::new_dangerous("form"),
                                                             Some(XmlNamespace::XHTML),
                                                         )))
+                                                        .any_attributes(ns::AnyAttributes::default())
                                                         .build()
                                                         .into(),
                                                     xs::types::GroupRef::builder()
@@ -767,9 +787,11 @@ mod tests {
                                                             LocalName::new_dangerous("misc"),
                                                             Some(XmlNamespace::XHTML),
                                                         )))
+                                                        .any_attributes(ns::AnyAttributes::default())
                                                         .build()
                                                         .into(),
                                                 ])
+                                                .any_attributes(ns::AnyAttributes::default())
                                                 .build()
                                         )
                                         .into(),
@@ -779,12 +801,14 @@ mod tests {
                             )
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
                             .assertions(xs::groups::Assertions::builder().build().into())
+                            .any_attributes(ns::AnyAttributes::default())
                             .build()
                             .into(),
                     )
                     .build())
                     .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -839,9 +863,11 @@ mod tests {
                         )
                         .into(),
                     ))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -872,6 +898,7 @@ mod tests {
                                                                     Some(XmlNamespace::XHTML),
                                                                 ),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                         xs::types::LocalElement::builder()
@@ -883,6 +910,7 @@ mod tests {
                                                                     Some(XmlNamespace::XHTML),
                                                                 ),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                         xs::types::GroupRef::builder()
@@ -894,9 +922,11 @@ mod tests {
                                                                     Some(XmlNamespace::XHTML),
                                                                 ),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build()
                                             )
                                             .into(),
@@ -919,15 +949,18 @@ mod tests {
                                             .into(),
                                     )
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
                             .build())
                             .into(),
                     ))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -997,6 +1030,7 @@ mod tests {
                                                             LocalName::new_dangerous("special"),
                                                             Some(XmlNamespace::XHTML),
                                                         )))
+                                                        .any_attributes(ns::AnyAttributes::default())
                                                         .build()
                                                         .into(),
                                                     xs::types::GroupRef::builder()
@@ -1004,6 +1038,7 @@ mod tests {
                                                             LocalName::new_dangerous("fontstyle"),
                                                             Some(XmlNamespace::XHTML),
                                                         )))
+                                                        .any_attributes(ns::AnyAttributes::default())
                                                         .build()
                                                         .into(),
                                                     xs::types::GroupRef::builder()
@@ -1011,6 +1046,7 @@ mod tests {
                                                             LocalName::new_dangerous("phrase"),
                                                             Some(XmlNamespace::XHTML),
                                                         )))
+                                                        .any_attributes(ns::AnyAttributes::default())
                                                         .build()
                                                         .into(),
                                                     xs::types::GroupRef::builder()
@@ -1020,6 +1056,7 @@ mod tests {
                                                             ),
                                                             Some(XmlNamespace::XHTML),
                                                         )))
+                                                        .any_attributes(ns::AnyAttributes::default())
                                                         .build()
                                                         .into(),
                                                     xs::types::GroupRef::builder()
@@ -1027,9 +1064,11 @@ mod tests {
                                                             LocalName::new_dangerous("misc.inline"),
                                                             Some(XmlNamespace::XHTML),
                                                         )))
+                                                        .any_attributes(ns::AnyAttributes::default())
                                                         .build()
                                                         .into(),
                                                 ])
+                                                .any_attributes(ns::AnyAttributes::default())
                                                 .build()
                                         )
                                         .into(),
@@ -1039,12 +1078,14 @@ mod tests {
                             )
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
                             .assertions(xs::groups::Assertions::builder().build().into())
+                            .any_attributes(ns::AnyAttributes::default())
                             .build()
                             .into(),
                     )
                     .build())
                     .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -1177,9 +1218,11 @@ mod tests {
                         )
                         .into(),
                     ))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -1211,6 +1254,7 @@ mod tests {
                                                                     Some(XmlNamespace::XHTML),
                                                                 ),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                         xs::types::GroupRef::builder()
@@ -1222,6 +1266,7 @@ mod tests {
                                                                     Some(XmlNamespace::XHTML),
                                                                 ),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                         xs::types::GroupRef::builder()
@@ -1233,6 +1278,7 @@ mod tests {
                                                                     Some(XmlNamespace::XHTML),
                                                                 ),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                         xs::types::GroupRef::builder()
@@ -1244,6 +1290,7 @@ mod tests {
                                                                     Some(XmlNamespace::XHTML),
                                                                 ),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                         xs::types::GroupRef::builder()
@@ -1255,9 +1302,11 @@ mod tests {
                                                                     Some(XmlNamespace::XHTML),
                                                                 ),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build()
                                             )
                                             .into(),
@@ -1343,15 +1392,18 @@ mod tests {
                                             .into(),
                                     )
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
                             .build())
                             .into(),
                     ))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 

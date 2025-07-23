@@ -164,7 +164,7 @@ mod tests {
 
     use xmlity::{LocalName, XmlNamespace};
     use xsd::xs::{self};
-    use xsd::xsn;
+    use xsd::{ns, xsn};
 
     use xsd_fragments::XmlnsContext;
 
@@ -176,11 +176,13 @@ mod tests {
         let number = xs::types::LocalElement::builder()
             .name(LocalName::new_dangerous("number"))
             .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+            .any_attributes(ns::AnyAttributes::default())
             .build();
 
         let name = xs::types::LocalElement::builder()
             .name(LocalName::new_dangerous("name"))
             .type_attribute(xs::types::QName(xsn::STRING.clone()))
+            .any_attributes(ns::AnyAttributes::default())
             .build();
 
         let child_choice = xs::Choice::from(
@@ -195,14 +197,17 @@ mod tests {
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("size"))
                         .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("color"))
                         .type_attribute(xs::types::QName(xsn::STRING.clone()))
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                 ])
+                .any_attributes(ns::AnyAttributes::default())
                 .build(),
         );
 
@@ -242,11 +247,15 @@ mod tests {
                                                                     number.clone().into(),
                                                                     name.clone().into(),
                                                                 ])
+                                                                .any_attributes(
+                                                                    ns::AnyAttributes::default(),
+                                                                )
                                                                 .build(),
                                                         )
                                                         .into(),
                                                         child_choice.clone().into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -256,6 +265,7 @@ mod tests {
                                 )
                                 .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
@@ -263,6 +273,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -300,6 +311,7 @@ mod tests {
                                                         name.clone().into(),
                                                         child_choice.into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -309,6 +321,7 @@ mod tests {
                                     )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
@@ -316,6 +329,7 @@ mod tests {
                     )
                     .into(),
                 ))
+                .any_attributes(ns::AnyAttributes::default())
                 .build()
                 .into();
 
@@ -350,11 +364,13 @@ mod tests {
         let number = xs::types::LocalElement::builder()
             .name(LocalName::new_dangerous("number"))
             .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+            .any_attributes(ns::AnyAttributes::default())
             .build();
 
         let name = xs::types::LocalElement::builder()
             .name(LocalName::new_dangerous("name"))
             .type_attribute(xs::types::QName(xsn::STRING.clone()))
+            .any_attributes(ns::AnyAttributes::default())
             .build();
 
         let child_choice = xs::Choice::from(
@@ -369,14 +385,17 @@ mod tests {
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("size"))
                         .type_attribute(xs::types::QName(xsn::INTEGER.clone()))
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                     xs::types::LocalElement::builder()
                         .name(LocalName::new_dangerous("color"))
                         .type_attribute(xs::types::QName(xsn::STRING.clone()))
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                 ])
+                .any_attributes(ns::AnyAttributes::default())
                 .build(),
         );
 
@@ -418,11 +437,13 @@ mod tests {
                                                             .max_occurs(
                                                                 xs::types::AllNNI::from(xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded).into(),
                                                             )
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                     )
                                                     .into(),
                                                     child_choice.clone().into(),
                                                 ])
+                                                .any_attributes(ns::AnyAttributes::default())
                                                 .build()
                                         )
                                         .into(),
@@ -432,12 +453,14 @@ mod tests {
                             )
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
                             .assertions(xs::groups::Assertions::builder().build().into())
+                            .any_attributes(ns::AnyAttributes::default())
                             .build()
                             .into(),
                     )
                     .build())
                     .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 

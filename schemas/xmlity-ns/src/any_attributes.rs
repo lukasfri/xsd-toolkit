@@ -1,7 +1,7 @@
 pub use xmlity::value::XmlAttribute;
 use xmlity::{de::DeserializationGroupBuilder, DeserializationGroup, SerializationGroup};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct AnyAttributes {
     /// The attributes of the element.
     pub attributes: Vec<XmlAttribute>,

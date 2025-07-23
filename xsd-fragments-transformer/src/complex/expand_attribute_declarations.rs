@@ -220,7 +220,7 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
-    use xsd::{xs, xsn};
+    use xsd::{ns, xs, xsn};
 
     #[test]
     fn one_attribute_group() {
@@ -244,6 +244,7 @@ mod tests {
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -264,12 +265,14 @@ mod tests {
                                                 TEST_ATTRIBUTE_GROUP_NAME,
                                                 Some(TEST_NAMESPACE),
                                             )))
+                                            .any_attributes(ns::AnyAttributes::default())
                                             .build()
                                             .into()])
                                         .build()
                                         .into(),
                                 )
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
@@ -277,6 +280,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -318,6 +322,7 @@ mod tests {
                                         .into(),
                                 )
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
@@ -325,6 +330,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -354,6 +360,7 @@ mod tests {
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -376,6 +383,7 @@ mod tests {
                                                 TEST_ATTRIBUTE_GROUP_NAME,
                                                 Some(TEST_NAMESPACE),
                                             )))
+                                            .any_attributes(ns::AnyAttributes::default())
                                             .build()
                                             .into(),
                                         xs::types::Attribute::builder()
@@ -389,6 +397,7 @@ mod tests {
                                             .into(),
                                     )
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
@@ -396,6 +405,7 @@ mod tests {
                     )
                     .into(),
                 ))
+                .any_attributes(ns::AnyAttributes::default())
                 .build()
                 .into();
 
@@ -439,6 +449,7 @@ mod tests {
                                         .into(),
                                 )
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
@@ -446,6 +457,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -476,6 +488,7 @@ mod tests {
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -504,6 +517,7 @@ mod tests {
                                                 TEST_ATTRIBUTE_GROUP_NAME,
                                                 Some(TEST_NAMESPACE),
                                             )))
+                                            .any_attributes(ns::AnyAttributes::default())
                                             .build()
                                             .into(),
                                     ])
@@ -511,6 +525,7 @@ mod tests {
                                             .into(),
                                     )
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
@@ -518,6 +533,7 @@ mod tests {
                     )
                     .into(),
                 ))
+                .any_attributes(ns::AnyAttributes::default())
                 .build()
                 .into();
 
@@ -561,6 +577,7 @@ mod tests {
                                         .into(),
                                 )
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
@@ -568,6 +585,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 

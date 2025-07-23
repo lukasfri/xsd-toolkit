@@ -304,6 +304,7 @@ mod tests {
 
     use syn::parse_quote;
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
+    use xsd::ns;
     use xsd::xs;
     use xsd::xsn;
     use xsd_fragments::XmlnsContext;
@@ -333,6 +334,7 @@ mod tests {
                                             xs::Sequence::from(
                                                 xs::types::ExplicitGroup::builder()
                                                     .nested_particle(vec![])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build()
                                             )
                                             .into(),
@@ -342,15 +344,18 @@ mod tests {
                                     )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
                             .build())
                             .into(),
                     ))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -388,7 +393,7 @@ mod tests {
                 #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
                 SubstitutionGroup(
-                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                    ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
         );
@@ -426,6 +431,7 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::INTEGER.clone(),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                         xs::types::LocalElement::builder()
@@ -433,9 +439,11 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::STRING.clone(),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build()
                                             )
                                             .into(),
@@ -445,15 +453,18 @@ mod tests {
                                     )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
                             .build())
                             .into(),
                     ))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -502,7 +513,7 @@ mod tests {
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
                 SubstitutionGroup(
-                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                    ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
         );
@@ -533,6 +544,7 @@ mod tests {
                                             xs::types::complex_restriction_type_items::Child1::builder()
                                             .type_def_particle(Box::new(xs::Sequence::from(xs::types::ExplicitGroup::builder()
                                                 .nested_particle(vec![])
+                                                .any_attributes(ns::AnyAttributes::default())
                                                 .build()).into()))
                                                 .build()
                                                 .into()
@@ -562,15 +574,18 @@ mod tests {
                                                 .build().into(),
                                         )
                                         .assertions(xs::groups::Assertions::builder().build().into())
+                                        .any_attributes(ns::AnyAttributes::default())
                                         .build()
                                         .into(),
                                 )
                                 .build())
                                 .into(),
                         ))
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                 )
+                .any_attributes(ns::AnyAttributes::default())
                 .build(),
         );
 
@@ -619,7 +634,7 @@ mod tests {
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
                 SubstitutionGroup(
-                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                    ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
         );
@@ -655,22 +670,25 @@ mod tests {
                                                         xs::Sequence::from(
                                                             xs::types::ExplicitGroup::builder()
                                                                 .nested_particle(vec![
-                                                            xs::types::LocalElement::builder()
-                                                                .name(LocalName::new_dangerous("a"))
-                                                                .type_attribute(xs::types::QName(
-                                                                    xsn::INTEGER.clone(),
-                                                                ))
-                                                                .build()
-                                                                .into(),
-                                                            xs::types::LocalElement::builder()
-                                                                .name(LocalName::new_dangerous("b"))
-                                                                .type_attribute(xs::types::QName(
-                                                                    xsn::STRING.clone(),
-                                                                ))
-                                                                .build()
-                                                                .into(),
-                                                        ])
-                                                                .build(),
+                                                                    xs::types::LocalElement::builder()
+                                                                        .name(LocalName::new_dangerous("a"))
+                                                                        .type_attribute(xs::types::QName(
+                                                                            xsn::INTEGER.clone(),
+                                                                        ))
+                                                                        .any_attributes(ns::AnyAttributes::default())
+                                                                        .build()
+                                                                        .into(),
+                                                                    xs::types::LocalElement::builder()
+                                                                        .name(LocalName::new_dangerous("b"))
+                                                                        .type_attribute(xs::types::QName(
+                                                                            xsn::STRING.clone(),
+                                                                        ))
+                                                                        .any_attributes(ns::AnyAttributes::default())
+                                                                        .build()
+                                                                        .into(),
+                                                                ])
+                                                                .any_attributes(ns::AnyAttributes::default())
+                                                            .build(),
                                                         )
                                                         .into(),
                                                         xs::types::LocalElement::builder()
@@ -678,9 +696,11 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::STRING.clone(),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -690,15 +710,18 @@ mod tests {
                                     )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
                             .build())
                             .into(),
                     ))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -755,7 +778,7 @@ mod tests {
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
                 SubstitutionGroup(
-                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                    ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
         );
@@ -793,6 +816,7 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::INTEGER.clone(),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                         xs::types::LocalElement::builder()
@@ -800,9 +824,11 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::STRING.clone(),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -832,15 +858,18 @@ mod tests {
                                             .into(),
                                     )
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
                             .build())
                             .into(),
                     ))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -893,7 +922,7 @@ mod tests {
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
                 SubstitutionGroup(
-                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                    ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
         );
@@ -936,9 +965,11 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 child_type_expanded_name.clone(),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -948,15 +979,18 @@ mod tests {
                                     )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
                             .build())
                             .into(),
                     ))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -1011,7 +1045,7 @@ mod tests {
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
                 SubstitutionGroup(
-                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                    ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
         );
@@ -1030,6 +1064,7 @@ mod tests {
         let sequence = xs::types::TopLevelElement::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .type_attribute(xs::types::QName(xsn::STRING.clone()))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -1059,7 +1094,7 @@ mod tests {
                 #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
                 SimpleSequence(String),
                 SubstitutionGroup(
-                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                    ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
         );
@@ -1084,6 +1119,7 @@ mod tests {
         let sequence = xs::types::TopLevelElement::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
             .type_attribute(xs::types::QName(child_type_expanded_name.clone()))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -1121,7 +1157,7 @@ mod tests {
                 #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
                 SimpleSequence(#[xgroup] types::ChildType),
                 SubstitutionGroup(
-                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                    ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
         );
@@ -1163,9 +1199,11 @@ mod tests {
                                                             .ref_(xs::types::QName(
                                                                 child_element_expanded_name.clone(),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -1175,15 +1213,18 @@ mod tests {
                                     )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
                             .build())
                             .into(),
                     ))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build()
                     .into(),
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -1232,7 +1273,7 @@ mod tests {
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
                 SubstitutionGroup(
-                    ::xmlity_ns::SubstitutionGroup<::std::boxed::Box<test_ns::SimpleSequence>>,
+                    ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
         );

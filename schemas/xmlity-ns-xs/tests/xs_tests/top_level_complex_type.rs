@@ -593,6 +593,7 @@ fn xsd_all() -> xs::ComplexType {
                                 "\n  Only elements allowed inside"
                             )),
                         }])
+                        .any_attributes(xmlity_ns::AnyAttributes::default())
                         .build())
                         .into()])
                     .build())
@@ -615,6 +616,7 @@ fn xsd_all() -> xs::ComplexType {
                                         LocalName::new_dangerous("allModel"),
                                         Some(XmlNamespace::XS),
                                     )))
+                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                                     )).build().into()
@@ -646,12 +648,14 @@ fn xsd_all() -> xs::ComplexType {
                                                                     xs::Facet::from(xs::Enumeration::from(
                                                                         xs::types::NoFixedFacet::builder()
                                                                             .value("0".to_string())
+                                                                            .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                             .build()
                                                                     ))
                                                                     .into(),
                                                                     xs::Facet::from(xs::Enumeration::from(
                                                                         xs::types::NoFixedFacet::builder()
                                                                             .value("1".to_string())
+                                                                            .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                             .build()
                                                                     ))
                                                                     .into(),
@@ -663,6 +667,7 @@ fn xsd_all() -> xs::ComplexType {
                                                             .into()
                                                           ),
                                                     )
+                                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                                     .build()
                                                     .into(),
                                             )
@@ -691,12 +696,14 @@ fn xsd_all() -> xs::ComplexType {
                                                                   xs::Facet::from(xs::Enumeration::from(
                                                                       xs::types::NoFixedFacet::builder()
                                                                           .value("0".to_string())
+                                                                          .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                           .build()
                                                                   ))
                                                                   .into(),
                                                                   xs::Facet::from(xs::Enumeration::from(
                                                                       xs::types::NoFixedFacet::builder()
                                                                           .value("1".to_string())
+                                                                          .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                           .build()
                                                                   ))
                                                                   .into(),
@@ -706,6 +713,7 @@ fn xsd_all() -> xs::ComplexType {
                                                             .build())
                                                             .into(),
                                                     ))
+                                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                                     .build()
                                                     .into(),
                                             )
@@ -724,12 +732,14 @@ fn xsd_all() -> xs::ComplexType {
                                     .into(),
                             )
                             .assertions(xs::groups::Assertions::builder().build().into())
+                            .any_attributes(xmlity_ns::AnyAttributes::default())
                             .build()
                             .into(),
                     )
                     .build())
                     .into(),
             ))
+            .any_attributes(xmlity_ns::AnyAttributes::default())
             .build()
             .into()
 }
@@ -839,6 +849,7 @@ fn xsd_any_type() -> xs::ComplexType {
   get in the XML representation"
                         )),
                     }])
+                    .any_attributes(xmlity_ns::AnyAttributes::default())
                     .build())
                     .into()])
                 .build())
@@ -858,6 +869,7 @@ fn xsd_any_type() -> xs::ComplexType {
                                 )
                                 .build())
                                 .into()])
+                            .any_attributes(xmlity_ns::AnyAttributes::default())
                             .build()
                     )
                     .into(),
@@ -876,6 +888,7 @@ fn xsd_any_type() -> xs::ComplexType {
             }
             .into(),
         ))
+        .any_attributes(xmlity_ns::AnyAttributes::default())
         .build()
         .into()
 }

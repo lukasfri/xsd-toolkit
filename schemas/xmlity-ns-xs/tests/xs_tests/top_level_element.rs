@@ -159,6 +159,7 @@ fn xsd_any_attribute() -> xs::Element {
                             .source(xs::types::TargetNamespace(XmlNamespace::new_dangerous(
                                 "../structures/structures.html#element-anyAttribute",
                             )))
+                            .any_attributes(xmlity_ns::AnyAttributes::default())
                             .build(),
                     )
                     .into()])
@@ -202,9 +203,11 @@ fn xsd_any_attribute() -> xs::Element {
                     )
                     .into(),
                 ))
+                .any_attributes(xmlity_ns::AnyAttributes::default())
                 .build()
                 .into(),
         )
+        .any_attributes(xmlity_ns::AnyAttributes::default())
         .build()
         .into()
 }
@@ -805,6 +808,7 @@ fn xsd_total_digits() -> xs::Element {
                     .source(xs::types::TargetNamespace(XmlNamespace::new_dangerous(
                         "http://www.w3.org/TR/xmlschema11-2/#element-totalDigits",
                     )))
+                    .any_attributes(xmlity_ns::AnyAttributes::default())
                     .build())
                     .into()])
                 .build())
@@ -836,9 +840,11 @@ fn xsd_total_digits() -> xs::Element {
                                                                 ),
                                                             ))
                                                             .min_occurs(0)
+                                                            .any_attributes(xmlity_ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -868,15 +874,18 @@ fn xsd_total_digits() -> xs::Element {
                                         .into(),
                                 )
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(xmlity_ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
                         .build())
                         .into(),
                 ))
+                .any_attributes(xmlity_ns::AnyAttributes::default())
                 .build()
                 .into(),
         )
+        .any_attributes(xmlity_ns::AnyAttributes::default())
         .build()
         .into()
 }
@@ -980,6 +989,7 @@ fn xsd_white_space() -> xs::Element {
                         .source(xs::types::TargetNamespace(XmlNamespace::new_dangerous(
                             "http://www.w3.org/TR/xmlschema11-2/#element-whiteSpace",
                         )))
+                        .any_attributes(xmlity_ns::AnyAttributes::default())
                         .build())
                         .into()])
                     .build())
@@ -1009,9 +1019,11 @@ fn xsd_white_space() -> xs::Element {
                                                               Some(XmlNamespace::XS),
                                                           )))
                                                           .min_occurs(0)
+                                                          .any_attributes(xmlity_ns::AnyAttributes::default())
                                                           .build()
                                                           .into()
                                                     ])
+                                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                                     .build()
                                                 )
                                                 .into(),
@@ -1041,18 +1053,21 @@ fn xsd_white_space() -> xs::Element {
                                                                         xs::Facet::from(xs::Enumeration::from(
                                                                             xs::types::NoFixedFacet::builder()
                                                                                 .value("preserve".to_string())
+                                                                                .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                                 .build()
                                                                         ))
                                                                         .into(),
                                                                         xs::Facet::from(xs::Enumeration::from(
                                                                             xs::types::NoFixedFacet::builder()
                                                                                 .value("replace".to_string())
+                                                                                .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                                 .build()
                                                                         ))
                                                                         .into(),
                                                                         xs::Facet::from(xs::Enumeration::from(
                                                                             xs::types::NoFixedFacet::builder()
                                                                                 .value("collapse".to_string())
+                                                                                .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                                 .build()
                                                                         ))
                                                                         .into(),
@@ -1061,6 +1076,7 @@ fn xsd_white_space() -> xs::Element {
                                                                 .build())
                                                                 .into())
                                                             )
+                                                            .any_attributes(xmlity_ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                     )
@@ -1079,6 +1095,7 @@ fn xsd_white_space() -> xs::Element {
                                                 .into(),
                                         )
                                         .assertions(xs::groups::Assertions::builder().build().into())
+                                        .any_attributes(xmlity_ns::AnyAttributes::default())
                                         .build()
                                         .into(),
                                 )
@@ -1086,9 +1103,11 @@ fn xsd_white_space() -> xs::Element {
                                 .into(),
                         ),
                     )
+                    .any_attributes(xmlity_ns::AnyAttributes::default())
                     .build()
                     .into(),
             )
+            .any_attributes(xmlity_ns::AnyAttributes::default())
             .build()
             .into()
 }

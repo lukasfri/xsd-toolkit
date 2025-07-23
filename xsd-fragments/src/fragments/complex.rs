@@ -13,7 +13,7 @@ use crate::{
 };
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
-use xsd::xs;
+use xsd::{ns, xs};
 
 // #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 // pub struct FragmentId(pub XmlNamespace<'static>, pub FragmentIdx);
@@ -804,9 +804,11 @@ impl ComplexFragmentEquivalent for xs::types::LocalElement {
                     }
                     .transpose()?,
                 )
+                .any_attributes(ns::AnyAttributes::default())
                 .build()),
             LocalElementFragmentType::Reference(fragment) => Ok(element_builder
                 .ref_(xs::types::QName(fragment.name.clone()))
+                .any_attributes(ns::AnyAttributes::default())
                 .build()),
         }
     }
@@ -867,6 +869,7 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelElement {
                     })
                     .transpose()?,
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build())
     }
 }
@@ -901,6 +904,7 @@ impl ComplexFragmentEquivalent for xs::types::GroupRef {
             max_occurs: fragment.max_occurs.map(From::from).map(Box::new),
             ref_: xs::types::QName(fragment.ref_.clone()),
             annotation: None,
+            any_attributes: ns::AnyAttributes::default(),
         })
     }
 }
@@ -1159,6 +1163,7 @@ impl ComplexFragmentEquivalent for xs::Choice {
                         })
                         .collect::<Result<_, _>>()?,
                 )
+                .any_attributes(ns::AnyAttributes::default())
                 .build(),
         ))
     }
@@ -1214,6 +1219,7 @@ impl ComplexFragmentEquivalent for xs::Sequence {
                         })
                         .collect::<Result<_, _>>()?,
                 )
+                .any_attributes(ns::AnyAttributes::default())
                 .build(),
         ))
     }
@@ -1378,6 +1384,7 @@ impl ComplexFragmentEquivalent for xs::types::ComplexRestrictionType {
             }))
             .attr_decls(attr_decls.into())
             .assertions(xs::groups::Assertions::builder().build().into())
+            .any_attributes(ns::AnyAttributes::default())
             .build())
     }
 }
@@ -1542,6 +1549,7 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelAttribute {
         Ok(xs::types::TopLevelAttribute::builder()
             .name(name)
             .maybe_type_(type_)
+            .any_attributes(ns::AnyAttributes::default())
             .build())
     }
 }
@@ -1570,6 +1578,7 @@ impl ComplexFragmentEquivalent for xs::types::AttributeGroupRef {
 
         Ok(xs::types::AttributeGroupRef::builder()
             .ref_(xs::types::QName(fragment.ref_.clone()))
+            .any_attributes(ns::AnyAttributes::default())
             .build())
     }
 }
@@ -1853,6 +1862,7 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelComplexType {
             .name(fragment.name.clone().ok_or(Error)?)
             .maybe_mixed(fragment.mixed)
             .complex_type_model(complex_type_model.into())
+            .any_attributes(ns::AnyAttributes::default())
             .build())
     }
 }
@@ -1891,6 +1901,7 @@ impl ComplexFragmentEquivalent for xs::types::LocalComplexType {
         Ok(xs::types::LocalComplexType::builder()
             .complex_type_model(content.into())
             .maybe_mixed(fragment.mixed)
+            .any_attributes(ns::AnyAttributes::default())
             .build())
     }
 }
@@ -1936,6 +1947,7 @@ impl ComplexFragmentEquivalent for xs::types::named_group_items::Child1 {
                 min_occurs,
                 max_occurs,
                 all_model,
+                any_attributes,
             } => {
                 let fragment = AllFragment {
                     min_occurs: *min_occurs,
@@ -2006,6 +2018,7 @@ impl ComplexFragmentEquivalent for xs::types::named_group_items::Child1 {
                         )
                         .build()
                         .into(),
+                    any_attributes: ns::AnyAttributes::default(),
                 })
             }
             NamedGroupTypeContentId::Choice(choice) => {
@@ -2024,6 +2037,7 @@ impl ComplexFragmentEquivalent for xs::types::named_group_items::Child1 {
                                 })
                                 .collect::<Result<_, _>>()?,
                         )
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                 ))
@@ -2044,6 +2058,7 @@ impl ComplexFragmentEquivalent for xs::types::named_group_items::Child1 {
                                 })
                                 .collect::<Result<_, _>>()?,
                         )
+                        .any_attributes(ns::AnyAttributes::default())
                         .build()
                         .into(),
                 ))
@@ -2087,6 +2102,7 @@ impl ComplexFragmentEquivalent for xs::types::NamedGroup {
         Ok(Self::builder()
             .name(fragment.name.clone())
             .child_1(content)
+            .any_attributes(ns::AnyAttributes::default())
             .build())
     }
 }
@@ -2200,6 +2216,7 @@ impl ComplexFragmentEquivalent for xs::types::NamedAttributeGroup {
         Ok(Self::builder()
             .name(fragment.name.clone())
             .attr_decls(attr_decls.into())
+            .any_attributes(ns::AnyAttributes::default())
             .build())
     }
 }

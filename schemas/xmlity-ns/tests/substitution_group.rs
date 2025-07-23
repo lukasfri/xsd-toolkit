@@ -42,14 +42,14 @@ struct Root {
 })]
 #[case::test_1(r###"
     <root xmlns="http://example.com/ns">
-      <d>
-        <inner>abc</inner>
-      </d>
+        <d>
+            <inner>abc</inner>
+        </d>
     </root>
 "###, Root {
     a: A::Sub(SubstitutionGroup::new(xmlity::xml!(
         <"d":"http://example.com/ns">["
-          "<"inner":"http://example.com/ns">["abc"]</"inner">"
+            "<"inner":"http://example.com/ns">["abc"]</"inner">"
         "]</"d">
     ))),
 })]

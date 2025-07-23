@@ -261,7 +261,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
-    use xsd::{xs, xsn};
+    use xsd::{ns, xs, xsn};
     use xsd_fragments::XmlnsContext;
 
     #[test]
@@ -302,6 +302,9 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::INTEGER.clone(),
                                                             ))
+                                                            .any_attributes(
+                                                                ns::AnyAttributes::default(),
+                                                            )
                                                             .build()
                                                             .into(),
                                                         xs::types::LocalElement::builder()
@@ -309,9 +312,13 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::STRING.clone(),
                                                             ))
+                                                            .any_attributes(
+                                                                ns::AnyAttributes::default(),
+                                                            )
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -321,6 +328,7 @@ mod tests {
                                 )
                                 .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
@@ -328,6 +336,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -366,9 +375,13 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::INTEGER.clone(),
                                                             ))
+                                                            .any_attributes(
+                                                                ns::AnyAttributes::default(),
+                                                            )
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -378,6 +391,7 @@ mod tests {
                                 )
                                 .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
@@ -385,6 +399,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -422,9 +437,13 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::INTEGER.clone(),
                                                             ))
+                                                            .any_attributes(
+                                                                ns::AnyAttributes::default(),
+                                                            )
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -434,6 +453,7 @@ mod tests {
                                     )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
@@ -441,6 +461,7 @@ mod tests {
                     )
                     .into(),
                 ))
+                .any_attributes(ns::AnyAttributes::default())
                 .build()
                 .into();
 
@@ -518,6 +539,7 @@ mod tests {
                                             .into(),
                                     )
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
@@ -525,6 +547,7 @@ mod tests {
                     )
                     .into(),
                 ))
+                .any_attributes(ns::AnyAttributes::default())
                 .build()
                 .into();
 
@@ -561,6 +584,7 @@ mod tests {
                                         .into(),
                                 )
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
@@ -568,6 +592,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -616,6 +641,7 @@ mod tests {
                                             .into(),
                                     )
                                     .assertions(xs::groups::Assertions::builder().build().into())
+                                    .any_attributes(ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
@@ -623,6 +649,7 @@ mod tests {
                     )
                     .into(),
                 ))
+                .any_attributes(ns::AnyAttributes::default())
                 .build()
                 .into();
 

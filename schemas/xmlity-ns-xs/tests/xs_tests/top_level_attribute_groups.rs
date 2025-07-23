@@ -96,6 +96,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                                             xs::MinLength::MinLength(
                                                                 xs::types::NumFacet::builder()
                                                                     .value(1)
+                                                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                     .build()
                                                                     .into(),
                                                             ),
@@ -107,6 +108,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                         )
                                         .into(),
                                     ))
+                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
@@ -132,6 +134,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                                             xs::Enumeration::Enumeration(
                                                                 xs::types::NoFixedFacet::builder()
                                                                     .value("skip".to_string())
+                                                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                     .build()
                                                                     .into(),
                                                             ),
@@ -141,6 +144,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                                             xs::Enumeration::Enumeration(
                                                                 xs::types::NoFixedFacet::builder()
                                                                     .value("lax".to_string())
+                                                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                     .build()
                                                                     .into(),
                                                             ),
@@ -150,6 +154,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                                             xs::Enumeration::Enumeration(
                                                                 xs::types::NoFixedFacet::builder()
                                                                     .value("strict".to_string())
+                                                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                     .build()
                                                                     .into(),
                                                             ),
@@ -162,6 +167,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                         )
                                         .into(),
                                     ))
+                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                     .build()
                                     .into(),
                             )
@@ -170,6 +176,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                     ])
                     .build(),
             ))
+            .any_attributes(xmlity_ns::AnyAttributes::default())
             .build(),
     ))
 }

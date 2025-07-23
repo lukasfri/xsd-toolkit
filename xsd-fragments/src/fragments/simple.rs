@@ -1,5 +1,5 @@
 use std::num::NonZeroUsize;
-use xsd::xs;
+use xsd::{ns, xs};
 
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
@@ -309,6 +309,7 @@ impl SimpleFragmentEquivalent for xs::types::TopLevelSimpleType {
         Ok(xs::types::TopLevelSimpleType::builder()
             .name(name)
             .simple_derivation(simple_derivation.into())
+            .any_attributes(ns::AnyAttributes::default())
             .build())
     }
 }
@@ -345,6 +346,7 @@ impl SimpleFragmentEquivalent for xs::types::LocalSimpleType {
 
         Ok(xs::types::LocalSimpleType::builder()
             .simple_derivation(simple_derivation.into())
+            .any_attributes(ns::AnyAttributes::default())
             .build())
     }
 }
@@ -434,15 +436,27 @@ impl SimpleFragmentEquivalent for xs::Facet {
         let fragment = compiler.get_fragment(fragment_id).unwrap();
 
         let facet: xs::Facet = match fragment {
-            FacetFragment::Length { value } => {
-                xs::Length::from(xs::types::NumFacet::builder().value(*value).build()).into()
-            }
-            FacetFragment::MinLength { value } => {
-                xs::MinLength::from(xs::types::NumFacet::builder().value(*value).build()).into()
-            }
-            FacetFragment::MaxLength { value } => {
-                xs::MaxLength::from(xs::types::NumFacet::builder().value(*value).build()).into()
-            }
+            FacetFragment::Length { value } => xs::Length::from(
+                xs::types::NumFacet::builder()
+                    .value(*value)
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )
+            .into(),
+            FacetFragment::MinLength { value } => xs::MinLength::from(
+                xs::types::NumFacet::builder()
+                    .value(*value)
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )
+            .into(),
+            FacetFragment::MaxLength { value } => xs::MaxLength::from(
+                xs::types::NumFacet::builder()
+                    .value(*value)
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )
+            .into(),
             FacetFragment::MinExclusive { value } => {
                 xs::MinExclusive::from(xs::types::Facet::builder().value(value.0.clone()).build())
                     .into()
@@ -462,28 +476,35 @@ impl SimpleFragmentEquivalent for xs::Facet {
             FacetFragment::Enumeration { value } => xs::Enumeration::from(
                 xs::types::NoFixedFacet::builder()
                     .value(value.0.clone())
+                    .any_attributes(ns::AnyAttributes::default())
                     .build(),
             )
             .into(),
             FacetFragment::TotalDigits { value } => xs::TotalDigits::from(
                 xs::total_digits_items::TotalDigits::builder()
                     .value(*value)
+                    .any_attributes(ns::AnyAttributes::default())
                     .build(),
             )
             .into(),
-            FacetFragment::FractionDigits { value } => {
-                xs::FractionDigits::from(xs::types::NumFacet::builder().value(*value).build())
-                    .into()
-            }
+            FacetFragment::FractionDigits { value } => xs::FractionDigits::from(
+                xs::types::NumFacet::builder()
+                    .value(*value)
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )
+            .into(),
             FacetFragment::WhiteSpace { value } => xs::WhiteSpace::from(
                 xs::white_space_items::WhiteSpace::builder()
                     .value(xs::white_space_items::ValueValue::from(*value))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build(),
             )
             .into(),
             FacetFragment::Pattern { value } => xs::Pattern::from(
                 xs::pattern_items::Pattern::builder()
                     .value(value.0.clone())
+                    .any_attributes(ns::AnyAttributes::default())
                     .build(),
             )
             .into(),
@@ -496,6 +517,7 @@ impl SimpleFragmentEquivalent for xs::Facet {
             FacetFragment::ExplicitTimezone { value } => xs::ExplicitTimezone::from(
                 xs::explicit_timezone_items::ExplicitTimezone::builder()
                     .value(xs::explicit_timezone_items::ValueValue::from(*value))
+                    .any_attributes(ns::AnyAttributes::default())
                     .build(),
             )
             .into(),

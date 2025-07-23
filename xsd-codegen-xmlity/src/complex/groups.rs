@@ -816,6 +816,7 @@ mod tests {
 
     use syn::parse_quote;
     use xmlity::{LocalName, XmlNamespace};
+    use xsd::ns;
     use xsd::xs;
     use xsd::xsn;
     use xsd_fragments::XmlnsContext;
@@ -850,32 +851,39 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::INTEGER.clone(),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into()])
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                         .build()).into(),
                                                     xs::types::LocalElement::builder()
                                                         .name(LocalName::new_dangerous("b"))
                                                         .type_attribute(xs::types::QName(
                                                             xsn::STRING.clone(),
                                                         ))
+                                                        .any_attributes(ns::AnyAttributes::default())
                                                         .build()
                                                         .into(),
                                                 ])
+                                                .any_attributes(ns::AnyAttributes::default())
                                                 .build()).into(),
                                             xs::types::LocalElement::builder()
                                                 .name(LocalName::new_dangerous("c"))
                                                 .type_attribute(xs::types::QName(xsn::STRING.clone()))
+                                                .any_attributes(ns::AnyAttributes::default())
                                                 .build()
                                                 .into(),
                                         ])
+                                        .any_attributes(ns::AnyAttributes::default())
                                         .build(),
                                 )
                                 .into())
                                 ).build()
                                 .into(),
                             )
-                                    .attr_decls(xs::groups::AttrDecls::builder().build().into())
-                                    .assertions(xs::groups::Assertions::builder().build().into())
+                            .attr_decls(xs::groups::AttrDecls::builder().build().into())
+                            .assertions(xs::groups::Assertions::builder().build().into())
+                            .any_attributes(ns::AnyAttributes::default())
                             .build()
                             .into(),
                     )
@@ -883,6 +891,7 @@ mod tests {
                     .into(),
                 )
             )
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
@@ -971,23 +980,26 @@ mod tests {
                                                         xs::Sequence::from(
                                                             xs::types::ExplicitGroup::builder()
                                                                 .nested_particle(vec![
-                                                    xs::types::LocalElement::builder()
-                                                        .name(LocalName::new_dangerous("a"))
-                                                        .type_attribute(xs::types::QName(
-                                                            xsn::INTEGER.clone(),
-                                                        ))
-                                                        .min_occurs(0)
-                                                        .build()
-                                                        .into(),
-                                                    xs::types::LocalElement::builder()
-                                                        .name(LocalName::new_dangerous("b"))
-                                                        .type_attribute(xs::types::QName(
-                                                            xsn::STRING.clone(),
-                                                        ))
-                                                        .build()
-                                                        .into(),
-                                                ])
+                                                                    xs::types::LocalElement::builder()
+                                                                        .name(LocalName::new_dangerous("a"))
+                                                                        .type_attribute(xs::types::QName(
+                                                                            xsn::INTEGER.clone(),
+                                                                        ))
+                                                                        .min_occurs(0)
+                                                                        .any_attributes(ns::AnyAttributes::default())
+                                                                        .build()
+                                                                        .into(),
+                                                                    xs::types::LocalElement::builder()
+                                                                        .name(LocalName::new_dangerous("b"))
+                                                                        .type_attribute(xs::types::QName(
+                                                                            xsn::STRING.clone(),
+                                                                        ))
+                                                                        .any_attributes(ns::AnyAttributes::default())
+                                                                        .build()
+                                                                        .into(),
+                                                                ])
                                                                 .min_occurs(0)
+                                                                .any_attributes(ns::AnyAttributes::default())
                                                                 .build(),
                                                         )
                                                         .into(),
@@ -996,9 +1008,11 @@ mod tests {
                                                             .type_attribute(xs::types::QName(
                                                                 xsn::STRING.clone(),
                                                             ))
+                                                            .any_attributes(ns::AnyAttributes::default())
                                                             .build()
                                                             .into(),
                                                     ])
+                                                    .any_attributes(ns::AnyAttributes::default())
                                                     .build(),
                                             )
                                             .into(),
@@ -1008,6 +1022,7 @@ mod tests {
                                 )
                                 .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                 .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                         )
@@ -1015,6 +1030,7 @@ mod tests {
                 )
                 .into(),
             ))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 

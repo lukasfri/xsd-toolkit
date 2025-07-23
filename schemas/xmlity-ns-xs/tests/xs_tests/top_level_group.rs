@@ -199,6 +199,7 @@ fn xsd_all_model() -> xs::Group {
                             Some(XmlNamespace::XS),
                         )))
                         .min_occurs(0)
+                        .any_attributes(xmlity_ns::AnyAttributes::default())
                         .build()
                         .into(),
                     xs::Choice::from(xs::types::ExplicitGroup::builder()
@@ -210,6 +211,7 @@ fn xsd_all_model() -> xs::Group {
                               xs::Documentation::from(xs::documentation_items::Documentation::builder()
                                 .child_0(vec![xs::documentation_items::Child0 {
                                   child_0: XmlValue::Text(xmlity::xml!("This choice with min/max is here to\n                        avoid a pblm with the Elt:All/Choice/Seq\n                        Particle derivation constraint"))}])
+                                .any_attributes(xmlity_ns::AnyAttributes::default())
                                 .build())
                                 .into()
                             ]).build()).into()
@@ -218,6 +220,7 @@ fn xsd_all_model() -> xs::Group {
                             xs::types::LocalElement::builder()
                                 .name(LocalName::new_dangerous("element"))
                                 .type_attribute(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("localElement"), Some(XmlNamespace::XS))))
+                                .any_attributes(xmlity_ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                             xs::types::LocalElement::builder()
@@ -225,6 +228,7 @@ fn xsd_all_model() -> xs::Group {
                                     LocalName::new_dangerous("any"),
                                     Some(XmlNamespace::XS),
                                 )))
+                                .any_attributes(xmlity_ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                             xs::types::LocalElement::builder()
@@ -244,9 +248,11 @@ fn xsd_all_model() -> xs::Group {
                                                                     xs::types::LocalElement::builder()
                                                                         .ref_(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("annotation"), Some(XmlNamespace::XS))))
                                                                         .min_occurs(0)
+                                                                        .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                         .build().into()
                                                                 
                                                             ])
+                                                            .any_attributes(xmlity_ns::AnyAttributes::default())
                                                             .build()).into())
                                                       ).build().into()
                                                     )
@@ -265,6 +271,7 @@ fn xsd_all_model() -> xs::Group {
                                                         .into(),
                                                     ]).build().into())
                                                     .assertions(Box::new(xs::groups::Assertions::builder().build()))
+                                                    .any_attributes(xmlity_ns::AnyAttributes::default())
                                                     .build()
                                                     .into()
                                                 )
@@ -272,18 +279,23 @@ fn xsd_all_model() -> xs::Group {
                                             .into()
                                             )
                                         )
+                                        .any_attributes(xmlity_ns::AnyAttributes::default())
                                         .build()
                                         .into()
                                 )
+                                .any_attributes(xmlity_ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                               
                         ])
+                        .any_attributes(xmlity_ns::AnyAttributes::default())
                         .build()).into(),
                 ])
+                .any_attributes(xmlity_ns::AnyAttributes::default())
                 .build()
                 .into(),
         ))
+        .any_attributes(xmlity_ns::AnyAttributes::default())
         .build()
     )
 }

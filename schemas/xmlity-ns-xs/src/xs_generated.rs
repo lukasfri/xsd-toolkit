@@ -2004,6 +2004,8 @@ pub mod types {
         pub min_occurs: ::core::option::Option<all_items::MinOccursValue>,
         #[xattribute(name = "maxOccurs", optional)]
         pub max_occurs: ::core::option::Option<all_items::MaxOccursValue>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         pub all_model: ::std::boxed::Box<crate::groups::AllModel>,
     }
     pub mod alt_type_items {
@@ -2089,6 +2091,8 @@ pub mod types {
     )]
     #[xgroup(children_order = "strict")]
     pub struct AnyType {
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         pub child_0: ::xmlity::XmlValue,
     }
     #[derive(
@@ -2280,6 +2284,8 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "ref")]
         pub ref_: crate::types::QName,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
@@ -2347,6 +2353,8 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
         pub base: crate::types::QName,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
@@ -2476,6 +2484,8 @@ pub mod types {
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional)]
         pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
@@ -2570,6 +2580,8 @@ pub mod types {
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional)]
         pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
@@ -2589,6 +2601,8 @@ pub mod types {
         pub value: i32,
         #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<bool>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
@@ -2646,6 +2660,8 @@ pub mod types {
         pub mixed: ::core::option::Option<bool>,
         #[xattribute(name = "defaultAttributesApply", optional)]
         pub default_attributes_apply: ::core::option::Option<bool>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         pub complex_type_model: ::std::boxed::Box<crate::groups::ComplexTypeModel>,
@@ -2735,6 +2751,8 @@ pub mod types {
         pub form: ::core::option::Option<::std::boxed::Box<crate::types::FormChoice>>,
         #[xattribute(name = "targetNamespace", optional)]
         pub target_namespace: ::core::option::Option<crate::types::TargetNamespace>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
@@ -2758,6 +2776,8 @@ pub mod types {
     pub struct LocalSimpleType {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         pub simple_derivation: ::std::boxed::Box<crate::groups::SimpleDerivation>,
@@ -2776,6 +2796,8 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
@@ -2803,6 +2825,8 @@ pub mod types {
                 max_occurs: ::core::option::Option<
                     ::std::boxed::Box<crate::types::AllNNI>,
                 >,
+                #[xgroup]
+                any_attributes: ::xmlity_ns::AnyAttributes,
                 all_model: ::std::boxed::Box<crate::groups::AllModel>,
             },
             #[xelement(
@@ -2833,6 +2857,8 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         pub child_1: named_group_items::Child1,
@@ -2851,6 +2877,8 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "value")]
         pub value: String,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
@@ -2870,6 +2898,8 @@ pub mod types {
         pub value: usize,
         #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<bool>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
@@ -2877,10 +2907,14 @@ pub mod types {
         ::core::fmt::Debug,
         ::xmlity::SerializationGroup,
         ::xmlity::DeserializationGroup,
+        ::bon::Builder,
         ::core::cmp::PartialEq,
         ::core::clone::Clone
     )]
-    pub struct OpenAttrs;
+    pub struct OpenAttrs {
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
+    }
     pub mod real_group_items {
         impl ::core::convert::From<crate::All> for Child1 {
             fn from(value: crate::All) -> Self {
@@ -2930,6 +2964,8 @@ pub mod types {
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional)]
         pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
@@ -3033,6 +3069,8 @@ pub mod types {
     pub struct SimpleExplicitGroup {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
@@ -3053,6 +3091,8 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
         pub base: crate::types::QName,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
@@ -3088,6 +3128,8 @@ pub mod types {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "base")]
         pub base: crate::types::QName,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
@@ -3119,6 +3161,8 @@ pub mod types {
         pub fixed: ::core::option::Option<String>,
         #[xattribute(name = "inheritable", optional)]
         pub inheritable: ::core::option::Option<bool>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xelement(
@@ -3159,6 +3203,8 @@ pub mod types {
         >,
         #[xattribute(name = "defaultAttributesApply", optional)]
         pub default_attributes_apply: ::core::option::Option<bool>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         pub complex_type_model: ::std::boxed::Box<crate::groups::ComplexTypeModel>,
@@ -3248,6 +3294,8 @@ pub mod types {
         >,
         #[xattribute(name = "block", optional)]
         pub block: ::core::option::Option<::std::boxed::Box<crate::types::BlockSet>>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
@@ -3277,6 +3325,8 @@ pub mod types {
         >,
         #[xattribute(name = "name")]
         pub name: ::xmlity::LocalName<'static>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         pub simple_derivation: ::std::boxed::Box<crate::groups::SimpleDerivation>,
@@ -4700,6 +4750,8 @@ pub mod appinfo_items {
     pub struct Appinfo {
         #[xattribute(name = "source", optional)]
         pub source: ::core::option::Option<crate::types::TargetNamespace>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         #[builder(default)]
         pub child_0: ::std::vec::Vec<Child0>,
@@ -5106,6 +5158,8 @@ pub mod documentation_items {
         pub lang: ::core::option::Option<
             ::std::boxed::Box<xmlity_ns_xml::attributes::Lang>,
         >,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         #[builder(default)]
         pub child_0: ::std::vec::Vec<Child0>,
@@ -5295,6 +5349,8 @@ pub mod explicit_timezone_items {
         pub value: ValueValue,
         #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<bool>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<crate::Annotation>,
     }
@@ -6161,6 +6217,8 @@ pub mod pattern_items {
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "value")]
         pub value: String,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<crate::Annotation>,
     }
@@ -6663,6 +6721,8 @@ pub mod total_digits_items {
         pub value: ::core::num::NonZeroUsize,
         #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<bool>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<crate::Annotation>,
     }
@@ -6893,6 +6953,8 @@ pub mod white_space_items {
         pub value: ValueValue,
         #[xattribute(name = "fixed", optional)]
         pub fixed: ::core::option::Option<bool>,
+        #[xgroup]
+        pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<crate::Annotation>,
     }

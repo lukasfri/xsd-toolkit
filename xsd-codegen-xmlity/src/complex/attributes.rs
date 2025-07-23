@@ -129,7 +129,7 @@ mod tests {
 
     use syn::{parse_quote, Item};
     use xmlity::{LocalName, XmlNamespace};
-    use xsd::{xs, xsn};
+    use xsd::{ns, xs, xsn};
     use xsd_fragments::XmlnsContext;
 
     use crate::Generator;
@@ -142,6 +142,7 @@ mod tests {
         let attribute = xs::types::TopLevelAttribute::builder()
             .name(LocalName::new_dangerous("SimpleAttribute"))
             .type_(xs::types::QName(xsn::STRING.clone()))
+            .any_attributes(ns::AnyAttributes::default())
             .build()
             .into();
 
