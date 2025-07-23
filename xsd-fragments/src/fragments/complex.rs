@@ -2100,7 +2100,12 @@ impl ComplexFragmentEquivalent for xs::AnyAttribute {
     ) -> Self::FragmentId {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(AnyAttributeFragment {})
+        match self {
+            xs::AnyAttribute::AnyAttribute(any_attribute) => {
+                compiler.push_fragment(AnyAttributeFragment {})
+            }
+            xs::AnyAttribute::SubstitutionGroup(substitution_group) => todo!(),
+        }
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(

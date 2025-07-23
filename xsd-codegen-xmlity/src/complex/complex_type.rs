@@ -1,7 +1,7 @@
 use crate::{
-    misc::dedup_field_idents, templates::{
+    misc::{dedup_field_idents, TypeReference}, templates::{
         self,
-        element_record::{ElementField, ElementFieldType},
+        element_record::{ElementField, ElementFieldGroup, ElementFieldType},
         group_record::GroupRecord,
         value_record::ItemFieldItem,
     }, Result, ToIdentTypesExt
@@ -12,6 +12,28 @@ use syn::parse_quote;
 use xsd_fragments::fragments::complex::{self as cx};
 
 use super::{groups::TypeDefParticleTemplate, ComplexContext, Scope, ComplexToTypeTemplate, ToTypeTemplateData};
+
+impl ComplexToTypeTemplate for cx::AnyAttributeFragment {
+    type TypeTemplate = (syn::Ident, ElementField);
+
+    fn to_type_template<C: ComplexContext, S: Scope>(
+        &self,
+        _context: &C,
+        _scope: &mut S,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let ident = format_ident!("AnyAttributes");
+
+        let any_attributes =(ident.to_field_ident(), ElementField::Group(ElementFieldGroup {
+            ty: TypeReference::new_static(parse_quote!(::xmlity_ns::AnyAttributes)),
+        }));
+
+
+        Ok(ToTypeTemplateData {
+            ident: Some(ident),
+            template: any_attributes,
+        })
+    }
+}
 
 impl ComplexToTypeTemplate for cx::AttributeDeclarationsFragment {
     type TypeTemplate = Vec<(syn::Ident, ElementField)>;
@@ -40,7 +62,10 @@ impl ComplexToTypeTemplate for cx::AttributeDeclarationsFragment {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let attributes = dedup_field_idents(attributes);
+        let any_attributes = self.any_attribute.as_ref().map(|id| context.resolve_fragment_id(id, scope)).transpose()?
+        .map(|a| a.template);
+
+        let attributes = dedup_field_idents(attributes.into_iter().chain(any_attributes));
 
         Ok(ToTypeTemplateData {
             ident: None,

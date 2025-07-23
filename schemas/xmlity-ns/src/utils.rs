@@ -2,8 +2,8 @@ use std::{borrow::Cow, convert::Infallible};
 
 use xmlity::{
     de::{self, DeserializeContext},
-    ser, Deserialize, DeserializeOwned, ExpandedName, NoopDeSerializer, Prefix, Serialize,
-    Serializer, XmlNamespace,
+    ser, DeserializeOwned, ExpandedName, NoopDeSerializer, Prefix, Serialize, Serializer,
+    XmlNamespace,
 };
 
 #[derive(Debug, Clone, PartialEq, derive_more::Display, derive_more::Error, derive_more::From)]
