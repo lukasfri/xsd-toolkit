@@ -33,8 +33,8 @@ xmlity-ns = { path = "schemas/xmlity-ns" }
 thiserror = "^2.0.4"
 pretty_assertions = "^1.4.1"
 rstest = "^0.25.0"
+ntest = "0.9.3"
 xmlity = { version = "0.0.7", features = [
   "derive",
-], git = "https://github.com/lukasfri/xmlity.git", rev = "bc411961d66dc9bf27b7d8064daf465ea0914e0d" }
-xmlity-quick-xml = { version = "0.0.7", git = "https://github.com/lukasfri/xmlity.git", rev = "bc411961d66dc9bf27b7d8064daf465ea0914e0d" }
-ntest = "0.9.3"
+], git = "https://github.com/lukasfri/xmlity.git", rev = "fe3f75e83f6086b88618fe8d4b35ed18d7b535ae" }
+xmlity-quick-xml = { version = "0.0.7", git = "https://github.com/lukasfri/xmlity.git", rev = "fe3f75e83f6086b88618fe8d4b35ed18d7b535ae" }
