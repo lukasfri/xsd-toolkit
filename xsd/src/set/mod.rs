@@ -124,17 +124,17 @@ impl XmlSchemaSet {
         &mut self,
         resolver: &R,
         url: &Url,
-    ) -> Result<(), E> {
+    ) -> Result<bool, E> {
         if self.locations.get(url).is_some_and(|loc| loc.is_some()) {
             // Already loaded, no need to load again
-            return Ok(());
+            return Ok(false);
         }
 
         let schema = (resolver)(url)?;
 
         self.load_location_internal(url, schema);
 
-        Ok(())
+        Ok(true)
     }
 
     pub async fn load_location_async<
@@ -145,52 +145,65 @@ impl XmlSchemaSet {
         &mut self,
         resolver: &R,
         url: &Url,
-    ) -> Result<(), E> {
+    ) -> Result<bool, E> {
         if self.locations.get(url).is_some_and(|loc| loc.is_some()) {
             // Already loaded, no need to load again
-            return Ok(());
+            return Ok(false);
         }
 
         let schema = (resolver)(url).await?;
 
         self.load_location_internal(url, schema);
 
-        Ok(())
+        Ok(true)
     }
 
-    pub fn explore_locations<E, R: Fn(&Url) -> Result<xs::Schema, E>>(
-        &mut self,
-        resolver: &R,
-    ) -> Result<(), E> {
-        while let Some(url) = self
-            .locations
-            .iter()
-            .find_map(|(url, location)| location.is_none().then(|| url.clone()))
-        {
-            self.load_location(resolver, &url)?;
-        }
-
-        Ok(())
+    pub fn explore_locations<'a, E, R: Fn(&Url) -> Result<xs::Schema, E>>(
+        &'a mut self,
+        resolver: &'a R,
+    ) -> impl Iterator<Item = Result<Url, E>> + 'a {
+        std::iter::from_fn(|| {
+            let url = self
+                .locations
+                .iter()
+                .find_map(|(url, location)| location.is_none().then(|| url.clone()))?;
+    
+            match self.load_location(resolver, &url) {
+                Ok(loaded) => {
+                    debug_assert!(loaded, "Location should be newly loaded since it was None");
+                    Some(Ok(url))
+                },
+                Err(e) => Some(Err(e)),
+            }
+        })
     }
 
     // fn resolve_document(&self, location: &Url) -> Result<T, Self::Error>;
     pub async fn explore_locations_async<
+    'a, 
         F: Future<Output = Result<xs::Schema, E>>,
         E,
         R: Fn(&Url) -> F,
     >(
-        &mut self,
-        resolver: &R,
-    ) -> Result<(), E> {
-        while let Some(url) = self
-            .locations
-            .iter()
-            .find_map(|(url, location)| location.is_none().then(|| url.clone()))
-        {
-            self.load_location_async(resolver, &url).await?;
-        }
+        &'a mut self,
+        resolver: &'a R,
+    ) -> impl futures::Stream<Item = Result<Url, E>> + 'a {
+        futures::stream::unfold(self, |this| async {
+            let url = this
+                .locations
+                .iter()
+                .find_map(|(url, location)| location.is_none().then(|| url.clone()))?;
 
-        Ok(())
+            match this.load_location_async(resolver, &url).await {
+                Ok(loaded) => {
+                    debug_assert!(loaded, "Location should be newly loaded since it was None");
+                    Some((Ok(url), this))
+                },
+                Err(e) => Some((Err(e), this)),
+            }
+
+
+        })
     }
 
     pub fn resolve_type(&self, name: &ExpandedName<'_>) -> Option<TopLevelType<'_>> {

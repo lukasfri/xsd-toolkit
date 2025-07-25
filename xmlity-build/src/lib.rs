@@ -115,7 +115,10 @@ impl BuildEngine {
 
         let resolver = Resolver::new();
 
-        map.explore_locations(&|url| resolver.resolve(url)).unwrap();
+        map.explore_locations(&|url| resolver.resolve(url))
+            .map(|a| a.map(|_| ()))
+            .collect::<Result<(), _>>()
+            .unwrap();
 
         let mut context = XmlnsContext::new();
         context.import_namespace_map(&map).unwrap();
