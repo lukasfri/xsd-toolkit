@@ -179,7 +179,7 @@ impl XmlSchemaSet {
     }
 
     // fn resolve_document(&self, location: &Url) -> Result<T, Self::Error>;
-    pub async fn explore_locations_async<
+    pub fn explore_locations_async<
     'a, 
         F: Future<Output = Result<xs::Schema, E>>,
         E,
@@ -201,8 +201,6 @@ impl XmlSchemaSet {
                 },
                 Err(e) => Some((Err(e), this)),
             }
-
-
         })
     }
 
