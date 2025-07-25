@@ -13,7 +13,6 @@ members = [
   "schemas/xmlity-ns-xml",
   "xsd-dynamic-query",
   "xsd-builtin",
-  "xsd-namespace-map",
 ]
 
 [workspace.package]

@@ -3,6 +3,8 @@ use std::ops::Deref;
 pub use xmlity_ns_xs as xs;
 pub mod xsn;
 pub use xmlity_ns as ns;
+mod link;
+pub mod set;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct XmlSchema {
@@ -23,8 +25,8 @@ impl XmlSchema {
         }
     }
 
-    pub fn namespace(&self) -> &xmlity::XmlNamespace<'static> {
-        &self.schema().target_namespace.as_ref().unwrap().0
+    pub fn namespace(&self) -> Option<&xmlity::XmlNamespace<'static>> {
+        self.schema().target_namespace.as_ref().map(|a| &a.0)
     }
 
     pub fn compositions(&self) -> impl Iterator<Item = &xs::groups::Composition> {
@@ -99,5 +101,3 @@ impl XmlSchema {
         })
     }
 }
-
-pub struct XmlSchemaContext {}

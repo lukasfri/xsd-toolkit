@@ -95,10 +95,7 @@ impl XmlnsContext {
             .collect::<Result<(), Error>>()
     }
 
-    pub fn import_namespace_map(
-        &mut self,
-        map: &xsd_namespace_map::XmlNamespaceMap,
-    ) -> Result<(), Error> {
+    pub fn import_namespace_map(&mut self, map: &xsd::set::XmlSchemaSet) -> Result<(), Error> {
         map.locations
             .iter()
             .filter_map(|(_, location)| location.as_ref())
@@ -113,20 +110,20 @@ impl XmlnsContext {
         schema
             .compositions()
             .map(|c| match c {
-                Composition::Include(include) => Ok(()),
-                Composition::Import(import) => Ok(()),
+                Composition::Include(_) => Ok(()),
+                Composition::Import(_) => Ok(()),
                 Composition::Redefine(redefine) => self.import_redefine(redefine),
                 Composition::Override(_) => todo!(),
-                Composition::Annotation(annotation) => Ok(()),
+                Composition::Annotation(_) => Ok(()),
             })
             .collect::<Result<(), Error>>()?;
 
-        let compiled_namespace = if let Some(compiled_namespace) = self.get_namespace_mut(namespace)
-        {
-            compiled_namespace
-        } else {
-            self.init_namespace(namespace.clone())
-        };
+        let compiled_namespace =
+            if let Some(compiled_namespace) = self.get_namespace_mut(namespace.unwrap()) {
+                compiled_namespace
+            } else {
+                self.init_namespace(namespace.unwrap().clone())
+            };
 
         compiled_namespace.import_schema(schema)
     }

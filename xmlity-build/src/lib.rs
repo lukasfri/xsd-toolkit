@@ -1,10 +1,13 @@
+use std::convert::Infallible;
 use std::{collections::HashSet, path::PathBuf, str::FromStr};
 
 use bon::Builder;
 use syn::parse_quote;
 use url::Url;
+use xmlity::types::utils::XmlRoot;
 use xmlity::{ExpandedName, XmlNamespace};
-use xsd::xsn;
+use xsd::set::XmlSchemaSet;
+use xsd::{xs, xsn};
 use xsd_codegen_xmlity::{
     augments::{
         AdditionalDerives, BonAugmentation, EnumFromAugmentation, ItemAugmentation,
@@ -15,12 +18,6 @@ use xsd_codegen_xmlity::{
 };
 use xsd_fragments::XmlnsContext;
 use xsd_fragments_transformer::XmlnsContextExt;
-use xsd_namespace_map::{
-    resolvers::{
-        reqwest::BlockingReqwestXmlSchemaResolver, std_fs::StdFsSchemaResolver, PossibleResolverExt,
-    },
-    GlobError, XmlNamespaceMap,
-};
 
 #[derive(Debug, Builder)]
 pub struct BuildEngine {
@@ -53,7 +50,7 @@ pub struct GenerateNamespace {
 #[derive(Debug, derive_more::derive::From, derive_more::derive::Display)]
 pub enum Error {
     #[display("glob pattern error {}", _0)]
-    GlobPath(GlobError),
+    GlobPath(xsd::set::GlobError),
 }
 
 pub struct StartedBuildEngine {
@@ -63,7 +60,7 @@ pub struct StartedBuildEngine {
 
 impl BuildEngine {
     pub fn start(self) -> Result<StartedBuildEngine, Error> {
-        let mut map = XmlNamespaceMap::new();
+        let mut map = XmlSchemaSet::new();
         self.glob_patterns
             .iter()
             .try_for_each(|pattern| map.inform_glob_pattern(pattern))?;
@@ -72,10 +69,53 @@ impl BuildEngine {
 
         map.inform_locations(urls);
 
-        let resolver = BlockingReqwestXmlSchemaResolver::default()
-            .try_possible(StdFsSchemaResolver::default(), |url| url.scheme() == "file");
+        struct Resolver {
+            client: reqwest::blocking::Client,
+        }
 
-        map.explore_locations(&resolver);
+        impl Resolver {
+            fn new() -> Self {
+                Self {
+                    client: reqwest::blocking::Client::new(),
+                }
+            }
+
+            fn resolve(&self, url: &Url) -> Result<xs::Schema, Infallible> {
+                let document = match url.scheme() {
+                    "http" | "https" => {
+                        let response = self.client.get(url.as_str()).send().unwrap();
+                        let schema_text = response.text().unwrap();
+
+                        xmlity_quick_xml::from_str::<XmlRoot<xs::Schema>>(schema_text.as_str())
+                            .unwrap()
+                    }
+                    "file" => {
+                        let schema_text = std::fs::read_to_string(url.path()).unwrap();
+
+                        xmlity_quick_xml::from_str::<XmlRoot<xs::Schema>>(schema_text.as_str())
+                            .unwrap()
+                    }
+                    _ => {
+                        todo!()
+                    }
+                };
+
+                let schema = document
+                    .elements
+                    .into_iter()
+                    .find_map(|e| match e {
+                        xmlity::types::utils::XmlRootTop::Value(e) => Some(e),
+                        _ => None,
+                    })
+                    .unwrap();
+
+                Ok(schema)
+            }
+        }
+
+        let resolver = Resolver::new();
+
+        map.explore_locations(&|url| resolver.resolve(url)).unwrap();
 
         let mut context = XmlnsContext::new();
         context.import_namespace_map(&map).unwrap();
