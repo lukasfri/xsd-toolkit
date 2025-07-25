@@ -35,5 +35,5 @@ rstest = "^0.25.0"
 ntest = "0.9.3"
 xmlity = { version = "0.0.7", features = [
   "derive",
-], git = "https://github.com/lukasfri/xmlity.git", rev = "fe3f75e83f6086b88618fe8d4b35ed18d7b535ae" }
-xmlity-quick-xml = { version = "0.0.7", git = "https://github.com/lukasfri/xmlity.git", rev = "fe3f75e83f6086b88618fe8d4b35ed18d7b535ae" }
+], git = "https://github.com/lukasfri/xmlity.git", rev = "2ec48735fe9992abebfeaa4bf83354204fd95a5e" }
+xmlity-quick-xml = { version = "0.0.7", git = "https://github.com/lukasfri/xmlity.git", rev = "2ec48735fe9992abebfeaa4bf83354204fd95a5e" }
