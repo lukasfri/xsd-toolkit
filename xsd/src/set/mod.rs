@@ -241,18 +241,18 @@ impl XmlSchemaSet {
     pub fn resolve_type_inheritance<'a>(
         &'a self,
         name: &'a ExpandedName<'static>,
-    ) -> impl Iterator<Item = TopLevelType<'a>> + 'a {
+    ) -> impl Iterator<Item = (ExpandedName<'a>, TopLevelType<'a>)> + 'a {
         struct ResolveRecursiveBase<'a> {
             name: Option<ExpandedName<'static>>,
             xsd: &'a XmlSchemaSet,
         }
 
         impl<'a> Iterator for ResolveRecursiveBase<'a> {
-            type Item = TopLevelType<'a>;
+            type Item = (ExpandedName<'a>, TopLevelType<'a>);
 
             fn next(&mut self) -> Option<Self::Item> {
                 let current_name = self.name.take()?;
-                let (local_name, namespace) = current_name.into_parts();
+                let (local_name, namespace) = current_name.clone().into_parts();
 
                 let type_and_base = self
                     .xsd
@@ -332,7 +332,7 @@ impl XmlSchemaSet {
 
                 self.name = base;
 
-                Some(type_)
+                Some((current_name, type_))
             }
         }
 
