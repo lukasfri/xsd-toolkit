@@ -240,15 +240,15 @@ impl XmlSchemaSet {
 
     pub fn resolve_type_inheritance<'a>(
         &'a self,
-        name: &'a ExpandedName<'static>,
-    ) -> impl Iterator<Item = (ExpandedName<'a>, TopLevelType<'a>)> + 'a {
+        name: &'a ExpandedName<'a>,
+    ) -> impl Iterator<Item = (&'a ExpandedName<'a>, TopLevelType<'a>)> + 'a {
         struct ResolveRecursiveBase<'a> {
-            name: Option<ExpandedName<'static>>,
+            name: Option<&'a ExpandedName<'a>>,
             xsd: &'a XmlSchemaSet,
         }
 
         impl<'a> Iterator for ResolveRecursiveBase<'a> {
-            type Item = (ExpandedName<'a>, TopLevelType<'a>);
+            type Item = (&'a ExpandedName<'a>, TopLevelType<'a>);
 
             fn next(&mut self) -> Option<Self::Item> {
                 let current_name = self.name.take()?;
@@ -274,7 +274,7 @@ impl XmlSchemaSet {
 
                                             let base = match simple_type.simple_derivation.deref() {
                                                 SimpleDerivation::Restriction(restriction) => match restriction.deref() {
-                                                    xmlity_ns_xs::Restriction::Restriction(restriction) => restriction.base.as_ref().map(|a| a.0.clone()),
+                                                    xmlity_ns_xs::Restriction::Restriction(restriction) => restriction.base.as_ref().map(|a| &a.0),
                                                     xmlity_ns_xs::Restriction::SubstitutionGroup(_) => None,
                                                 },
                                                 SimpleDerivation::List(_) => None,
@@ -299,15 +299,15 @@ impl XmlSchemaSet {
                                             let base = match complex_type.complex_type_model.deref() {
                                                 ComplexTypeModel::SimpleContent(simple_content) => match simple_content.deref() {
                                                     SC::SimpleContent(simple_content) => match &simple_content.child_1 {
-                                                        SCC1::Restriction(restriction) => Some(restriction.base.0.clone()),
-                                                        SCC1::Extension(extension) => Some(extension.base.0.clone()),
+                                                        SCC1::Restriction(restriction) => Some(&restriction.base.0),
+                                                        SCC1::Extension(extension) => Some(&extension.base.0),
                                                     },
                                                     SC::SubstitutionGroup(_) => None,
                                                 },
                                                 ComplexTypeModel::ComplexContent(complex_content) => match complex_content.deref() {
                                                     CC::ComplexContent(complex_content) => match &complex_content.child_1 {
-                                                        CCC1::Restriction(restriction) => Some(restriction.base.0.clone()),
-                                                        CCC1::Extension(extension) => Some(extension.base.0.clone()),
+                                                        CCC1::Restriction(restriction) => Some(&restriction.base.0),
+                                                        CCC1::Extension(extension) => Some(&extension.base.0),
                                                     },
                                                     CC::SubstitutionGroup(_) => None,
                                                 },
@@ -337,7 +337,7 @@ impl XmlSchemaSet {
         }
 
         ResolveRecursiveBase {
-            name: Some(name.clone()),
+            name: Some(name),
             xsd: self,
         }
     }
