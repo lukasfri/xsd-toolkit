@@ -4,6 +4,7 @@ pub use xmlity_ns_xs as xs;
 pub mod xsn;
 pub use xmlity_ns as ns;
 mod link;
+pub use link::UrlExt;
 pub mod set;
 
 #[derive(Debug, Clone, PartialEq)]
