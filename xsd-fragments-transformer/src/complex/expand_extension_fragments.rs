@@ -32,8 +32,6 @@ pub enum Error {
     BaseNotFound { base: ExpandedName<'static> },
     #[error("Base {base} is not a complex type")]
     BaseNotComplexType { base: ExpandedName<'static> },
-    #[error("Base {base} is not a restriction of \"xs:anyType\"")]
-    ExpandingNonAnyTypeRestriction { base: ExpandedName<'static> },
 }
 
 impl ExpandExtensionFragments {
@@ -228,9 +226,8 @@ impl ExpandExtensionFragments {
                                 .unwrap();
 
                             if base_restriction_fragment.base != *xsn::ANY_TYPE {
-                                return Err(Error::ExpandingNonAnyTypeRestriction {
-                                    base: base_restriction_fragment.base.clone(),
-                                });
+                                // Cannot expand a restriction of a non-anyType type.
+                                return Ok(TransformChange::Unchanged);
                             }
 
                             (
