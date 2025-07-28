@@ -17,8 +17,7 @@ impl UrlExt for Url {
             Err(url::ParseError::RelativeUrlWithoutBase) => {
                 let mut url = self.clone();
 
-                url.path_segments_mut().unwrap().pop();
-                url.path_segments_mut().unwrap().push(path);
+                url = url.join(path)?;
                 if let Some(fragment) = fragment {
                     url.set_fragment(Some(fragment));
                 }
@@ -49,9 +48,20 @@ mod tests {
         "107-01-SchemaContainingALinkbase.xsd#labelLinkbase",
         Url::from_str("file:///XBRL-CONF-2025-01-14/Common/100-schema/107-01-SchemaContainingALinkbase.xsd#labelLinkbase").unwrap()
     )]
+    #[case::relative_file(
+        Url::from_str("https://xbrl.taxonomier.se/se/fr/gaap/k2-all/ab/risbs/2024-09-12/se-k2-ab-risbs-2024-09-12.xsd").unwrap(),
+        "../../form/se-k2-ab-fdisc/2024-09-12/se-k2-ab-fdisc-2024-09-12.xsd",
+        Url::from_str("https://xbrl.taxonomier.se/se/fr/gaap/k2-all/ab/form/se-k2-ab-fdisc/2024-09-12/se-k2-ab-fdisc-2024-09-12.xsd").unwrap()
+    )]
+    #[case::relative_file(
+        Url::from_str("https://xbrl.taxonomier.se/se/fr/gaap/k2-all/ab/form/se-k2-ab-fdisc/2024-09-12/se-k2-ab-fdisc-2024-09-12.xsd").unwrap(),
+        "../../../../../../../common/domain/gaap/se-k2-all-ext/ab/2024-09-12/se-k2-ab-ext-2024-09-12.xsd",
+        Url::from_str("https://xbrl.taxonomier.se/se/common/domain/gaap/se-k2-all-ext/ab/2024-09-12/se-k2-ab-ext-2024-09-12.xsd").unwrap()
+    )]
     fn resolve_xml_url_test(#[case] base: Url, #[case] relative: &str, #[case] expected: Url) {
         let actual = base.resolve_xml_url(relative).unwrap();
 
+        assert_eq!(actual.to_string(), expected.to_string());
         assert_eq!(actual, expected);
     }
 }
