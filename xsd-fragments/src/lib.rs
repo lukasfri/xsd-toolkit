@@ -1,17 +1,20 @@
 use std::collections::BTreeMap;
 use std::ops::Deref;
 
+use url::Url;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd::xs;
+use xsd::{xs, UrlExt};
 
 use crate::fragments::{FragmentIdx, NamespaceIdx};
 pub mod fragments;
 use crate::fragments::complex::ComplexFragmentEquivalent;
 use crate::fragments::simple::SimpleFragmentEquivalent;
 
-#[derive(Debug)]
+#[derive(Debug, derive_more::derive::From, derive_more::derive::Display)]
 pub enum Error {
+    #[display("Tried to import an existing entity")]
     ImportOfExistingEntity,
+    #[display("Tried to import a namespace that does not exist")]
     NonExistentXmlNamespace { namespace: XmlNamespace<'static> },
 }
 
@@ -95,17 +98,69 @@ impl XmlnsContext {
             .collect::<Result<(), Error>>()
     }
 
-    pub fn import_namespace_map(&mut self, map: &xsd::set::XmlSchemaSet) -> Result<(), Error> {
-        map.locations
-            .iter()
-            .filter_map(|(_, location)| location.as_ref())
-            .map(|location| self.import_schema(&location.schema))
-            .collect::<Result<(), Error>>()
+    pub fn import_namespace_map(
+        &mut self,
+        map: &xsd::set::XmlSchemaSet,
+        location_url: &url::Url,
+        known_namespace: Option<&XmlNamespace<'static>>,
+    ) -> Result<(), Error> {
+        let location = map
+            .locations
+            .get(location_url)
+            .expect("Expected a location for the origin URL");
+
+        let location = location
+            .as_ref()
+            .expect("Expected the origin location to be loaded");
+
+        self.import_schema(known_namespace, &location.schema)?;
+
+        location
+            .schema
+            .imports()
+            .filter_map(|a| match a {
+                xs::Import::Import(include) => Some(include),
+                _ => None,
+            })
+            .try_for_each(|a| {
+                let Some(schema_location) = a.schema_location.as_ref() else {
+                    return Ok(());
+                };
+
+                let location_url = location_url
+                    .resolve_xml_url(schema_location.0.as_str())
+                    .expect("Expected a valid URL");
+
+                self.import_namespace_map(map, &location_url, a.namespace.as_ref().map(|a| &a.0))
+            })?;
+
+        location
+            .schema
+            .includes()
+            .filter_map(|a| match a {
+                xs::Include::Include(include) => Some(include),
+                _ => None,
+            })
+            .try_for_each(|a| {
+                let location_url = location_url
+                    .resolve_xml_url(a.schema_location.0.as_str())
+                    .expect("Expected a valid URL");
+
+                self.import_namespace_map(map, &location_url, known_namespace)
+            })?;
+
+        Ok(())
     }
 
-    pub fn import_schema(&mut self, schema: &xsd::XmlSchema) -> Result<(), Error> {
+    pub fn import_schema(
+        &mut self,
+        known_namespace: Option<&XmlNamespace<'static>>,
+        schema: &xsd::XmlSchema,
+    ) -> Result<(), Error> {
         use xs::groups::Composition;
-        let namespace = schema.namespace();
+        let namespace = schema
+            .namespace()
+            .unwrap_or(known_namespace.expect("Expected a namespace"));
 
         schema
             .compositions()
@@ -118,12 +173,12 @@ impl XmlnsContext {
             })
             .collect::<Result<(), Error>>()?;
 
-        let compiled_namespace =
-            if let Some(compiled_namespace) = self.get_namespace_mut(namespace.unwrap()) {
-                compiled_namespace
-            } else {
-                self.init_namespace(namespace.unwrap().clone())
-            };
+        let compiled_namespace = if let Some(compiled_namespace) = self.get_namespace_mut(namespace)
+        {
+            compiled_namespace
+        } else {
+            self.init_namespace(namespace.clone())
+        };
 
         compiled_namespace.import_schema(schema)
     }

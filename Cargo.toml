@@ -11,6 +11,7 @@ members = [
   "schemas/xmlity-ns-xs",
   "schemas/xmlity-ns-xsi",
   "schemas/xmlity-ns-xml",
+  "schemas/xbrl-xsd",
   "xsd-dynamic-query",
   "xsd-builtin",
 ]
@@ -29,6 +30,8 @@ xmlity-ns-xs = { path = "schemas/xmlity-ns-xs" }
 xmlity-ns-xsi = { path = "schemas/xmlity-ns-xsi" }
 xmlity-ns-xml = { path = "schemas/xmlity-ns-xml" }
 xmlity-ns = { path = "schemas/xmlity-ns" }
+xmlity-build = { path = "xmlity-build" }
+xbrl-xsd = { path = "schemas/xbrl-xsd" }
 thiserror = "^2.0.4"
 pretty_assertions = "^1.4.1"
 rstest = "^0.25.0"
@@ -37,3 +40,5 @@ xmlity = { version = "0.0.7", features = [
   "derive",
 ], git = "https://github.com/lukasfri/xmlity.git", rev = "bbe4652a2c9e6d5ebc1cca9dbef76428cfafd55a" }
 xmlity-quick-xml = { version = "0.0.7", git = "https://github.com/lukasfri/xmlity.git", rev = "bbe4652a2c9e6d5ebc1cca9dbef76428cfafd55a" }
+url = { version = "2.5.4" }
+derive_more = { version = "2.0.1", features = ["full"] }

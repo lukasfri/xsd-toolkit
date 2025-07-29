@@ -11,13 +11,13 @@ license.workspace = true
 thiserror.workspace = true
 bon = "3.6.3"
 xmlity.workspace = true
-derive_more = { version = "2.0.1", features = ["full"] }
+derive_more.workspace = true
 xmlity-ns-xml.workspace = true
 xmlity-ns-xs.workspace = true
 xmlity-ns.workspace = true
 
 [build-dependencies]
-xmlity-build = { path = "../../xmlity-build" }
+xmlity-build.workspace = true
 syn = { version = "2.0.29", features = ["full", "extra-traits"] }
 xmlity.workspace = true
 

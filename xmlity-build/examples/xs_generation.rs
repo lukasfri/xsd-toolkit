@@ -28,15 +28,6 @@ fn main() {
                 },
             ),
             (
-                ExpandedName::new(LocalName::new_dangerous("anyURI"), Some(XmlNamespace::XS)),
-                BoundType {
-                    ty: TypeReference::new_static(parse_quote!(crate::types::TargetNamespace)),
-                    ty_type: TypeType::Simple,
-                    serialize_with: None,
-                    deserialize_with: None,
-                },
-            ),
-            (
                 ExpandedName::new(LocalName::new_dangerous("NCName"), Some(XmlNamespace::XS)),
                 BoundType {
                     ty: TypeReference::new_static(parse_quote!(::xmlity::LocalName<'static>)),

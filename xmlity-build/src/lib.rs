@@ -1,9 +1,13 @@
 use std::convert::Infallible;
-use std::{collections::HashSet, path::PathBuf, str::FromStr};
+use std::{collections::HashSet, path::PathBuf};
 
 use bon::Builder;
 use syn::parse_quote;
+pub mod reexports {
+    pub use url;
+}
 use url::Url;
+
 use xmlity::types::utils::XmlRoot;
 use xmlity::{ExpandedName, XmlNamespace};
 use xsd::set::XmlSchemaSet;
@@ -24,7 +28,7 @@ pub struct BuildEngine {
     #[builder(default)]
     pub glob_patterns: Vec<String>,
     #[builder(default)]
-    pub urls: Vec<String>,
+    pub urls: Vec<url::Url>,
     #[builder(default = true)]
     pub url_net_resolution: bool,
     #[builder(default)]
@@ -51,6 +55,10 @@ pub struct GenerateNamespace {
 pub enum Error {
     #[display("glob pattern error {}", _0)]
     GlobPath(xsd::set::GlobError),
+    #[display("Error when writing output file {}: {}", _1.display(), _0)]
+    FileWriteError(std::io::Error, PathBuf),
+    #[display("Error when importing namespace map: {}", _0)]
+    XsdFragmentImportError(#[from] xsd_fragments::Error),
 }
 
 pub struct StartedBuildEngine {
@@ -65,9 +73,9 @@ impl BuildEngine {
             .iter()
             .try_for_each(|pattern| map.inform_glob_pattern(pattern))?;
 
-        let urls = self.urls.iter().map(|url| Url::from_str(url).unwrap());
+        map.inform_locations(self.urls.iter().cloned());
 
-        map.inform_locations(urls);
+        let root_uris = map.locations.keys().cloned().collect::<Vec<_>>();
 
         struct Resolver {
             client: reqwest::blocking::Client,
@@ -121,7 +129,10 @@ impl BuildEngine {
             .unwrap();
 
         let mut context = XmlnsContext::new();
-        context.import_namespace_map(&map).unwrap();
+
+        root_uris
+            .iter()
+            .try_for_each(|uri| context.import_namespace_map(&map, uri, None))?;
 
         let allowed_simple_bases: HashSet<ExpandedName<'static>> = [
             &xsn::DECIMAL,
@@ -236,7 +247,8 @@ impl StartedBuildEngine {
 
         let output = prettyplease::unparse(&file);
 
-        std::fs::write(&generate_namespace.output_file, output).unwrap();
+        std::fs::write(&generate_namespace.output_file, output)
+            .map_err(|e| Error::FileWriteError(e, generate_namespace.output_file.clone()))?;
 
         Ok(())
     }

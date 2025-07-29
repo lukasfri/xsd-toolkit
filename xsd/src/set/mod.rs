@@ -106,14 +106,23 @@ impl XmlSchemaSet {
                 self.inform_location(location);
             });
 
-        // let includes = schema
-        //     .includes()
-        //     .map(|a| match a {
-        //         xs::Include::Include(a) => a,
-        //         _ => panic!("Expected an include, but found: {:?}", a),
-        //     })
-        //     .map(|a| url.resolve_xml_url(a.schema_location.0.as_str()).unwrap())
-        //     .collect::<HashSet<_>>();
+         let includes = schema
+            .includes()
+            .map(|a| match a {
+                xs::Include::Include(a) => a,
+                _ => panic!("Expected an include, but found: {:?}", a),
+            })
+            .map(|a| {
+                let location = url.resolve_xml_url(a.schema_location.0.as_str()).unwrap();
+
+                location
+            })
+            .collect::<Vec<_>>();
+
+            includes.iter()
+            .for_each(|location| {
+                self.inform_location(&location);
+            });
 
         let location = SchemaLocation { schema };
 
