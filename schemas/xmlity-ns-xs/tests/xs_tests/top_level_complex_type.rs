@@ -627,7 +627,6 @@ fn xsd_all() -> xs::ComplexType {
                                         xs::types::Attribute::builder()
                                             .name(LocalName::new_dangerous("minOccurs"))
                                             .default("1".to_string())
-                                            // .use_(xs::AttributeUseType::Optional)
                                             .use_(xs::types::attribute_items::UseValue::Optional)
                                             .simple_type(
                                                 xs::types::LocalSimpleType::builder()
@@ -677,7 +676,6 @@ fn xsd_all() -> xs::ComplexType {
                                             .name(LocalName::new_dangerous("maxOccurs"))
                                             .default("1".to_string())
                                             .use_(xs::types::attribute_items::UseValue::Optional)
-                                            // .use_(xs::AttributeUseType::Optional)
                                             .simple_type(
                                                 xs::types::LocalSimpleType::builder()
                                                     .simple_derivation(Box::new(
@@ -746,14 +744,7 @@ fn xsd_all() -> xs::ComplexType {
 
 const XSD_WILDCARD: &str = r###"
 <xs:complexType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="wildcard">
-  <xs:complexContent>ration::builder()
-                                                            //     .value("0".to_string())
-                                                            //     .build()
-                                                            //     .into(),
-                                                            // xs::Enumeration::builder()
-                                                            //     .value("1".to_string())
-                                                            //     .build()
-                                                            //     .into(),
+  <xs:complexContent>
     <xs:extension base="xs:annotated">
 
         <xs:attributeGroup ref="xs:anyAttrGroup"/>

@@ -30,3 +30,7 @@ xmlity-quick-xml.workspace = true
 [features]
 default = ["xhtml1_strict"]
 xhtml1_strict = []
+
+[lints.clippy]
+unnecessary_fallible_conversions = "allow"
+large_enum_variant = "allow"

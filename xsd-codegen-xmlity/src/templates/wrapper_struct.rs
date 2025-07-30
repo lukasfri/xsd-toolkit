@@ -14,19 +14,6 @@ impl TryFromStruct<'_> {
             }
         )
     }
-
-    // pub fn to_impl(&self, enum_type: &syn::Type, error_path: &syn::Type) -> syn::ItemImpl {
-    //     let repr_type = &self.repr_type;
-    //     parse_quote!(
-    //         impl ::core::convert::TryFrom<#repr_type> for #enum_type {
-    //             type Error = #error_path;
-
-    //             fn try_from(value: #repr_type) -> ::core::result::Result<Self, Self::Error> {
-    //                 Ok(Self(value))
-    //             }
-    //         }
-    //     )
-    // }
 }
 
 pub struct StructInto<'a> {

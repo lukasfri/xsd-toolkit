@@ -158,7 +158,7 @@ impl<'a> ParsedFacets<'a> {
                     return false; // No assertion to add
                 };
 
-                if self.assertions.iter().any(|e| *e == test) {
+                if self.assertions.contains(&test) {
                     true // The assertion is already present
                 } else {
                     self.assertions.push(test);
@@ -270,14 +270,14 @@ impl IdentifySimpleType for FragmentIdx<sm::RestrictionFragment> {
             if parsed_facets
                 .enumerations
                 .iter()
-                .any(|e| e.0.trim() == &value)
+                .any(|e| e.0.trim() == value)
             {
-                return Ok(Some(NamedOrAnonymous::Anonymous(*self)));
+                Ok(Some(NamedOrAnonymous::Anonymous(*self)))
             } else {
-                return Ok(None);
+                Ok(None)
             }
         } else {
-            return Ok(Some(NamedOrAnonymous::Anonymous(*self)));
+            Ok(Some(NamedOrAnonymous::Anonymous(*self)))
         }
     }
 }
@@ -400,7 +400,7 @@ impl IdentifySimpleType for NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragm
     }
 }
 
-struct AllowAll(ExpandedName<'static>);
+pub struct AllowAll(ExpandedName<'static>);
 
 impl IdentifySimpleType for AllowAll {
     fn identify_simple_type(

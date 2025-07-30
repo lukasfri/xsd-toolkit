@@ -82,7 +82,7 @@ impl ExpandExtensionFragments {
                 LocalAttributeFragmentTypeMode::Declared(local) => {
                     ExpandedName::new(local.name.clone(), None)
                 }
-                LocalAttributeFragmentTypeMode::Reference(ref_) => ref_.name.clone(),
+                LocalAttributeFragmentTypeMode::Reference(ref_) => ref_.ref_.clone(),
             }
         }
 
@@ -818,7 +818,6 @@ mod tests {
         //     <xs:complexType>
         //     <xs:complexContent>
         //         <xs:extension base="Block">
-        //         <xs:attributeGroup ref="attrs"/>
         //         </xs:extension>
         //     </xs:complexContent>
         //     </xs:complexType>
@@ -836,20 +835,7 @@ mod tests {
                                             LocalName::new_dangerous("Block"),
                                             Some(XmlNamespace::XHTML),
                                         )))
-                                        .attr_decls(
-                                            xs::groups::AttrDecls::builder()
-                                                .attribute(vec![
-                                                // xs::AttributeGroupRefType::builder()
-                                                // .ref_(xs::types::QName(ExpandedName::new(
-                                                //     LocalName::new_dangerous("attrs"),
-                                                //     Some(XmlNamespace::XHTML),
-                                                // )))
-                                                // .build()
-                                                // .into()
-                                                ])
-                                                .build()
-                                                .into(),
-                                        )
+                                        .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                         .assertions(
                                             xs::groups::Assertions::builder().build().into(),
                                         )
@@ -933,15 +919,6 @@ mod tests {
                                     )
                                     .attr_decls(
                                         xs::groups::AttrDecls::builder()
-                                            .attribute(vec![
-                                                // xs::AttributeGroupRefType::builder()
-                                                // .ref_(xs::types::QName(ExpandedName::new(
-                                                //     LocalName::new_dangerous("attrs"),
-                                                //     Some(XmlNamespace::XHTML),
-                                                // )))
-                                                // .build()
-                                                // .into()
-                                            ])
                                             .build()
                                             .into(),
                                     )

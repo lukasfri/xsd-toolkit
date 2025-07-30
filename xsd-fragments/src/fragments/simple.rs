@@ -5,7 +5,8 @@ use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
 use crate::{
     fragments::{
-        FragmentAccess, FragmentCollection, FragmentIdx, HasFragmentCollection, NamespaceIdx,
+        complex::XmlNamespaceExt, FragmentAccess, FragmentCollection, FragmentIdx,
+        HasFragmentCollection, NamespaceIdx,
     },
     NamedOrAnonymous,
 };
@@ -986,7 +987,16 @@ impl SimpleFragmentEquivalent for xs::Union {
         let member_types = union
             .member_types
             .as_ref()
-            .map(|member_type| member_type.0.iter().map(|a| a.0.clone()).collect())
+            .map(|member_type| {
+                member_type
+                    .0
+                    .iter()
+                    .map(|a| {
+                        a.0.clone()
+                            .with_default_namespace(|| compiler.namespace.clone())
+                    })
+                    .collect()
+            })
             .unwrap_or_default();
 
         let simple_types = union
@@ -1191,75 +1201,3 @@ impl SimpleFragmentEquivalent for xs::groups::SimpleDerivation {
         }
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use xmlity::{ExpandedName, LocalName};
-//     use xs::{
-//         Facet as XsdFacet, QName, SimpleDerivation, SimpleRestrictionType, TopLevelSimpleType,
-//     };
-
-//     use super::*;
-
-//     #[test]
-//     fn convert_annotated_to_fragments() {
-//         let namespace = XmlNamespace::new_dangerous("http://localhost");
-
-//         let mut fragment_compiler = SimpleTypeFragmentCompiler::new(namespace.clone());
-
-//         // <xs:simpleType name="formChoice">
-//         //     <xs:annotation>
-//         //         <xs:documentation>
-//         //     A utility type, not for public use</xs:documentation>
-//         //     </xs:annotation>
-//         //     <xs:restriction base="xs:NMTOKEN">
-//         //         <xs:enumeration value="qualified"/>
-//         //         <xs:enumeration value="unqualified"/>
-//         //     </xs:restriction>
-//         // </xs:simpleType>
-//         let id = TopLevelSimpleType {
-//             id: None,
-//             name: LocalName::new_dangerous("annotated"),
-//             final_: None,
-//             annotation: None,
-//             content: SimpleDerivation::Restriction(Box::new(SimpleRestrictionType {
-//                 id: None,
-//                 base: QName(ExpandedName::new(
-//                     LocalName::new_dangerous("NMTOKEN"),
-//                     Some(XmlNamespace::XS),
-//                 )),
-//                 annotation: None,
-//                 simple_type: None,
-//                 facets: vec![
-//                     XsdFacet::Enumeration(Box::new(xs::Enumeration {
-//                         fixed: None,
-//                         value: "qualified".to_string(),
-//                     })),
-//                     XsdFacet::Enumeration(Box::new(xs::Enumeration {
-//                         fixed: None,
-//                         value: "unqualified".to_string(),
-//                     })),
-//                 ],
-//             })),
-//         }
-//         .to_simple_fragments(&mut fragment_compiler);
-
-//         assert_eq!(id, FragmentId(namespace, FragmentIdx(2)));
-//         assert_eq!(fragment_compiler.fragments.len(), 3);
-
-//         assert!(matches!(
-//             fragment_compiler.fragments[&FragmentIdx(0)],
-//             SimpleTypeFragment::Facet(Facet::Enumeration { .. })
-//         ));
-//         assert!(matches!(
-//             fragment_compiler.fragments[&FragmentIdx(1)],
-//             SimpleTypeFragment::Facet(Facet::Enumeration { .. })
-//         ));
-//         assert!(matches!(
-//             fragment_compiler.fragments[&FragmentIdx(2)],
-//             SimpleTypeFragment::Restriction(_)
-//         ));
-
-//         println!("{:#?}", fragment_compiler);
-//     }
-// }

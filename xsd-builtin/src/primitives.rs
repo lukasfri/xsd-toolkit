@@ -2,7 +2,7 @@
 //TODO: - https://www.w3.org/TR/2012/REC-xmlschema11-2-20120405/datatypes.html#cos-applicable-facets
 use std::num::NonZeroUsize;
 
-use crate::facets::{fundamental::*, numeric::*, special::*, PossibleFacet, RequiredFacet};
+use crate::facets::{fundamental::*, special::*, PossibleFacet, RequiredFacet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pattern<'a>(pub &'a str);

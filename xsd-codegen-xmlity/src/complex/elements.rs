@@ -111,7 +111,7 @@ impl ComplexToTypeTemplate for cx::ReferenceElementFragment {
         context: &C,
         _scope: &mut S,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let ty = context.resolve_named_element(&self.name)?;
+        let ty = context.resolve_named_element(&self.ref_)?;
 
         let template = ItemFieldItem {
             ty,
@@ -120,7 +120,7 @@ impl ComplexToTypeTemplate for cx::ReferenceElementFragment {
         };
 
         Ok(ToTypeTemplateData {
-            ident: Some(self.name.local_name().to_item_ident()),
+            ident: Some(self.ref_.local_name().to_item_ident()),
             template,
         })
     }
@@ -558,7 +558,6 @@ mod tests {
                                                             xsn::INTEGER.clone(),
                                                         ))
                                                         .use_(xs::types::attribute_items::UseValue::Required)
-                                                        // .use_(xs::types::AttributeUseType::Required)
                                                         .build()
                                                         .into(),
                                                     xs::types::Attribute::builder()
@@ -567,7 +566,6 @@ mod tests {
                                                             xsn::STRING.clone(),
                                                         ))
                                                         .use_(xs::types::attribute_items::UseValue::Required)
-                                                        // .use_(xs::types::AttributeUseType::Required)
                                                         .build()
                                                         .into(),
                                                 ])
@@ -842,14 +840,12 @@ mod tests {
                                                 xs::types::Attribute::builder()
                                                     .name(LocalName::new_dangerous("c"))
                                                     .type_(xs::types::QName(xsn::INTEGER.clone()))
-                                                    // .use_(xs::AttributeUseType::Required)
                                                     .use_(xs::types::attribute_items::UseValue::Required)
                                                     .build()
                                                     .into(),
                                                 xs::types::Attribute::builder()
                                                     .name(LocalName::new_dangerous("d"))
                                                     .type_(xs::types::QName(xsn::STRING.clone()))
-                                                    // .use_(xs::AttributeUseType::Required)
                                                     .use_(xs::types::attribute_items::UseValue::Required)
                                                     .build()
                                                     .into(),

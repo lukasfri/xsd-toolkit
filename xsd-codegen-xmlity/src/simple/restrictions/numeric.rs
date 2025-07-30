@@ -8,6 +8,7 @@ use syn::parse_quote;
 use xsd_dynamic_query::ParsedFacets;
 use xsd_fragments::fragments::simple as sm;
 
+#[allow(dead_code)]
 pub trait NumericBaseValue: FromStr<Err: Debug> {
     fn to_pattern(&self) -> syn::Pat;
 
@@ -408,22 +409,22 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: NumericBaseValue> Rest
         let enum_with_ident = format_ident!("{}_with", ident.to_path_ident());
         let error_ident = format_ident!("{}ParseError", ident.to_item_ident());
 
-        let facets = facets.into_iter().map(|a| *a).collect::<ParsedFacets>();
+        let facets = facets.iter().copied().collect::<ParsedFacets>();
 
         if facets.enumerations.is_empty() {
             // Becoming a wrapping struct for the base type
-            let min_inclusive = facets
-                .min_inclusive
-                .map(|s| T::from_str(&s.0).expect("Failed to parse min inclusive value"));
-            let min_exclusive = facets
-                .min_exclusive
-                .map(|s| T::from_str(&s.0).expect("Failed to parse min exclusive value"));
-            let max_inclusive = facets
-                .max_inclusive
-                .map(|s| T::from_str(&s.0).expect("Failed to parse max inclusive value"));
-            let max_exclusive = facets
-                .max_exclusive
-                .map(|s| T::from_str(&s.0).expect("Failed to parse max exclusive value"));
+            // let min_inclusive = facets
+            //     .min_inclusive
+            //     .map(|s| T::from_str(&s.0).expect("Failed to parse min inclusive value"));
+            // let min_exclusive = facets
+            //     .min_exclusive
+            //     .map(|s| T::from_str(&s.0).expect("Failed to parse min exclusive value"));
+            // let max_inclusive = facets
+            //     .max_inclusive
+            //     .map(|s| T::from_str(&s.0).expect("Failed to parse max inclusive value"));
+            // let max_exclusive = facets
+            //     .max_exclusive
+            //     .map(|s| T::from_str(&s.0).expect("Failed to parse max exclusive value"));
 
             let struct_def = templates::wrapper_struct::WrapperStruct {
                 struct_ident: ident.to_item_ident(),

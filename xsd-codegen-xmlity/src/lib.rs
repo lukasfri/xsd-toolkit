@@ -663,27 +663,24 @@ impl<'a> Generator<'a> {
 
         let types_module_name = format_ident!("types");
 
-        self.generate_types_module(namespace, &types_module_name)?
-            .map(Item::Mod)
-            .map(|mod_item| {
-                items.push(mod_item);
-            });
+        items.extend(
+            self.generate_types_module(namespace, &types_module_name)?
+                .map(Item::Mod),
+        );
 
         let attributes_module_name = format_ident!("attributes");
 
-        self.generate_attributes_module(namespace, &attributes_module_name)?
-            .map(Item::Mod)
-            .map(|mod_item| {
-                items.push(mod_item);
-            });
+        items.extend(
+            self.generate_attributes_module(namespace, &attributes_module_name)?
+                .map(Item::Mod),
+        );
 
         let groups_module_name = format_ident!("groups");
 
-        self.generate_groups_module(namespace, &groups_module_name)?
-            .map(Item::Mod)
-            .map(|mod_item| {
-                items.push(mod_item);
-            });
+        items.extend(
+            self.generate_groups_module(namespace, &groups_module_name)?
+                .map(Item::Mod),
+        );
 
         for expanded_name in compiled_namespace
             .top_level_elements
@@ -709,7 +706,7 @@ impl<'a> Generator<'a> {
     }
 
     pub fn generate_type(&self, name: &xmlity::ExpandedName<'_>) -> Result<(BoundType, Vec<Item>)> {
-        let namespace = name.namespace().ok_or_else(|| Error::NoNamespace)?;
+        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
 
         let compiled_namespace =
             self.context
@@ -902,7 +899,7 @@ impl<'a> Generator<'a> {
         &self,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
-        let namespace = name.namespace().ok_or_else(|| Error::NoNamespace)?;
+        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
 
         let compiled_namespace =
             self.context
@@ -1000,7 +997,7 @@ impl<'a> Generator<'a> {
         &self,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
-        let namespace = name.namespace().ok_or_else(|| Error::NoNamespace)?;
+        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
 
         let compiled_namespace =
             self.context
@@ -1051,7 +1048,7 @@ impl<'a> Generator<'a> {
         &self,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
-        let namespace = name.namespace().ok_or_else(|| Error::NoNamespace)?;
+        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
 
         let compiled_namespace =
             self.context

@@ -1,5 +1,6 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xmlity_ns_xs as xs;
+use xmlity_quick_xml::to_string;
 
 #[rstest::rstest]
 #[case::schema(XSD_SCHEMA, None)]
@@ -156,9 +157,9 @@ fn xsd_any_attribute() -> xs::Element {
                 xs::annotation_items::Annotation::builder()
                     .annotation_content(vec![xs::Documentation::from(
                         xs::documentation_items::Documentation::builder()
-                            .source(xs::types::TargetNamespace(XmlNamespace::new_dangerous(
-                                "../structures/structures.html#element-anyAttribute",
-                            )))
+                            .source(
+                                "../structures/structures.html#element-anyAttribute".to_string(),
+                            )
                             .any_attributes(xmlity_ns::AnyAttributes::default())
                             .build(),
                     )
@@ -186,7 +187,6 @@ fn xsd_any_attribute() -> xs::Element {
                                                     LocalName::new_dangerous("qnameListA"),
                                                     Some(XmlNamespace::XS),
                                                 )))
-                                                // .use_(xs::AttributeUseType::Optional)
                                                 .use_(
                                                     xs::types::attribute_items::UseValue::Optional,
                                                 )
@@ -805,9 +805,7 @@ fn xsd_total_digits() -> xs::Element {
         .annotation(
             xs::Annotation::from(xs::annotation_items::Annotation::builder()
                 .annotation_content(vec![xs::Documentation::from(xs::documentation_items::Documentation::builder()
-                    .source(xs::types::TargetNamespace(XmlNamespace::new_dangerous(
-                        "http://www.w3.org/TR/xmlschema11-2/#element-totalDigits",
-                    )))
+                    .source("http://www.w3.org/TR/xmlschema11-2/#element-totalDigits".to_string())
                     .any_attributes(xmlity_ns::AnyAttributes::default())
                     .build())
                     .into()])
@@ -986,9 +984,9 @@ fn xsd_white_space() -> xs::Element {
             .annotation(
                 xs::Annotation::from(xs::annotation_items::Annotation::builder()
                     .annotation_content(vec![xs::Documentation::from(xs::documentation_items::Documentation::builder()
-                        .source(xs::types::TargetNamespace(XmlNamespace::new_dangerous(
-                            "http://www.w3.org/TR/xmlschema11-2/#element-whiteSpace",
-                        )))
+                        .source(
+                            "http://www.w3.org/TR/xmlschema11-2/#element-whiteSpace".to_string(),
+                        )
                         .any_attributes(xmlity_ns::AnyAttributes::default())
                         .build())
                         .into()])
@@ -1034,7 +1032,6 @@ fn xsd_white_space() -> xs::Element {
                                             xs::groups::AttrDecls::builder()
                                                 .attribute(vec![xs::types::Attribute::builder()
                                                     .name(LocalName::new_dangerous("value"))
-                                                    // .use_(xs::AttributeUseType::Required)
                                                     .use_(xs::types::attribute_items::UseValue::Required)
                                                     .simple_type(
                                                         xs::types::LocalSimpleType::builder()

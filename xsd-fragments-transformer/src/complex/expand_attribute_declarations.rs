@@ -68,13 +68,13 @@ impl ExpandAttributeDeclarations {
                     LocalAttributeFragmentTypeMode::Reference(source_reference),
                 ) => {
                     assert_eq!(
-                        target_reference.name, source_reference.name,
+                        target_reference.ref_, source_reference.ref_,
                         "When merging, the attribute references must be the same"
                     );
 
                     Ok(())
                 }
-                _ => return Err(Error::MismatchedAttributeModes),
+                _ => Err(Error::MismatchedAttributeModes),
             }
         }
 
@@ -103,7 +103,7 @@ impl ExpandAttributeDeclarations {
                         (
                             LocalAttributeFragmentTypeMode::Reference(existing),
                             LocalAttributeFragmentTypeMode::Reference(possible),
-                        ) => existing.name == possible.name,
+                        ) => existing.ref_ == possible.ref_,
                         _ => false,
                     },
                 )
@@ -169,7 +169,17 @@ impl ExpandAttributeDeclarations {
 
                     let group = context
                         .get_named_attribute_group(&attribute_fragment.ref_)
-                        .unwrap();
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Named attribute group not found for ref: {}:{}",
+                                attribute_fragment.ref_.local_name(),
+                                attribute_fragment
+                                    .ref_
+                                    .namespace()
+                                    .as_ref()
+                                    .map_or("None", |ns| ns.as_str())
+                            )
+                        });
                     let group = context.get_complex_fragment(&group.root_fragment).unwrap();
                     let attr_decls = context.get_complex_fragment(&group.attr_decls).unwrap();
 

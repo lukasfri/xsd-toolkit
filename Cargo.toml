@@ -11,7 +11,6 @@ members = [
   "schemas/xmlity-ns-xs",
   "schemas/xmlity-ns-xsi",
   "schemas/xmlity-ns-xml",
-  "schemas/xbrl-xsd",
   "xsd-dynamic-query",
   "xsd-builtin",
 ]

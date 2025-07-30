@@ -38,7 +38,17 @@ impl XmlSchemaSet {
             locations: HashMap::new(),
         }
     }
+}
 
+
+
+impl Default for XmlSchemaSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl XmlSchemaSet {
     pub fn inform_location(&mut self, location: &Url) {
         if !self.locations.contains_key(location) {
             // If the location is not already present, insert it with None
@@ -54,7 +64,6 @@ impl XmlSchemaSet {
 
     pub fn inform_glob_pattern(&mut self, glob_pattern: &str) -> Result<(), GlobError> {
         glob::glob(glob_pattern)?
-            .into_iter()
             .enumerate()
             .map(|(i, path)| {
                 path.map_err(|e| GlobError::Glob { index: i, error: e })
@@ -69,8 +78,7 @@ impl XmlSchemaSet {
                         Url::from_file_path(&path).map_err(|()| GlobError::UrlParse { path })
                     })
             })
-            .map(|url| url.map(|url| self.inform_location(&url)))
-            .collect::<Result<(), _>>()
+            .try_for_each(|url| url.map(|url| self.inform_location(&url)))
     }
 
     fn load_location_internal(&mut self, url: &Url, schema: xs::Schema) {
@@ -87,13 +95,14 @@ impl XmlSchemaSet {
                 let namespace = a
                     .namespace
                     .as_ref()
-                    .map(|ns| ns.0.clone())
+                    .map(|ns| XmlNamespace::new(ns.to_owned())).transpose()
+                    .expect("Failed to parse namespace")
                     .unwrap_or_else(|| XmlNamespace::new_dangerous(""));
 
                 let location = a
                     .schema_location
                     .as_ref()
-                    .map(|sl| url.resolve_xml_url(sl.0.as_str()).unwrap());
+                    .map(|sl| url.resolve_xml_url(sl).unwrap());
 
                 (namespace, location)
             })
@@ -113,15 +122,13 @@ impl XmlSchemaSet {
                 _ => panic!("Expected an include, but found: {:?}", a),
             })
             .map(|a| {
-                let location = url.resolve_xml_url(a.schema_location.0.as_str()).unwrap();
-
-                location
+                 url.resolve_xml_url(&a.schema_location).unwrap()
             })
             .collect::<Vec<_>>();
 
             includes.iter()
             .for_each(|location| {
-                self.inform_location(&location);
+                self.inform_location(location);
             });
 
         let location = SchemaLocation { schema };
@@ -217,14 +224,14 @@ impl XmlSchemaSet {
         self.locations
             .iter()
             .filter_map(|(_, location)| location.as_ref().map(|loc| &loc.schema))
-            .filter(|schema| schema.namespace() == name.namespace())
+            .filter(|schema| schema.namespace().as_ref() == name.namespace())
             .flat_map(|schema| schema.redefinable())
             .find_map(|a| match a {
                 xmlity_ns_xs::groups::Redefinable::SimpleType(simple_type) => {
                     match simple_type.deref() {
                         xmlity_ns_xs::SimpleType::SimpleType(simple_type) => {
                             if simple_type.name == *name.local_name() {
-                                Some(TopLevelType::SimpleType(&simple_type))
+                                Some(TopLevelType::SimpleType(simple_type.deref()))
                             } else {
                                 None
                             }
@@ -236,7 +243,7 @@ impl XmlSchemaSet {
                     match complex_type.deref() {
                         xmlity_ns_xs::ComplexType::ComplexType(complex_type) => {
                             if complex_type.name == *name.local_name() {
-                                Some(TopLevelType::ComplexType(&complex_type))
+                                Some(TopLevelType::ComplexType(complex_type.deref()))
                             } else {
                                 None
                             }
@@ -250,12 +257,12 @@ impl XmlSchemaSet {
 
     fn namespace_schemas<'a>(
         &'a self,
-        namespace: Option<XmlNamespace<'a>>,
+        namespace: Option<XmlNamespace<'static>>,
     ) -> impl Iterator<Item = &'a XmlSchema> + 'a {
         self.locations
             .values()
             .filter_map(|location| location.as_ref().map(|loc| &loc.schema))
-            .filter(move |schema| schema.namespace() == namespace.as_ref())
+            .filter(move |schema| schema.namespace().as_ref() == namespace.as_ref())
     }
 
     pub fn resolve_type_inheritance<'a>(
@@ -274,9 +281,9 @@ impl XmlSchemaSet {
                 let current_name = self.name.take()?;
                 let (local_name, namespace) = current_name.clone().into_parts();
 
-                let type_and_base = self
+                let (type_, base) = self
                     .xsd
-                    .namespace_schemas(namespace)
+                    .namespace_schemas(namespace.map(|a| a.into_owned()))
                     .flat_map(|a| a.redefinable())
                     .find_map(move |redefinable| {
                         use xmlity_ns_xs::groups::{SimpleDerivation, ComplexTypeModel};
@@ -344,11 +351,7 @@ impl XmlSchemaSet {
                             }
                             _ => None,
                         }
-                    });
-
-                let Some((type_, base)) = type_and_base else {
-                    return None;
-                };
+                    })?;
 
                 self.name = base;
 
@@ -366,7 +369,7 @@ impl XmlSchemaSet {
         self.locations
             .iter()
             .filter_map(|(_, location)| location.as_ref().map(|loc| &loc.schema))
-            .filter(|schema| schema.namespace() == name.namespace())
+            .filter(|schema| schema.namespace().as_ref() == name.namespace())
             .flat_map(|schema| schema.top_level_elements())
             .find_map(|element| match element {
                 xs::Element::Element(el) if el.name == *name.local_name() => Some(el.deref()),
@@ -378,10 +381,7 @@ impl XmlSchemaSet {
         &self,
         name: &ExpandedName<'_>,
     ) -> Option<&xs::types::TopLevelAttribute> {
-        self.locations
-            .iter()
-            .filter_map(|(_, location)| location.as_ref().map(|loc| &loc.schema))
-            .filter(|schema| schema.namespace() == name.namespace())
+        self.namespace_schemas(name.namespace().map(|a| a.clone().into_owned()))
             .flat_map(|schema| schema.top_level_attributes())
             .find_map(|attribute| match attribute {
                 xs::Attribute::Attribute(attr) if attr.name == *name.local_name() => {

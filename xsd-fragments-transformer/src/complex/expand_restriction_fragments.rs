@@ -97,7 +97,7 @@ impl ExpandRestrictionFragments {
                 LocalAttributeFragmentTypeMode::Declared(local) => {
                     ExpandedName::new(local.name.clone(), None)
                 }
-                LocalAttributeFragmentTypeMode::Reference(ref_) => ref_.name.clone(),
+                LocalAttributeFragmentTypeMode::Reference(ref_) => ref_.ref_.clone(),
             }
         }
 
@@ -523,14 +523,12 @@ mod tests {
                                         xs::types::Attribute::builder()
                                             .name(LocalName::new_dangerous("number"))
                                             .type_(xs::types::QName(xsn::INTEGER.clone()))
-                                            // .use_(xs::AttributeUseType::Optional)
                                             .use_(xs::types::attribute_items::UseValue::Optional)
                                             .build()
                                             .into(),
                                         xs::types::Attribute::builder()
                                             .name(LocalName::new_dangerous("name"))
                                             .type_(xs::types::QName(xsn::STRING.clone()))
-                                            // .use_(xs::AttributeUseType::Required)
                                             .use_(xs::types::attribute_items::UseValue::Required)
                                             .build()
                                             .into(),
@@ -576,7 +574,6 @@ mod tests {
                                         .attribute(vec![xs::types::Attribute::builder()
                                             .name(LocalName::new_dangerous("number"))
                                             .type_(xs::types::QName(xsn::INTEGER.clone()))
-                                            // .use_(xs::AttributeUseType::Required)
                                             .use_(xs::types::attribute_items::UseValue::Required)
                                             .build()
                                             .into()])
@@ -621,7 +618,6 @@ mod tests {
                                             xs::types::Attribute::builder()
                                                 .name(LocalName::new_dangerous("number"))
                                                 .type_(xs::types::QName(xsn::INTEGER.clone()))
-                                                // .use_(xs::AttributeUseType::Required)
                                                 .use_(
                                                     xs::types::attribute_items::UseValue::Required,
                                                 )
@@ -630,7 +626,6 @@ mod tests {
                                             xs::types::Attribute::builder()
                                                 .name(LocalName::new_dangerous("name"))
                                                 .type_(xs::types::QName(xsn::STRING.clone()))
-                                                // .use_(xs::AttributeUseType::Required)
                                                 .use_(
                                                     xs::types::attribute_items::UseValue::Required,
                                                 )

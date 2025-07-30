@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use xmlity::XmlNamespace;
 pub use xmlity_ns_xs as xs;
 pub mod xsn;
 pub use xmlity_ns as ns;
@@ -26,8 +27,13 @@ impl XmlSchema {
         }
     }
 
-    pub fn namespace(&self) -> Option<&xmlity::XmlNamespace<'static>> {
-        self.schema().target_namespace.as_ref().map(|a| &a.0)
+    pub fn namespace(&self) -> Option<xmlity::XmlNamespace<'_>> {
+        self.schema()
+            .target_namespace
+            .as_ref()
+            .map(XmlNamespace::new)
+            .transpose()
+            .expect("Failed to parse namespace")
     }
 
     pub fn compositions(&self) -> impl Iterator<Item = &xs::groups::Composition> {

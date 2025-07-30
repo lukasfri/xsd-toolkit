@@ -79,34 +79,52 @@ impl BuildEngine {
 
         struct Resolver {
             client: reqwest::blocking::Client,
+            cache_dir: PathBuf,
         }
 
         impl Resolver {
             fn new() -> Self {
                 Self {
                     client: reqwest::blocking::Client::new(),
+                    cache_dir: std::env::temp_dir().join("xsd-toolkit-built-cache"),
                 }
             }
 
+            fn url_to_file_name(url: &Url) -> String {
+                url.as_str().replace('/', "__")
+            }
+
             fn resolve(&self, url: &Url) -> Result<xs::Schema, Infallible> {
-                let document = match url.scheme() {
+                let potential_cache_file_path = self.cache_dir.join(Self::url_to_file_name(url));
+
+                let schema_text = match url.scheme() {
+                    "http" | "https"
+                        if std::fs::exists(&potential_cache_file_path)
+                            .expect("Could not check if file exists") =>
+                    {
+                        std::fs::read_to_string(&potential_cache_file_path)
+                            .expect("Could not read cached file")
+                    }
                     "http" | "https" => {
                         let response = self.client.get(url.as_str()).send().unwrap();
                         let schema_text = response.text().unwrap();
 
-                        xmlity_quick_xml::from_str::<XmlRoot<xs::Schema>>(schema_text.as_str())
-                            .unwrap()
-                    }
-                    "file" => {
-                        let schema_text = std::fs::read_to_string(url.path()).unwrap();
+                        std::fs::create_dir_all(&self.cache_dir)
+                            .expect("Could not create cache directory");
+                        std::fs::write(&potential_cache_file_path, &schema_text)
+                            .expect("Could not write to cache file");
 
-                        xmlity_quick_xml::from_str::<XmlRoot<xs::Schema>>(schema_text.as_str())
-                            .unwrap()
+                        schema_text
                     }
+                    "file" => std::fs::read_to_string(url.path()).unwrap(),
                     _ => {
                         todo!()
                     }
                 };
+
+                let document =
+                    xmlity_quick_xml::from_str::<XmlRoot<xs::Schema>>(schema_text.as_str())
+                        .unwrap();
 
                 let schema = document
                     .elements
@@ -124,15 +142,15 @@ impl BuildEngine {
         let resolver = Resolver::new();
 
         map.explore_locations(&|url| resolver.resolve(url))
-            .map(|a| a.map(|_| ()))
-            .collect::<Result<(), _>>()
+            .try_for_each(|a| a.map(|_| ()))
             .unwrap();
 
         let mut context = XmlnsContext::new();
 
-        root_uris
-            .iter()
-            .try_for_each(|uri| context.import_namespace_map(&map, uri, None))?;
+        let mut imported_uris = Vec::new();
+        root_uris.iter().try_for_each(|uri| {
+            context.import_namespace_map(&map, uri, None, &mut imported_uris)
+        })?;
 
         let allowed_simple_bases: HashSet<ExpandedName<'static>> = [
             &xsn::DECIMAL,
@@ -195,20 +213,14 @@ impl StartedBuildEngine {
         let mut generator = xsd_codegen_xmlity::Generator::new_with_augmenter(
             &self.context,
             vec![
-                Box::new(
-                    generate_namespace
-                        .bon_builders
-                        .then(|| BonAugmentation::new()),
-                ) as Box<dyn ItemAugmentation>,
-                Box::new(
-                    generate_namespace
-                        .enum_from
-                        .then(|| EnumFromAugmentation::new()),
-                ) as Box<dyn ItemAugmentation>,
+                Box::new(generate_namespace.bon_builders.then(BonAugmentation::new))
+                    as Box<dyn ItemAugmentation>,
+                Box::new(generate_namespace.enum_from.then(EnumFromAugmentation::new))
+                    as Box<dyn ItemAugmentation>,
                 Box::new(
                     generate_namespace
                         .struct_from
-                        .then(|| StructFromAugmentation::new()),
+                        .then(StructFromAugmentation::new),
                 ) as Box<dyn ItemAugmentation>,
                 Box::new(Some(AdditionalDerives {
                     structs: vec![

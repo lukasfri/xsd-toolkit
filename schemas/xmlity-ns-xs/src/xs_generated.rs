@@ -201,9 +201,8 @@ pub mod types {
                 }
             }
         }
-        impl ::core::convert::From<crate::types::TargetNamespace>
-        for BasicNamespaceList {
-            fn from(value: crate::types::TargetNamespace) -> Self {
+        impl ::core::convert::From<String> for BasicNamespaceList {
+            fn from(value: String) -> Self {
                 BasicNamespaceList::AnyURI(::std::boxed::Box::new(value))
             }
         }
@@ -221,7 +220,7 @@ pub mod types {
             ::core::clone::Clone
         )]
         pub enum BasicNamespaceList {
-            AnyURI(::std::boxed::Box<crate::types::TargetNamespace>),
+            AnyURI(::std::boxed::Box<String>),
             Variant0(::std::boxed::Box<basic_namespace_list_variants::Variant0>),
         }
     }
@@ -1770,9 +1769,8 @@ pub mod types {
                 }
             }
         }
-        impl ::core::convert::From<crate::types::TargetNamespace>
-        for XpathDefaultNamespace {
-            fn from(value: crate::types::TargetNamespace) -> Self {
+        impl ::core::convert::From<String> for XpathDefaultNamespace {
+            fn from(value: String) -> Self {
                 XpathDefaultNamespace::AnyURI(::std::boxed::Box::new(value))
             }
         }
@@ -1790,7 +1788,7 @@ pub mod types {
             ::core::clone::Clone
         )]
         pub enum XpathDefaultNamespace {
-            AnyURI(::std::boxed::Box<crate::types::TargetNamespace>),
+            AnyURI(::std::boxed::Box<String>),
             Variant0(::std::boxed::Box<xpath_default_namespace_variants::Variant0>),
         }
     }
@@ -2235,7 +2233,7 @@ pub mod types {
         #[xattribute(name = "form", optional)]
         pub form: ::core::option::Option<::std::boxed::Box<crate::types::FormChoice>>,
         #[xattribute(name = "targetNamespace", optional)]
-        pub target_namespace: ::core::option::Option<crate::types::TargetNamespace>,
+        pub target_namespace: ::core::option::Option<String>,
         #[xattribute(name = "inheritable", optional)]
         pub inheritable: ::core::option::Option<bool>,
         #[xvalue(default)]
@@ -2456,7 +2454,7 @@ pub mod types {
         #[xattribute(name = "form", optional)]
         pub form: ::core::option::Option<::std::boxed::Box<crate::types::FormChoice>>,
         #[xattribute(name = "targetNamespace", optional)]
-        pub target_namespace: ::core::option::Option<crate::types::TargetNamespace>,
+        pub target_namespace: ::core::option::Option<String>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
@@ -2750,7 +2748,7 @@ pub mod types {
         #[xattribute(name = "form", optional)]
         pub form: ::core::option::Option<::std::boxed::Box<crate::types::FormChoice>>,
         #[xattribute(name = "targetNamespace", optional)]
-        pub target_namespace: ::core::option::Option<crate::types::TargetNamespace>,
+        pub target_namespace: ::core::option::Option<String>,
         #[xgroup]
         pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
@@ -3423,8 +3421,8 @@ pub mod types {
                 }
             }
         }
-        impl ::core::convert::From<crate::types::TargetNamespace> for NotNamespaceValue {
-            fn from(value: crate::types::TargetNamespace) -> Self {
+        impl ::core::convert::From<String> for NotNamespaceValue {
+            fn from(value: String) -> Self {
                 NotNamespaceValue::AnyURI(::std::boxed::Box::new(value))
             }
         }
@@ -3442,7 +3440,7 @@ pub mod types {
             ::core::clone::Clone
         )]
         pub enum NotNamespaceValue {
-            AnyURI(::std::boxed::Box<crate::types::TargetNamespace>),
+            AnyURI(::std::boxed::Box<String>),
             Variant0(::std::boxed::Box<not_namespace_value_variants::Variant0>),
         }
         #[derive(
@@ -4304,8 +4302,8 @@ pub mod any_items {
             }
         }
     }
-    impl ::core::convert::From<crate::types::TargetNamespace> for NotNamespaceValue {
-        fn from(value: crate::types::TargetNamespace) -> Self {
+    impl ::core::convert::From<String> for NotNamespaceValue {
+        fn from(value: String) -> Self {
             NotNamespaceValue::AnyURI(::std::boxed::Box::new(value))
         }
     }
@@ -4323,7 +4321,7 @@ pub mod any_items {
         ::core::clone::Clone
     )]
     pub enum NotNamespaceValue {
-        AnyURI(::std::boxed::Box<crate::types::TargetNamespace>),
+        AnyURI(::std::boxed::Box<String>),
         Variant0(::std::boxed::Box<not_namespace_value_variants::Variant0>),
     }
     #[derive(
@@ -4564,8 +4562,8 @@ pub mod any_attribute_items {
             }
         }
     }
-    impl ::core::convert::From<crate::types::TargetNamespace> for NotNamespaceValue {
-        fn from(value: crate::types::TargetNamespace) -> Self {
+    impl ::core::convert::From<String> for NotNamespaceValue {
+        fn from(value: String) -> Self {
             NotNamespaceValue::AnyURI(::std::boxed::Box::new(value))
         }
     }
@@ -4583,7 +4581,7 @@ pub mod any_attribute_items {
         ::core::clone::Clone
     )]
     pub enum NotNamespaceValue {
-        AnyURI(::std::boxed::Box<crate::types::TargetNamespace>),
+        AnyURI(::std::boxed::Box<String>),
         Variant0(::std::boxed::Box<not_namespace_value_variants::Variant0>),
     }
     #[derive(
@@ -4749,7 +4747,7 @@ pub mod appinfo_items {
     )]
     pub struct Appinfo {
         #[xattribute(name = "source", optional)]
-        pub source: ::core::option::Option<crate::types::TargetNamespace>,
+        pub source: ::core::option::Option<String>,
         #[xgroup]
         pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
@@ -5153,7 +5151,7 @@ pub mod documentation_items {
     )]
     pub struct Documentation {
         #[xattribute(name = "source", optional)]
-        pub source: ::core::option::Option<crate::types::TargetNamespace>,
+        pub source: ::core::option::Option<String>,
         #[xattribute(deferred = true, optional)]
         pub lang: ::core::option::Option<
             ::std::boxed::Box<xmlity_ns_xml::attributes::Lang>,
@@ -5551,9 +5549,9 @@ pub mod import_items {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "namespace", optional)]
-        pub namespace: ::core::option::Option<crate::types::TargetNamespace>,
+        pub namespace: ::core::option::Option<String>,
         #[xattribute(name = "schemaLocation", optional)]
-        pub schema_location: ::core::option::Option<crate::types::TargetNamespace>,
+        pub schema_location: ::core::option::Option<String>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<crate::Annotation>,
     }
@@ -5598,7 +5596,7 @@ pub mod include_items {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "schemaLocation")]
-        pub schema_location: crate::types::TargetNamespace,
+        pub schema_location: String,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<crate::Annotation>,
     }
@@ -5981,7 +5979,7 @@ pub mod notation_items {
         #[xattribute(name = "public", optional)]
         pub public: ::core::option::Option<::std::boxed::Box<crate::types::Public>>,
         #[xattribute(name = "system", optional)]
-        pub system: ::core::option::Option<crate::types::TargetNamespace>,
+        pub system: ::core::option::Option<String>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<crate::Annotation>,
     }
@@ -6165,7 +6163,7 @@ pub mod override_items {
     #[xgroup(children_order = "strict")]
     pub struct Override {
         #[xattribute(name = "schemaLocation")]
-        pub schema_location: crate::types::TargetNamespace,
+        pub schema_location: String,
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xvalue(default)]
@@ -6281,7 +6279,7 @@ pub mod redefine_items {
     )]
     pub struct Redefine {
         #[xattribute(name = "schemaLocation")]
-        pub schema_location: crate::types::TargetNamespace,
+        pub schema_location: String,
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xvalue(default)]
@@ -6405,7 +6403,7 @@ pub mod schema_items {
     #[xgroup(children_order = "strict")]
     pub struct Schema {
         #[xattribute(name = "targetNamespace", optional)]
-        pub target_namespace: ::core::option::Option<crate::types::TargetNamespace>,
+        pub target_namespace: ::core::option::Option<String>,
         #[xattribute(name = "version", optional)]
         pub version: ::core::option::Option<String>,
         #[xattribute(name = "finalDefault", optional)]

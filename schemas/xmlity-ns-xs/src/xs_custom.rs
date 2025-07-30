@@ -1,41 +1,12 @@
 use core::fmt;
-use std::{fmt::Display, str::FromStr};
 
 use xmlity::{
-    de::DeserializeContext, types::string::FromStrVisitor, Deserialize, ExpandedName, LocalName,
+    de::DeserializeContext,  Deserialize, ExpandedName, LocalName,
     Prefix, Serialize, XmlNamespace,
 };
 
 use crate as xs;
 
-macro_rules! impl_from_str_deserialize {
-    ($ty:ty) => {
-        impl<'de> Deserialize<'de> for $ty {
-            fn deserialize<D: xmlity::Deserializer<'de>>(reader: D) -> Result<Self, D::Error> {
-                reader.deserialize_any(FromStrVisitor::default())
-            }
-        }
-    };
-    ($($ty:ty),+) => ($(
-        impl_from_str_deserialize!($ty);
-    )+);
-}
-
-macro_rules! impl_to_string_serialize  {
-    ($ty:ty) => {
-        impl Serialize for $ty {
-            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-            where
-                S: xmlity::Serializer,
-            {
-                serializer.serialize_text(&self.to_string())
-            }
-        }
-    };
-    ($($ty:ty),+) => ($(
-        impl_to_string_serialize!($ty);
-    )+);
-}
 
 pub mod types {
 
@@ -112,26 +83,6 @@ pub mod types {
             todo!()
         }
     }
-
-    #[derive(Debug, Clone, Eq, PartialEq)]
-    pub struct TargetNamespace(pub XmlNamespace<'static>);
-
-    impl Display for TargetNamespace {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{}", self.0)
-        }
-    }
-
-    impl FromStr for TargetNamespace {
-        type Err = <XmlNamespace<'static> as FromStr>::Err;
-
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            Ok(Self(XmlNamespace::from_str(s)?))
-        }
-    }
-
-    impl_to_string_serialize!(TargetNamespace);
-    impl_from_str_deserialize!(TargetNamespace);
 }
 pub mod elements {
     use super::*;

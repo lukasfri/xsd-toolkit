@@ -20,3 +20,7 @@ xmlity-ns.workspace = true
 rstest.workspace = true
 pretty_assertions.workspace = true
 ntest.workspace = true
+
+[lints.clippy]
+unnecessary_fallible_conversions = "allow"
+large_enum_variant = "allow"

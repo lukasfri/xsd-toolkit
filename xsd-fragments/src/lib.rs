@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::ops::Deref;
 
 use url::Url;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
@@ -16,6 +15,8 @@ pub enum Error {
     ImportOfExistingEntity,
     #[display("Tried to import a namespace that does not exist")]
     NonExistentXmlNamespace { namespace: XmlNamespace<'static> },
+    #[display("Tried to use an undefined namespace")]
+    UndefinedNamespace,
 }
 
 #[derive(Debug)]
@@ -54,9 +55,7 @@ impl XmlnsContext {
     }
 
     pub fn get_namespace(&self, namespace: &XmlNamespace<'_>) -> Option<&CompiledNamespace> {
-        let Some(namespace_idx) = self.namespace_idxs.get(namespace) else {
-            return None;
-        };
+        let namespace_idx = self.namespace_idxs.get(namespace)?;
 
         self.namespaces.get(namespace_idx)
     }
@@ -65,45 +64,51 @@ impl XmlnsContext {
         &mut self,
         namespace: &XmlNamespace<'_>,
     ) -> Option<&mut CompiledNamespace> {
-        let Some(namespace_idx) = self.namespace_idxs.get(namespace) else {
-            return None;
-        };
+        let namespace_idx = self.namespace_idxs.get(namespace)?;
 
         self.namespaces.get_mut(namespace_idx)
     }
 
-    pub fn import_redefine(&mut self, redefine: &xs::Redefine) -> Result<(), Error> {
-        use xs::redefine_items::RedefineContent;
-        let redefine = match redefine {
-            xs::Redefine::Redefine(redefine) => redefine,
-            _ => panic!("Expected a redefine, but found: {:?}", redefine),
-        };
+    pub fn import_redefine(&mut self, _redefine: &xs::Redefine) -> Result<(), Error> {
+        // use xs::redefine_items::RedefineContent;
+        // let redefine = match redefine {
+        //     xs::Redefine::Redefine(redefine) => redefine,
+        //     _ => panic!("Expected a redefine, but found: {:?}", redefine),
+        // };
 
-        let namespace = &redefine.schema_location.0;
+        // let namespace = &redefine.schema_location.0;
 
-        let compiled_namespace =
-            self.get_namespace_mut(namespace)
-                .ok_or(Error::NonExistentXmlNamespace {
-                    namespace: namespace.clone(),
-                })?;
+        // let compiled_namespace =
+        //     self.get_namespace_mut(namespace)
+        //         .ok_or(Error::NonExistentXmlNamespace {
+        //             namespace: namespace.clone(),
+        //         })?;
 
-        redefine
-            .redefine_content
-            .iter()
-            .filter_map(|r| match r {
-                RedefineContent::Annotation(_) => None,
-                RedefineContent::Redefinable(redefinable) => Some(redefinable.deref()),
-            })
-            .map(|r| compiled_namespace.import_redefineable(r))
-            .collect::<Result<(), Error>>()
+        // redefine
+        //     .redefine_content
+        //     .iter()
+        //     .filter_map(|r| match r {
+        //         RedefineContent::Annotation(_) => None,
+        //         RedefineContent::Redefinable(redefinable) => Some(redefinable.deref()),
+        //     })
+        //     .map(|r| compiled_namespace.import_redefineable(r))
+        //     .collect::<Result<(), Error>>()
+
+        todo!("Implement import_redefine for XmlnsContext")
     }
 
     pub fn import_namespace_map(
         &mut self,
         map: &xsd::set::XmlSchemaSet,
         location_url: &url::Url,
-        known_namespace: Option<&XmlNamespace<'static>>,
+        known_namespace: Option<XmlNamespace<'_>>,
+        imported_urls: &mut Vec<Url>,
     ) -> Result<(), Error> {
+        if imported_urls.contains(location_url) {
+            return Ok(());
+        }
+        imported_urls.push(location_url.clone());
+
         let location = map
             .locations
             .get(location_url)
@@ -113,7 +118,16 @@ impl XmlnsContext {
             .as_ref()
             .expect("Expected the origin location to be loaded");
 
-        self.import_schema(known_namespace, &location.schema)?;
+        let current_namespace = location
+            .schema
+            .namespace()
+            .or_else(|| known_namespace.as_ref().map(|a| a.as_ref()));
+
+        self.import_schema(
+            current_namespace.as_ref().map(|a| a.as_ref()),
+            &location.schema,
+        )
+        .inspect_err(|e| println!("Failed to import schema: {} ({})", e, location_url))?;
 
         location
             .schema
@@ -128,10 +142,17 @@ impl XmlnsContext {
                 };
 
                 let location_url = location_url
-                    .resolve_xml_url(schema_location.0.as_str())
+                    .resolve_xml_url(schema_location)
                     .expect("Expected a valid URL");
 
-                self.import_namespace_map(map, &location_url, a.namespace.as_ref().map(|a| &a.0))
+                let namespace = a
+                    .namespace
+                    .as_ref()
+                    .map(XmlNamespace::new)
+                    .transpose()
+                    .expect("Expected a valid namespace");
+
+                self.import_namespace_map(map, &location_url, namespace, imported_urls)
             })?;
 
         location
@@ -143,42 +164,38 @@ impl XmlnsContext {
             })
             .try_for_each(|a| {
                 let location_url = location_url
-                    .resolve_xml_url(a.schema_location.0.as_str())
+                    .resolve_xml_url(&a.schema_location)
                     .expect("Expected a valid URL");
 
-                self.import_namespace_map(map, &location_url, known_namespace)
+                self.import_namespace_map(
+                    map,
+                    &location_url,
+                    current_namespace.as_ref().map(|a| a.as_ref()),
+                    imported_urls,
+                )
             })?;
+
+        //TODO: Import redefines and overrides
 
         Ok(())
     }
 
     pub fn import_schema(
         &mut self,
-        known_namespace: Option<&XmlNamespace<'static>>,
+        known_namespace: Option<XmlNamespace<'_>>,
         schema: &xsd::XmlSchema,
     ) -> Result<(), Error> {
-        use xs::groups::Composition;
         let namespace = schema
             .namespace()
-            .unwrap_or(known_namespace.expect("Expected a namespace"));
+            .or(known_namespace)
+            .ok_or(Error::UndefinedNamespace)?;
 
-        schema
-            .compositions()
-            .map(|c| match c {
-                Composition::Include(_) => Ok(()),
-                Composition::Import(_) => Ok(()),
-                Composition::Redefine(redefine) => self.import_redefine(redefine),
-                Composition::Override(_) => todo!(),
-                Composition::Annotation(_) => Ok(()),
-            })
-            .collect::<Result<(), Error>>()?;
-
-        let compiled_namespace = if let Some(compiled_namespace) = self.get_namespace_mut(namespace)
-        {
-            compiled_namespace
-        } else {
-            self.init_namespace(namespace.clone())
-        };
+        let compiled_namespace =
+            if let Some(compiled_namespace) = self.get_namespace_mut(&namespace) {
+                compiled_namespace
+            } else {
+                self.init_namespace(namespace.into_owned())
+            };
 
         compiled_namespace.import_schema(schema)
     }
@@ -226,16 +243,6 @@ impl CompiledNamespace {
             top_level_groups: BTreeMap::new(),
             top_level_attribute_groups: BTreeMap::new(),
         }
-    }
-
-    pub fn import_include(&mut self, include: &xs::Include) -> Result<(), Error> {
-        let include = match include {
-            xs::Include::Include(include) => include,
-            _ => panic!("Expected an include, but found: {:?}", include),
-        };
-
-        let include_namespace = &include.schema_location.0;
-        todo!()
     }
 
     pub fn import_redefineable(

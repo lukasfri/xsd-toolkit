@@ -89,7 +89,7 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: StringBaseValue> Restr
         let enum_with_ident = format_ident!("{}_with", ident.to_path_ident());
         let error_ident = format_ident!("{}ParseError", ident.to_item_ident());
 
-        let facets = facets.into_iter().map(|a| *a).collect::<ParsedFacets>();
+        let facets = facets.iter().copied().collect::<ParsedFacets>();
 
         if facets.enumerations.is_empty() {
             let struct_def = templates::wrapper_struct::WrapperStruct {
