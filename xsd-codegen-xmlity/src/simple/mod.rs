@@ -18,34 +18,30 @@ pub trait SimpleContext {
 
     fn to_expanded_name(&self, name: LocalName<'static>) -> ExpandedName<'static>;
 
-    fn resolve_fragment<F: SimpleToTypeTemplate, S: Scope>(
-        &self,
-        fragment: &F,
-        scope: &mut S,
-    ) -> Result<ToTypeTemplateData<F::TypeTemplate>>;
-
     fn get_fragment<F, S: Scope>(&self, fragment: &FragmentIdx<F>, scope: &mut S) -> Result<&F>
     where
         SimpleTypeFragmentCompiler: FragmentAccess<F>;
 
-    fn resolve_fragment_id<F: SimpleToTypeTemplate, S: Scope>(
+    fn resolve_type_template<I, H: SimpleToTypeTemplate<I>, S: Scope>(
         &self,
-        fragment_id: &FragmentIdx<F>,
+        fragment_id: &FragmentIdx<I>,
         scope: &mut S,
-    ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
+        handler: &H,
+    ) -> Result<ToTypeTemplateData<H::TypeTemplate>>
     where
-        SimpleTypeFragmentCompiler: FragmentAccess<F>;
+        SimpleTypeFragmentCompiler: FragmentAccess<I>;
 
     fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<BoundType>;
 }
 
-pub trait SimpleToTypeTemplate {
+pub trait SimpleToTypeTemplate<I> {
     type TypeTemplate;
 
     fn to_type_template<C: SimpleContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &I,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>>;
 }
 

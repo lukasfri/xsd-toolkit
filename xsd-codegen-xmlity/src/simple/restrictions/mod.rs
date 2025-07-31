@@ -20,15 +20,18 @@ trait RestrictionBuilder<C: super::SimpleContext, S: crate::Scope> {
     ) -> crate::Result<crate::ToTypeTemplateData<TypeReference<'static>>>;
 }
 
-impl SimpleToTypeTemplate for sm::RestrictionFragment {
+pub struct RestrictionHandler;
+
+impl SimpleToTypeTemplate<sm::RestrictionFragment> for RestrictionHandler {
     type TypeTemplate = TypeReference<'static>;
 
     fn to_type_template<C: super::SimpleContext, S: crate::Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &sm::RestrictionFragment,
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
-        let facets = self
+        let facets = item
             .facets
             .iter()
             .map(|facet| context.get_fragment(facet, scope))
@@ -98,10 +101,10 @@ impl SimpleToTypeTemplate for sm::RestrictionFragment {
         add_string_restriction!(xsn::ANY_URI, String);
 
         let Some(builder) =
-            restriction_builders.get(&self.base.as_ref().unwrap_or_else(|| &xsd::xsn::STRING))
+            restriction_builders.get(&item.base.as_ref().unwrap_or_else(|| &xsd::xsn::STRING))
         else {
             return Err(crate::Error::UnsupportedSimpleBase {
-                base: self.base.clone(),
+                base: item.base.clone(),
             });
         };
 

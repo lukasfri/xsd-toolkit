@@ -1,6 +1,7 @@
 use crate::misc::common_name;
 use crate::misc::dedup_field_idents;
 use crate::misc::COMMON_NAME_MIN_LENGTH;
+use crate::simple::restrictions::RestrictionHandler;
 use crate::simple::SimpleContext;
 use crate::templates::choice::ChoiceVariantType;
 use crate::templates::value_record::ItemField;
@@ -18,15 +19,18 @@ use syn::parse_quote;
 use xsd_fragments::fragments::FragmentIdx;
 use xsd_fragments::{fragments::simple as sm, NamedOrAnonymous};
 
-impl SimpleToTypeTemplate for sm::ListFragment {
+struct ListHandler;
+
+impl SimpleToTypeTemplate<sm::ListFragment> for ListHandler {
     type TypeTemplate = TypeReference<'static>;
 
     fn to_type_template<C: super::SimpleContext, S: crate::Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &sm::ListFragment,
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
-        let ty = context.resolve_fragment(&self.item_type, scope)?;
+        let ty = SimpleTypeRootHandler.to_type_template(context, scope, &item.item_type)?;
 
         Ok(crate::ToTypeTemplateData {
             ident: None,
@@ -39,18 +43,21 @@ impl SimpleToTypeTemplate for sm::ListFragment {
     }
 }
 
-impl SimpleToTypeTemplate for sm::UnionFragment {
+struct UnionHandler;
+
+impl SimpleToTypeTemplate<sm::UnionFragment> for UnionHandler {
     type TypeTemplate = templates::choice::Choice;
 
     fn to_type_template<C: super::SimpleContext, S: crate::Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &sm::UnionFragment,
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
         let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
         // Struct with strict order
-        let member_type_variants = self
+        let member_type_variants = item
             .member_types
             .iter()
             .map(|name| {
@@ -68,7 +75,7 @@ impl SimpleToTypeTemplate for sm::UnionFragment {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let simple_type_variants = self
+        let simple_type_variants = item
             .simple_types
             .iter()
             .enumerate()
@@ -76,7 +83,7 @@ impl SimpleToTypeTemplate for sm::UnionFragment {
                 let suggested_ident = format_ident!("Variant{i}");
                 let res = context
                     .sub_context(suggested_ident.clone())
-                    .resolve_fragment_id(fragment_id, &mut sub_scope)?;
+                    .resolve_type_template(fragment_id, &mut sub_scope, &SimpleTypeRootHandler)?;
 
                 let ident = res.ident.unwrap_or(suggested_ident);
 
@@ -138,24 +145,27 @@ impl SimpleToTypeTemplate for sm::UnionFragment {
     }
 }
 
-impl SimpleToTypeTemplate for sm::SimpleDerivation {
+struct SimpleDerivationHandler;
+
+impl SimpleToTypeTemplate<sm::SimpleDerivation> for SimpleDerivationHandler {
     type TypeTemplate = TypeReference<'static>;
 
     fn to_type_template<C: super::SimpleContext, S: crate::Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &sm::SimpleDerivation,
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
-        match self {
+        match item {
             sm::SimpleDerivation::Restriction(fragment_idx) => {
-                context.resolve_fragment_id(fragment_idx, scope)
+                context.resolve_type_template(fragment_idx, scope, &RestrictionHandler)
             }
             sm::SimpleDerivation::List(fragment_idx) => {
-                context.resolve_fragment_id(fragment_idx, scope)
+                context.resolve_type_template(fragment_idx, scope, &ListHandler)
             }
             sm::SimpleDerivation::Union(fragment_idx) => {
                 let ident = context.suggested_ident();
-                let res = context.resolve_fragment_id(fragment_idx, scope)?;
+                let res = context.resolve_type_template(fragment_idx, scope, &UnionHandler)?;
 
                 let enum_ = res.template.to_enum(&ident.to_item_ident(), None);
 
@@ -170,27 +180,33 @@ impl SimpleToTypeTemplate for sm::SimpleDerivation {
     }
 }
 
-impl SimpleToTypeTemplate for sm::SimpleTypeRootFragment {
+pub struct SimpleTypeRootHandler;
+
+impl SimpleToTypeTemplate<sm::SimpleTypeRootFragment> for SimpleTypeRootHandler {
     type TypeTemplate = TypeReference<'static>;
 
     fn to_type_template<C: super::SimpleContext, S: crate::Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &sm::SimpleTypeRootFragment,
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
-        self.simple_derivation.to_type_template(context, scope)
+        SimpleDerivationHandler.to_type_template(context, scope, &item.simple_derivation)
     }
 }
 
-impl SimpleToTypeTemplate for NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>> {
+impl SimpleToTypeTemplate<NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>>>
+    for SimpleTypeRootHandler
+{
     type TypeTemplate = TypeReference<'static>;
 
     fn to_type_template<C: super::SimpleContext, S: crate::Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>>,
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
-        match self {
+        match item {
             NamedOrAnonymous::Named(name) => {
                 let bound_type = context.resolve_named_type(name)?;
 
@@ -207,26 +223,31 @@ impl SimpleToTypeTemplate for NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFra
                 })
             }
             NamedOrAnonymous::Anonymous(fragment_idx) => {
-                context.resolve_fragment_id(fragment_idx, scope)
+                context.resolve_type_template(fragment_idx, scope, self)
             }
         }
     }
 }
 
-impl SimpleToTypeTemplate for Option<NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>>> {
+impl SimpleToTypeTemplate<Option<NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>>>>
+    for SimpleTypeRootHandler
+{
     type TypeTemplate = TypeReference<'static>;
 
     fn to_type_template<C: super::SimpleContext, S: crate::Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &Option<NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>>>,
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
         static SIMPLE_ANY_TYPE_NAMED: LazyLock<
             NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>>,
         > = LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone()));
 
-        self.as_ref()
-            .unwrap_or_else(|| &*SIMPLE_ANY_TYPE_NAMED)
-            .to_type_template(context, scope)
+        self.to_type_template(
+            context,
+            scope,
+            item.as_ref().unwrap_or_else(|| &*SIMPLE_ANY_TYPE_NAMED),
+        )
     }
 }

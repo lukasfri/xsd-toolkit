@@ -1,5 +1,5 @@
 use crate::{
-    misc::{dedup_field_idents, TypeReference}, templates::{
+    complex::{attributes::AttributeDeclarationHandler, groups::TypeDefParticleIdHandler}, misc::{dedup_field_idents, TypeReference}, templates::{
         self,
         element_record::{ElementField, ElementFieldGroup, ElementFieldType},
         group_record::GroupRecord,
@@ -13,13 +13,16 @@ use xsd_fragments::fragments::complex::{self as cx};
 
 use super::{groups::TypeDefParticleTemplate, ComplexContext, Scope, ComplexToTypeTemplate, ToTypeTemplateData};
 
-impl ComplexToTypeTemplate for cx::AnyAttributeFragment {
+struct AnyAttributeHandler;
+
+impl ComplexToTypeTemplate<cx::AnyAttributeFragment> for AnyAttributeHandler {
     type TypeTemplate = (syn::Ident, ElementField);
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         _context: &C,
         _scope: &mut S,
+        _item: &cx::AnyAttributeFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let ident = format_ident!("AnyAttributes");
 
@@ -35,22 +38,27 @@ impl ComplexToTypeTemplate for cx::AnyAttributeFragment {
     }
 }
 
-impl ComplexToTypeTemplate for cx::AttributeDeclarationsFragment {
+struct AttributeDeclarationsHandler;
+
+impl ComplexToTypeTemplate<cx::AttributeDeclarationsFragment> for AttributeDeclarationsHandler {
     type TypeTemplate = Vec<(syn::Ident, ElementField)>;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::AttributeDeclarationsFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let attributes = self
+        let attributes = item
             .declarations
             .iter()
             .enumerate()
             .map(|(i, a)| {
-                context
-                    .sub_context(format_ident!("Attribute{i}"))
-                    .resolve_fragment(a, scope)
+                let sub_context = context
+                    .sub_context(format_ident!("Attribute{i}"));
+
+                AttributeDeclarationHandler.
+                    to_type_template(&sub_context, scope, a)
                     .map(|a| {
                         (
                             a.ident
@@ -62,7 +70,7 @@ impl ComplexToTypeTemplate for cx::AttributeDeclarationsFragment {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let any_attributes = self.any_attribute.as_ref().map(|id| context.resolve_fragment_id(id, scope)).transpose()?
+        let any_attributes = item.any_attribute.as_ref().map(|id| context.resolve_type_template(id, scope, &AnyAttributeHandler)).transpose()?
         .map(|a| a.template);
 
         let attributes = dedup_field_idents(attributes.into_iter().chain(any_attributes));
@@ -98,20 +106,25 @@ fn dedup_attribute_field_idents<T, E>(
         .collect()
 }
 
-impl ComplexToTypeTemplate for cx::RestrictionFragment {
+struct RestrictionFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::RestrictionFragment> for RestrictionFragmentHandler {
     type TypeTemplate = templates::group_record::GroupRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::RestrictionFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let mut template = self
+        let mut template = item
             .content_fragment
             .map(|a| {
+                let sub_context = 
                 context
-                .sub_context(format_ident!("{}Content", context.suggested_ident()))
-                .resolve_fragment(&a, scope).map(|a| {
+                .sub_context(format_ident!("{}Content", context.suggested_ident()));
+
+                TypeDefParticleIdHandler.to_type_template(&sub_context, scope, &a).map(|a| {
                     let ident = a.ident.unwrap_or_else(|| format_ident!("Particle"));
 
                     match a.template {
@@ -142,7 +155,7 @@ impl ComplexToTypeTemplate for cx::RestrictionFragment {
             .transpose()?
             .unwrap_or_else(GroupRecord::new_empty);
 
-        let attributes = context.resolve_fragment_id(&self.attribute_declarations, scope)?;
+        let attributes = context.resolve_type_template(&item.attribute_declarations, scope, &AttributeDeclarationsHandler)?;
 
         let attribute_fields = dedup_attribute_field_idents(
             match &template.fields {
@@ -168,15 +181,19 @@ impl ComplexToTypeTemplate for cx::RestrictionFragment {
     }
 }
 
-impl ComplexToTypeTemplate for cx::SimpleExtensionFragment {
+struct SimpleExtensionFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::SimpleExtensionFragment> for SimpleExtensionFragmentHandler {
     type TypeTemplate = templates::group_record::GroupRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+
+        item: &cx::SimpleExtensionFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let simple_type = context.resolve_named_type(&self.base)?;
+        let simple_type = context.resolve_named_type(&item.base)?;
 
         if simple_type.ty_type != crate::TypeType::Simple {
             return Err(crate::Error::UnsupportedFragment {
@@ -192,7 +209,7 @@ impl ComplexToTypeTemplate for cx::SimpleExtensionFragment {
         }));
 
 
-        let attributes = context.resolve_fragment_id(&self.attribute_declarations, scope)?;
+        let attributes = context.resolve_type_template(&item.attribute_declarations, scope, &AttributeDeclarationsHandler)?;
 
         let attribute_fields = dedup_attribute_field_idents(
             match &template.fields {
@@ -218,18 +235,20 @@ impl ComplexToTypeTemplate for cx::SimpleExtensionFragment {
     }
 }
 
+struct SimpleContentFragmentHandler;
 
-impl ComplexToTypeTemplate for cx::SimpleContentFragment {
+impl ComplexToTypeTemplate<cx::SimpleContentFragment> for SimpleContentFragmentHandler {
     type TypeTemplate = templates::group_record::GroupRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::SimpleContentFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        match self.content_fragment {
+        match item.content_fragment {
             cx::SimpleContentChildId::Extension(fragment_idx) => {
-                context.resolve_fragment_id(&fragment_idx, scope)
+                context.resolve_type_template(&fragment_idx, scope, &SimpleExtensionFragmentHandler)
             },
             cx::SimpleContentChildId::Restriction(_) => {
                 Err(crate::Error::UnsupportedFragment {
@@ -240,41 +259,47 @@ impl ComplexToTypeTemplate for cx::SimpleContentFragment {
     }
 }
 
-impl ComplexToTypeTemplate for cx::ComplexContentFragment {
+struct ComplexContentFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::ComplexContentFragment> for ComplexContentFragmentHandler {
     type TypeTemplate = templates::group_record::GroupRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::ComplexContentFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        match &self.content_fragment {
+        match &item.content_fragment {
             cx::ComplexContentChildId::Extension(_fragment_idx) => {
                 Err(crate::Error::UnsupportedFragment {
                     fragment: " ComplexContent Extension".to_string(),
                 })
             }
             cx::ComplexContentChildId::Restriction(fragment_idx) => {
-                context.resolve_fragment_id(fragment_idx, scope)
+                context.resolve_type_template(fragment_idx, scope, &RestrictionFragmentHandler)
             }
         }
     }
 }
 
-impl ComplexToTypeTemplate for cx::ComplexTypeModelId {
+struct ComplexTypeModelHandler;
+
+impl ComplexToTypeTemplate<cx::ComplexTypeModelId> for ComplexTypeModelHandler {
     type TypeTemplate = GroupRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::ComplexTypeModelId,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        match self {
+        match item {
             cx::ComplexTypeModelId::SimpleContent(fragment_idx) => {
-                context.resolve_fragment_id(fragment_idx, scope)
+                context.resolve_type_template(fragment_idx, scope, &SimpleContentFragmentHandler)
             },
             cx::ComplexTypeModelId::ComplexContent(fragment_idx) => {
-                context.resolve_fragment_id(fragment_idx, scope)
+                context.resolve_type_template(fragment_idx, scope, &ComplexContentFragmentHandler)
             }
             cx::ComplexTypeModelId::Other {
                 particle,
@@ -283,19 +308,21 @@ impl ComplexToTypeTemplate for cx::ComplexTypeModelId {
                 let (ident, mut template) = particle
                     .as_ref()
                     .map(|particle| {
-                        context
-                .sub_context(format_ident!("{}Content", context.suggested_ident()))
-                .resolve_fragment(particle, scope).map(|a| {
-                            (
-                                a.ident,
-                                a.template
-                                    .into_group_record(Some(format_ident!("content"))),
-                            )
-                        })
+                        let sub_context = context
+                            .sub_context(format_ident!("{}Content", context.suggested_ident()));
+
+                        TypeDefParticleIdHandler.to_type_template(&sub_context, scope, particle)
+                            .map(|a| {
+                                (
+                                    a.ident,
+                                    a.template
+                                        .into_group_record(Some(format_ident!("content"))),
+                                )
+                            })
                     })
                     .unwrap_or_else(|| Ok((None, GroupRecord::new_empty())))?;
 
-                let attributes = context.resolve_fragment_id(attr_decls, scope)?;
+                let attributes = context.resolve_type_template(attr_decls, scope, &  AttributeDeclarationsHandler)?;
 
                 template
                     .fields
@@ -307,17 +334,20 @@ impl ComplexToTypeTemplate for cx::ComplexTypeModelId {
     }
 }
 
-impl ComplexToTypeTemplate for cx::ComplexTypeRootFragment {
+pub struct ComplexTypeRootFragmentHandler;
+
+impl ComplexToTypeTemplate <cx::ComplexTypeRootFragment> for ComplexTypeRootFragmentHandler {
     type TypeTemplate = GroupRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::ComplexTypeRootFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let mut fragment = context.resolve_fragment(&self.content, scope)?;
+        let mut fragment = ComplexTypeModelHandler.to_type_template(context, scope, &item.content)?;
 
-        let name_ident = self
+        let name_ident = item
             .name
             .as_ref()
             .map(|a| a.to_item_ident())

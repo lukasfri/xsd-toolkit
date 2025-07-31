@@ -1,4 +1,5 @@
 use crate::{
+    complex::elements::LocalElementFragmentHandler,
     finish_mod,
     misc::{common_name, dedup_field_idents, TypeReference, COMMON_NAME_MIN_LENGTH},
     templates::{
@@ -20,26 +21,33 @@ use super::{
     ToTypeTemplateData,
 };
 
-impl ComplexToTypeTemplate for cx::AllFragment {
+struct AllFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::AllFragment> for AllFragmentHandler {
     type TypeTemplate = ItemOrTemplate<ItemRecord>;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::AllFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
         // Struct with strict order
-        let fields = self
+        let fields = item
             .fragments
             .iter()
             .enumerate()
             .map(|(i, fragment_id)| {
                 let suggested_ident = format_ident!("Child{i}");
-                let res = context
-                    .sub_context(suggested_ident.clone())
-                    .resolve_fragment(fragment_id, &mut sub_scope)?;
+                let sub_context = context.sub_context(suggested_ident.clone());
+
+                let res = NestedParticleIdHandler.to_type_template(
+                    &sub_context,
+                    &mut sub_scope,
+                    fragment_id,
+                )?;
 
                 let ident = res.ident.unwrap_or(suggested_ident);
 
@@ -78,8 +86,8 @@ impl ComplexToTypeTemplate for cx::AllFragment {
 
         let mod_path: syn::Path = parse_quote!(#mod_name);
 
-        let min_occurs = self.min_occurs.unwrap_or(1);
-        let max_occurs = self.max_occurs.unwrap_or_default();
+        let min_occurs = item.min_occurs.unwrap_or(1);
+        let max_occurs = item.max_occurs.unwrap_or_default();
 
         let template = ItemOrTemplate::new(
             template,
@@ -140,26 +148,31 @@ impl<T> ItemOrTemplate<T> {
     }
 }
 
-impl ComplexToTypeTemplate for cx::SequenceFragment {
+struct SequenceFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::SequenceFragment> for SequenceFragmentHandler {
     type TypeTemplate = ItemOrTemplate<ItemRecord>;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::SequenceFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
         // Struct with strict order
-        let fields = self
+        let fields = item
             .fragments
             .iter()
             .enumerate()
             .map(|(i, fragment_id)| {
                 let suggested_ident = format_ident!("Child{i}");
-                let res = context
-                    .sub_context(suggested_ident.clone())
-                    .resolve_fragment(fragment_id, &mut sub_scope)?;
+                let res = NestedParticleIdHandler.to_type_template(
+                    &context.sub_context(suggested_ident.clone()),
+                    &mut sub_scope,
+                    fragment_id,
+                )?;
 
                 let ident = res.ident.unwrap_or(suggested_ident);
 
@@ -198,8 +211,8 @@ impl ComplexToTypeTemplate for cx::SequenceFragment {
 
         let mod_path: syn::Path = parse_quote!(#mod_name);
 
-        let min_occurs = self.min_occurs.unwrap_or(1);
-        let max_occurs = self.max_occurs.unwrap_or_default();
+        let min_occurs = item.min_occurs.unwrap_or(1);
+        let max_occurs = item.max_occurs.unwrap_or_default();
 
         let template = ItemOrTemplate::new(
             template,
@@ -224,25 +237,30 @@ impl ComplexToTypeTemplate for cx::SequenceFragment {
     }
 }
 
-impl ComplexToTypeTemplate for cx::ChoiceFragment {
+struct ChoiceFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::ChoiceFragment> for ChoiceFragmentHandler {
     type TypeTemplate = ItemOrTemplate<templates::choice::Choice>;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::ChoiceFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let mut sub_scope = GeneratorScope::new(scope.augmenter());
 
-        let variants = self
+        let variants = item
             .fragments
             .iter()
             .enumerate()
             .map(|(i, fragment_id)| {
                 let suggested_ident = format_ident!("Variant{i}");
-                let res = context
-                    .sub_context(suggested_ident.clone())
-                    .resolve_fragment(fragment_id, &mut sub_scope)?;
+                let res = NestedParticleIdHandler.to_type_template(
+                    &context.sub_context(suggested_ident.clone()),
+                    &mut sub_scope,
+                    fragment_id,
+                )?;
 
                 let ident = res.ident.unwrap_or(suggested_ident);
 
@@ -282,24 +300,25 @@ impl ComplexToTypeTemplate for cx::ChoiceFragment {
             .map(|a| scope.add_item(a))
             .transpose()?;
 
-        let min_occurs = self.min_occurs.unwrap_or(1);
-        let max_occurs = self.max_occurs.unwrap_or(AllNNI::Bounded(1));
+        let min_occurs = item.min_occurs.unwrap_or(1);
+        let max_occurs = item.max_occurs.unwrap_or(AllNNI::Bounded(1));
 
-        let template = if min_occurs != 1 || max_occurs != AllNNI::Bounded(1) {
-            let item = template.to_enum(&ident, None);
+        let template: ItemOrTemplate<choice::Choice> =
+            if min_occurs != 1 || max_occurs != AllNNI::Bounded(1) {
+                let item = template.to_enum(&ident, None);
 
-            let ty = scope.add_item(item)?;
+                let ty = scope.add_item(item)?;
 
-            let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
+                let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
 
-            ItemOrTemplate::Item(ItemFieldItem {
-                ty,
-                default: optional,
-                default_with: None,
-            })
-        } else {
-            ItemOrTemplate::Template(template)
-        };
+                ItemOrTemplate::Item(ItemFieldItem {
+                    ty,
+                    default: optional,
+                    default_with: None,
+                })
+            } else {
+                ItemOrTemplate::Template(template)
+            };
 
         Ok(ToTypeTemplateData {
             ident: Some(ident),
@@ -308,13 +327,16 @@ impl ComplexToTypeTemplate for cx::ChoiceFragment {
     }
 }
 
-impl ComplexToTypeTemplate for cx::AnyFragment {
+struct AnyFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::AnyFragment> for AnyFragmentHandler {
     type TypeTemplate = TypeReference<'static>;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         _scope: &mut S,
+        _item: &cx::AnyFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         Ok(ToTypeTemplateData {
             ident: Some(context.suggested_ident().clone()),
@@ -323,18 +345,21 @@ impl ComplexToTypeTemplate for cx::AnyFragment {
     }
 }
 
-impl ComplexToTypeTemplate for cx::GroupRefFragment {
+struct GroupRefFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::GroupRefFragment> for GroupRefFragmentHandler {
     type TypeTemplate = ItemFieldItem;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         _scope: &mut S,
+        item: &cx::GroupRefFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let min_occurs = self.min_occurs.unwrap_or(1);
-        let max_occurs = self.max_occurs.unwrap_or_default();
+        let min_occurs = item.min_occurs.unwrap_or(1);
+        let max_occurs = item.max_occurs.unwrap_or_default();
 
-        let ty = context.resolve_named_group(&self.ref_)?;
+        let ty = context.resolve_named_group(&item.ref_)?;
 
         let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
 
@@ -344,7 +369,7 @@ impl ComplexToTypeTemplate for cx::GroupRefFragment {
             default_with: None,
         };
 
-        let ident = self.ref_.local_name().to_item_ident();
+        let ident = item.ref_.local_name().to_item_ident();
 
         Ok(ToTypeTemplateData {
             ident: Some(ident),
@@ -483,23 +508,26 @@ impl From<LocalElementFragmentTemplate> for GroupTypeContentTemplate {
     }
 }
 
-impl ComplexToTypeTemplate for cx::NestedParticleId {
+struct NestedParticleIdHandler;
+
+impl ComplexToTypeTemplate<cx::NestedParticleId> for NestedParticleIdHandler {
     type TypeTemplate = GroupTypeContentTemplate;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::NestedParticleId,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let template = match self {
+        let template = match item {
             cx::NestedParticleId::Element(fragment_idx) => context
-                .resolve_fragment_id(fragment_idx, scope)
+                .resolve_type_template(fragment_idx, scope, &LocalElementFragmentHandler)
                 .map(|res| ToTypeTemplateData {
                     ident: res.ident,
                     template: res.template.into(),
                 })?,
             cx::NestedParticleId::Group(fragment_idx) => context
-                .resolve_fragment_id(fragment_idx, scope)
+                .resolve_type_template(fragment_idx, scope, &GroupRefFragmentHandler)
                 .map(|res| ToTypeTemplateData {
                     ident: res.ident,
                     template: GroupTypeContentTemplate::Item(res.template),
@@ -530,7 +558,8 @@ impl ComplexToTypeTemplate for cx::NestedParticleId {
             //     }
             // }
             cx::NestedParticleId::Choice(fragment_idx) => {
-                let record = context.resolve_fragment_id(fragment_idx, scope)?;
+                let record =
+                    context.resolve_type_template(fragment_idx, scope, &ChoiceFragmentHandler)?;
 
                 let ident = record
                     .ident
@@ -565,7 +594,11 @@ impl ComplexToTypeTemplate for cx::NestedParticleId {
 
                 let mod_path: syn::Path = parse_quote!(#mod_name);
 
-                let record = context.resolve_fragment_id(fragment_idx, &mut sub_scope)?;
+                let record = context.resolve_type_template(
+                    fragment_idx,
+                    &mut sub_scope,
+                    &SequenceFragmentHandler,
+                )?;
 
                 let ident = record
                     .ident
@@ -603,7 +636,8 @@ impl ComplexToTypeTemplate for cx::NestedParticleId {
                 }
             }
             cx::NestedParticleId::Any(fragment_idx) => {
-                let template = context.resolve_fragment_id(fragment_idx, scope)?;
+                let template =
+                    context.resolve_type_template(fragment_idx, scope, &AnyFragmentHandler)?;
 
                 let ty = template.template;
 
@@ -644,17 +678,21 @@ impl TypeDefParticleTemplate {
     }
 }
 
-impl ComplexToTypeTemplate for cx::TypeDefParticleId {
+pub struct TypeDefParticleIdHandler;
+
+impl ComplexToTypeTemplate<cx::TypeDefParticleId> for TypeDefParticleIdHandler {
     type TypeTemplate = TypeDefParticleTemplate;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::TypeDefParticleId,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        match self {
+        match item {
             cx::TypeDefParticleId::Group(group) => {
-                let group = context.resolve_fragment_id(group, scope)?;
+                let group =
+                    context.resolve_type_template(group, scope, &GroupRefFragmentHandler)?;
 
                 let template = TypeDefParticleTemplate::Item(group.template);
 
@@ -664,7 +702,8 @@ impl ComplexToTypeTemplate for cx::TypeDefParticleId {
                 })
             }
             cx::TypeDefParticleId::All(fragment_idx) => {
-                let all = context.resolve_fragment_id(fragment_idx, scope)?;
+                let all =
+                    context.resolve_type_template(fragment_idx, scope, &AllFragmentHandler)?;
 
                 let template = match all.template {
                     ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
@@ -677,7 +716,8 @@ impl ComplexToTypeTemplate for cx::TypeDefParticleId {
                 })
             }
             cx::TypeDefParticleId::Sequence(fragment_idx) => {
-                let sequence = context.resolve_fragment_id(fragment_idx, scope)?;
+                let sequence =
+                    context.resolve_type_template(fragment_idx, scope, &SequenceFragmentHandler)?;
 
                 let template = match sequence.template {
                     ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
@@ -690,7 +730,8 @@ impl ComplexToTypeTemplate for cx::TypeDefParticleId {
                 })
             }
             cx::TypeDefParticleId::Choice(fragment_idx) => {
-                let choice = context.resolve_fragment_id(fragment_idx, scope)?;
+                let choice =
+                    context.resolve_type_template(fragment_idx, scope, &ChoiceFragmentHandler)?;
 
                 let ident = choice
                     .ident
@@ -711,17 +752,21 @@ impl ComplexToTypeTemplate for cx::TypeDefParticleId {
     }
 }
 
-impl ComplexToTypeTemplate for cx::NamedGroupTypeContentId {
+pub struct NamedGroupTypeContentIdHandler;
+
+impl ComplexToTypeTemplate<cx::NamedGroupTypeContentId> for NamedGroupTypeContentIdHandler {
     type TypeTemplate = TypeDefParticleTemplate;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::NamedGroupTypeContentId,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        match self {
+        match item {
             cx::NamedGroupTypeContentId::All(fragment_idx) => {
-                let all = context.resolve_fragment_id(fragment_idx, scope)?;
+                let all =
+                    context.resolve_type_template(fragment_idx, scope, &AllFragmentHandler)?;
 
                 let template = match all.template {
                     ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
@@ -734,7 +779,8 @@ impl ComplexToTypeTemplate for cx::NamedGroupTypeContentId {
                 })
             }
             cx::NamedGroupTypeContentId::Sequence(fragment_idx) => {
-                let sequence = context.resolve_fragment_id(fragment_idx, scope)?;
+                let sequence =
+                    context.resolve_type_template(fragment_idx, scope, &SequenceFragmentHandler)?;
 
                 let template = match sequence.template {
                     ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
@@ -747,7 +793,8 @@ impl ComplexToTypeTemplate for cx::NamedGroupTypeContentId {
                 })
             }
             cx::NamedGroupTypeContentId::Choice(fragment_idx) => {
-                let choice = context.resolve_fragment_id(fragment_idx, scope)?;
+                let choice =
+                    context.resolve_type_template(fragment_idx, scope, &ChoiceFragmentHandler)?;
 
                 let template = match choice.template {
                     ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Choice(record),
@@ -779,19 +826,24 @@ impl TopLevelGroupTemplate {
     }
 }
 
-impl ComplexToTypeTemplate for cx::TopLevelGroupFragment {
+pub struct TopLevelGroupFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::TopLevelGroupFragment> for TopLevelGroupFragmentHandler {
     type TypeTemplate = TopLevelGroupTemplate;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::TopLevelGroupFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let ident = self.name.as_ref().to_item_ident();
+        let ident = item.name.as_ref().to_item_ident();
 
-        let fragment = context
-            .sub_context(ident.clone())
-            .resolve_fragment(&self.content, scope)?;
+        let fragment = NamedGroupTypeContentIdHandler.to_type_template(
+            &context.sub_context(ident.clone()),
+            scope,
+            &item.content,
+        )?;
 
         let template = match fragment.template {
             TypeDefParticleTemplate::Record(item_record) => {

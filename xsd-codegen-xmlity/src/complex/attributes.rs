@@ -1,6 +1,7 @@
 use crate::{
-    simple::SimpleContext, templates::element_record::ElementFieldAttribute, Result,
-    ToIdentTypesExt,
+    simple::{simple_type::SimpleTypeRootHandler, SimpleContext, SimpleToTypeTemplate},
+    templates::element_record::ElementFieldAttribute,
+    Result, ToIdentTypesExt,
 };
 use quote::format_ident;
 use syn::parse_quote;
@@ -9,29 +10,34 @@ use xsd_fragments::fragments::complex::{self as cx, AttributeUse};
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 
-impl ComplexToTypeTemplate for cx::LocalAttributeFragment {
+struct LocalAttributeHandler;
+
+impl ComplexToTypeTemplate<cx::LocalAttributeFragment> for LocalAttributeHandler {
     type TypeTemplate = ElementFieldAttribute;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::LocalAttributeFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let optional = match self.use_.unwrap_or_default() {
+        let optional = match item.use_.unwrap_or_default() {
             AttributeUse::Optional => true,
             AttributeUse::Required => false,
             AttributeUse::Prohibited => panic!("prohibited attributes are not supported"),
         };
 
-        let (ident, template) = match &self.type_mode {
+        let (ident, template) = match &item.type_mode {
             cx::LocalAttributeFragmentTypeMode::Declared(local) => {
                 let name = ExpandedName::new(local.name.clone(), None);
                 let ident = local.name.to_item_ident();
 
-                let ty = context
+                let simple_context = context
                     .simple_context()
-                    .sub_context(format_ident!("{}Value", ident))
-                    .resolve_fragment(&local.type_, scope)?
+                    .sub_context(format_ident!("{}Value", ident));
+
+                let ty = SimpleTypeRootHandler
+                    .to_type_template(&simple_context, scope, &local.type_)?
                     .template;
 
                 let ty = ty.wrap_if(optional, |a| parse_quote!(::core::option::Option<#a>));
@@ -68,17 +74,20 @@ impl ComplexToTypeTemplate for cx::LocalAttributeFragment {
     }
 }
 
-impl ComplexToTypeTemplate for cx::AttributeDeclarationId {
+pub struct AttributeDeclarationHandler;
+
+impl ComplexToTypeTemplate<cx::AttributeDeclarationId> for AttributeDeclarationHandler {
     type TypeTemplate = ElementFieldAttribute;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::AttributeDeclarationId,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        match self {
+        match item {
             cx::AttributeDeclarationId::Attribute(fragment_idx) => {
-                context.resolve_fragment_id(fragment_idx, scope)
+                context.resolve_type_template(fragment_idx, scope, &LocalAttributeHandler)
             }
             cx::AttributeDeclarationId::AttributeGroupRef(_fragment_idx) => {
                 Err(crate::Error::UnsupportedFragment {
@@ -89,23 +98,25 @@ impl ComplexToTypeTemplate for cx::AttributeDeclarationId {
     }
 }
 
-impl ComplexToTypeTemplate for cx::TopLevelAttributeFragment {
+pub struct TopLevelAttributeHandler;
+
+impl ComplexToTypeTemplate<cx::TopLevelAttributeFragment> for TopLevelAttributeHandler {
     type TypeTemplate = ElementFieldAttribute;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::TopLevelAttributeFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let name = ExpandedName::new(
-            self.name.clone(),
+            item.name.clone(),
             Some(context.namespace().clone().into_owned()),
         );
-        let ident = self.name.to_item_ident();
+        let ident = item.name.to_item_ident();
 
-        let ty = context
-            .simple_context()
-            .resolve_fragment(&self.type_, scope)?
+        let ty = SimpleTypeRootHandler
+            .to_type_template(context.simple_context(), scope, &item.type_)?
             .template;
 
         let template = ElementFieldAttribute {

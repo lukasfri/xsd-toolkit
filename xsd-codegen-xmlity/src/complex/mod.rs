@@ -11,7 +11,7 @@ use syn::Ident;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_fragments::fragments::{
     complex::{AllNNI, ComplexTypeFragmentCompiler},
-    FragmentAccess, FragmentIdx,
+    FragmentAccess,
 };
 
 pub trait ComplexContext {
@@ -28,19 +28,14 @@ pub trait ComplexContext {
 
     fn to_expanded_name(&self, name: LocalName<'static>) -> ExpandedName<'static>;
 
-    fn resolve_fragment<F: ComplexToTypeTemplate, S: Scope>(
+    fn resolve_type_template<I, H: ComplexToTypeTemplate<I>, S: Scope>(
         &self,
-        fragment: &F,
+        fragment_id: &xsd_fragments::fragments::FragmentIdx<I>,
         scope: &mut S,
-    ) -> Result<ToTypeTemplateData<F::TypeTemplate>>;
-
-    fn resolve_fragment_id<F: ComplexToTypeTemplate, S: Scope>(
-        &self,
-        fragment_id: &FragmentIdx<F>,
-        scope: &mut S,
-    ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
+        handler: &H,
+    ) -> Result<ToTypeTemplateData<H::TypeTemplate>>
     where
-        ComplexTypeFragmentCompiler: FragmentAccess<F>;
+        ComplexTypeFragmentCompiler: FragmentAccess<I>;
 
     fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<BoundType>;
 
@@ -49,15 +44,21 @@ pub trait ComplexContext {
     fn resolve_named_attribute(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>>;
 
     fn resolve_named_group(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>>;
+
+    fn substitution_group_members(
+        &self,
+        name: &ExpandedName<'_>,
+    ) -> Result<impl Iterator<Item = ExpandedName<'_>>>;
 }
 
-pub trait ComplexToTypeTemplate {
+pub trait ComplexToTypeTemplate<I> {
     type TypeTemplate;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &I,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>>;
 }
 

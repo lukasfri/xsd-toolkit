@@ -1,6 +1,7 @@
 use crate::{
+    complex::complex_type::ComplexTypeRootFragmentHandler,
     misc::{unbox_type, TypeReference},
-    simple::SimpleContext,
+    simple::{simple_type::SimpleTypeRootHandler, SimpleContext},
     templates::{
         choice,
         element_record::{
@@ -15,22 +16,25 @@ use crate::{
 
 use quote::format_ident;
 use syn::parse_quote;
-use xsd_fragments::fragments::complex::{self as cx, AllNNI};
+use xsd_fragments::fragments::complex as cx;
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 
-impl ComplexToTypeTemplate for cx::ElementTypeContentId {
+pub struct ElementTypeContentIdHandler;
+
+impl ComplexToTypeTemplate<cx::ElementTypeContentId> for ElementTypeContentIdHandler {
     type TypeTemplate = GroupRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::ElementTypeContentId,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        match self {
-            cx::ElementTypeContentId::SimpleType(_fragment_id) => context
+        match item {
+            cx::ElementTypeContentId::SimpleType(fragment_id) => context
                 .simple_context()
-                .resolve_fragment_id(_fragment_id, scope)
+                .resolve_type_template(fragment_id, scope, &SimpleTypeRootHandler)
                 .map(|sub_type| ToTypeTemplateData {
                     ident: None,
                     template: GroupRecord::new_single_field(
@@ -43,7 +47,7 @@ impl ComplexToTypeTemplate for cx::ElementTypeContentId {
                     ),
                 }),
             cx::ElementTypeContentId::ComplexType(fragment_idx) => {
-                context.resolve_fragment_id(fragment_idx, scope)
+                context.resolve_type_template(fragment_idx, scope, &ComplexTypeRootFragmentHandler)
             }
         }
     }
@@ -65,18 +69,21 @@ fn type_to_element_field(
     }
 }
 
-impl ComplexToTypeTemplate for cx::DeclaredElementFragment {
+struct DeclaredElementFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::DeclaredElementFragment> for DeclaredElementFragmentHandler {
     type TypeTemplate = ElementRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::DeclaredElementFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let name = context.to_expanded_name(self.name.clone());
-        let ident = self.name.to_item_ident();
+        let name = context.to_expanded_name(item.name.clone());
+        let ident = item.name.to_item_ident();
 
-        match &self.type_ {
+        match &item.type_ {
             xsd_fragments::NamedOrAnonymous::Named(expanded_name) => {
                 let bound_type = context.resolve_named_type(expanded_name)?;
 
@@ -90,7 +97,8 @@ impl ComplexToTypeTemplate for cx::DeclaredElementFragment {
                 })
             }
             xsd_fragments::NamedOrAnonymous::Anonymous(anonymous) => {
-                let sub_type = context.resolve_fragment(anonymous, scope)?;
+                let sub_type =
+                    ElementTypeContentIdHandler.to_type_template(context, scope, anonymous)?;
 
                 let template = sub_type.template.into_element_record(name);
 
@@ -103,15 +111,18 @@ impl ComplexToTypeTemplate for cx::DeclaredElementFragment {
     }
 }
 
-impl ComplexToTypeTemplate for cx::ReferenceElementFragment {
+struct ReferenceElementFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::ReferenceElementFragment> for ReferenceElementFragmentHandler {
     type TypeTemplate = ItemFieldItem;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         _scope: &mut S,
+        item: &cx::ReferenceElementFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let ty = context.resolve_named_element(&self.ref_)?;
+        let ty = context.resolve_named_element(&item.ref_)?;
 
         let template = ItemFieldItem {
             ty,
@@ -120,7 +131,7 @@ impl ComplexToTypeTemplate for cx::ReferenceElementFragment {
         };
 
         Ok(ToTypeTemplateData {
-            ident: Some(self.ref_.local_name().to_item_ident()),
+            ident: Some(item.ref_.local_name().to_item_ident()),
             template,
         })
     }
@@ -130,25 +141,29 @@ pub enum LocalElementFragmentTemplate {
     ElementRecord {
         template: ElementRecord,
         min_occurs: usize,
-        max_occurs: AllNNI,
+        max_occurs: cx::AllNNI,
     },
     Item(ItemFieldItem),
 }
 
-impl ComplexToTypeTemplate for cx::LocalElementFragment {
+pub struct LocalElementFragmentHandler;
+
+impl ComplexToTypeTemplate<cx::LocalElementFragment> for LocalElementFragmentHandler {
     type TypeTemplate = LocalElementFragmentTemplate;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::LocalElementFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let min_occurs = self.min_occurs.unwrap_or(1);
-        let max_occurs = self.max_occurs.unwrap_or(AllNNI::Bounded(1));
+        let min_occurs = item.min_occurs.unwrap_or(1);
+        let max_occurs = item.max_occurs.unwrap_or(cx::AllNNI::Bounded(1));
 
-        match &self.type_ {
+        match &item.type_ {
             cx::LocalElementFragmentType::Local(local) => {
-                let local = context.resolve_fragment(local, scope)?;
+                let local =
+                    DeclaredElementFragmentHandler.to_type_template(context, scope, local)?;
 
                 Ok(ToTypeTemplateData {
                     ident: local.ident,
@@ -160,7 +175,8 @@ impl ComplexToTypeTemplate for cx::LocalElementFragment {
                 })
             }
             cx::LocalElementFragmentType::Reference(reference) => {
-                let reference = context.resolve_fragment(reference, scope)?;
+                let reference =
+                    ReferenceElementFragmentHandler.to_type_template(context, scope, reference)?;
 
                 let (ty, optional) =
                     super::min_max_occurs_type(min_occurs, max_occurs, reference.template.ty);
@@ -196,64 +212,51 @@ impl TopLevelElementTemplate {
     }
 }
 
-impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
+pub struct TopLevelElementFragmentHandler {
+    pub dynamic_substitute_group: bool,
+    pub standalone_element_type: bool,
+}
+
+impl ComplexToTypeTemplate<cx::TopLevelElementFragment> for TopLevelElementFragmentHandler {
     type TypeTemplate = TopLevelElementTemplate;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
+        item: &cx::TopLevelElementFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let name = context.to_expanded_name(self.name.clone());
-        let ident = self.name.to_item_ident();
+        let name = context.to_expanded_name(item.name.clone());
+        let ident = item.name.to_item_ident();
 
-        let type_ = self.type_.as_ref();
+        let type_ = item.type_.as_ref();
         let self_type = context.resolve_named_element(&name)?;
 
-        let substitute_group_setting = true;
-        let element_type_standalone = substitute_group_setting;
+        let mut substitution_choices = Vec::new();
 
-        let element_record = match type_ {
-            Some(xsd_fragments::NamedOrAnonymous::Named(expanded_name)) => {
-                let bound_type = context.resolve_named_type(expanded_name)?;
+        substitution_choices.extend(
+            context
+                .substitution_group_members(&name)?
+                .map(|a| {
+                    let element_type = context.resolve_named_element(&a)?;
+                    Ok((
+                        a.local_name().to_variant_ident(),
+                        choice::ChoiceVariantType::Item(
+                            value_record::ItemRecord::new_single_field(
+                                None,
+                                value_record::ItemField::Item(ItemFieldItem {
+                                    ty: element_type,
+                                    default: false,
+                                    default_with: None,
+                                }),
+                            ),
+                        ),
+                    ))
+                })
+                .collect::<Result<Vec<_>>>()?,
+        );
 
-                let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false, None);
-
-                ElementRecord {
-                    name,
-                    attribute_order: ItemOrder::None,
-                    children_order: ItemOrder::None,
-                    fields: ElementFieldType::Unnamed(vec![field]),
-                    allow_unknown_attributes: AllowUnknown::Any,
-                    allow_unknown_children: AllowUnknown::AtEnd,
-                }
-            }
-            Some(xsd_fragments::NamedOrAnonymous::Anonymous(anonymous)) => {
-                let sub_type = context.resolve_fragment(anonymous, scope)?;
-
-                if element_type_standalone {
-                    let type_ = sub_type.template.to_struct(&ident, None);
-
-                    let ty = scope.add_item(type_)?;
-
-                    ElementRecord {
-                        name,
-                        attribute_order: ItemOrder::None,
-                        children_order: ItemOrder::None,
-                        fields: ElementFieldType::Unnamed(vec![ElementField::Group(
-                            ElementFieldGroup { ty },
-                        )]),
-                        allow_unknown_attributes: AllowUnknown::Any,
-                        allow_unknown_children: AllowUnknown::AtEnd,
-                    }
-                } else {
-                    sub_type.template.into_element_record(name)
-                }
-            }
-            None => ElementRecord::new_empty(name),
-        };
-
-        if substitute_group_setting {
+        if self.dynamic_substitute_group {
             let substitute_group_ty = self_type.wrap(|ty| {
                 let ty = match ty {
                     syn::Type::Path(ty) => unbox_type(&ty).unwrap_or(syn::Type::Path(ty)),
@@ -263,26 +266,76 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
                 parse_quote!(::xmlity_ns::SubstitutionGroup<#ty>)
             });
 
+            substitution_choices.push((
+                format_ident!("Dynamic"),
+                choice::ChoiceVariantType::Item(value_record::ItemRecord::new_single_field(
+                    None,
+                    value_record::ItemField::Item(ItemFieldItem {
+                        ty: substitute_group_ty,
+                        default: false,
+                        default_with: None,
+                    }),
+                )),
+            ));
+        }
+
+        let element_record = (!item.abstract_)
+            .then(|| match type_ {
+                Some(xsd_fragments::NamedOrAnonymous::Named(expanded_name)) => {
+                    let bound_type = context.resolve_named_type(expanded_name)?;
+
+                    let field =
+                        type_to_element_field(bound_type.ty, bound_type.ty_type, false, None);
+
+                    Ok(ElementRecord {
+                        name,
+                        attribute_order: ItemOrder::None,
+                        children_order: ItemOrder::None,
+                        fields: ElementFieldType::Unnamed(vec![field]),
+                        allow_unknown_attributes: AllowUnknown::Any,
+                        allow_unknown_children: AllowUnknown::AtEnd,
+                    })
+                }
+                Some(xsd_fragments::NamedOrAnonymous::Anonymous(anonymous)) => {
+                    let sub_type =
+                        ElementTypeContentIdHandler.to_type_template(context, scope, anonymous)?;
+
+                    if self.standalone_element_type {
+                        let type_ = sub_type.template.to_struct(&ident, None);
+
+                        let ty = scope.add_item(type_)?;
+
+                        Ok(ElementRecord {
+                            name,
+                            attribute_order: ItemOrder::None,
+                            children_order: ItemOrder::None,
+                            fields: ElementFieldType::Unnamed(vec![ElementField::Group(
+                                ElementFieldGroup { ty },
+                            )]),
+                            allow_unknown_attributes: AllowUnknown::Any,
+                            allow_unknown_children: AllowUnknown::AtEnd,
+                        })
+                    } else {
+                        Ok(sub_type.template.into_element_record(name))
+                    }
+                }
+                None => Ok(ElementRecord::new_empty(name)),
+            })
+            .transpose()?;
+
+        if !substitution_choices.is_empty() || element_record.is_none() {
+            let element_variant = element_record.map(|element_record| {
+                (
+                    ident.to_item_ident(),
+                    choice::ChoiceVariantType::Element(element_record),
+                )
+            });
+
             let choice = choice::Choice {
-                variants: vec![
-                    (
-                        ident.to_item_ident(),
-                        choice::ChoiceVariantType::Element(element_record),
-                    ),
-                    (
-                        format_ident!("SubstitutionGroup"),
-                        choice::ChoiceVariantType::Item(
-                            value_record::ItemRecord::new_single_field(
-                                None,
-                                value_record::ItemField::Item(ItemFieldItem {
-                                    ty: substitute_group_ty,
-                                    default: false,
-                                    default_with: None,
-                                }),
-                            ),
-                        ),
-                    ),
-                ],
+                variants: element_variant
+                    .into_iter()
+                    .chain(substitution_choices)
+                    .collect(),
             };
 
             Ok(ToTypeTemplateData {
@@ -292,7 +345,11 @@ impl ComplexToTypeTemplate for cx::TopLevelElementFragment {
         } else {
             Ok(ToTypeTemplateData {
                 ident: Some(ident),
-                template: TopLevelElementTemplate::ElementRecord(element_record),
+                template: TopLevelElementTemplate::ElementRecord(
+                    element_record.expect(
+                        "Element record should be present due to condition in if statement",
+                    ),
+                ),
             })
         }
     }

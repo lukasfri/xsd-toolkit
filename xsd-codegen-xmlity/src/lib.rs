@@ -8,7 +8,6 @@ pub mod templates;
 use std::{
     collections::{BTreeMap, HashSet},
     convert::Infallible,
-    ops::Deref,
 };
 
 use complex::ComplexToTypeTemplate;
@@ -20,6 +19,7 @@ use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_fragments::{
     fragments::{
         complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
+        FragmentIdx,
     },
     CompiledNamespace, TopLevelType,
 };
@@ -35,7 +35,11 @@ use xsd_fragments_transformer::{
 
 use crate::{
     augments::{ItemAugmentation, ItemAugmentationExt},
-    simple::SimpleToTypeTemplate,
+    complex::{
+        attributes::TopLevelAttributeHandler, complex_type::ComplexTypeRootFragmentHandler,
+        elements::TopLevelElementFragmentHandler, groups::TopLevelGroupFragmentHandler,
+    },
+    simple::{simple_type::SimpleTypeRootHandler, SimpleToTypeTemplate},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -268,14 +272,6 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
         &self.suggested_ident
     }
 
-    fn resolve_fragment<F: SimpleToTypeTemplate, S: Scope>(
-        &self,
-        fragment: &F,
-        scope: &mut S,
-    ) -> Result<ToTypeTemplateData<F::TypeTemplate>> {
-        fragment.to_type_template(self, scope)
-    }
-
     fn get_fragment<F, S: Scope>(
         &self,
         fragment_id: &xsd_fragments::fragments::FragmentIdx<F>,
@@ -292,17 +288,18 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
             .unwrap())
     }
 
-    fn resolve_fragment_id<F: SimpleToTypeTemplate, S: Scope>(
+    fn resolve_type_template<I, H: SimpleToTypeTemplate<I>, S: Scope>(
         &self,
-        fragment_id: &xsd_fragments::fragments::FragmentIdx<F>,
+        fragment_id: &FragmentIdx<I>,
         scope: &mut S,
-    ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
+        handler: &H,
+    ) -> Result<ToTypeTemplateData<H::TypeTemplate>>
     where
-        SimpleTypeFragmentCompiler: FragmentAccess<F>,
+        SimpleTypeFragmentCompiler: FragmentAccess<I>,
     {
         let fragment = self.get_fragment(fragment_id, scope)?;
 
-        fragment.to_type_template(self, scope)
+        handler.to_type_template(self, scope, fragment)
     }
 
     fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<BoundType> {
@@ -363,21 +360,14 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         <Self as simple::SimpleContext>::to_expanded_name(self, name)
     }
 
-    fn resolve_fragment<F: ComplexToTypeTemplate, S: Scope>(
+    fn resolve_type_template<I, H: ComplexToTypeTemplate<I>, S: Scope>(
         &self,
-        fragment: &F,
+        fragment_id: &xsd_fragments::fragments::FragmentIdx<I>,
         scope: &mut S,
-    ) -> Result<ToTypeTemplateData<F::TypeTemplate>> {
-        fragment.to_type_template(self, scope)
-    }
-
-    fn resolve_fragment_id<F: ComplexToTypeTemplate, S: Scope>(
-        &self,
-        fragment_id: &xsd_fragments::fragments::FragmentIdx<F>,
-        scope: &mut S,
-    ) -> Result<ToTypeTemplateData<F::TypeTemplate>>
+        handler: &H,
+    ) -> Result<ToTypeTemplateData<H::TypeTemplate>>
     where
-        ComplexTypeFragmentCompiler: FragmentAccess<F>,
+        ComplexTypeFragmentCompiler: FragmentAccess<I>,
     {
         let fragment = self
             .generator
@@ -389,7 +379,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
             .get_fragment(fragment_id)
             .unwrap();
 
-        fragment.to_type_template(self, scope)
+        handler.to_type_template(self, scope, fragment)
     }
 
     fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<BoundType> {
@@ -507,6 +497,33 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         let ty = TypeReference::new_static(ty).wrap(TypeReference::box_wrapper);
 
         Ok(ty)
+    }
+
+    fn substitution_group_members(
+        &self,
+        name: &ExpandedName<'_>,
+    ) -> Result<impl Iterator<Item = ExpandedName<'_>>> {
+        Ok(self
+            .generator
+            .context
+            .namespaces
+            .iter()
+            .flat_map(|(_, namespace)| {
+                namespace
+                    .top_level_elements
+                    .iter()
+                    .filter(|(key, fragment_id)| {
+                        let fragment = namespace
+                            .complex_type
+                            .get_fragment(&fragment_id.root_fragment)
+                            .unwrap();
+
+                        fragment.substitution_groups.contains(name)
+                    })
+                    .map(|(key, _)| {
+                        ExpandedName::new(key.as_ref(), Some(namespace.namespace.as_ref()))
+                    })
+            }))
     }
 }
 
@@ -734,9 +751,10 @@ impl<'a> Generator<'a> {
                 let module_name = format_ident!("{}Items", item_name).to_path_ident();
                 let context =
                     GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
-                let mut scope = GeneratorScope::new(self.augmenter.deref());
+                let mut scope = GeneratorScope::new(&self.augmenter);
 
-                let type_ = fragment.to_type_template(&context, &mut scope)?;
+                let type_ =
+                    SimpleTypeRootHandler.to_type_template(&context, &mut scope, fragment)?;
 
                 let mut items = Vec::new();
 
@@ -772,9 +790,10 @@ impl<'a> Generator<'a> {
                 let module_name = format_ident!("{}Items", item_name).to_path_ident();
                 let context =
                     GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
-                let mut scope = GeneratorScope::new(self.augmenter.deref());
+                let mut scope = GeneratorScope::new(&self.augmenter);
 
-                let type_ = fragment.to_type_template(&context, &mut scope)?;
+                let type_ = ComplexTypeRootFragmentHandler
+                    .to_type_template(&context, &mut scope, &fragment)?;
 
                 let mut items = Vec::new();
 
@@ -923,9 +942,9 @@ impl<'a> Generator<'a> {
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
-        let mut scope = GeneratorScope::new(self.augmenter.deref());
+        let mut scope = GeneratorScope::new(&self.augmenter);
 
-        let type_ = fragment.to_type_template(&context, &mut scope)?;
+        let type_ = TopLevelAttributeHandler.to_type_template(&context, &mut scope, fragment)?;
 
         let mut items = Vec::new();
 
@@ -1021,9 +1040,13 @@ impl<'a> Generator<'a> {
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
-        let mut scope = GeneratorScope::new(self.augmenter.deref());
+        let mut scope = GeneratorScope::new(&self.augmenter);
 
-        let type_ = fragment.to_type_template(&context, &mut scope)?;
+        let type_ = TopLevelElementFragmentHandler {
+            dynamic_substitute_group: true,
+            standalone_element_type: true,
+        }
+        .to_type_template(&context, &mut scope, fragment)?;
 
         let mut items = Vec::new();
 
@@ -1072,9 +1095,10 @@ impl<'a> Generator<'a> {
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
-        let mut scope = GeneratorScope::new(self.augmenter.deref());
+        let mut scope = GeneratorScope::new(&self.augmenter);
 
-        let type_ = fragment.to_type_template(&context, &mut scope)?;
+        let type_ =
+            TopLevelGroupFragmentHandler.to_type_template(&context, &mut scope, &fragment)?;
 
         let mut items = Vec::new();
 

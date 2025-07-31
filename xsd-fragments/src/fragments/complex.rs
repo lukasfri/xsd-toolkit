@@ -216,6 +216,8 @@ pub struct LocalElementFragment {
 pub struct TopLevelElementFragment {
     pub name: LocalName<'static>,
     pub type_: Option<NamedOrAnonymous<ElementTypeContentId>>,
+    pub substitution_groups: Vec<ExpandedName<'static>>,
+    pub abstract_: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -862,7 +864,19 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelElement {
             (None, None) => None,
         };
 
-        compiler.push_fragment(TopLevelElementFragment { name, type_ })
+        let substitution_groups = self
+            .substitution_group
+            .iter()
+            .flat_map(|list| list.0.iter())
+            .map(|expanded_name| expanded_name.0.clone())
+            .collect();
+
+        compiler.push_fragment(TopLevelElementFragment {
+            name,
+            type_,
+            substitution_groups,
+            abstract_: self.abstract_.unwrap_or_default(),
+        })
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
