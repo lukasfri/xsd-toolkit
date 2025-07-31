@@ -2257,26 +2257,6 @@ pub mod types {
         ::core::clone::Clone
     )]
     #[xgroup(children_order = "strict")]
-    pub struct AttributeGroup {
-        #[xattribute(name = "id", optional)]
-        pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional)]
-        pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "ref", optional)]
-        pub ref_: ::core::option::Option<crate::types::QName>,
-        #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
-        pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
-    }
-    #[derive(
-        ::core::fmt::Debug,
-        ::xmlity::SerializationGroup,
-        ::xmlity::DeserializationGroup,
-        ::bon::Builder,
-        ::core::cmp::PartialEq,
-        ::core::clone::Clone
-    )]
-    #[xgroup(children_order = "strict")]
     pub struct AttributeGroupRef {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
@@ -2286,38 +2266,6 @@ pub mod types {
         pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
-    }
-    #[derive(
-        ::core::fmt::Debug,
-        ::xmlity::SerializationGroup,
-        ::xmlity::DeserializationGroup,
-        ::bon::Builder,
-        ::core::cmp::PartialEq,
-        ::core::clone::Clone
-    )]
-    #[xgroup(children_order = "strict")]
-    pub struct ComplexBaseType {
-        #[xattribute(name = "id", optional)]
-        pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional)]
-        pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "mixed", optional)]
-        pub mixed: ::core::option::Option<bool>,
-        #[xattribute(name = "abstract", optional)]
-        pub abstract_: ::core::option::Option<bool>,
-        #[xattribute(name = "final", optional)]
-        pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::types::DerivationSet>,
-        >,
-        #[xattribute(name = "block", optional)]
-        pub block: ::core::option::Option<
-            ::std::boxed::Box<crate::types::DerivationSet>,
-        >,
-        #[xattribute(name = "defaultAttributesApply", optional)]
-        pub default_attributes_apply: ::core::option::Option<bool>,
-        #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
-        pub complex_type_model: ::std::boxed::Box<crate::groups::ComplexTypeModel>,
     }
     pub mod complex_restriction_type_items {
         #[derive(
@@ -2359,112 +2307,6 @@ pub mod types {
         pub child_1: ::core::option::Option<complex_restriction_type_items::Child1>,
         pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
         pub assertions: ::std::boxed::Box<crate::groups::Assertions>,
-    }
-    pub mod element_items {
-        impl ::core::convert::From<crate::types::LocalSimpleType> for Type {
-            fn from(value: crate::types::LocalSimpleType) -> Self {
-                Type::SimpleType(::std::boxed::Box::new(value))
-            }
-        }
-        impl ::core::convert::From<crate::types::LocalComplexType> for Type {
-            fn from(value: crate::types::LocalComplexType) -> Self {
-                Type::ComplexType(::std::boxed::Box::new(value))
-            }
-        }
-        #[derive(
-            ::core::fmt::Debug,
-            ::xmlity::Serialize,
-            ::xmlity::Deserialize,
-            ::core::cmp::PartialEq,
-            ::core::clone::Clone
-        )]
-        pub enum Type {
-            #[xelement(
-                name = "simpleType",
-                namespace = "http://www.w3.org/2001/XMLSchema",
-                allow_unknown_attributes = "any"
-            )]
-            SimpleType(#[xgroup] ::std::boxed::Box<crate::types::LocalSimpleType>),
-            #[xelement(
-                name = "complexType",
-                namespace = "http://www.w3.org/2001/XMLSchema",
-                allow_unknown_attributes = "any"
-            )]
-            ComplexType(#[xgroup] ::std::boxed::Box<crate::types::LocalComplexType>),
-        }
-        impl ::core::convert::From<crate::types::AltType> for Alternative {
-            fn from(value: crate::types::AltType) -> Self {
-                Alternative(::std::boxed::Box::new(value))
-            }
-        }
-        #[derive(
-            ::core::fmt::Debug,
-            ::xmlity::Serialize,
-            ::xmlity::Deserialize,
-            ::core::cmp::PartialEq,
-            ::core::clone::Clone
-        )]
-        #[xelement(
-            name = "alternative",
-            namespace = "http://www.w3.org/2001/XMLSchema",
-            allow_unknown_attributes = "any"
-        )]
-        pub struct Alternative(#[xgroup] pub ::std::boxed::Box<crate::types::AltType>);
-    }
-    #[derive(
-        ::core::fmt::Debug,
-        ::xmlity::SerializationGroup,
-        ::xmlity::DeserializationGroup,
-        ::bon::Builder,
-        ::core::cmp::PartialEq,
-        ::core::clone::Clone
-    )]
-    #[xgroup(children_order = "strict")]
-    pub struct Element {
-        #[xattribute(name = "id", optional)]
-        pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional)]
-        pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "ref", optional)]
-        pub ref_: ::core::option::Option<crate::types::QName>,
-        #[xattribute(name = "type", optional)]
-        pub type_attribute: ::core::option::Option<crate::types::QName>,
-        #[xattribute(name = "substitutionGroup", optional)]
-        pub substitution_group: ::core::option::Option<
-            ::xmlity_ns::List<crate::types::QName>,
-        >,
-        #[xattribute(name = "minOccurs", optional)]
-        pub min_occurs: ::core::option::Option<usize>,
-        #[xattribute(name = "maxOccurs", optional)]
-        pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
-        #[xattribute(name = "default", optional)]
-        pub default: ::core::option::Option<String>,
-        #[xattribute(name = "fixed", optional)]
-        pub fixed: ::core::option::Option<String>,
-        #[xattribute(name = "nillable", optional)]
-        pub nillable: ::core::option::Option<bool>,
-        #[xattribute(name = "abstract", optional)]
-        pub abstract_: ::core::option::Option<bool>,
-        #[xattribute(name = "final", optional)]
-        pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::types::DerivationSet>,
-        >,
-        #[xattribute(name = "block", optional)]
-        pub block: ::core::option::Option<::std::boxed::Box<crate::types::BlockSet>>,
-        #[xattribute(name = "form", optional)]
-        pub form: ::core::option::Option<::std::boxed::Box<crate::types::FormChoice>>,
-        #[xattribute(name = "targetNamespace", optional)]
-        pub target_namespace: ::core::option::Option<String>,
-        #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
-        #[xvalue(default)]
-        pub type_: ::core::option::Option<element_items::Type>,
-        #[xvalue(default)]
-        #[builder(default)]
-        pub alternative: ::std::vec::Vec<element_items::Alternative>,
-        #[xvalue(default)]
-        #[builder(default)]
-        pub identity_constraint: ::std::vec::Vec<crate::groups::IdentityConstraint>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2533,32 +2375,6 @@ pub mod types {
         pub fixed: ::core::option::Option<bool>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
-    }
-    #[derive(
-        ::core::fmt::Debug,
-        ::xmlity::SerializationGroup,
-        ::xmlity::DeserializationGroup,
-        ::bon::Builder,
-        ::core::cmp::PartialEq,
-        ::core::clone::Clone
-    )]
-    #[xgroup(children_order = "strict")]
-    pub struct Group {
-        #[xattribute(name = "id", optional)]
-        pub id: ::core::option::Option<String>,
-        #[xattribute(name = "name", optional)]
-        pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xattribute(name = "ref", optional)]
-        pub ref_: ::core::option::Option<crate::types::QName>,
-        #[xattribute(name = "minOccurs", optional)]
-        pub min_occurs: ::core::option::Option<usize>,
-        #[xattribute(name = "maxOccurs", optional)]
-        pub max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
-        #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
-        #[xvalue(default)]
-        #[builder(default)]
-        pub particle: ::std::vec::Vec<crate::groups::Particle>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -3032,28 +2848,6 @@ pub mod types {
         pub child_1: ::core::option::Option<restriction_type_items::Child1>,
         pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
         pub assertions: ::std::boxed::Box<crate::groups::Assertions>,
-    }
-    #[derive(
-        ::core::fmt::Debug,
-        ::xmlity::SerializationGroup,
-        ::xmlity::DeserializationGroup,
-        ::bon::Builder,
-        ::core::cmp::PartialEq,
-        ::core::clone::Clone
-    )]
-    #[xgroup(children_order = "strict")]
-    pub struct SimpleBaseType {
-        #[xattribute(name = "id", optional)]
-        pub id: ::core::option::Option<String>,
-        #[xattribute(name = "final", optional)]
-        pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::types::SimpleDerivationSet>,
-        >,
-        #[xattribute(name = "name", optional)]
-        pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
-        #[xvalue(default)]
-        pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
-        pub simple_derivation: ::std::boxed::Box<crate::groups::SimpleDerivation>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -4133,7 +3927,7 @@ pub enum All {
         allow_unknown_attributes = "any"
     )]
     All(#[xgroup] ::std::boxed::Box<crate::types::All>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::All>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::All>),
 }
 impl ::core::convert::From<crate::types::All> for All {
     fn from(value: crate::types::All) -> Self {
@@ -4142,7 +3936,7 @@ impl ::core::convert::From<crate::types::All> for All {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::All>> for All {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::All>) -> Self {
-        All::SubstitutionGroup(value)
+        All::Dynamic(value)
     }
 }
 pub mod annotation_items {
@@ -4197,7 +3991,7 @@ pub enum Annotation {
         allow_unknown_attributes = "any"
     )]
     Annotation(#[xgroup] annotation_items::Annotation),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Annotation>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Annotation>),
 }
 impl ::core::convert::From<annotation_items::Annotation> for Annotation {
     fn from(value: annotation_items::Annotation) -> Self {
@@ -4207,7 +4001,7 @@ impl ::core::convert::From<annotation_items::Annotation> for Annotation {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Annotation>>
 for Annotation {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Annotation>) -> Self {
-        Annotation::SubstitutionGroup(value)
+        Annotation::Dynamic(value)
     }
 }
 pub mod any_items {
@@ -4458,7 +4252,7 @@ pub enum Any {
         allow_unknown_attributes = "any"
     )]
     Any(#[xgroup] any_items::Any),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Any>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Any>),
 }
 impl ::core::convert::From<any_items::Any> for Any {
     fn from(value: any_items::Any) -> Self {
@@ -4467,7 +4261,7 @@ impl ::core::convert::From<any_items::Any> for Any {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Any>> for Any {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Any>) -> Self {
-        Any::SubstitutionGroup(value)
+        Any::Dynamic(value)
     }
 }
 pub mod any_attribute_items {
@@ -4711,7 +4505,7 @@ pub enum AnyAttribute {
         allow_unknown_attributes = "any"
     )]
     AnyAttribute(#[xgroup] any_attribute_items::AnyAttribute),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::AnyAttribute>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::AnyAttribute>),
 }
 impl ::core::convert::From<any_attribute_items::AnyAttribute> for AnyAttribute {
     fn from(value: any_attribute_items::AnyAttribute) -> Self {
@@ -4721,7 +4515,7 @@ impl ::core::convert::From<any_attribute_items::AnyAttribute> for AnyAttribute {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::AnyAttribute>>
 for AnyAttribute {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::AnyAttribute>) -> Self {
-        AnyAttribute::SubstitutionGroup(value)
+        AnyAttribute::Dynamic(value)
     }
 }
 pub mod appinfo_items {
@@ -4769,7 +4563,7 @@ pub enum Appinfo {
         allow_unknown_attributes = "any"
     )]
     Appinfo(#[xgroup] appinfo_items::Appinfo),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Appinfo>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Appinfo>),
 }
 impl ::core::convert::From<appinfo_items::Appinfo> for Appinfo {
     fn from(value: appinfo_items::Appinfo) -> Self {
@@ -4778,7 +4572,7 @@ impl ::core::convert::From<appinfo_items::Appinfo> for Appinfo {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Appinfo>> for Appinfo {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Appinfo>) -> Self {
-        Appinfo::SubstitutionGroup(value)
+        Appinfo::Dynamic(value)
     }
 }
 #[derive(
@@ -4795,7 +4589,7 @@ pub enum Assertion {
         allow_unknown_attributes = "any"
     )]
     Assertion(#[xgroup] ::std::boxed::Box<crate::types::Assertion>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Assertion>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Assertion>),
 }
 impl ::core::convert::From<crate::types::Assertion> for Assertion {
     fn from(value: crate::types::Assertion) -> Self {
@@ -4805,7 +4599,7 @@ impl ::core::convert::From<crate::types::Assertion> for Assertion {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Assertion>>
 for Assertion {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Assertion>) -> Self {
-        Assertion::SubstitutionGroup(value)
+        Assertion::Dynamic(value)
     }
 }
 #[derive(
@@ -4822,7 +4616,7 @@ pub enum Attribute {
         allow_unknown_attributes = "any"
     )]
     Attribute(#[xgroup] ::std::boxed::Box<crate::types::TopLevelAttribute>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Attribute>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Attribute>),
 }
 impl ::core::convert::From<crate::types::TopLevelAttribute> for Attribute {
     fn from(value: crate::types::TopLevelAttribute) -> Self {
@@ -4832,7 +4626,7 @@ impl ::core::convert::From<crate::types::TopLevelAttribute> for Attribute {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Attribute>>
 for Attribute {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Attribute>) -> Self {
-        Attribute::SubstitutionGroup(value)
+        Attribute::Dynamic(value)
     }
 }
 #[derive(
@@ -4849,7 +4643,7 @@ pub enum AttributeGroup {
         allow_unknown_attributes = "any"
     )]
     AttributeGroup(#[xgroup] ::std::boxed::Box<crate::types::NamedAttributeGroup>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::AttributeGroup>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::AttributeGroup>),
 }
 impl ::core::convert::From<crate::types::NamedAttributeGroup> for AttributeGroup {
     fn from(value: crate::types::NamedAttributeGroup) -> Self {
@@ -4859,7 +4653,7 @@ impl ::core::convert::From<crate::types::NamedAttributeGroup> for AttributeGroup
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::AttributeGroup>>
 for AttributeGroup {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::AttributeGroup>) -> Self {
-        AttributeGroup::SubstitutionGroup(value)
+        AttributeGroup::Dynamic(value)
     }
 }
 #[derive(
@@ -4876,7 +4670,7 @@ pub enum Choice {
         allow_unknown_attributes = "any"
     )]
     Choice(#[xgroup] ::std::boxed::Box<crate::types::ExplicitGroup>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Choice>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Choice>),
 }
 impl ::core::convert::From<crate::types::ExplicitGroup> for Choice {
     fn from(value: crate::types::ExplicitGroup) -> Self {
@@ -4885,7 +4679,7 @@ impl ::core::convert::From<crate::types::ExplicitGroup> for Choice {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Choice>> for Choice {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Choice>) -> Self {
-        Choice::SubstitutionGroup(value)
+        Choice::Dynamic(value)
     }
 }
 pub mod complex_content_items {
@@ -4953,7 +4747,7 @@ pub enum ComplexContent {
         allow_unknown_attributes = "any"
     )]
     ComplexContent(#[xgroup] complex_content_items::ComplexContent),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::ComplexContent>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::ComplexContent>),
 }
 impl ::core::convert::From<complex_content_items::ComplexContent> for ComplexContent {
     fn from(value: complex_content_items::ComplexContent) -> Self {
@@ -4963,7 +4757,7 @@ impl ::core::convert::From<complex_content_items::ComplexContent> for ComplexCon
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::ComplexContent>>
 for ComplexContent {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::ComplexContent>) -> Self {
-        ComplexContent::SubstitutionGroup(value)
+        ComplexContent::Dynamic(value)
     }
 }
 #[derive(
@@ -4980,7 +4774,7 @@ pub enum ComplexType {
         allow_unknown_attributes = "any"
     )]
     ComplexType(#[xgroup] ::std::boxed::Box<crate::types::TopLevelComplexType>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::ComplexType>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::ComplexType>),
 }
 impl ::core::convert::From<crate::types::TopLevelComplexType> for ComplexType {
     fn from(value: crate::types::TopLevelComplexType) -> Self {
@@ -4990,7 +4784,7 @@ impl ::core::convert::From<crate::types::TopLevelComplexType> for ComplexType {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::ComplexType>>
 for ComplexType {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::ComplexType>) -> Self {
-        ComplexType::SubstitutionGroup(value)
+        ComplexType::Dynamic(value)
     }
 }
 pub mod default_open_content_items {
@@ -5114,7 +4908,7 @@ pub enum DefaultOpenContent {
         allow_unknown_attributes = "any"
     )]
     DefaultOpenContent(#[xgroup] default_open_content_items::DefaultOpenContent),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::DefaultOpenContent>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::DefaultOpenContent>),
 }
 impl ::core::convert::From<default_open_content_items::DefaultOpenContent>
 for DefaultOpenContent {
@@ -5125,7 +4919,7 @@ for DefaultOpenContent {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::DefaultOpenContent>>
 for DefaultOpenContent {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::DefaultOpenContent>) -> Self {
-        DefaultOpenContent::SubstitutionGroup(value)
+        DefaultOpenContent::Dynamic(value)
     }
 }
 pub mod documentation_items {
@@ -5177,7 +4971,7 @@ pub enum Documentation {
         allow_unknown_attributes = "any"
     )]
     Documentation(#[xgroup] documentation_items::Documentation),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Documentation>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Documentation>),
 }
 impl ::core::convert::From<documentation_items::Documentation> for Documentation {
     fn from(value: documentation_items::Documentation) -> Self {
@@ -5187,7 +4981,7 @@ impl ::core::convert::From<documentation_items::Documentation> for Documentation
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Documentation>>
 for Documentation {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Documentation>) -> Self {
-        Documentation::SubstitutionGroup(value)
+        Documentation::Dynamic(value)
     }
 }
 #[derive(
@@ -5204,7 +4998,7 @@ pub enum Element {
         allow_unknown_attributes = "any"
     )]
     Element(#[xgroup] ::std::boxed::Box<crate::types::TopLevelElement>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Element>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Element>),
 }
 impl ::core::convert::From<crate::types::TopLevelElement> for Element {
     fn from(value: crate::types::TopLevelElement) -> Self {
@@ -5213,7 +5007,7 @@ impl ::core::convert::From<crate::types::TopLevelElement> for Element {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Element>> for Element {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Element>) -> Self {
-        Element::SubstitutionGroup(value)
+        Element::Dynamic(value)
     }
 }
 #[derive(
@@ -5230,7 +5024,7 @@ pub enum Enumeration {
         allow_unknown_attributes = "any"
     )]
     Enumeration(#[xgroup] ::std::boxed::Box<crate::types::NoFixedFacet>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Enumeration>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Enumeration>),
 }
 impl ::core::convert::From<crate::types::NoFixedFacet> for Enumeration {
     fn from(value: crate::types::NoFixedFacet) -> Self {
@@ -5240,7 +5034,7 @@ impl ::core::convert::From<crate::types::NoFixedFacet> for Enumeration {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Enumeration>>
 for Enumeration {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Enumeration>) -> Self {
-        Enumeration::SubstitutionGroup(value)
+        Enumeration::Dynamic(value)
     }
 }
 pub mod explicit_timezone_items {
@@ -5367,7 +5161,7 @@ pub enum ExplicitTimezone {
         allow_unknown_attributes = "any"
     )]
     ExplicitTimezone(#[xgroup] explicit_timezone_items::ExplicitTimezone),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::ExplicitTimezone>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::ExplicitTimezone>),
 }
 impl ::core::convert::From<explicit_timezone_items::ExplicitTimezone>
 for ExplicitTimezone {
@@ -5378,7 +5172,106 @@ for ExplicitTimezone {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::ExplicitTimezone>>
 for ExplicitTimezone {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::ExplicitTimezone>) -> Self {
-        ExplicitTimezone::SubstitutionGroup(value)
+        ExplicitTimezone::Dynamic(value)
+    }
+}
+#[derive(
+    ::core::fmt::Debug,
+    ::xmlity::Serialize,
+    ::xmlity::Deserialize,
+    ::core::cmp::PartialEq,
+    ::core::clone::Clone
+)]
+pub enum Facet {
+    Assertion(crate::Assertion),
+    Enumeration(crate::Enumeration),
+    ExplicitTimezone(crate::ExplicitTimezone),
+    FractionDigits(::std::boxed::Box<crate::FractionDigits>),
+    Length(::std::boxed::Box<crate::Length>),
+    MaxExclusive(::std::boxed::Box<crate::MaxExclusive>),
+    MaxInclusive(::std::boxed::Box<crate::MaxInclusive>),
+    MaxLength(::std::boxed::Box<crate::MaxLength>),
+    MinExclusive(::std::boxed::Box<crate::MinExclusive>),
+    MinInclusive(::std::boxed::Box<crate::MinInclusive>),
+    MinLength(::std::boxed::Box<crate::MinLength>),
+    Pattern(::std::boxed::Box<crate::Pattern>),
+    TotalDigits(::std::boxed::Box<crate::TotalDigits>),
+    WhiteSpace(::std::boxed::Box<crate::WhiteSpace>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Facet>),
+}
+impl ::core::convert::From<crate::Assertion> for Facet {
+    fn from(value: crate::Assertion) -> Self {
+        Facet::Assertion(value)
+    }
+}
+impl ::core::convert::From<crate::Enumeration> for Facet {
+    fn from(value: crate::Enumeration) -> Self {
+        Facet::Enumeration(value)
+    }
+}
+impl ::core::convert::From<crate::ExplicitTimezone> for Facet {
+    fn from(value: crate::ExplicitTimezone) -> Self {
+        Facet::ExplicitTimezone(value)
+    }
+}
+impl ::core::convert::From<crate::FractionDigits> for Facet {
+    fn from(value: crate::FractionDigits) -> Self {
+        Facet::FractionDigits(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<crate::Length> for Facet {
+    fn from(value: crate::Length) -> Self {
+        Facet::Length(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<crate::MaxExclusive> for Facet {
+    fn from(value: crate::MaxExclusive) -> Self {
+        Facet::MaxExclusive(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<crate::MaxInclusive> for Facet {
+    fn from(value: crate::MaxInclusive) -> Self {
+        Facet::MaxInclusive(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<crate::MaxLength> for Facet {
+    fn from(value: crate::MaxLength) -> Self {
+        Facet::MaxLength(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<crate::MinExclusive> for Facet {
+    fn from(value: crate::MinExclusive) -> Self {
+        Facet::MinExclusive(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<crate::MinInclusive> for Facet {
+    fn from(value: crate::MinInclusive) -> Self {
+        Facet::MinInclusive(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<crate::MinLength> for Facet {
+    fn from(value: crate::MinLength) -> Self {
+        Facet::MinLength(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<crate::Pattern> for Facet {
+    fn from(value: crate::Pattern) -> Self {
+        Facet::Pattern(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<crate::TotalDigits> for Facet {
+    fn from(value: crate::TotalDigits) -> Self {
+        Facet::TotalDigits(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<crate::WhiteSpace> for Facet {
+    fn from(value: crate::WhiteSpace) -> Self {
+        Facet::WhiteSpace(::std::boxed::Box::new(value))
+    }
+}
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Facet>> for Facet {
+    fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Facet>) -> Self {
+        Facet::Dynamic(value)
     }
 }
 pub mod field_items {
@@ -5470,7 +5363,7 @@ pub enum Field {
         allow_unknown_attributes = "any"
     )]
     Field(#[xgroup] field_items::Field),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Field>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Field>),
 }
 impl ::core::convert::From<field_items::Field> for Field {
     fn from(value: field_items::Field) -> Self {
@@ -5479,7 +5372,7 @@ impl ::core::convert::From<field_items::Field> for Field {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Field>> for Field {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Field>) -> Self {
-        Field::SubstitutionGroup(value)
+        Field::Dynamic(value)
     }
 }
 #[derive(
@@ -5496,7 +5389,7 @@ pub enum FractionDigits {
         allow_unknown_attributes = "any"
     )]
     FractionDigits(#[xgroup] ::std::boxed::Box<crate::types::NumFacet>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::FractionDigits>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::FractionDigits>),
 }
 impl ::core::convert::From<crate::types::NumFacet> for FractionDigits {
     fn from(value: crate::types::NumFacet) -> Self {
@@ -5506,7 +5399,7 @@ impl ::core::convert::From<crate::types::NumFacet> for FractionDigits {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::FractionDigits>>
 for FractionDigits {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::FractionDigits>) -> Self {
-        FractionDigits::SubstitutionGroup(value)
+        FractionDigits::Dynamic(value)
     }
 }
 #[derive(
@@ -5523,7 +5416,7 @@ pub enum Group {
         allow_unknown_attributes = "any"
     )]
     Group(#[xgroup] ::std::boxed::Box<crate::types::NamedGroup>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Group>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Group>),
 }
 impl ::core::convert::From<crate::types::NamedGroup> for Group {
     fn from(value: crate::types::NamedGroup) -> Self {
@@ -5532,7 +5425,7 @@ impl ::core::convert::From<crate::types::NamedGroup> for Group {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Group>> for Group {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Group>) -> Self {
-        Group::SubstitutionGroup(value)
+        Group::Dynamic(value)
     }
 }
 pub mod import_items {
@@ -5570,7 +5463,7 @@ pub enum Import {
         allow_unknown_attributes = "any"
     )]
     Import(#[xgroup] import_items::Import),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Import>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Import>),
 }
 impl ::core::convert::From<import_items::Import> for Import {
     fn from(value: import_items::Import) -> Self {
@@ -5579,7 +5472,7 @@ impl ::core::convert::From<import_items::Import> for Import {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Import>> for Import {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Import>) -> Self {
-        Import::SubstitutionGroup(value)
+        Import::Dynamic(value)
     }
 }
 pub mod include_items {
@@ -5615,7 +5508,7 @@ pub enum Include {
         allow_unknown_attributes = "any"
     )]
     Include(#[xgroup] include_items::Include),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Include>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Include>),
 }
 impl ::core::convert::From<include_items::Include> for Include {
     fn from(value: include_items::Include) -> Self {
@@ -5624,7 +5517,7 @@ impl ::core::convert::From<include_items::Include> for Include {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Include>> for Include {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Include>) -> Self {
-        Include::SubstitutionGroup(value)
+        Include::Dynamic(value)
     }
 }
 #[derive(
@@ -5641,7 +5534,7 @@ pub enum Key {
         allow_unknown_attributes = "any"
     )]
     Key(#[xgroup] ::std::boxed::Box<crate::types::Keybase>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Key>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Key>),
 }
 impl ::core::convert::From<crate::types::Keybase> for Key {
     fn from(value: crate::types::Keybase) -> Self {
@@ -5650,7 +5543,7 @@ impl ::core::convert::From<crate::types::Keybase> for Key {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Key>> for Key {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Key>) -> Self {
-        Key::SubstitutionGroup(value)
+        Key::Dynamic(value)
     }
 }
 pub mod keyref_items {
@@ -5707,7 +5600,7 @@ pub enum Keyref {
         allow_unknown_attributes = "any"
     )]
     Keyref(#[xgroup] keyref_items::Keyref),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Keyref>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Keyref>),
 }
 impl ::core::convert::From<keyref_items::Keyref> for Keyref {
     fn from(value: keyref_items::Keyref) -> Self {
@@ -5716,7 +5609,7 @@ impl ::core::convert::From<keyref_items::Keyref> for Keyref {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Keyref>> for Keyref {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Keyref>) -> Self {
-        Keyref::SubstitutionGroup(value)
+        Keyref::Dynamic(value)
     }
 }
 #[derive(
@@ -5733,7 +5626,7 @@ pub enum Length {
         allow_unknown_attributes = "any"
     )]
     Length(#[xgroup] ::std::boxed::Box<crate::types::NumFacet>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Length>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Length>),
 }
 impl ::core::convert::From<crate::types::NumFacet> for Length {
     fn from(value: crate::types::NumFacet) -> Self {
@@ -5742,7 +5635,7 @@ impl ::core::convert::From<crate::types::NumFacet> for Length {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Length>> for Length {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Length>) -> Self {
-        Length::SubstitutionGroup(value)
+        Length::Dynamic(value)
     }
 }
 pub mod list_items {
@@ -5787,7 +5680,7 @@ pub enum List {
         allow_unknown_attributes = "any"
     )]
     List(#[xgroup] list_items::List),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::List>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::List>),
 }
 impl ::core::convert::From<list_items::List> for List {
     fn from(value: list_items::List) -> Self {
@@ -5796,7 +5689,7 @@ impl ::core::convert::From<list_items::List> for List {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::List>> for List {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::List>) -> Self {
-        List::SubstitutionGroup(value)
+        List::Dynamic(value)
     }
 }
 #[derive(
@@ -5813,7 +5706,7 @@ pub enum MaxExclusive {
         allow_unknown_attributes = "any"
     )]
     MaxExclusive(#[xgroup] ::std::boxed::Box<crate::types::Facet>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::MaxExclusive>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::MaxExclusive>),
 }
 impl ::core::convert::From<crate::types::Facet> for MaxExclusive {
     fn from(value: crate::types::Facet) -> Self {
@@ -5823,7 +5716,7 @@ impl ::core::convert::From<crate::types::Facet> for MaxExclusive {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MaxExclusive>>
 for MaxExclusive {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MaxExclusive>) -> Self {
-        MaxExclusive::SubstitutionGroup(value)
+        MaxExclusive::Dynamic(value)
     }
 }
 #[derive(
@@ -5840,7 +5733,7 @@ pub enum MaxInclusive {
         allow_unknown_attributes = "any"
     )]
     MaxInclusive(#[xgroup] ::std::boxed::Box<crate::types::Facet>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::MaxInclusive>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::MaxInclusive>),
 }
 impl ::core::convert::From<crate::types::Facet> for MaxInclusive {
     fn from(value: crate::types::Facet) -> Self {
@@ -5850,7 +5743,7 @@ impl ::core::convert::From<crate::types::Facet> for MaxInclusive {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MaxInclusive>>
 for MaxInclusive {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MaxInclusive>) -> Self {
-        MaxInclusive::SubstitutionGroup(value)
+        MaxInclusive::Dynamic(value)
     }
 }
 #[derive(
@@ -5867,7 +5760,7 @@ pub enum MaxLength {
         allow_unknown_attributes = "any"
     )]
     MaxLength(#[xgroup] ::std::boxed::Box<crate::types::NumFacet>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::MaxLength>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::MaxLength>),
 }
 impl ::core::convert::From<crate::types::NumFacet> for MaxLength {
     fn from(value: crate::types::NumFacet) -> Self {
@@ -5877,7 +5770,7 @@ impl ::core::convert::From<crate::types::NumFacet> for MaxLength {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MaxLength>>
 for MaxLength {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MaxLength>) -> Self {
-        MaxLength::SubstitutionGroup(value)
+        MaxLength::Dynamic(value)
     }
 }
 #[derive(
@@ -5894,7 +5787,7 @@ pub enum MinExclusive {
         allow_unknown_attributes = "any"
     )]
     MinExclusive(#[xgroup] ::std::boxed::Box<crate::types::Facet>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::MinExclusive>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::MinExclusive>),
 }
 impl ::core::convert::From<crate::types::Facet> for MinExclusive {
     fn from(value: crate::types::Facet) -> Self {
@@ -5904,7 +5797,7 @@ impl ::core::convert::From<crate::types::Facet> for MinExclusive {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MinExclusive>>
 for MinExclusive {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MinExclusive>) -> Self {
-        MinExclusive::SubstitutionGroup(value)
+        MinExclusive::Dynamic(value)
     }
 }
 #[derive(
@@ -5921,7 +5814,7 @@ pub enum MinInclusive {
         allow_unknown_attributes = "any"
     )]
     MinInclusive(#[xgroup] ::std::boxed::Box<crate::types::Facet>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::MinInclusive>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::MinInclusive>),
 }
 impl ::core::convert::From<crate::types::Facet> for MinInclusive {
     fn from(value: crate::types::Facet) -> Self {
@@ -5931,7 +5824,7 @@ impl ::core::convert::From<crate::types::Facet> for MinInclusive {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MinInclusive>>
 for MinInclusive {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MinInclusive>) -> Self {
-        MinInclusive::SubstitutionGroup(value)
+        MinInclusive::Dynamic(value)
     }
 }
 #[derive(
@@ -5948,7 +5841,7 @@ pub enum MinLength {
         allow_unknown_attributes = "any"
     )]
     MinLength(#[xgroup] ::std::boxed::Box<crate::types::NumFacet>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::MinLength>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::MinLength>),
 }
 impl ::core::convert::From<crate::types::NumFacet> for MinLength {
     fn from(value: crate::types::NumFacet) -> Self {
@@ -5958,7 +5851,7 @@ impl ::core::convert::From<crate::types::NumFacet> for MinLength {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MinLength>>
 for MinLength {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MinLength>) -> Self {
-        MinLength::SubstitutionGroup(value)
+        MinLength::Dynamic(value)
     }
 }
 pub mod notation_items {
@@ -5998,7 +5891,7 @@ pub enum Notation {
         allow_unknown_attributes = "any"
     )]
     Notation(#[xgroup] notation_items::Notation),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Notation>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Notation>),
 }
 impl ::core::convert::From<notation_items::Notation> for Notation {
     fn from(value: notation_items::Notation) -> Self {
@@ -6008,7 +5901,7 @@ impl ::core::convert::From<notation_items::Notation> for Notation {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Notation>>
 for Notation {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Notation>) -> Self {
-        Notation::SubstitutionGroup(value)
+        Notation::Dynamic(value)
     }
 }
 pub mod open_content_items {
@@ -6138,7 +6031,7 @@ pub enum OpenContent {
         allow_unknown_attributes = "any"
     )]
     OpenContent(#[xgroup] open_content_items::OpenContent),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::OpenContent>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::OpenContent>),
 }
 impl ::core::convert::From<open_content_items::OpenContent> for OpenContent {
     fn from(value: open_content_items::OpenContent) -> Self {
@@ -6148,7 +6041,7 @@ impl ::core::convert::From<open_content_items::OpenContent> for OpenContent {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::OpenContent>>
 for OpenContent {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::OpenContent>) -> Self {
-        OpenContent::SubstitutionGroup(value)
+        OpenContent::Dynamic(value)
     }
 }
 pub mod override_items {
@@ -6187,7 +6080,7 @@ pub enum Override {
         allow_unknown_attributes = "any"
     )]
     Override(#[xgroup] override_items::Override),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Override>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Override>),
 }
 impl ::core::convert::From<override_items::Override> for Override {
     fn from(value: override_items::Override) -> Self {
@@ -6197,7 +6090,7 @@ impl ::core::convert::From<override_items::Override> for Override {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Override>>
 for Override {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Override>) -> Self {
-        Override::SubstitutionGroup(value)
+        Override::Dynamic(value)
     }
 }
 pub mod pattern_items {
@@ -6235,7 +6128,7 @@ pub enum Pattern {
         allow_unknown_attributes = "any"
     )]
     Pattern(#[xgroup] pattern_items::Pattern),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Pattern>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Pattern>),
 }
 impl ::core::convert::From<pattern_items::Pattern> for Pattern {
     fn from(value: pattern_items::Pattern) -> Self {
@@ -6244,7 +6137,7 @@ impl ::core::convert::From<pattern_items::Pattern> for Pattern {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Pattern>> for Pattern {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Pattern>) -> Self {
-        Pattern::SubstitutionGroup(value)
+        Pattern::Dynamic(value)
     }
 }
 pub mod redefine_items {
@@ -6301,7 +6194,7 @@ pub enum Redefine {
         allow_unknown_attributes = "any"
     )]
     Redefine(#[xgroup] redefine_items::Redefine),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Redefine>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Redefine>),
 }
 impl ::core::convert::From<redefine_items::Redefine> for Redefine {
     fn from(value: redefine_items::Redefine) -> Self {
@@ -6311,7 +6204,7 @@ impl ::core::convert::From<redefine_items::Redefine> for Redefine {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Redefine>>
 for Redefine {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Redefine>) -> Self {
-        Redefine::SubstitutionGroup(value)
+        Redefine::Dynamic(value)
     }
 }
 pub mod restriction_items {
@@ -6348,7 +6241,7 @@ pub enum Restriction {
         allow_unknown_attributes = "any"
     )]
     Restriction(#[xgroup] restriction_items::Restriction),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Restriction>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Restriction>),
 }
 impl ::core::convert::From<restriction_items::Restriction> for Restriction {
     fn from(value: restriction_items::Restriction) -> Self {
@@ -6358,7 +6251,7 @@ impl ::core::convert::From<restriction_items::Restriction> for Restriction {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Restriction>>
 for Restriction {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Restriction>) -> Self {
-        Restriction::SubstitutionGroup(value)
+        Restriction::Dynamic(value)
     }
 }
 pub mod schema_items {
@@ -6458,7 +6351,7 @@ pub enum Schema {
         allow_unknown_attributes = "any"
     )]
     Schema(#[xgroup] schema_items::Schema),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Schema>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Schema>),
 }
 impl ::core::convert::From<schema_items::Schema> for Schema {
     fn from(value: schema_items::Schema) -> Self {
@@ -6467,7 +6360,7 @@ impl ::core::convert::From<schema_items::Schema> for Schema {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Schema>> for Schema {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Schema>) -> Self {
-        Schema::SubstitutionGroup(value)
+        Schema::Dynamic(value)
     }
 }
 pub mod selector_items {
@@ -6559,7 +6452,7 @@ pub enum Selector {
         allow_unknown_attributes = "any"
     )]
     Selector(#[xgroup] selector_items::Selector),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Selector>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Selector>),
 }
 impl ::core::convert::From<selector_items::Selector> for Selector {
     fn from(value: selector_items::Selector) -> Self {
@@ -6569,7 +6462,7 @@ impl ::core::convert::From<selector_items::Selector> for Selector {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Selector>>
 for Selector {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Selector>) -> Self {
-        Selector::SubstitutionGroup(value)
+        Selector::Dynamic(value)
     }
 }
 #[derive(
@@ -6586,7 +6479,7 @@ pub enum Sequence {
         allow_unknown_attributes = "any"
     )]
     Sequence(#[xgroup] ::std::boxed::Box<crate::types::ExplicitGroup>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Sequence>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Sequence>),
 }
 impl ::core::convert::From<crate::types::ExplicitGroup> for Sequence {
     fn from(value: crate::types::ExplicitGroup) -> Self {
@@ -6596,7 +6489,7 @@ impl ::core::convert::From<crate::types::ExplicitGroup> for Sequence {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Sequence>>
 for Sequence {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Sequence>) -> Self {
-        Sequence::SubstitutionGroup(value)
+        Sequence::Dynamic(value)
     }
 }
 pub mod simple_content_items {
@@ -6662,7 +6555,7 @@ pub enum SimpleContent {
         allow_unknown_attributes = "any"
     )]
     SimpleContent(#[xgroup] simple_content_items::SimpleContent),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::SimpleContent>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::SimpleContent>),
 }
 impl ::core::convert::From<simple_content_items::SimpleContent> for SimpleContent {
     fn from(value: simple_content_items::SimpleContent) -> Self {
@@ -6672,7 +6565,7 @@ impl ::core::convert::From<simple_content_items::SimpleContent> for SimpleConten
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::SimpleContent>>
 for SimpleContent {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::SimpleContent>) -> Self {
-        SimpleContent::SubstitutionGroup(value)
+        SimpleContent::Dynamic(value)
     }
 }
 #[derive(
@@ -6689,7 +6582,7 @@ pub enum SimpleType {
         allow_unknown_attributes = "any"
     )]
     SimpleType(#[xgroup] ::std::boxed::Box<crate::types::TopLevelSimpleType>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::SimpleType>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::SimpleType>),
 }
 impl ::core::convert::From<crate::types::TopLevelSimpleType> for SimpleType {
     fn from(value: crate::types::TopLevelSimpleType) -> Self {
@@ -6699,7 +6592,7 @@ impl ::core::convert::From<crate::types::TopLevelSimpleType> for SimpleType {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::SimpleType>>
 for SimpleType {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::SimpleType>) -> Self {
-        SimpleType::SubstitutionGroup(value)
+        SimpleType::Dynamic(value)
     }
 }
 pub mod total_digits_items {
@@ -6739,7 +6632,7 @@ pub enum TotalDigits {
         allow_unknown_attributes = "any"
     )]
     TotalDigits(#[xgroup] total_digits_items::TotalDigits),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::TotalDigits>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::TotalDigits>),
 }
 impl ::core::convert::From<total_digits_items::TotalDigits> for TotalDigits {
     fn from(value: total_digits_items::TotalDigits) -> Self {
@@ -6749,7 +6642,7 @@ impl ::core::convert::From<total_digits_items::TotalDigits> for TotalDigits {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::TotalDigits>>
 for TotalDigits {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::TotalDigits>) -> Self {
-        TotalDigits::SubstitutionGroup(value)
+        TotalDigits::Dynamic(value)
     }
 }
 pub mod union_items {
@@ -6809,7 +6702,7 @@ pub enum Union {
         allow_unknown_attributes = "any"
     )]
     Union(#[xgroup] union_items::Union),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Union>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Union>),
 }
 impl ::core::convert::From<union_items::Union> for Union {
     fn from(value: union_items::Union) -> Self {
@@ -6818,7 +6711,7 @@ impl ::core::convert::From<union_items::Union> for Union {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Union>> for Union {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Union>) -> Self {
-        Union::SubstitutionGroup(value)
+        Union::Dynamic(value)
     }
 }
 #[derive(
@@ -6835,7 +6728,7 @@ pub enum Unique {
         allow_unknown_attributes = "any"
     )]
     Unique(#[xgroup] ::std::boxed::Box<crate::types::Keybase>),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::Unique>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::Unique>),
 }
 impl ::core::convert::From<crate::types::Keybase> for Unique {
     fn from(value: crate::types::Keybase) -> Self {
@@ -6844,7 +6737,7 @@ impl ::core::convert::From<crate::types::Keybase> for Unique {
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Unique>> for Unique {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Unique>) -> Self {
-        Unique::SubstitutionGroup(value)
+        Unique::Dynamic(value)
     }
 }
 pub mod white_space_items {
@@ -6971,7 +6864,7 @@ pub enum WhiteSpace {
         allow_unknown_attributes = "any"
     )]
     WhiteSpace(#[xgroup] white_space_items::WhiteSpace),
-    SubstitutionGroup(::xmlity_ns::SubstitutionGroup<crate::WhiteSpace>),
+    Dynamic(::xmlity_ns::SubstitutionGroup<crate::WhiteSpace>),
 }
 impl ::core::convert::From<white_space_items::WhiteSpace> for WhiteSpace {
     fn from(value: white_space_items::WhiteSpace) -> Self {
@@ -6981,6 +6874,6 @@ impl ::core::convert::From<white_space_items::WhiteSpace> for WhiteSpace {
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::WhiteSpace>>
 for WhiteSpace {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::WhiteSpace>) -> Self {
-        WhiteSpace::SubstitutionGroup(value)
+        WhiteSpace::Dynamic(value)
     }
 }

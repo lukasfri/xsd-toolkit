@@ -2179,7 +2179,7 @@ impl ComplexFragmentEquivalent for xs::AnyAttribute {
                 //TODO: Handle any_attribute
                 compiler.push_fragment(AnyAttributeFragment {})
             }
-            xs::AnyAttribute::SubstitutionGroup(substitution_group) => panic!(
+            xs::AnyAttribute::Dynamic(substitution_group) => panic!(
                 "SubstitutionGroup is not supported in complex fragments, found: {:?}",
                 substitution_group
             ),

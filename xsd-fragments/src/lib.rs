@@ -346,7 +346,10 @@ impl CompiledNamespace {
 
         let root_fragment = complex_type.to_complex_fragments(&mut self.complex_type);
 
-        let type_ = TopLevelType::Complex(TopLevelComplexType { root_fragment });
+        let type_ = TopLevelType::Complex(TopLevelComplexType {
+            root_fragment,
+            abstract_: complex_type.abstract_,
+        });
         self.top_level_types.insert(local_name.clone(), type_);
 
         Ok(name)
@@ -494,6 +497,7 @@ pub struct TopLevelSimpleType {
 #[derive(Debug)]
 pub struct TopLevelComplexType {
     pub root_fragment: FragmentIdx<fragments::complex::ComplexTypeRootFragment>,
+    pub abstract_: Option<bool>,
 }
 
 #[derive(Debug)]

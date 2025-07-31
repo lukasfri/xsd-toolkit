@@ -21,7 +21,7 @@ use xsd_fragments::{
         complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
         FragmentIdx,
     },
-    CompiledNamespace, TopLevelType,
+    CompiledNamespace, TopLevelComplexType, TopLevelSimpleType, TopLevelType,
 };
 use xsd_fragments_transformer::{
     complex::{
@@ -512,7 +512,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
                 namespace
                     .top_level_elements
                     .iter()
-                    .filter(|(key, fragment_id)| {
+                    .filter(|(_, fragment_id)| {
                         let fragment = namespace
                             .complex_type
                             .get_fragment(&fragment_id.root_fragment)
@@ -661,6 +661,17 @@ impl<'a> Generator<'a> {
         self.bound_attributes.insert(name, ty);
     }
 
+    pub fn bind_attributes<
+        T: IntoIterator<Item = (ExpandedName<'static>, TypeReference<'static>)>,
+    >(
+        &mut self,
+        types: T,
+    ) {
+        types
+            .into_iter()
+            .for_each(|(name, bound_type)| self.bind_attribute(name, bound_type));
+    }
+
     pub fn bind_group(&mut self, name: ExpandedName<'static>, ty: TypeReference<'static>) {
         self.bound_groups.insert(name, ty);
     }
@@ -722,7 +733,113 @@ impl<'a> Generator<'a> {
         Ok(items)
     }
 
-    pub fn generate_type(&self, name: &xmlity::ExpandedName<'_>) -> Result<(BoundType, Vec<Item>)> {
+    pub fn generate_simple_type(
+        &self,
+        name: &xmlity::ExpandedName<'_>,
+        simple_type: &TopLevelSimpleType,
+    ) -> Result<(BoundType, Vec<Item>)> {
+        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
+
+        let compiled_namespace =
+            self.context
+                .get_namespace(namespace)
+                .ok_or_else(|| Error::MissingNamespace {
+                    namespace: namespace.clone().into_owned(),
+                })?;
+
+        let fragment = compiled_namespace
+            .complex_type
+            .simple_type_fragments
+            .get_fragment(&simple_type.root_fragment)
+            .unwrap();
+
+        let item_name = name.local_name().to_item_ident();
+        let module_name = format_ident!("{}Items", item_name).to_path_ident();
+        let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
+        let mut scope = GeneratorScope::new(&self.augmenter);
+
+        let type_ = SimpleTypeRootHandler.to_type_template(&context, &mut scope, fragment)?;
+
+        let mut items = Vec::new();
+
+        items.extend(scope.finish_mod(&module_name).map(Item::Mod));
+
+        let ty = type_.template.into_type(Some(&parse_quote!(#module_name)));
+
+        let ty_item: syn::ItemType = parse_quote!(
+            pub type #item_name = #ty;
+        );
+
+        items.push(Item::Type(ty_item));
+
+        let ty = TypeReference::new_prefixed_type(parse_quote!(#item_name))
+            .wrap(TypeReference::box_non_boxed_wrapper);
+
+        let bound_type = BoundType {
+            ty,
+            ty_type: TypeType::Simple,
+            serialize_with: None,
+            deserialize_with: None,
+        };
+
+        Ok((bound_type, items))
+    }
+
+    pub fn generate_complex_type(
+        &self,
+        name: &xmlity::ExpandedName<'_>,
+        complex_type: &TopLevelComplexType,
+    ) -> Result<(BoundType, Vec<Item>)> {
+        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
+
+        let compiled_namespace =
+            self.context
+                .get_namespace(namespace)
+                .ok_or_else(|| Error::MissingNamespace {
+                    namespace: namespace.clone().into_owned(),
+                })?;
+
+        let fragment = compiled_namespace
+            .complex_type
+            .get_fragment(&complex_type.root_fragment)
+            .unwrap();
+
+        let item_name = name.local_name().to_item_ident();
+        let module_name = format_ident!("{}Items", item_name).to_path_ident();
+        let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
+        let mut scope = GeneratorScope::new(&self.augmenter);
+
+        let type_ =
+            ComplexTypeRootFragmentHandler.to_type_template(&context, &mut scope, &fragment)?;
+
+        let mut items = Vec::new();
+
+        let mut item = type_
+            .template
+            .to_struct(&item_name, Some(&parse_quote!(#module_name)));
+
+        let augment_items = self.augmenter.augment_struct(&mut item);
+
+        items.extend(scope.finish_mod(&module_name).map(Item::Mod));
+
+        items.push(Item::Struct(item));
+
+        items.extend(augment_items);
+
+        let ty = TypeReference::new_prefixed_type(parse_quote!(#item_name))
+            .wrap(TypeReference::box_non_boxed_wrapper);
+
+        let bound_type = BoundType {
+            ty,
+            ty_type: TypeType::Complex,
+            serialize_with: None,
+            deserialize_with: None,
+        };
+
+        Ok((bound_type, items))
+    }
+
+    pub fn generate_type(&self, name: &ExpandedName<'_>) -> Result<(BoundType, Vec<Item>)> {
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
 
         let compiled_namespace =
@@ -740,86 +857,11 @@ impl<'a> Generator<'a> {
             })?;
 
         match type_ {
-            xsd_fragments::TopLevelType::Simple(type_) => {
-                let fragment = compiled_namespace
-                    .complex_type
-                    .simple_type_fragments
-                    .get_fragment(&type_.root_fragment)
-                    .unwrap();
-
-                let item_name = name.local_name().to_item_ident();
-                let module_name = format_ident!("{}Items", item_name).to_path_ident();
-                let context =
-                    GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
-                let mut scope = GeneratorScope::new(&self.augmenter);
-
-                let type_ =
-                    SimpleTypeRootHandler.to_type_template(&context, &mut scope, fragment)?;
-
-                let mut items = Vec::new();
-
-                items.extend(scope.finish_mod(&module_name).map(Item::Mod));
-
-                let ty = type_.template.into_type(Some(&parse_quote!(#module_name)));
-
-                let ty_item: syn::ItemType = parse_quote!(
-                    pub type #item_name = #ty;
-                );
-
-                items.push(Item::Type(ty_item));
-
-                let ty = TypeReference::new_prefixed_type(parse_quote!(#item_name))
-                    .wrap(TypeReference::box_non_boxed_wrapper);
-
-                let bound_type = BoundType {
-                    ty,
-                    ty_type: TypeType::Simple,
-                    serialize_with: None,
-                    deserialize_with: None,
-                };
-
-                Ok((bound_type, items))
+            xsd_fragments::TopLevelType::Simple(simple_type) => {
+                self.generate_simple_type(name, simple_type)
             }
-            xsd_fragments::TopLevelType::Complex(type_) => {
-                let fragment = compiled_namespace
-                    .complex_type
-                    .get_fragment(&type_.root_fragment)
-                    .unwrap();
-
-                let item_name = name.local_name().to_item_ident();
-                let module_name = format_ident!("{}Items", item_name).to_path_ident();
-                let context =
-                    GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
-                let mut scope = GeneratorScope::new(&self.augmenter);
-
-                let type_ = ComplexTypeRootFragmentHandler
-                    .to_type_template(&context, &mut scope, &fragment)?;
-
-                let mut items = Vec::new();
-
-                let mut item = type_
-                    .template
-                    .to_struct(&item_name, Some(&parse_quote!(#module_name)));
-
-                let augment_items = self.augmenter.augment_struct(&mut item);
-
-                items.extend(scope.finish_mod(&module_name).map(Item::Mod));
-
-                items.push(Item::Struct(item));
-
-                items.extend(augment_items);
-
-                let ty = TypeReference::new_prefixed_type(parse_quote!(#item_name))
-                    .wrap(TypeReference::box_non_boxed_wrapper);
-
-                let bound_type = BoundType {
-                    ty,
-                    ty_type: TypeType::Complex,
-                    serialize_with: None,
-                    deserialize_with: None,
-                };
-
-                Ok((bound_type, items))
+            xsd_fragments::TopLevelType::Complex(complex_type) => {
+                self.generate_complex_type(name, complex_type)
             }
         }
     }
@@ -839,15 +881,20 @@ impl<'a> Generator<'a> {
         let simple_types = compiled_namespace
             .top_level_types
             .iter()
-            .filter(|(_key, type_)| matches!(type_, TopLevelType::Simple(_)))
-            .map(|(key, _)| ExpandedName::new(key.as_ref(), Some(namespace.as_ref())))
-            .filter_map(|expanded_name| {
+            .filter_map(|(key, type_)| match type_ {
+                TopLevelType::Simple(simple_type) => Some((
+                    ExpandedName::new(key.as_ref(), Some(namespace.as_ref())),
+                    simple_type,
+                )),
+                _ => None,
+            })
+            .filter_map(|(expanded_name, type_)| {
                 if self.bound_types.contains_key(&expanded_name) {
                     // We don't want to generate types that are already bound.
                     return None;
                 }
 
-                let (mut bound_type, i) = match self.generate_type(&expanded_name) {
+                let (mut bound_type, i) = match self.generate_simple_type(&expanded_name, type_) {
                     Ok(ok) => ok,
                     Err(err) => return Some(Err(err)),
                 };
@@ -877,10 +924,21 @@ impl<'a> Generator<'a> {
         let complex_types = compiled_namespace
             .top_level_types
             .iter()
-            .filter(|(_key, type_)| matches!(type_, TopLevelType::Complex(_)))
-            .map(|(key, _)| ExpandedName::new(key.as_ref(), Some(namespace.as_ref())))
-            .map(|expanded_name| {
-                let (mut bound_type, i) = self.generate_type(&expanded_name)?;
+            .filter_map(|(key, type_)| match type_ {
+                TopLevelType::Complex(
+                    complex_type @ TopLevelComplexType {
+                        abstract_: Some(false) | None,
+                        ..
+                    },
+                ) => Some((
+                    ExpandedName::new(key.as_ref(), Some(namespace.as_ref())),
+                    complex_type,
+                )),
+                _ => None,
+            })
+            .map(|(expanded_name, complex_type)| {
+                let (mut bound_type, i) =
+                    self.generate_complex_type(&expanded_name, complex_type)?;
 
                 let bound_namespace = self.bound_namespaces.get(namespace).unwrap();
 

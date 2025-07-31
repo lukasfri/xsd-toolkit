@@ -1,7 +1,6 @@
 mod xs_custom;
 mod xs_generated;
 
-pub use xs_custom::elements::Facet;
 pub use xs_generated::*;
 
 pub mod types {

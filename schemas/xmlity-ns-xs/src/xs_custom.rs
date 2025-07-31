@@ -1,12 +1,8 @@
 use core::fmt;
 
 use xmlity::{
-    de::DeserializeContext,  Deserialize, ExpandedName, LocalName,
-    Prefix, Serialize, XmlNamespace,
+    de::DeserializeContext, Deserialize, ExpandedName, LocalName, Prefix, Serialize, XmlNamespace,
 };
-
-use crate as xs;
-
 
 pub mod types {
 
@@ -82,26 +78,5 @@ pub mod types {
         {
             todo!()
         }
-    }
-}
-pub mod elements {
-    use super::*;
-
-    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, derive_more::From)]
-    pub enum Facet {
-        MinExclusive(xs::MinExclusive),
-        MinInclusive(xs::MinInclusive),
-        MaxExclusive(xs::MaxExclusive),
-        MaxInclusive(xs::MaxInclusive),
-        TotalDigits(xs::TotalDigits),
-        FractionDigits(xs::FractionDigits),
-        Length(xs::Length),
-        MinLength(xs::MinLength),
-        MaxLength(xs::MaxLength),
-        Enumeration(xs::Enumeration),
-        WhiteSpace(xs::WhiteSpace),
-        Pattern(xs::Pattern),
-        Assertion(xs::Assertion),
-        ExplicitTimezone(xs::ExplicitTimezone),
     }
 }

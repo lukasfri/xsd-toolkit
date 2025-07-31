@@ -21,7 +21,7 @@ impl XmlSchema {
     pub fn schema(&self) -> &xs::schema_items::Schema {
         match &self.underlying_schema {
             xmlity_ns_xs::Schema::Schema(schema) => schema,
-            xmlity_ns_xs::Schema::SubstitutionGroup(_) => {
+            xmlity_ns_xs::Schema::Dynamic(_) => {
                 panic!("Expected a schema, but found a substitution group:",)
             }
         }

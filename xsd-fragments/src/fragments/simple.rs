@@ -425,6 +425,7 @@ impl SimpleFragmentEquivalent for xs::Facet {
             F::Pattern(f) => f.to_simple_fragments(compiler),
             F::Assertion(f) => f.to_simple_fragments(compiler),
             F::ExplicitTimezone(f) => f.to_simple_fragments(compiler),
+            F::Dynamic(_) => panic!("Dynamic facets are not supported in simple fragments"),
         }
     }
 

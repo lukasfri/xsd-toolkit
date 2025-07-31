@@ -37,10 +37,6 @@ fn main() {
                 },
             ),
         ])
-        .bound_elements(vec![(
-            ExpandedName::new(LocalName::new_dangerous("facet"), Some(XmlNamespace::XS)),
-            TypeReference::new_static(parse_quote!(crate::Facet)),
-        )])
         .build();
 
     let engine = engine.start().unwrap();

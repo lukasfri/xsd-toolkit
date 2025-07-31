@@ -40,8 +40,6 @@ impl XmlSchemaSet {
     }
 }
 
-
-
 impl Default for XmlSchemaSet {
     fn default() -> Self {
         Self::new()
@@ -95,7 +93,8 @@ impl XmlSchemaSet {
                 let namespace = a
                     .namespace
                     .as_ref()
-                    .map(|ns| XmlNamespace::new(ns.to_owned())).transpose()
+                    .map(|ns| XmlNamespace::new(ns.to_owned()))
+                    .transpose()
                     .expect("Failed to parse namespace")
                     .unwrap_or_else(|| XmlNamespace::new_dangerous(""));
 
@@ -115,21 +114,18 @@ impl XmlSchemaSet {
                 self.inform_location(location);
             });
 
-         let includes = schema
+        let includes = schema
             .includes()
             .map(|a| match a {
                 xs::Include::Include(a) => a,
                 _ => panic!("Expected an include, but found: {:?}", a),
             })
-            .map(|a| {
-                 url.resolve_xml_url(&a.schema_location).unwrap()
-            })
+            .map(|a| url.resolve_xml_url(&a.schema_location).unwrap())
             .collect::<Vec<_>>();
 
-            includes.iter()
-            .for_each(|location| {
-                self.inform_location(location);
-            });
+        includes.iter().for_each(|location| {
+            self.inform_location(location);
+        });
 
         let location = SchemaLocation { schema };
 
@@ -183,12 +179,12 @@ impl XmlSchemaSet {
                 .locations
                 .iter()
                 .find_map(|(url, location)| location.is_none().then(|| url.clone()))?;
-    
+
             match self.load_location(resolver, &url) {
                 Ok(loaded) => {
                     debug_assert!(loaded, "Location should be newly loaded since it was None");
                     Some(Ok(url))
-                },
+                }
                 Err(e) => Some(Err(e)),
             }
         })
@@ -196,7 +192,7 @@ impl XmlSchemaSet {
 
     // fn resolve_document(&self, location: &Url) -> Result<T, Self::Error>;
     pub fn explore_locations_async<
-    'a, 
+        'a,
         F: Future<Output = Result<xs::Schema, E>>,
         E,
         R: Fn(&Url) -> F,
@@ -214,7 +210,7 @@ impl XmlSchemaSet {
                 Ok(loaded) => {
                     debug_assert!(loaded, "Location should be newly loaded since it was None");
                     Some((Ok(url), this))
-                },
+                }
                 Err(e) => Some((Err(e), this)),
             }
         })
@@ -286,11 +282,11 @@ impl XmlSchemaSet {
                     .namespace_schemas(namespace.map(|a| a.into_owned()))
                     .flat_map(|a| a.redefinable())
                     .find_map(move |redefinable| {
-                        use xmlity_ns_xs::groups::{SimpleDerivation, ComplexTypeModel};
+                        use xmlity_ns_xs::complex_content_items::Child1 as CCC1;
+                        use xmlity_ns_xs::groups::{ComplexTypeModel, SimpleDerivation};
                         use xmlity_ns_xs::simple_content_items::Child1 as SCC1;
                         use xmlity_ns_xs::{ComplexContent as CC, SimpleContent as SC};
-                        use xmlity_ns_xs::complex_content_items::Child1 as CCC1;
-                        
+
                         match redefinable {
                             xs::groups::Redefinable::SimpleType(simple_type) => {
                                 match simple_type.deref() {
@@ -300,10 +296,18 @@ impl XmlSchemaSet {
                                                 TopLevelType::SimpleType(simple_type.deref());
 
                                             let base = match simple_type.simple_derivation.deref() {
-                                                SimpleDerivation::Restriction(restriction) => match restriction.deref() {
-                                                    xmlity_ns_xs::Restriction::Restriction(restriction) => restriction.base.as_ref().map(|a| &a.0),
-                                                    xmlity_ns_xs::Restriction::SubstitutionGroup(_) => None,
-                                                },
+                                                SimpleDerivation::Restriction(restriction) => {
+                                                    match restriction.deref() {
+                                                        xmlity_ns_xs::Restriction::Restriction(
+                                                            restriction,
+                                                        ) => {
+                                                            restriction.base.as_ref().map(|a| &a.0)
+                                                        }
+                                                        xmlity_ns_xs::Restriction::Dynamic(_) => {
+                                                            None
+                                                        }
+                                                    }
+                                                }
                                                 SimpleDerivation::List(_) => None,
                                                 SimpleDerivation::Union(_) => None,
                                             };
@@ -323,20 +327,37 @@ impl XmlSchemaSet {
                                             let type_ =
                                                 TopLevelType::ComplexType(complex_type.deref());
 
-                                            let base = match complex_type.complex_type_model.deref() {
-                                                ComplexTypeModel::SimpleContent(simple_content) => match simple_content.deref() {
-                                                    SC::SimpleContent(simple_content) => match &simple_content.child_1 {
-                                                        SCC1::Restriction(restriction) => Some(&restriction.base.0),
-                                                        SCC1::Extension(extension) => Some(&extension.base.0),
-                                                    },
-                                                    SC::SubstitutionGroup(_) => None,
-                                                },
-                                                ComplexTypeModel::ComplexContent(complex_content) => match complex_content.deref() {
-                                                    CC::ComplexContent(complex_content) => match &complex_content.child_1 {
-                                                        CCC1::Restriction(restriction) => Some(&restriction.base.0),
-                                                        CCC1::Extension(extension) => Some(&extension.base.0),
-                                                    },
-                                                    CC::SubstitutionGroup(_) => None,
+                                            let base = match complex_type.complex_type_model.deref()
+                                            {
+                                                ComplexTypeModel::SimpleContent(simple_content) => {
+                                                    match simple_content.deref() {
+                                                        SC::SimpleContent(simple_content) => {
+                                                            match &simple_content.child_1 {
+                                                                SCC1::Restriction(restriction) => {
+                                                                    Some(&restriction.base.0)
+                                                                }
+                                                                SCC1::Extension(extension) => {
+                                                                    Some(&extension.base.0)
+                                                                }
+                                                            }
+                                                        }
+                                                        SC::Dynamic(_) => None,
+                                                    }
+                                                }
+                                                ComplexTypeModel::ComplexContent(
+                                                    complex_content,
+                                                ) => match complex_content.deref() {
+                                                    CC::ComplexContent(complex_content) => {
+                                                        match &complex_content.child_1 {
+                                                            CCC1::Restriction(restriction) => {
+                                                                Some(&restriction.base.0)
+                                                            }
+                                                            CCC1::Extension(extension) => {
+                                                                Some(&extension.base.0)
+                                                            }
+                                                        }
+                                                    }
+                                                    CC::Dynamic(_) => None,
                                                 },
                                                 ComplexTypeModel::Variant2(_) => None,
                                             };
