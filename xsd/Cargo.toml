@@ -10,7 +10,6 @@ license.workspace = true
 [dependencies]
 xmlity.workspace = true
 xmlity-quick-xml.workspace = true
-bon = "3.6.3"
 derive_more.workspace = true
 xmlity-ns-xs.workspace = true
 xmlity-ns.workspace = true

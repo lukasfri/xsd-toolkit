@@ -22,10 +22,6 @@ Core library for parsing and manipulating XSD files. Provides the foundation for
 
 Schema fragment compilation system that transforms XSD definitions into structured, analyzable fragments optimized for code generation.
 
-### [`xsd-fragments-transformer`](./xsd-fragments-transformer)
-
-Schema transformation engine that applies structural modifications to normalize, flatten, and optimize schema structures before code generation.
-
 ### [`xsd-codegen-xmlity`](./xsd-codegen-xmlity)
 
 Code generation engine that produces strongly-typed Rust code from XSD schemas using the XMLity serialization framework.

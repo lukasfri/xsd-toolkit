@@ -2,11 +2,12 @@ use std::collections::HashSet;
 
 use xmlity::ExpandedName;
 
-use crate::{TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext};
-use xsd_fragments::fragments::{
+use crate::fragments::{
     simple::{RestrictionFragment, SimpleDerivation, SimpleTypeRootFragment},
     FragmentIdx,
 };
+use crate::transformers::context::{XmlnsContextTransformer, XmlnsContextTransformerContext};
+use crate::transformers::TransformChange;
 
 pub struct ExpandSimpleRestriction<'a> {
     allowed_bases: &'a HashSet<ExpandedName<'static>>,
@@ -51,7 +52,7 @@ impl<'a> ExpandSimpleRestriction<'a> {
             return Ok(TransformChange::default());
         }
 
-        let xsd_fragments::TopLevelType::Simple(base_simple_type) = ctx
+        let crate::TopLevelType::Simple(base_simple_type) = ctx
             .get_named_type(base)
             .ok_or(Error::BaseNotFound { base: base.clone() })?
         else {
@@ -117,16 +118,14 @@ impl XmlnsContextTransformer for ExpandSimpleRestriction<'_> {
 
 #[cfg(test)]
 mod tests {
+    use crate::XmlnsContext;
+
     use super::*;
     use pretty_assertions::assert_eq;
     use std::collections::HashSet;
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::{xs, xsn};
-
-    use xsd_fragments::XmlnsContext;
-
-    use crate::{TransformChange, XmlnsContextExt};
 
     #[test]
     #[ignore = "Currently does not pass due to restriction expansion not being fully featured yet"]

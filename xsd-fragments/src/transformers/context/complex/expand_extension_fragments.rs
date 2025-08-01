@@ -3,24 +3,24 @@ use std::collections::VecDeque;
 
 use xmlity::ExpandedName;
 
-use crate::TransformChange;
-use crate::XmlnsContextTransformer;
-use crate::XmlnsContextTransformerContext;
+use crate::fragments::complex::AttributeDeclarationId;
+use crate::fragments::complex::AttributeDeclarationsFragment;
+use crate::fragments::complex::ComplexContentChildId;
+use crate::fragments::complex::ComplexContentFragment;
+use crate::fragments::complex::ComplexTypeModelId;
+use crate::fragments::complex::ComplexTypeRootFragment;
+use crate::fragments::complex::ExtensionFragment;
+use crate::fragments::complex::LocalAttributeFragment;
+use crate::fragments::complex::LocalAttributeFragmentTypeMode;
+use crate::fragments::complex::RestrictionFragment;
+use crate::fragments::complex::SequenceFragment;
+use crate::fragments::FragmentAccess;
+use crate::fragments::FragmentIdx;
+use crate::transformers::TransformChange;
+use crate::transformers::XmlnsContextTransformer;
+use crate::transformers::XmlnsContextTransformerContext;
+use crate::TopLevelType;
 use xsd::xsn;
-use xsd_fragments::fragments::complex::AttributeDeclarationId;
-use xsd_fragments::fragments::complex::AttributeDeclarationsFragment;
-use xsd_fragments::fragments::complex::ComplexContentChildId;
-use xsd_fragments::fragments::complex::ComplexContentFragment;
-use xsd_fragments::fragments::complex::ComplexTypeModelId;
-use xsd_fragments::fragments::complex::ComplexTypeRootFragment;
-use xsd_fragments::fragments::complex::ExtensionFragment;
-use xsd_fragments::fragments::complex::LocalAttributeFragment;
-use xsd_fragments::fragments::complex::LocalAttributeFragmentTypeMode;
-use xsd_fragments::fragments::complex::RestrictionFragment;
-use xsd_fragments::fragments::complex::SequenceFragment;
-use xsd_fragments::fragments::FragmentAccess;
-use xsd_fragments::fragments::FragmentIdx;
-use xsd_fragments::TopLevelType;
 
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
 #[non_exhaustive]
@@ -316,16 +316,15 @@ impl XmlnsContextTransformer for ExpandExtensionFragments {
 
 #[cfg(test)]
 mod tests {
-    use crate::XmlnsContextExt;
 
     use super::*;
     use pretty_assertions::assert_eq;
 
+    use crate::XmlnsContext;
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::ns;
     use xsd::xs;
     use xsd::xsn;
-    use xsd_fragments::XmlnsContext;
 
     #[test]
     fn basic_child_only_expand_extension() {

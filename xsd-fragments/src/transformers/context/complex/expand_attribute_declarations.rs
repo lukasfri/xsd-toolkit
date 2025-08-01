@@ -1,12 +1,14 @@
 use std::collections::VecDeque;
 
-use crate::{TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext};
-use xsd_fragments::fragments::{
+use crate::fragments::{
     complex::{
         AttributeDeclarationId, AttributeDeclarationsFragment, AttributeGroupRefFragment,
         LocalAttributeFragment, LocalAttributeFragmentTypeMode,
     },
     FragmentIdx,
+};
+use crate::transformers::{
+    TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext,
 };
 
 #[non_exhaustive]
@@ -223,9 +225,8 @@ impl XmlnsContextTransformer for ExpandAttributeDeclarations {
 
 #[cfg(test)]
 mod tests {
-    use xsd_fragments::XmlnsContext;
 
-    use crate::XmlnsContextExt;
+    use crate::XmlnsContext;
 
     use super::*;
     use pretty_assertions::assert_eq;

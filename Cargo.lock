@@ -2289,8 +2289,9 @@ dependencies = [
 
 [[package]]
 name = "xmlity"
-version = "0.0.7"
-source = "git+https://github.com/lukasfri/xmlity.git?rev=bbe4652a2c9e6d5ebc1cca9dbef76428cfafd55a#bbe4652a2c9e6d5ebc1cca9dbef76428cfafd55a"
+version = "0.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5d7ba5c1cc96b51ba08712a738b305b8bdc27cf7d949257b251c25e8a45c000"
 dependencies = [
  "thiserror",
  "xmlity-derive",
@@ -2318,13 +2319,13 @@ dependencies = [
  "xsd",
  "xsd-codegen-xmlity",
  "xsd-fragments",
- "xsd-fragments-transformer",
 ]
 
 [[package]]
 name = "xmlity-derive"
-version = "0.0.7"
-source = "git+https://github.com/lukasfri/xmlity.git?rev=bbe4652a2c9e6d5ebc1cca9dbef76428cfafd55a#bbe4652a2c9e6d5ebc1cca9dbef76428cfafd55a"
+version = "0.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f8494d0161e25cbdee280ea0a03a3dbd60865c5791eea49bc84cc7db19e5f8c"
 dependencies = [
  "darling 0.20.11",
  "proc-macro2",
@@ -2412,8 +2413,9 @@ dependencies = [
 
 [[package]]
 name = "xmlity-quick-xml"
-version = "0.0.7"
-source = "git+https://github.com/lukasfri/xmlity.git?rev=bbe4652a2c9e6d5ebc1cca9dbef76428cfafd55a#bbe4652a2c9e6d5ebc1cca9dbef76428cfafd55a"
+version = "0.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84c90e5742e26e9737b6d5f0f8aca18b31261097d36a71b70596cf17b67499be"
 dependencies = [
  "quick-xml",
  "thiserror",
@@ -2424,7 +2426,6 @@ dependencies = [
 name = "xsd"
 version = "0.0.0"
 dependencies = [
- "bon",
  "derive_more",
  "futures",
  "glob",
@@ -2467,7 +2468,6 @@ dependencies = [
  "xsd",
  "xsd-dynamic-query",
  "xsd-fragments",
- "xsd-fragments-transformer",
 ]
 
 [[package]]
@@ -2507,23 +2507,6 @@ dependencies = [
  "xmlity",
  "xmlity-quick-xml",
  "xsd",
-]
-
-[[package]]
-name = "xsd-fragments-transformer"
-version = "0.0.0"
-dependencies = [
- "insta",
- "map-macro",
- "pretty_assertions",
- "rstest",
- "syn 2.0.101",
- "thiserror",
- "xmlity",
- "xmlity-quick-xml",
- "xsd",
- "xsd-dynamic-query",
- "xsd-fragments",
 ]
 
 [[package]]

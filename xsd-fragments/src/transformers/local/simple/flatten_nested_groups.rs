@@ -1,10 +1,13 @@
 use std::collections::VecDeque;
 use std::convert::Infallible;
 
-use crate::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
-use xsd_fragments::fragments::{
+use crate::fragments::{
     simple::{SimpleDerivation, UnionFragment},
     FragmentIdx,
+};
+use crate::transformers::{
+    local::{XmlnsLocalTransformer, XmlnsLocalTransformerContext},
+    TransformChange,
 };
 
 pub struct FlattenNestedUnions;

@@ -19,13 +19,11 @@ xsd-fragments = { path = "../xsd-fragments" }
 dyn-clone = "1.0.14"
 Inflector = "0.11.4"
 rust_decimal = "1.37.2"
-xsd-fragments-transformer = { path = "../xsd-fragments-transformer" }
 xsd-dynamic-query = { path = "../xsd-dynamic-query" }
 
 [dev-dependencies]
 pretty_assertions.workspace = true
 rstest.workspace = true
-# xsd-xmlity = { path = "../xsd-xmlity" }
 xmlity-quick-xml.workspace = true
 insta = { version = "1.31.0", features = [] }
 map-macro = "0.3.0"

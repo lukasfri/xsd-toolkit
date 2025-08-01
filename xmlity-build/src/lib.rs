@@ -21,7 +21,6 @@ use xsd_codegen_xmlity::{
     BoundType, XmlityCodegenTransformer,
 };
 use xsd_fragments::XmlnsContext;
-use xsd_fragments_transformer::XmlnsContextExt;
 
 #[derive(Debug, Builder)]
 pub struct BuildEngine {

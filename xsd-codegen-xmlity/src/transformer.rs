@@ -1,17 +1,22 @@
 use std::collections::HashSet;
 
 use xmlity::ExpandedName;
-use xsd_fragments_transformer::{
-    complex::{
-        ExpandAttributeDeclarations, ExpandAttributeDeclarationsError, ExpandExtensionFragments,
-        ExpandExtensionFragmentsError, ExpandRestrictionFragments, ExpandRestrictionFragmentsError,
+use xsd_fragments::transformers::{
+    context::{
+        complex::{
+            ExpandAttributeDeclarations, ExpandAttributeDeclarationsError,
+            ExpandExtensionFragments, ExpandExtensionFragmentsError, ExpandRestrictionFragments,
+            ExpandRestrictionFragmentsError, RemoveProhibitedAttributes,
+            RemoveProhibitedAttributesError,
+        },
+        simple::{ExpandSimpleRestriction, ExpandSimpleRestrictionError},
+    },
+    local::complex::{
         ExpandShortFormComplexTypes, ExpandShortFormComplexTypesError, FlattenNestedChoices,
         FlattenNestedChoicesError, FlattenNestedSequences, FlattenNestedSequencesError,
-        RemoveProhibitedAttributes, RemoveProhibitedAttributesError, SingleChoiceToSequence,
-        SingleChoiceToSequenceError,
+        SingleChoiceToSequence, SingleChoiceToSequenceError,
     },
-    simple::{ExpandSimpleRestriction, ExpandSimpleRestrictionError},
-    TransformChange, XmlnsContextExt, XmlnsContextTransformer,
+    TransformChange, XmlnsContextTransformer,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -58,7 +63,7 @@ impl XmlnsContextTransformer for XmlityCodegenTransformer {
     type Error = Error;
     fn transform(
         self,
-        context: xsd_fragments_transformer::XmlnsContextTransformerContext<'_>,
+        context: xsd_fragments::transformers::XmlnsContextTransformerContext<'_>,
     ) -> std::result::Result<TransformChange, Self::Error> {
         for i in 0..100 {
             let mut total_change = TransformChange::Unchanged;

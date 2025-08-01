@@ -1,5 +1,7 @@
-use crate::{TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext};
-use xsd_fragments::fragments::{
+use crate::transformers::{
+    TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext,
+};
+use crate::fragments::{
     complex::{self as cx, AttributeDeclarationId, AttributeDeclarationsFragment, AttributeUse},
     FragmentIdx,
 };

@@ -1,22 +1,22 @@
 use std::collections::BTreeMap;
 use std::collections::VecDeque;
 
+use crate::fragments::complex::AttributeDeclarationId;
+use crate::fragments::complex::AttributeDeclarationsFragment;
+use crate::fragments::complex::ComplexContentChildId;
+use crate::fragments::complex::ComplexTypeModelId;
+use crate::fragments::complex::ComplexTypeRootFragment;
+use crate::fragments::complex::LocalAttributeFragment;
+use crate::fragments::complex::LocalAttributeFragmentTypeMode;
+use crate::fragments::complex::RestrictionFragment;
+use crate::fragments::FragmentIdx;
+use crate::TopLevelType;
 use xmlity::ExpandedName;
 use xsd::xsn;
-use xsd_fragments::fragments::complex::AttributeDeclarationId;
-use xsd_fragments::fragments::complex::AttributeDeclarationsFragment;
-use xsd_fragments::fragments::complex::ComplexContentChildId;
-use xsd_fragments::fragments::complex::ComplexTypeModelId;
-use xsd_fragments::fragments::complex::ComplexTypeRootFragment;
-use xsd_fragments::fragments::complex::LocalAttributeFragment;
-use xsd_fragments::fragments::complex::LocalAttributeFragmentTypeMode;
-use xsd_fragments::fragments::complex::RestrictionFragment;
-use xsd_fragments::fragments::FragmentIdx;
-use xsd_fragments::TopLevelType;
 
-use crate::TransformChange;
-use crate::XmlnsContextTransformer;
-use crate::XmlnsContextTransformerContext;
+use crate::transformers::TransformChange;
+use crate::transformers::XmlnsContextTransformer;
+use crate::transformers::XmlnsContextTransformerContext;
 
 /// Expands restriction and extension fragments to their base fragments, with the modifications applied.
 #[non_exhaustive]
@@ -255,14 +255,13 @@ impl XmlnsContextTransformer for ExpandRestrictionFragments {
 
 #[cfg(test)]
 mod tests {
-    use crate::XmlnsContextExt;
 
     use super::*;
     use pretty_assertions::assert_eq;
 
+    use crate::XmlnsContext;
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::{ns, xs, xsn};
-    use xsd_fragments::XmlnsContext;
 
     #[test]
     fn basic_child_only_expand_restriction() {

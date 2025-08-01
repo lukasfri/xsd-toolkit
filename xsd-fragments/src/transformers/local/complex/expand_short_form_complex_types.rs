@@ -1,12 +1,12 @@
-use crate::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
-use xsd::xsn;
-use xsd_fragments::fragments::{
+use crate::fragments::{
     complex::{
         self as cx, ComplexContentChildId, ComplexTypeModelId, ComplexTypeRootFragment,
         RestrictionFragment,
     },
     FragmentAccess, FragmentIdx,
 };
+use crate::transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
+use xsd::xsn;
 
 /// This transformer expands the short form of complex types (particles as a direct descendent of `complexType`) into the `complexContent` form.
 ///
@@ -112,16 +112,15 @@ impl XmlnsLocalTransformer for ExpandShortFormComplexTypes {
 
 #[cfg(test)]
 mod tests {
-    use crate::CompiledNamespaceExt;
 
     use super::*;
     use pretty_assertions::assert_eq;
 
+    use crate::XmlnsContext;
     use xmlity::{LocalName, XmlNamespace};
     use xsd::ns;
     use xsd::xs;
     use xsd::xsn;
-    use xsd_fragments::XmlnsContext;
 
     #[test]
     fn specification_1() {

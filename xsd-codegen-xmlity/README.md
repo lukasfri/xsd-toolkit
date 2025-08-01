@@ -12,4 +12,4 @@ Code generation engine that produces Rust code from XSD schemas using the XMLity
 
 ## Dependencies
 
-This crate builds upon `xsd-fragments` and `xsd-fragments-transformer` to process schema definitions and relies on `syn`, `quote`, and `proc-macro2` for Rust code generation.
+This crate builds upon `xsd-fragments` to process schema definitions and relies on `syn`, `quote`, and `proc-macro2` for Rust code generation.
