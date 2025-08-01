@@ -1,6 +1,8 @@
+use std::{any::type_name, sync::Weak};
+
 use crate::{
-    complex::complex_type::ComplexTypeRootFragmentHandler,
-    misc::{unbox_type, TypeReference},
+    complex::{complex_type::ComplexTypeRootHandler, ComplexToTypeTemplateExt},
+    misc::{unbox_type, TypeReference, WeakExt},
     simple::{simple_type::SimpleTypeRootHandler, SimpleContext},
     templates::{
         choice,
@@ -20,7 +22,11 @@ use xsd_fragments::fragments::complex as cx;
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 
-pub struct ElementTypeContentIdHandler;
+#[derive(Debug)]
+pub struct ElementTypeContentIdHandler {
+    pub simple_type_handler: Weak<SimpleTypeRootHandler>,
+    pub complex_type_handler: Weak<ComplexTypeRootHandler>,
+}
 
 impl ComplexToTypeTemplate<cx::ElementTypeContentId> for ElementTypeContentIdHandler {
     type TypeTemplate = GroupRecord;
@@ -34,7 +40,16 @@ impl ComplexToTypeTemplate<cx::ElementTypeContentId> for ElementTypeContentIdHan
         match item {
             cx::ElementTypeContentId::SimpleType(fragment_id) => context
                 .simple_context()
-                .resolve_type_template(fragment_id, scope, &SimpleTypeRootHandler)
+                .resolve_type_template(
+                    fragment_id,
+                    scope,
+                    &*self.simple_type_handler.upgrade_or_else(|| {
+                        crate::Error::HandlerDoesNotExist {
+                            origin: type_name::<Self>(),
+                            handler: type_name::<SimpleTypeRootHandler>(),
+                        }
+                    })?,
+                )
                 .map(|sub_type| ToTypeTemplateData {
                     ident: None,
                     template: GroupRecord::new_single_field(
@@ -46,9 +61,13 @@ impl ComplexToTypeTemplate<cx::ElementTypeContentId> for ElementTypeContentIdHan
                         }),
                     ),
                 }),
-            cx::ElementTypeContentId::ComplexType(fragment_idx) => {
-                context.resolve_type_template(fragment_idx, scope, &ComplexTypeRootFragmentHandler)
-            }
+            cx::ElementTypeContentId::ComplexType(fragment_idx) => self
+                .complex_type_handler
+                .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                    origin: type_name::<Self>(),
+                    handler: type_name::<ComplexTypeRootHandler>(),
+                })?
+                .resolve_type_template(context, scope, fragment_idx),
         }
     }
 }
@@ -69,9 +88,12 @@ fn type_to_element_field(
     }
 }
 
-struct DeclaredElementFragmentHandler;
+#[derive(Debug)]
+pub struct DeclaredElementHandler {
+    pub element_type_content_handler: Weak<ElementTypeContentIdHandler>,
+}
 
-impl ComplexToTypeTemplate<cx::DeclaredElementFragment> for DeclaredElementFragmentHandler {
+impl ComplexToTypeTemplate<cx::DeclaredElementFragment> for DeclaredElementHandler {
     type TypeTemplate = ElementRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
@@ -97,8 +119,13 @@ impl ComplexToTypeTemplate<cx::DeclaredElementFragment> for DeclaredElementFragm
                 })
             }
             xsd_fragments::NamedOrAnonymous::Anonymous(anonymous) => {
-                let sub_type =
-                    ElementTypeContentIdHandler.to_type_template(context, scope, anonymous)?;
+                let sub_type = self
+                    .element_type_content_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<ElementTypeContentIdHandler>(),
+                    })?
+                    .to_type_template(context, scope, anonymous)?;
 
                 let template = sub_type.template.into_element_record(name);
 
@@ -111,9 +138,10 @@ impl ComplexToTypeTemplate<cx::DeclaredElementFragment> for DeclaredElementFragm
     }
 }
 
-struct ReferenceElementFragmentHandler;
+#[derive(Debug)]
+pub struct ReferenceElementHandler;
 
-impl ComplexToTypeTemplate<cx::ReferenceElementFragment> for ReferenceElementFragmentHandler {
+impl ComplexToTypeTemplate<cx::ReferenceElementFragment> for ReferenceElementHandler {
     type TypeTemplate = ItemFieldItem;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
@@ -146,9 +174,13 @@ pub enum LocalElementFragmentTemplate {
     Item(ItemFieldItem),
 }
 
-pub struct LocalElementFragmentHandler;
+#[derive(Debug)]
+pub struct LocalElementHandler {
+    pub declared_element_handler: Weak<DeclaredElementHandler>,
+    pub reference_element_handler: Weak<ReferenceElementHandler>,
+}
 
-impl ComplexToTypeTemplate<cx::LocalElementFragment> for LocalElementFragmentHandler {
+impl ComplexToTypeTemplate<cx::LocalElementFragment> for LocalElementHandler {
     type TypeTemplate = LocalElementFragmentTemplate;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
@@ -162,8 +194,13 @@ impl ComplexToTypeTemplate<cx::LocalElementFragment> for LocalElementFragmentHan
 
         match &item.type_ {
             cx::LocalElementFragmentType::Local(local) => {
-                let local =
-                    DeclaredElementFragmentHandler.to_type_template(context, scope, local)?;
+                let local = self
+                    .declared_element_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<DeclaredElementHandler>(),
+                    })?
+                    .to_type_template(context, scope, local)?;
 
                 Ok(ToTypeTemplateData {
                     ident: local.ident,
@@ -175,8 +212,13 @@ impl ComplexToTypeTemplate<cx::LocalElementFragment> for LocalElementFragmentHan
                 })
             }
             cx::LocalElementFragmentType::Reference(reference) => {
-                let reference =
-                    ReferenceElementFragmentHandler.to_type_template(context, scope, reference)?;
+                let reference = self
+                    .reference_element_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<ReferenceElementHandler>(),
+                    })?
+                    .to_type_template(context, scope, reference)?;
 
                 let (ty, optional) =
                     super::min_max_occurs_type(min_occurs, max_occurs, reference.template.ty);
@@ -212,12 +254,14 @@ impl TopLevelElementTemplate {
     }
 }
 
-pub struct TopLevelElementFragmentHandler {
+#[derive(Debug)]
+pub struct TopLevelElementHandler {
     pub dynamic_substitute_group: bool,
     pub standalone_element_type: bool,
+    pub element_type_content_handler: Weak<ElementTypeContentIdHandler>,
 }
 
-impl ComplexToTypeTemplate<cx::TopLevelElementFragment> for TopLevelElementFragmentHandler {
+impl ComplexToTypeTemplate<cx::TopLevelElementFragment> for TopLevelElementHandler {
     type TypeTemplate = TopLevelElementTemplate;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
@@ -297,8 +341,13 @@ impl ComplexToTypeTemplate<cx::TopLevelElementFragment> for TopLevelElementFragm
                     })
                 }
                 Some(xsd_fragments::NamedOrAnonymous::Anonymous(anonymous)) => {
-                    let sub_type =
-                        ElementTypeContentIdHandler.to_type_template(context, scope, anonymous)?;
+                    let sub_type = self
+                        .element_type_content_handler
+                        .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                            origin: type_name::<Self>(),
+                            handler: type_name::<ElementTypeContentIdHandler>(),
+                        })?
+                        .to_type_template(context, scope, anonymous)?;
 
                     if self.standalone_element_type {
                         let type_ = sub_type.template.to_struct(&ident, None);

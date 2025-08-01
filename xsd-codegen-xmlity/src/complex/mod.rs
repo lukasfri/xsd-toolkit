@@ -62,6 +62,31 @@ pub trait ComplexToTypeTemplate<I> {
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>>;
 }
 
+pub trait ComplexToTypeTemplateExt<I>: ComplexToTypeTemplate<I> {
+    fn resolve_type_template<C: ComplexContext, S: Scope>(
+        &self,
+        context: &C,
+        scope: &mut S,
+        fragment_id: &xsd_fragments::fragments::FragmentIdx<I>,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>>
+    where
+        ComplexTypeFragmentCompiler: FragmentAccess<I>;
+}
+
+impl<I, T: ComplexToTypeTemplate<I>> ComplexToTypeTemplateExt<I> for T {
+    fn resolve_type_template<C: ComplexContext, S: Scope>(
+        &self,
+        context: &C,
+        scope: &mut S,
+        fragment_id: &xsd_fragments::fragments::FragmentIdx<I>,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>>
+    where
+        ComplexTypeFragmentCompiler: FragmentAccess<I>,
+    {
+        context.resolve_type_template(fragment_id, scope, self)
+    }
+}
+
 fn min_max_occurs_type(
     min_occurs: usize,
     max_occurs: AllNNI,

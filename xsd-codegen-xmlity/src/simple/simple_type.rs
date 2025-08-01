@@ -180,6 +180,7 @@ impl SimpleToTypeTemplate<sm::SimpleDerivation> for SimpleDerivationHandler {
     }
 }
 
+#[derive(Debug)]
 pub struct SimpleTypeRootHandler;
 
 impl SimpleToTypeTemplate<sm::SimpleTypeRootFragment> for SimpleTypeRootHandler {

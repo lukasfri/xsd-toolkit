@@ -1,7 +1,9 @@
+use std::{any::type_name, sync::Weak};
+
 use crate::{
-    complex::elements::LocalElementFragmentHandler,
+    complex::{elements::LocalElementHandler, ComplexToTypeTemplateExt},
     finish_mod,
-    misc::{common_name, dedup_field_idents, TypeReference, COMMON_NAME_MIN_LENGTH},
+    misc::{common_name, dedup_field_idents, TypeReference, WeakExt, COMMON_NAME_MIN_LENGTH},
     templates::{
         self,
         choice::{self, ChoiceVariantType},
@@ -21,7 +23,10 @@ use super::{
     ToTypeTemplateData,
 };
 
-struct AllFragmentHandler;
+#[derive(Debug)]
+pub struct AllFragmentHandler {
+    pub nested_particle_handler: Weak<NestedParticleIdHandler>,
+}
 
 impl ComplexToTypeTemplate<cx::AllFragment> for AllFragmentHandler {
     type TypeTemplate = ItemOrTemplate<ItemRecord>;
@@ -43,11 +48,13 @@ impl ComplexToTypeTemplate<cx::AllFragment> for AllFragmentHandler {
                 let suggested_ident = format_ident!("Child{i}");
                 let sub_context = context.sub_context(suggested_ident.clone());
 
-                let res = NestedParticleIdHandler.to_type_template(
-                    &sub_context,
-                    &mut sub_scope,
-                    fragment_id,
-                )?;
+                let res = self
+                    .nested_particle_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<NestedParticleIdHandler>(),
+                    })?
+                    .to_type_template(&sub_context, &mut sub_scope, fragment_id)?;
 
                 let ident = res.ident.unwrap_or(suggested_ident);
 
@@ -148,7 +155,10 @@ impl<T> ItemOrTemplate<T> {
     }
 }
 
-struct SequenceFragmentHandler;
+#[derive(Debug)]
+pub struct SequenceFragmentHandler {
+    pub nested_particle_handler: Weak<NestedParticleIdHandler>,
+}
 
 impl ComplexToTypeTemplate<cx::SequenceFragment> for SequenceFragmentHandler {
     type TypeTemplate = ItemOrTemplate<ItemRecord>;
@@ -168,11 +178,15 @@ impl ComplexToTypeTemplate<cx::SequenceFragment> for SequenceFragmentHandler {
             .enumerate()
             .map(|(i, fragment_id)| {
                 let suggested_ident = format_ident!("Child{i}");
-                let res = NestedParticleIdHandler.to_type_template(
-                    &context.sub_context(suggested_ident.clone()),
-                    &mut sub_scope,
-                    fragment_id,
-                )?;
+                let sub_context = context.sub_context(suggested_ident.clone());
+
+                let res = self
+                    .nested_particle_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<NestedParticleIdHandler>(),
+                    })?
+                    .to_type_template(&sub_context, &mut sub_scope, fragment_id)?;
 
                 let ident = res.ident.unwrap_or(suggested_ident);
 
@@ -237,7 +251,10 @@ impl ComplexToTypeTemplate<cx::SequenceFragment> for SequenceFragmentHandler {
     }
 }
 
-struct ChoiceFragmentHandler;
+#[derive(Debug)]
+pub struct ChoiceFragmentHandler {
+    pub nested_particle_handler: Weak<NestedParticleIdHandler>,
+}
 
 impl ComplexToTypeTemplate<cx::ChoiceFragment> for ChoiceFragmentHandler {
     type TypeTemplate = ItemOrTemplate<templates::choice::Choice>;
@@ -256,11 +273,17 @@ impl ComplexToTypeTemplate<cx::ChoiceFragment> for ChoiceFragmentHandler {
             .enumerate()
             .map(|(i, fragment_id)| {
                 let suggested_ident = format_ident!("Variant{i}");
-                let res = NestedParticleIdHandler.to_type_template(
-                    &context.sub_context(suggested_ident.clone()),
-                    &mut sub_scope,
-                    fragment_id,
-                )?;
+                let res = self
+                    .nested_particle_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<NestedParticleIdHandler>(),
+                    })?
+                    .to_type_template(
+                        &context.sub_context(suggested_ident.clone()),
+                        &mut sub_scope,
+                        fragment_id,
+                    )?;
 
                 let ident = res.ident.unwrap_or(suggested_ident);
 
@@ -327,7 +350,7 @@ impl ComplexToTypeTemplate<cx::ChoiceFragment> for ChoiceFragmentHandler {
     }
 }
 
-struct AnyFragmentHandler;
+pub struct AnyFragmentHandler;
 
 impl ComplexToTypeTemplate<cx::AnyFragment> for AnyFragmentHandler {
     type TypeTemplate = TypeReference<'static>;
@@ -345,7 +368,8 @@ impl ComplexToTypeTemplate<cx::AnyFragment> for AnyFragmentHandler {
     }
 }
 
-struct GroupRefFragmentHandler;
+#[derive(Debug)]
+pub struct GroupRefFragmentHandler;
 
 impl ComplexToTypeTemplate<cx::GroupRefFragment> for GroupRefFragmentHandler {
     type TypeTemplate = ItemFieldItem;
@@ -508,7 +532,14 @@ impl From<LocalElementFragmentTemplate> for GroupTypeContentTemplate {
     }
 }
 
-struct NestedParticleIdHandler;
+#[derive(Debug)]
+pub struct NestedParticleIdHandler {
+    pub local_element_handler: Weak<LocalElementHandler>,
+    pub group_ref_handler: Weak<GroupRefFragmentHandler>,
+    pub choice_handler: Weak<ChoiceFragmentHandler>,
+    pub sequence_handler: Weak<SequenceFragmentHandler>,
+    pub any_handler: Weak<AnyFragmentHandler>,
+}
 
 impl ComplexToTypeTemplate<cx::NestedParticleId> for NestedParticleIdHandler {
     type TypeTemplate = GroupTypeContentTemplate;
@@ -520,46 +551,36 @@ impl ComplexToTypeTemplate<cx::NestedParticleId> for NestedParticleIdHandler {
         item: &cx::NestedParticleId,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let template = match item {
-            cx::NestedParticleId::Element(fragment_idx) => context
-                .resolve_type_template(fragment_idx, scope, &LocalElementFragmentHandler)
+            cx::NestedParticleId::Element(fragment_idx) => self
+                .local_element_handler
+                .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                    origin: type_name::<Self>(),
+                    handler: type_name::<LocalElementHandler>(),
+                })?
+                .resolve_type_template(context, scope, fragment_idx)
                 .map(|res| ToTypeTemplateData {
                     ident: res.ident,
                     template: res.template.into(),
                 })?,
-            cx::NestedParticleId::Group(fragment_idx) => context
-                .resolve_type_template(fragment_idx, scope, &GroupRefFragmentHandler)
+            cx::NestedParticleId::Group(fragment_idx) => self
+                .group_ref_handler
+                .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                    origin: type_name::<Self>(),
+                    handler: type_name::<GroupRefFragmentHandler>(),
+                })?
+                .resolve_type_template(context, scope, fragment_idx)
                 .map(|res| ToTypeTemplateData {
                     ident: res.ident,
                     template: GroupTypeContentTemplate::Item(res.template),
                 })?,
-            // cx::NestedParticleId::All(fragment_idx) => {
-            //     let record = context.resolve_fragment_id(fragment_idx, scope)?;
-
-            //     let ident = record
-            //         .ident
-            //         .unwrap_or_else(|| context.suggested_ident().clone());
-
-            //     let item = match record.template {
-            //         ItemOrTemplate::Template(record) => {
-            //             let item = record.to_struct(&ident, None);
-
-            //             let ty = scope.add_item(item)?;
-
-            //             ItemFieldItem { ty, default: false }
-            //         }
-            //         ItemOrTemplate::Item(item) => item,
-            //     };
-
-            //     let template = GroupTypeContentTemplate::Item(item);
-
-            //     ToTypeTemplateData {
-            //         ident: Some(ident),
-            //         template,
-            //     }
-            // }
             cx::NestedParticleId::Choice(fragment_idx) => {
-                let record =
-                    context.resolve_type_template(fragment_idx, scope, &ChoiceFragmentHandler)?;
+                let record = self
+                    .choice_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<ChoiceFragmentHandler>(),
+                    })?
+                    .resolve_type_template(context, scope, fragment_idx)?;
 
                 let ident = record
                     .ident
@@ -594,11 +615,13 @@ impl ComplexToTypeTemplate<cx::NestedParticleId> for NestedParticleIdHandler {
 
                 let mod_path: syn::Path = parse_quote!(#mod_name);
 
-                let record = context.resolve_type_template(
-                    fragment_idx,
-                    &mut sub_scope,
-                    &SequenceFragmentHandler,
-                )?;
+                let record = self
+                    .sequence_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<SequenceFragmentHandler>(),
+                    })?
+                    .resolve_type_template(context, &mut sub_scope, fragment_idx)?;
 
                 let ident = record
                     .ident
@@ -636,8 +659,13 @@ impl ComplexToTypeTemplate<cx::NestedParticleId> for NestedParticleIdHandler {
                 }
             }
             cx::NestedParticleId::Any(fragment_idx) => {
-                let template =
-                    context.resolve_type_template(fragment_idx, scope, &AnyFragmentHandler)?;
+                let template = self
+                    .any_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<AnyFragmentHandler>(),
+                    })?
+                    .resolve_type_template(context, scope, fragment_idx)?;
 
                 let ty = template.template;
 
@@ -678,7 +706,13 @@ impl TypeDefParticleTemplate {
     }
 }
 
-pub struct TypeDefParticleIdHandler;
+#[derive(Debug)]
+pub struct TypeDefParticleIdHandler {
+    pub group_ref_handler: Weak<GroupRefFragmentHandler>,
+    pub all_handler: Weak<AllFragmentHandler>,
+    pub sequence_handler: Weak<SequenceFragmentHandler>,
+    pub choice_handler: Weak<ChoiceFragmentHandler>,
+}
 
 impl ComplexToTypeTemplate<cx::TypeDefParticleId> for TypeDefParticleIdHandler {
     type TypeTemplate = TypeDefParticleTemplate;
@@ -691,8 +725,13 @@ impl ComplexToTypeTemplate<cx::TypeDefParticleId> for TypeDefParticleIdHandler {
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match item {
             cx::TypeDefParticleId::Group(group) => {
-                let group =
-                    context.resolve_type_template(group, scope, &GroupRefFragmentHandler)?;
+                let group = self
+                    .group_ref_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<GroupRefFragmentHandler>(),
+                    })?
+                    .resolve_type_template(context, scope, group)?;
 
                 let template = TypeDefParticleTemplate::Item(group.template);
 
@@ -702,8 +741,13 @@ impl ComplexToTypeTemplate<cx::TypeDefParticleId> for TypeDefParticleIdHandler {
                 })
             }
             cx::TypeDefParticleId::All(fragment_idx) => {
-                let all =
-                    context.resolve_type_template(fragment_idx, scope, &AllFragmentHandler)?;
+                let all = self
+                    .all_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<AllFragmentHandler>(),
+                    })?
+                    .resolve_type_template(context, scope, fragment_idx)?;
 
                 let template = match all.template {
                     ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
@@ -716,8 +760,13 @@ impl ComplexToTypeTemplate<cx::TypeDefParticleId> for TypeDefParticleIdHandler {
                 })
             }
             cx::TypeDefParticleId::Sequence(fragment_idx) => {
-                let sequence =
-                    context.resolve_type_template(fragment_idx, scope, &SequenceFragmentHandler)?;
+                let sequence = self
+                    .sequence_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<SequenceFragmentHandler>(),
+                    })?
+                    .resolve_type_template(context, scope, fragment_idx)?;
 
                 let template = match sequence.template {
                     ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
@@ -730,8 +779,13 @@ impl ComplexToTypeTemplate<cx::TypeDefParticleId> for TypeDefParticleIdHandler {
                 })
             }
             cx::TypeDefParticleId::Choice(fragment_idx) => {
-                let choice =
-                    context.resolve_type_template(fragment_idx, scope, &ChoiceFragmentHandler)?;
+                let choice = self
+                    .choice_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<ChoiceFragmentHandler>(),
+                    })?
+                    .resolve_type_template(context, scope, fragment_idx)?;
 
                 let ident = choice
                     .ident
@@ -752,7 +806,12 @@ impl ComplexToTypeTemplate<cx::TypeDefParticleId> for TypeDefParticleIdHandler {
     }
 }
 
-pub struct NamedGroupTypeContentIdHandler;
+#[derive(Debug)]
+pub struct NamedGroupTypeContentIdHandler {
+    pub all_handler: Weak<AllFragmentHandler>,
+    pub sequence_handler: Weak<SequenceFragmentHandler>,
+    pub choice_handler: Weak<ChoiceFragmentHandler>,
+}
 
 impl ComplexToTypeTemplate<cx::NamedGroupTypeContentId> for NamedGroupTypeContentIdHandler {
     type TypeTemplate = TypeDefParticleTemplate;
@@ -765,8 +824,13 @@ impl ComplexToTypeTemplate<cx::NamedGroupTypeContentId> for NamedGroupTypeConten
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match item {
             cx::NamedGroupTypeContentId::All(fragment_idx) => {
-                let all =
-                    context.resolve_type_template(fragment_idx, scope, &AllFragmentHandler)?;
+                let all = self
+                    .all_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<AllFragmentHandler>(),
+                    })?
+                    .resolve_type_template(context, scope, fragment_idx)?;
 
                 let template = match all.template {
                     ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
@@ -779,8 +843,13 @@ impl ComplexToTypeTemplate<cx::NamedGroupTypeContentId> for NamedGroupTypeConten
                 })
             }
             cx::NamedGroupTypeContentId::Sequence(fragment_idx) => {
-                let sequence =
-                    context.resolve_type_template(fragment_idx, scope, &SequenceFragmentHandler)?;
+                let sequence = self
+                    .sequence_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<SequenceFragmentHandler>(),
+                    })?
+                    .resolve_type_template(context, scope, fragment_idx)?;
 
                 let template = match sequence.template {
                     ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Record(record),
@@ -793,8 +862,13 @@ impl ComplexToTypeTemplate<cx::NamedGroupTypeContentId> for NamedGroupTypeConten
                 })
             }
             cx::NamedGroupTypeContentId::Choice(fragment_idx) => {
-                let choice =
-                    context.resolve_type_template(fragment_idx, scope, &ChoiceFragmentHandler)?;
+                let choice = self
+                    .choice_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<ChoiceFragmentHandler>(),
+                    })?
+                    .resolve_type_template(context, scope, fragment_idx)?;
 
                 let template = match choice.template {
                     ItemOrTemplate::Template(record) => TypeDefParticleTemplate::Choice(record),
@@ -826,9 +900,12 @@ impl TopLevelGroupTemplate {
     }
 }
 
-pub struct TopLevelGroupFragmentHandler;
+#[derive(Debug)]
+pub struct TopLevelGroupHandler {
+    pub named_group_content_handler: Weak<NamedGroupTypeContentIdHandler>,
+}
 
-impl ComplexToTypeTemplate<cx::TopLevelGroupFragment> for TopLevelGroupFragmentHandler {
+impl ComplexToTypeTemplate<cx::TopLevelGroupFragment> for TopLevelGroupHandler {
     type TypeTemplate = TopLevelGroupTemplate;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
@@ -839,11 +916,13 @@ impl ComplexToTypeTemplate<cx::TopLevelGroupFragment> for TopLevelGroupFragmentH
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let ident = item.name.as_ref().to_item_ident();
 
-        let fragment = NamedGroupTypeContentIdHandler.to_type_template(
-            &context.sub_context(ident.clone()),
-            scope,
-            &item.content,
-        )?;
+        let fragment = self
+            .named_group_content_handler
+            .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                origin: type_name::<Self>(),
+                handler: type_name::<NamedGroupTypeContentIdHandler>(),
+            })?
+            .to_type_template(&context.sub_context(ident.clone()), scope, &item.content)?;
 
         let template = match fragment.template {
             TypeDefParticleTemplate::Record(item_record) => {

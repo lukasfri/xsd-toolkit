@@ -1,4 +1,10 @@
+use std::any::type_name;
+use std::sync::Weak;
+
+use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
+use crate::complex::ComplexToTypeTemplateExt;
 use crate::{
+    misc::WeakExt,
     simple::{simple_type::SimpleTypeRootHandler, SimpleContext, SimpleToTypeTemplate},
     templates::element_record::ElementFieldAttribute,
     Result, ToIdentTypesExt,
@@ -8,9 +14,10 @@ use syn::parse_quote;
 use xmlity::ExpandedName;
 use xsd_fragments::fragments::complex::{self as cx, AttributeUse};
 
-use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
-
-struct LocalAttributeHandler;
+#[derive(Debug)]
+pub struct LocalAttributeHandler {
+    pub simple_type_handler: Weak<SimpleTypeRootHandler>,
+}
 
 impl ComplexToTypeTemplate<cx::LocalAttributeFragment> for LocalAttributeHandler {
     type TypeTemplate = ElementFieldAttribute;
@@ -36,7 +43,12 @@ impl ComplexToTypeTemplate<cx::LocalAttributeFragment> for LocalAttributeHandler
                     .simple_context()
                     .sub_context(format_ident!("{}Value", ident));
 
-                let ty = SimpleTypeRootHandler
+                let ty = self
+                    .simple_type_handler
+                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                        origin: type_name::<Self>(),
+                        handler: type_name::<SimpleTypeRootHandler>(),
+                    })?
                     .to_type_template(&simple_context, scope, &local.type_)?
                     .template;
 
@@ -74,7 +86,10 @@ impl ComplexToTypeTemplate<cx::LocalAttributeFragment> for LocalAttributeHandler
     }
 }
 
-pub struct AttributeDeclarationHandler;
+#[derive(Debug)]
+pub struct AttributeDeclarationHandler {
+    pub local_attribute_handler: Weak<LocalAttributeHandler>,
+}
 
 impl ComplexToTypeTemplate<cx::AttributeDeclarationId> for AttributeDeclarationHandler {
     type TypeTemplate = ElementFieldAttribute;
@@ -86,9 +101,13 @@ impl ComplexToTypeTemplate<cx::AttributeDeclarationId> for AttributeDeclarationH
         item: &cx::AttributeDeclarationId,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         match item {
-            cx::AttributeDeclarationId::Attribute(fragment_idx) => {
-                context.resolve_type_template(fragment_idx, scope, &LocalAttributeHandler)
-            }
+            cx::AttributeDeclarationId::Attribute(fragment_idx) => self
+                .local_attribute_handler
+                .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                    origin: type_name::<Self>(),
+                    handler: type_name::<LocalAttributeHandler>(),
+                })?
+                .resolve_type_template(context, scope, fragment_idx),
             cx::AttributeDeclarationId::AttributeGroupRef(_fragment_idx) => {
                 Err(crate::Error::UnsupportedFragment {
                     fragment: "AttributeGroupRef".to_string(),
@@ -98,6 +117,7 @@ impl ComplexToTypeTemplate<cx::AttributeDeclarationId> for AttributeDeclarationH
     }
 }
 
+#[derive(Debug)]
 pub struct TopLevelAttributeHandler;
 
 impl ComplexToTypeTemplate<cx::TopLevelAttributeFragment> for TopLevelAttributeHandler {

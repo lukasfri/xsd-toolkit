@@ -8,6 +8,7 @@ pub mod templates;
 use std::{
     collections::{BTreeMap, HashSet},
     convert::Infallible,
+    sync::{Arc, Weak},
 };
 
 use complex::ComplexToTypeTemplate;
@@ -36,22 +37,55 @@ use xsd_fragments_transformer::{
 use crate::{
     augments::{ItemAugmentation, ItemAugmentationExt},
     complex::{
-        attributes::TopLevelAttributeHandler, complex_type::ComplexTypeRootFragmentHandler,
-        elements::TopLevelElementFragmentHandler, groups::TopLevelGroupFragmentHandler,
+        attributes::{
+            AttributeDeclarationHandler, LocalAttributeHandler, TopLevelAttributeHandler,
+        },
+        complex_type::{
+            AttributeDeclarationsHandler, ComplexContentHandler, ComplexTypeModelHandler,
+            ComplexTypeRootHandler, RestrictionHandler, SimpleContentFragmentHandler,
+            SimpleExtensionFragmentHandler,
+        },
+        elements::{
+            DeclaredElementHandler, ElementTypeContentIdHandler, LocalElementHandler,
+            ReferenceElementHandler, TopLevelElementHandler,
+        },
+        groups::{
+            AllFragmentHandler, AnyFragmentHandler, ChoiceFragmentHandler, GroupRefFragmentHandler,
+            NamedGroupTypeContentIdHandler, NestedParticleIdHandler, SequenceFragmentHandler,
+            TopLevelGroupHandler, TypeDefParticleIdHandler,
+        },
     },
     simple::{simple_type::SimpleTypeRootHandler, SimpleToTypeTemplate},
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
-    MissingNamespace { namespace: XmlNamespace<'static> },
+    MissingNamespace {
+        namespace: XmlNamespace<'static>,
+    },
     NoNamespace,
-    MissingElement { name: ExpandedName<'static> },
-    MissingAttribute { name: ExpandedName<'static> },
-    MissingGroup { name: ExpandedName<'static> },
-    MissingType { name: ExpandedName<'static> },
-    UnsupportedFragment { fragment: String },
-    UnsupportedSimpleBase { base: Option<ExpandedName<'static>> },
+    MissingElement {
+        name: ExpandedName<'static>,
+    },
+    MissingAttribute {
+        name: ExpandedName<'static>,
+    },
+    MissingGroup {
+        name: ExpandedName<'static>,
+    },
+    MissingType {
+        name: ExpandedName<'static>,
+    },
+    UnsupportedFragment {
+        fragment: String,
+    },
+    UnsupportedSimpleBase {
+        base: Option<ExpandedName<'static>>,
+    },
+    HandlerDoesNotExist {
+        origin: &'static str,
+        handler: &'static str,
+    },
 }
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -143,6 +177,7 @@ pub struct Generator<'a> {
     pub bound_attributes: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
     pub bound_groups: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
     pub augmenter: Box<dyn ItemAugmentation>,
+    pub handlers: HandlerContainer,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -602,6 +637,34 @@ pub struct BoundType {
     pub deserialize_with: Option<syn::Path>,
 }
 
+#[derive(Debug)]
+pub struct HandlerContainer {
+    pub nested_particle_handler: Arc<NestedParticleIdHandler>,
+    pub type_def_particle_handler: Arc<TypeDefParticleIdHandler>,
+    pub restriction_fragment_handler: Arc<RestrictionHandler>,
+    pub complex_content_handler: Arc<ComplexContentHandler>,
+    pub all_handler: Arc<AllFragmentHandler>,
+    pub sequence_handler: Arc<SequenceFragmentHandler>,
+    pub choice_handler: Arc<ChoiceFragmentHandler>,
+    pub group_ref_handler: Arc<GroupRefFragmentHandler>,
+    pub element_type_content_handler: Arc<ElementTypeContentIdHandler>,
+    pub local_element_handler: Arc<LocalElementHandler>,
+    pub declared_element_handler: Arc<DeclaredElementHandler>,
+    pub reference_element_handler: Arc<ReferenceElementHandler>,
+    pub complex_type_model_handler: Arc<ComplexTypeModelHandler>,
+    pub simple_type_root_handler: Arc<SimpleTypeRootHandler>,
+    pub local_attribute_handler: Arc<LocalAttributeHandler>,
+    pub attribute_declaration_handler: Arc<AttributeDeclarationHandler>,
+    pub attribute_declarations_handler: Arc<AttributeDeclarationsHandler>,
+    pub simple_extension_handler: Arc<SimpleExtensionFragmentHandler>,
+    pub simple_content_handler: Arc<SimpleContentFragmentHandler>,
+    pub complex_type_root_handler: Arc<ComplexTypeRootHandler>,
+    pub named_group_type_content_handler: Arc<NamedGroupTypeContentIdHandler>,
+    pub top_level_attribute_handler: Arc<TopLevelAttributeHandler>,
+    pub top_level_element_handler: Arc<TopLevelElementHandler>,
+    pub top_level_group_handler: Arc<TopLevelGroupHandler>,
+}
+
 impl<'a> Generator<'a> {
     pub fn new_with_augmenter<A: augments::ItemAugmentation + 'static>(
         context: &'a xsd_fragments::XmlnsContext,
@@ -615,10 +678,201 @@ impl<'a> Generator<'a> {
             bound_attributes: BTreeMap::new(),
             bound_groups: BTreeMap::new(),
             augmenter: Box::new(augmentation),
+            handlers: Self::handler_container(),
         }
     }
+
     pub fn new(context: &'a xsd_fragments::XmlnsContext) -> Self {
         Self::new_with_augmenter(context, augments::NoopAugmentation::new())
+    }
+
+    pub fn handler_container() -> HandlerContainer {
+        let group_ref_handler = Arc::new(GroupRefFragmentHandler {});
+
+        let any_handler = Arc::new(AnyFragmentHandler);
+
+        let simple_type_root_handler = Arc::new(SimpleTypeRootHandler {});
+
+        let local_attribute_handler = Arc::new(LocalAttributeHandler {
+            simple_type_handler: Arc::downgrade(&simple_type_root_handler),
+        });
+
+        let attribute_declaration_handler = Arc::new(AttributeDeclarationHandler {
+            local_attribute_handler: Arc::downgrade(&local_attribute_handler),
+        });
+
+        let attribute_declarations_handler = Arc::new(AttributeDeclarationsHandler {
+            attribute_declaration_handler: Arc::downgrade(&attribute_declaration_handler),
+        });
+
+        let simple_extension_handler = Arc::new(SimpleExtensionFragmentHandler {
+            attribute_declarations_handler: Arc::downgrade(&attribute_declarations_handler),
+        });
+
+        let simple_content_handler = Arc::new(SimpleContentFragmentHandler {
+            simple_extension_handler: Arc::downgrade(&simple_extension_handler),
+        });
+
+        let mut all_handler = Arc::new(AllFragmentHandler {
+            nested_particle_handler: Weak::new(),
+        });
+
+        let mut sequence_handler = Arc::new(SequenceFragmentHandler {
+            nested_particle_handler: Weak::new(),
+        });
+
+        let mut choice_handler = Arc::new(ChoiceFragmentHandler {
+            nested_particle_handler: Weak::new(),
+        });
+
+        let mut local_element_handler_export = None;
+
+        let local_element_handler = Arc::new_cyclic(|local_element_handler| {
+            let nested_particle_handler = Arc::new_cyclic(|nested_particle_handler| {
+                Arc::get_mut(&mut all_handler)
+                    .unwrap()
+                    .nested_particle_handler = nested_particle_handler.clone();
+                Arc::get_mut(&mut sequence_handler)
+                    .unwrap()
+                    .nested_particle_handler = nested_particle_handler.clone();
+                Arc::get_mut(&mut choice_handler)
+                    .unwrap()
+                    .nested_particle_handler = nested_particle_handler.clone();
+
+                NestedParticleIdHandler {
+                    local_element_handler: local_element_handler.clone(),
+                    group_ref_handler: Arc::downgrade(&group_ref_handler),
+                    choice_handler: Arc::downgrade(&choice_handler),
+                    sequence_handler: Arc::downgrade(&sequence_handler),
+                    any_handler: Arc::downgrade(&any_handler),
+                }
+            });
+
+            let type_def_particle_handler = Arc::new(TypeDefParticleIdHandler {
+                group_ref_handler: Arc::downgrade(&group_ref_handler),
+                all_handler: Arc::downgrade(&all_handler),
+                choice_handler: Arc::downgrade(&choice_handler),
+                sequence_handler: Arc::downgrade(&sequence_handler),
+            });
+
+            let restriction_fragment_handler = Arc::new(RestrictionHandler {
+                attribute_declarations_handler: Arc::downgrade(&attribute_declarations_handler),
+                type_def_particle_handler: Arc::downgrade(&type_def_particle_handler),
+            });
+
+            let complex_content_handler = Arc::new(ComplexContentHandler {
+                restriction_fragment_handler: Arc::downgrade(&restriction_fragment_handler),
+            });
+
+            let complex_type_model_handler = Arc::new(ComplexTypeModelHandler {
+                simple_content_handler: Arc::downgrade(&simple_content_handler),
+                complex_content_handler: Arc::downgrade(&complex_content_handler),
+                attribute_declarations_handler: Arc::downgrade(&attribute_declarations_handler),
+                type_def_particle_handler: Arc::downgrade(&type_def_particle_handler),
+            });
+
+            let complex_type_root_handler = Arc::new(ComplexTypeRootHandler {
+                complex_type_model_handler: Arc::downgrade(&complex_type_model_handler),
+            });
+
+            let element_type_content_handler = Arc::new(ElementTypeContentIdHandler {
+                simple_type_handler: Arc::downgrade(&simple_type_root_handler),
+                complex_type_handler: Arc::downgrade(&complex_type_root_handler),
+            });
+
+            let declared_element_handler = Arc::new(DeclaredElementHandler {
+                element_type_content_handler: Arc::downgrade(&element_type_content_handler),
+            });
+
+            let reference_element_handler = Arc::new(ReferenceElementHandler {});
+
+            let handler = LocalElementHandler {
+                declared_element_handler: Arc::downgrade(&declared_element_handler),
+                reference_element_handler: Arc::downgrade(&reference_element_handler),
+            };
+
+            local_element_handler_export = Some((
+                nested_particle_handler,
+                type_def_particle_handler,
+                restriction_fragment_handler,
+                complex_content_handler,
+                all_handler,
+                sequence_handler,
+                choice_handler,
+                group_ref_handler,
+                complex_type_model_handler,
+                complex_type_root_handler,
+                element_type_content_handler,
+                declared_element_handler,
+                reference_element_handler,
+            ));
+
+            handler
+        });
+
+        let Some((
+            nested_particle_handler,
+            type_def_particle_handler,
+            restriction_fragment_handler,
+            complex_content_handler,
+            all_handler,
+            sequence_handler,
+            choice_handler,
+            group_ref_handler,
+            complex_type_model_handler,
+            complex_type_root_handler,
+            element_type_content_handler,
+            declared_element_handler,
+            reference_element_handler,
+        )) = local_element_handler_export
+        else {
+            panic!("Failed to create local element handler");
+        };
+
+        let top_level_attribute_handler = Arc::new(TopLevelAttributeHandler);
+
+        let top_level_element_handler = Arc::new(TopLevelElementHandler {
+            dynamic_substitute_group: true,
+            standalone_element_type: true,
+            element_type_content_handler: Arc::downgrade(&element_type_content_handler),
+        });
+
+        let named_group_type_content_handler = Arc::new(NamedGroupTypeContentIdHandler {
+            all_handler: Arc::downgrade(&all_handler),
+            sequence_handler: Arc::downgrade(&sequence_handler),
+            choice_handler: Arc::downgrade(&choice_handler),
+        });
+
+        let top_level_group_handler = Arc::new(TopLevelGroupHandler {
+            named_group_content_handler: Arc::downgrade(&named_group_type_content_handler),
+        });
+
+        HandlerContainer {
+            nested_particle_handler,
+            type_def_particle_handler,
+            restriction_fragment_handler,
+            complex_content_handler,
+            all_handler,
+            sequence_handler,
+            choice_handler,
+            group_ref_handler,
+            element_type_content_handler,
+            local_element_handler,
+            declared_element_handler,
+            reference_element_handler,
+            complex_type_model_handler,
+            simple_type_root_handler,
+            local_attribute_handler,
+            attribute_declaration_handler,
+            attribute_declarations_handler,
+            simple_extension_handler,
+            simple_content_handler,
+            complex_type_root_handler,
+            named_group_type_content_handler,
+            top_level_attribute_handler,
+            top_level_element_handler,
+            top_level_group_handler,
+        }
     }
 
     pub fn bind_namespace(&mut self, namespace: XmlNamespace<'static>, path: syn::Path) {
@@ -809,8 +1063,10 @@ impl<'a> Generator<'a> {
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
-        let type_ =
-            ComplexTypeRootFragmentHandler.to_type_template(&context, &mut scope, &fragment)?;
+        let type_ = self
+            .handlers
+            .complex_type_root_handler
+            .to_type_template(&context, &mut scope, &fragment)?;
 
         let mut items = Vec::new();
 
@@ -1002,7 +1258,10 @@ impl<'a> Generator<'a> {
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
-        let type_ = TopLevelAttributeHandler.to_type_template(&context, &mut scope, fragment)?;
+        let type_ = self
+            .handlers
+            .top_level_attribute_handler
+            .to_type_template(&context, &mut scope, fragment)?;
 
         let mut items = Vec::new();
 
@@ -1100,11 +1359,10 @@ impl<'a> Generator<'a> {
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
-        let type_ = TopLevelElementFragmentHandler {
-            dynamic_substitute_group: true,
-            standalone_element_type: true,
-        }
-        .to_type_template(&context, &mut scope, fragment)?;
+        let type_ = self
+            .handlers
+            .top_level_element_handler
+            .to_type_template(&context, &mut scope, fragment)?;
 
         let mut items = Vec::new();
 
@@ -1155,8 +1413,10 @@ impl<'a> Generator<'a> {
         let context = GeneratorContext::new(self, name.namespace().unwrap(), item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
-        let type_ =
-            TopLevelGroupFragmentHandler.to_type_template(&context, &mut scope, &fragment)?;
+        let type_ = self
+            .handlers
+            .top_level_group_handler
+            .to_type_template(&context, &mut scope, &fragment)?;
 
         let mut items = Vec::new();
 

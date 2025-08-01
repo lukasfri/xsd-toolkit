@@ -297,6 +297,22 @@ pub fn dedup_field_idents<T>(
     deduped_fields
 }
 
+pub trait WeakExt<T> {
+    fn upgrade_or_else<E, F: FnOnce() -> E>(
+        &self,
+        f: F,
+    ) -> std::result::Result<std::sync::Arc<T>, E>;
+}
+
+impl<T> WeakExt<T> for std::sync::Weak<T> {
+    fn upgrade_or_else<E, F: FnOnce() -> E>(
+        &self,
+        f: F,
+    ) -> std::result::Result<std::sync::Arc<T>, E> {
+        self.upgrade().ok_or_else(f)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use syn::parse_quote;
