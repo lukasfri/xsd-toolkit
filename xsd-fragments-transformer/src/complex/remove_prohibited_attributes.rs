@@ -1,10 +1,11 @@
-use std::convert::Infallible;
-
 use crate::{TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext};
 use xsd_fragments::fragments::{
     complex::{self as cx, AttributeDeclarationId, AttributeDeclarationsFragment, AttributeUse},
     FragmentIdx,
 };
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {}
 
 #[non_exhaustive]
 pub struct RemoveProhibitedAttributes {}
@@ -53,7 +54,7 @@ impl RemoveProhibitedAttributes {
 }
 
 impl XmlnsContextTransformer for &RemoveProhibitedAttributes {
-    type Error = Infallible;
+    type Error = Error;
 
     fn transform(
         self,
@@ -74,7 +75,7 @@ impl XmlnsContextTransformer for &RemoveProhibitedAttributes {
 }
 
 impl XmlnsContextTransformer for RemoveProhibitedAttributes {
-    type Error = Infallible;
+    type Error = Error;
 
     fn transform(
         self,

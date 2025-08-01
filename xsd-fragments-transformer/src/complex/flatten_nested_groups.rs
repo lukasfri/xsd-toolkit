@@ -11,7 +11,7 @@ use crate::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext
 pub struct FlattenNestedSequences {}
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {}
+pub enum FlattenNestedSequencesError {}
 
 impl FlattenNestedSequences {
     #[allow(clippy::new_without_default)]
@@ -58,7 +58,7 @@ impl FlattenNestedSequences {
 }
 
 impl XmlnsLocalTransformer for &FlattenNestedSequences {
-    type Error = Error;
+    type Error = FlattenNestedSequencesError;
 
     fn transform(
         self,
@@ -73,7 +73,7 @@ impl XmlnsLocalTransformer for &FlattenNestedSequences {
 }
 
 impl XmlnsLocalTransformer for FlattenNestedSequences {
-    type Error = Error;
+    type Error = FlattenNestedSequencesError;
 
     fn transform(
         self,
@@ -82,6 +82,9 @@ impl XmlnsLocalTransformer for FlattenNestedSequences {
         (&self).transform(ctx)
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum FlattenNestedChoicesError {}
 
 #[non_exhaustive]
 pub struct FlattenNestedChoices {}
@@ -130,7 +133,7 @@ impl FlattenNestedChoices {
 }
 
 impl XmlnsLocalTransformer for &FlattenNestedChoices {
-    type Error = Error;
+    type Error = FlattenNestedChoicesError;
 
     fn transform(
         self,
@@ -145,7 +148,7 @@ impl XmlnsLocalTransformer for &FlattenNestedChoices {
 }
 
 impl XmlnsLocalTransformer for FlattenNestedChoices {
-    type Error = Error;
+    type Error = FlattenNestedChoicesError;
 
     fn transform(
         self,

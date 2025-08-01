@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use dyn_clone::DynClone;
 use quote::{format_ident, ToTokens};
-use syn::{Path, Type, TypePath};
+use syn::{parse_quote, Ident, Item, ItemMod, Path, Type, TypePath};
 
 pub trait TypeReferenceTrait: FnOnce(Option<&Path>) -> Type + DynClone {}
 
@@ -311,6 +311,17 @@ impl<T> WeakExt<T> for std::sync::Weak<T> {
     ) -> std::result::Result<std::sync::Arc<T>, E> {
         self.upgrade().ok_or_else(f)
     }
+}
+
+pub fn finish_mod(mod_name: &Ident, items: Vec<Item>) -> Option<ItemMod> {
+    if items.is_empty() {
+        return None;
+    }
+    Some(parse_quote!(
+        pub mod #mod_name {
+            #(#items)*
+        }
+    ))
 }
 
 #[cfg(test)]

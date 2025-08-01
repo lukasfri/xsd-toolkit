@@ -203,9 +203,7 @@ impl ComplexToTypeTemplate<cx::SimpleContentFragment> for SimpleContentFragmentH
                     .resolve_type_template(context, scope, &fragment_idx)
             },
             cx::SimpleContentChildId::Restriction(_) => {
-                Err(crate::Error::UnsupportedFragment {
-                    fragment: "SimpleContent Restriction".to_string(),
-                })
+                Err(crate::Error::simple_content_restriction())
             },
         }
     }

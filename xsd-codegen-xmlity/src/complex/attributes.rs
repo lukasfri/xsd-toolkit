@@ -119,7 +119,7 @@ impl ComplexToTypeTemplate<cx::LocalAttributeFragment> for LocalAttributeHandler
         let optional = match item.use_.unwrap_or_default() {
             AttributeUse::Optional => true,
             AttributeUse::Required => false,
-            AttributeUse::Prohibited => panic!("prohibited attributes are not supported"),
+            AttributeUse::Prohibited => return Err(crate::Error::prohibited_attributes()),
         };
 
         let (ident, template) = match &item.type_mode {

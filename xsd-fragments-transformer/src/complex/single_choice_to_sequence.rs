@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, convert::Infallible};
+use std::collections::VecDeque;
 
 use crate::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
 use xsd_fragments::fragments::{
@@ -91,6 +91,9 @@ enum ChoiceToSequence {
     Sequence(FragmentIdx<SequenceFragment>),
     Choice(FragmentIdx<ChoiceFragment>),
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {}
 
 #[non_exhaustive]
 pub struct SingleChoiceToSequence {}
@@ -236,7 +239,7 @@ impl SingleChoiceToSequence {
 }
 
 impl XmlnsLocalTransformer for &SingleChoiceToSequence {
-    type Error = Infallible;
+    type Error = Error;
 
     fn transform(
         self,
@@ -262,7 +265,7 @@ impl XmlnsLocalTransformer for &SingleChoiceToSequence {
 }
 
 impl XmlnsLocalTransformer for SingleChoiceToSequence {
-    type Error = Infallible;
+    type Error = Error;
 
     fn transform(
         self,

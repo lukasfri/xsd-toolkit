@@ -1,3 +1,4 @@
+use crate::generator::GeneratorScope;
 use crate::misc::common_name;
 use crate::misc::dedup_field_idents;
 use crate::misc::COMMON_NAME_MIN_LENGTH;
@@ -7,7 +8,6 @@ use crate::templates::choice::ChoiceVariantType;
 use crate::templates::value_record::ItemField;
 use crate::templates::value_record::ItemFieldItem;
 use crate::templates::value_record::ItemRecord;
-use crate::GeneratorScope;
 use crate::Result;
 use crate::ToIdentTypesExt;
 use crate::TypeType;

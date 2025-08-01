@@ -5,8 +5,9 @@ use std::{
 
 use crate::{
     complex::{elements::LocalElementHandler, ComplexToTypeTemplateExt},
-    finish_mod,
-    misc::{common_name, dedup_field_idents, TypeReference, WeakExt, COMMON_NAME_MIN_LENGTH},
+    misc::{
+        common_name, dedup_field_idents, finish_mod, TypeReference, WeakExt, COMMON_NAME_MIN_LENGTH,
+    },
     naming_strategies::{IndexedNamingStrategy, WrappingNamingStrategy},
     templates::{
         self,
