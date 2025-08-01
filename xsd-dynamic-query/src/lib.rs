@@ -5,9 +5,6 @@ use xsd_fragments::fragments::simple::{
     self as sm, Assertion, ExplicitTimezoneValue, Pattern, Value,
 };
 
-pub mod identify_simple_type;
-pub use identify_simple_type::IdentifySimpleType;
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Fragment not found in the context")]
