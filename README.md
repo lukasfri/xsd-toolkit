@@ -34,10 +34,6 @@ Runtime query system for examining compiled schema fragments, enabling dynamic i
 
 Build-time code generation system providing high-level APIs for integrating XSD-to-Rust generation into build scripts and procedural macros.
 
-### [`xsd-builtin`](./xsd-builtin)
-
-Implementation of XML Schema built-in types and facet constraints as defined in the W3C XML Schema specification.
-
 ## Schema Namespace Crates
 
 Pre-generated Rust bindings for standard XML namespaces:

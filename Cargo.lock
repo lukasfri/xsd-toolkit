@@ -2441,13 +2441,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "xsd-builtin"
-version = "0.0.0"
-dependencies = [
- "rust_decimal",
-]
-
-[[package]]
 name = "xsd-codegen-xmlity"
 version = "0.0.0"
 dependencies = [

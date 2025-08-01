@@ -11,7 +11,6 @@ members = [
   "schemas/xmlity-ns-xsi",
   "schemas/xmlity-ns-xml",
   "xsd-dynamic-query",
-  "xsd-builtin",
 ]
 
 [workspace.package]
