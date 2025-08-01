@@ -1,124 +1,47 @@
-use std::{any::type_name, sync::Weak};
+use std::{ sync::{Arc}};
 
 use crate::{
-    complex::{attributes::AttributeDeclarationHandler, groups::TypeDefParticleIdHandler, ComplexToTypeTemplateExt}, misc::{dedup_field_idents, TypeReference, WeakExt}, templates::{
+    complex::{attributes::{ AttributeDeclarationsHandler}, groups::TypeDefParticleIdHandler, ComplexToTypeTemplateExt}, naming_strategies::WrappingNamingStrategy, templates::{
         self,
-        element_record::{ElementField, ElementFieldGroup, ElementFieldType},
+        element_record::{ElementField,  ElementFieldType},
         group_record::GroupRecord,
         value_record::ItemFieldItem,
     }, Result, ToIdentTypesExt
 };
 
-use quote::format_ident;
 use syn::parse_quote;
 use xsd_fragments::fragments::complex::{self as cx};
 
 use super::{groups::TypeDefParticleTemplate, ComplexContext, Scope, ComplexToTypeTemplate, ToTypeTemplateData};
 
-struct AnyAttributeHandler;
-
-impl ComplexToTypeTemplate<cx::AnyAttributeFragment> for AnyAttributeHandler {
-    type TypeTemplate = (syn::Ident, ElementField);
-
-    fn to_type_template<C: ComplexContext, S: Scope>(
-        &self,
-        _context: &C,
-        _scope: &mut S,
-        _item: &cx::AnyAttributeFragment,
-    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let ident = format_ident!("AnyAttributes");
-
-        let any_attributes =(ident.to_field_ident(), ElementField::Group(ElementFieldGroup {
-            ty: TypeReference::new_static(parse_quote!(::xmlity_ns::AnyAttributes)),
-        }));
-
-
-        Ok(ToTypeTemplateData {
-            ident: Some(ident),
-            template: any_attributes,
-        })
-    }
-}
-
-#[derive(Debug)]
-pub struct AttributeDeclarationsHandler {
-    pub attribute_declaration_handler: Weak<AttributeDeclarationHandler>,
-}
-
-impl ComplexToTypeTemplate<cx::AttributeDeclarationsFragment> for AttributeDeclarationsHandler {
-    type TypeTemplate = Vec<(syn::Ident, ElementField)>;
-
-    fn to_type_template<C: ComplexContext, S: Scope>(
-        &self,
-        context: &C,
-        scope: &mut S,
-        item: &cx::AttributeDeclarationsFragment,
-    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let attributes = item
-            .declarations
-            .iter()
-            .enumerate()
-            .map(|(i, a)| {
-                let sub_context = context
-                    .sub_context(format_ident!("Attribute{i}"));
-
-                    self.attribute_declaration_handler
-                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                        origin: type_name::<Self>(),
-                        handler: type_name::<AttributeDeclarationHandler>(),
-                    })?.
-                    to_type_template(&sub_context, scope, a)
-                    .map(|a| {
-                        (
-                            a.ident
-                                .map(|a| a.to_field_ident())
-                                .unwrap_or_else(|| format_ident!("attribute_{i}")),
-                            ElementField::Attribute(a.template),
-                        )
-                    })
-            })
-            .collect::<Result<Vec<_>>>()?;
-
-        let any_attributes = item.any_attribute.as_ref().map(|id| AnyAttributeHandler.resolve_type_template(context, scope, id)).transpose()?
-        .map(|a| a.template);
-
-        let attributes = dedup_field_idents(attributes.into_iter().chain(any_attributes));
-
-        Ok(ToTypeTemplateData {
-            ident: None,
-            template: attributes,
-        })
-    }
-}
-
 fn dedup_attribute_field_idents<T, E>(
     existing_fields: &[(syn::Ident, E)],
     attribute_fields: impl IntoIterator<Item = (syn::Ident, T)>,
+    attribute_suffix_naming: &WrappingNamingStrategy,
 ) -> Vec<(syn::Ident, T)> {
     attribute_fields
         .into_iter()
-        .map(|(mut ident, value)| {
+        .map(|(ident, value)| {
             if existing_fields
                 .iter()
                 .any(|(existing_ident, _)| existing_ident == &ident)
             {
-                const ATTRIBUTE_SUFFIX: &str = "attribute";
-                ident = if ident.to_string().ends_with("_") {
-                    format_ident!("{ident}{ATTRIBUTE_SUFFIX}")
-                } else {
-                    format_ident!("{ident}_{ATTRIBUTE_SUFFIX}")
-                };
+                let new_ident = attribute_suffix_naming.wrap_ident(&ident);
+                (new_ident, value)
+            } else {
+                (ident, value)
             }
-
-            (ident, value)
         })
         .collect()
 }
 
 #[derive(Debug)]
 pub struct RestrictionHandler {
-    pub attribute_declarations_handler: Weak<AttributeDeclarationsHandler>,
-    pub type_def_particle_handler: Weak<TypeDefParticleIdHandler>,
+    pub attribute_declarations_handler: Arc<AttributeDeclarationsHandler>,
+    pub type_def_particle_handler: Arc<TypeDefParticleIdHandler>,
+    pub default_particle_ident: syn::Ident,
+    pub content_type_naming: WrappingNamingStrategy,
+    pub attribute_suffix_naming: WrappingNamingStrategy,
 }
 
 impl ComplexToTypeTemplate<cx::RestrictionFragment> for RestrictionHandler {
@@ -135,19 +58,15 @@ impl ComplexToTypeTemplate<cx::RestrictionFragment> for RestrictionHandler {
             .map(|a| {
                 let sub_context = 
                 context
-                .sub_context(format_ident!("{}Content", context.suggested_ident()));
+                .sub_context(self.content_type_naming.wrap_ident(context.suggested_ident()));
 
                 self.type_def_particle_handler
-                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                        origin: type_name::<Self>(),
-                        handler: type_name::<TypeDefParticleIdHandler>(),
-                    })?
                     .to_type_template(&sub_context, scope, &a)
             })
             .transpose()?;
 
         let mut template = template.map(|a| {
-            let ident = a.ident.unwrap_or_else(|| format_ident!("Particle"));
+            let ident = a.ident.unwrap_or_else(|| self.default_particle_ident.clone());
 
                 match a.template {
                     TypeDefParticleTemplate::Record(item_record) => {
@@ -176,21 +95,18 @@ impl ComplexToTypeTemplate<cx::RestrictionFragment> for RestrictionHandler {
             .unwrap_or_else(GroupRecord::new_empty);
 
         let attributes = self.attribute_declarations_handler
-            .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                origin: type_name::<Self>(),
-                handler: type_name::<AttributeDeclarationsHandler>(),
-            })?
             .resolve_type_template(context, scope, &item.attribute_declarations)?;
 
         let attribute_fields = dedup_attribute_field_idents(
             match &template.fields {
-                ElementFieldType::Named(items) => items,
+                ElementFieldType::Named(items) => items.as_slice(),
                 ElementFieldType::Empty => &[],
                 ElementFieldType::Unnamed(_) => {
                     unreachable!("Should only be named fields or empty")
                 }
             },
             attributes.template,
+            &self.attribute_suffix_naming,
         );
 
         template
@@ -208,7 +124,9 @@ impl ComplexToTypeTemplate<cx::RestrictionFragment> for RestrictionHandler {
 
 #[derive(Debug)]
 pub struct SimpleExtensionFragmentHandler {
-   pub attribute_declarations_handler: Weak<AttributeDeclarationsHandler>,
+   pub attribute_declarations_handler: Arc<AttributeDeclarationsHandler>,
+   pub content_field_ident: syn::Ident,
+   pub attribute_suffix_naming: WrappingNamingStrategy,
 }
 
 impl ComplexToTypeTemplate<cx::SimpleExtensionFragment> for SimpleExtensionFragmentHandler {
@@ -229,7 +147,7 @@ impl ComplexToTypeTemplate<cx::SimpleExtensionFragment> for SimpleExtensionFragm
             });
         }
 
-        let mut template = GroupRecord::new_single_field(Some(format_ident!("content")), ElementField::Item(ItemFieldItem {
+        let mut template = GroupRecord::new_single_field(Some(self.content_field_ident.clone()), ElementField::Item(ItemFieldItem {
             ty: simple_type.ty,
             default: false,
             // Todo: This should only be added to certain simple types that allow empty strings
@@ -238,10 +156,6 @@ impl ComplexToTypeTemplate<cx::SimpleExtensionFragment> for SimpleExtensionFragm
 
 
         let attributes = self.attribute_declarations_handler
-            .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                origin: type_name::<Self>(),
-                handler: type_name::<AttributeDeclarationsHandler>(),
-            })?
             .resolve_type_template(context, scope, &item.attribute_declarations)?;
 
         let attribute_fields = dedup_attribute_field_idents(
@@ -253,6 +167,7 @@ impl ComplexToTypeTemplate<cx::SimpleExtensionFragment> for SimpleExtensionFragm
                 }
             },
             attributes.template,
+            &self.attribute_suffix_naming,
         );
 
         template
@@ -270,7 +185,7 @@ impl ComplexToTypeTemplate<cx::SimpleExtensionFragment> for SimpleExtensionFragm
 
 #[derive(Debug)]
 pub struct SimpleContentFragmentHandler {
-    pub simple_extension_handler: Weak<SimpleExtensionFragmentHandler>,
+    pub simple_extension_handler: Arc<SimpleExtensionFragmentHandler>,
 }
 
 impl ComplexToTypeTemplate<cx::SimpleContentFragment> for SimpleContentFragmentHandler {
@@ -285,10 +200,6 @@ impl ComplexToTypeTemplate<cx::SimpleContentFragment> for SimpleContentFragmentH
         match item.content_fragment {
             cx::SimpleContentChildId::Extension(fragment_idx) => {
                 self.simple_extension_handler
-                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                        origin: type_name::<Self>(),
-                        handler: type_name::<SimpleExtensionFragmentHandler>(),
-                    })?
                     .resolve_type_template(context, scope, &fragment_idx)
             },
             cx::SimpleContentChildId::Restriction(_) => {
@@ -302,7 +213,7 @@ impl ComplexToTypeTemplate<cx::SimpleContentFragment> for SimpleContentFragmentH
 
 #[derive(Debug)]
 pub struct ComplexContentHandler {
-    pub restriction_fragment_handler: Weak<RestrictionHandler>,
+    pub restriction_fragment_handler: Arc<RestrictionHandler>,
 }
 
 impl ComplexToTypeTemplate<cx::ComplexContentFragment> for ComplexContentHandler {
@@ -322,10 +233,6 @@ impl ComplexToTypeTemplate<cx::ComplexContentFragment> for ComplexContentHandler
             }
             cx::ComplexContentChildId::Restriction(fragment_idx) => {
                 self.restriction_fragment_handler
-                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                        origin: type_name::<Self>(),
-                        handler: type_name::<RestrictionHandler>(),
-                    })?
                     .resolve_type_template(context, scope, fragment_idx)
             }
         }
@@ -334,10 +241,12 @@ impl ComplexToTypeTemplate<cx::ComplexContentFragment> for ComplexContentHandler
 
 #[derive(Debug)]
 pub struct ComplexTypeModelHandler {
-    pub simple_content_handler: Weak<SimpleContentFragmentHandler>,
-    pub complex_content_handler: Weak<ComplexContentHandler>,
-    pub attribute_declarations_handler: Weak<AttributeDeclarationsHandler>,
-    pub type_def_particle_handler: Weak<TypeDefParticleIdHandler>,
+    pub simple_content_handler: Arc<SimpleContentFragmentHandler>,
+    pub complex_content_handler: Arc<ComplexContentHandler>,
+    pub attribute_declarations_handler: Arc<AttributeDeclarationsHandler>,
+    pub type_def_particle_handler: Arc<TypeDefParticleIdHandler>,
+    pub other_content_type_naming: WrappingNamingStrategy,
+    pub other_content_field_ident: syn::Ident,
 }
 
 impl ComplexToTypeTemplate<cx::ComplexTypeModelId> for ComplexTypeModelHandler {
@@ -352,18 +261,10 @@ impl ComplexToTypeTemplate<cx::ComplexTypeModelId> for ComplexTypeModelHandler {
         match item {
             cx::ComplexTypeModelId::SimpleContent(fragment_idx) => {
                 self.simple_content_handler
-                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                        origin: type_name::<Self>(),
-                        handler: type_name::<SimpleContentFragmentHandler>(),
-                    })?
                     .resolve_type_template(context, scope, fragment_idx)
             },
             cx::ComplexTypeModelId::ComplexContent(fragment_idx) => {
                 self.complex_content_handler
-                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                        origin: type_name::<Self>(),
-                        handler: type_name::<ComplexContentHandler>(),
-                    })?
                     .resolve_type_template(context, scope, fragment_idx)
             }
             cx::ComplexTypeModelId::Other {
@@ -374,29 +275,21 @@ impl ComplexToTypeTemplate<cx::ComplexTypeModelId> for ComplexTypeModelHandler {
                     .as_ref()
                     .map(|particle| {
                         let sub_context = context
-                            .sub_context(format_ident!("{}Content", context.suggested_ident()));
+                            .sub_context(self.other_content_type_naming.wrap_ident(context.suggested_ident()));
 
                         self.type_def_particle_handler
-                            .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                                origin: type_name::<Self>(),
-                                handler: type_name::<TypeDefParticleIdHandler>(),
-                            })?
                             .to_type_template(&sub_context, scope, particle)
                             .map(|a| {
                                 (
                                     a.ident,
                                     a.template
-                                        .into_group_record(Some(format_ident!("content"))),
+                                        .into_group_record(Some(self.other_content_field_ident.clone())),
                                 )
                             })
                     })
                     .unwrap_or_else(|| Ok((None, GroupRecord::new_empty())))?;
 
                 let attributes = self.attribute_declarations_handler
-                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                        origin: type_name::<Self>(),
-                        handler: type_name::<AttributeDeclarationsHandler>(),
-                    })?
                     .resolve_type_template(context, scope, attr_decls)?;
 
                 template
@@ -411,7 +304,7 @@ impl ComplexToTypeTemplate<cx::ComplexTypeModelId> for ComplexTypeModelHandler {
 
 #[derive(Debug)]
 pub struct ComplexTypeRootHandler {
-    pub complex_type_model_handler: Weak<ComplexTypeModelHandler>,
+    pub complex_type_model_handler: Arc<ComplexTypeModelHandler>,
 }
 
 impl ComplexToTypeTemplate <cx::ComplexTypeRootFragment> for ComplexTypeRootHandler {
@@ -424,10 +317,6 @@ impl ComplexToTypeTemplate <cx::ComplexTypeRootFragment> for ComplexTypeRootHand
         item: &cx::ComplexTypeRootFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let mut fragment = self.complex_type_model_handler
-            .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                origin: type_name::<Self>(),
-                handler: type_name::<ComplexTypeModelHandler>(),
-            })?
             .to_type_template(context, scope, &item.content)?;
 
         let name_ident = item

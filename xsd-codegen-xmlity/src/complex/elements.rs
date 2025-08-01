@@ -1,8 +1,8 @@
-use std::{any::type_name, sync::Weak};
+use std::sync::Arc;
 
 use crate::{
     complex::{complex_type::ComplexTypeRootHandler, ComplexToTypeTemplateExt},
-    misc::{unbox_type, TypeReference, WeakExt},
+    misc::{unbox_type, TypeReference},
     simple::{simple_type::SimpleTypeRootHandler, SimpleContext},
     templates::{
         choice,
@@ -16,7 +16,6 @@ use crate::{
     Result, ToIdentTypesExt, TypeType,
 };
 
-use quote::format_ident;
 use syn::parse_quote;
 use xsd_fragments::fragments::complex as cx;
 
@@ -24,8 +23,8 @@ use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 
 #[derive(Debug)]
 pub struct ElementTypeContentIdHandler {
-    pub simple_type_handler: Weak<SimpleTypeRootHandler>,
-    pub complex_type_handler: Weak<ComplexTypeRootHandler>,
+    pub simple_type_root_handler: Arc<SimpleTypeRootHandler>,
+    pub complex_type_root_handler: Arc<ComplexTypeRootHandler>,
 }
 
 impl ComplexToTypeTemplate<cx::ElementTypeContentId> for ElementTypeContentIdHandler {
@@ -40,16 +39,7 @@ impl ComplexToTypeTemplate<cx::ElementTypeContentId> for ElementTypeContentIdHan
         match item {
             cx::ElementTypeContentId::SimpleType(fragment_id) => context
                 .simple_context()
-                .resolve_type_template(
-                    fragment_id,
-                    scope,
-                    &*self.simple_type_handler.upgrade_or_else(|| {
-                        crate::Error::HandlerDoesNotExist {
-                            origin: type_name::<Self>(),
-                            handler: type_name::<SimpleTypeRootHandler>(),
-                        }
-                    })?,
-                )
+                .resolve_type_template(fragment_id, scope, &*self.simple_type_root_handler)
                 .map(|sub_type| ToTypeTemplateData {
                     ident: None,
                     template: GroupRecord::new_single_field(
@@ -62,11 +52,7 @@ impl ComplexToTypeTemplate<cx::ElementTypeContentId> for ElementTypeContentIdHan
                     ),
                 }),
             cx::ElementTypeContentId::ComplexType(fragment_idx) => self
-                .complex_type_handler
-                .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                    origin: type_name::<Self>(),
-                    handler: type_name::<ComplexTypeRootHandler>(),
-                })?
+                .complex_type_root_handler
                 .resolve_type_template(context, scope, fragment_idx),
         }
     }
@@ -90,7 +76,7 @@ fn type_to_element_field(
 
 #[derive(Debug)]
 pub struct DeclaredElementHandler {
-    pub element_type_content_handler: Weak<ElementTypeContentIdHandler>,
+    pub element_type_content_handler: Arc<ElementTypeContentIdHandler>,
 }
 
 impl ComplexToTypeTemplate<cx::DeclaredElementFragment> for DeclaredElementHandler {
@@ -121,10 +107,6 @@ impl ComplexToTypeTemplate<cx::DeclaredElementFragment> for DeclaredElementHandl
             xsd_fragments::NamedOrAnonymous::Anonymous(anonymous) => {
                 let sub_type = self
                     .element_type_content_handler
-                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                        origin: type_name::<Self>(),
-                        handler: type_name::<ElementTypeContentIdHandler>(),
-                    })?
                     .to_type_template(context, scope, anonymous)?;
 
                 let template = sub_type.template.into_element_record(name);
@@ -176,8 +158,8 @@ pub enum LocalElementFragmentTemplate {
 
 #[derive(Debug)]
 pub struct LocalElementHandler {
-    pub declared_element_handler: Weak<DeclaredElementHandler>,
-    pub reference_element_handler: Weak<ReferenceElementHandler>,
+    pub declared_element_handler: Arc<DeclaredElementHandler>,
+    pub reference_element_handler: Arc<ReferenceElementHandler>,
 }
 
 impl ComplexToTypeTemplate<cx::LocalElementFragment> for LocalElementHandler {
@@ -196,10 +178,6 @@ impl ComplexToTypeTemplate<cx::LocalElementFragment> for LocalElementHandler {
             cx::LocalElementFragmentType::Local(local) => {
                 let local = self
                     .declared_element_handler
-                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                        origin: type_name::<Self>(),
-                        handler: type_name::<DeclaredElementHandler>(),
-                    })?
                     .to_type_template(context, scope, local)?;
 
                 Ok(ToTypeTemplateData {
@@ -214,10 +192,6 @@ impl ComplexToTypeTemplate<cx::LocalElementFragment> for LocalElementHandler {
             cx::LocalElementFragmentType::Reference(reference) => {
                 let reference = self
                     .reference_element_handler
-                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                        origin: type_name::<Self>(),
-                        handler: type_name::<ReferenceElementHandler>(),
-                    })?
                     .to_type_template(context, scope, reference)?;
 
                 let (ty, optional) =
@@ -258,7 +232,8 @@ impl TopLevelElementTemplate {
 pub struct TopLevelElementHandler {
     pub dynamic_substitute_group: bool,
     pub standalone_element_type: bool,
-    pub element_type_content_handler: Weak<ElementTypeContentIdHandler>,
+    pub element_type_content_handler: Arc<ElementTypeContentIdHandler>,
+    pub dynamic_variant_ident: syn::Ident,
 }
 
 impl ComplexToTypeTemplate<cx::TopLevelElementFragment> for TopLevelElementHandler {
@@ -311,7 +286,7 @@ impl ComplexToTypeTemplate<cx::TopLevelElementFragment> for TopLevelElementHandl
             });
 
             substitution_choices.push((
-                format_ident!("Dynamic"),
+                self.dynamic_variant_ident.clone(),
                 choice::ChoiceVariantType::Item(value_record::ItemRecord::new_single_field(
                     None,
                     value_record::ItemField::Item(ItemFieldItem {
@@ -343,10 +318,6 @@ impl ComplexToTypeTemplate<cx::TopLevelElementFragment> for TopLevelElementHandl
                 Some(xsd_fragments::NamedOrAnonymous::Anonymous(anonymous)) => {
                     let sub_type = self
                         .element_type_content_handler
-                        .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                            origin: type_name::<Self>(),
-                            handler: type_name::<ElementTypeContentIdHandler>(),
-                        })?
                         .to_type_template(context, scope, anonymous)?;
 
                     if self.standalone_element_type {
@@ -498,7 +469,7 @@ mod tests {
             pub enum SimpleSequence {
                 #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
-                SubstitutionGroup(
+                Dynamic(
                     ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
@@ -618,7 +589,7 @@ mod tests {
                     allow_unknown_attributes = "any"
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
-                SubstitutionGroup(
+                Dynamic(
                     ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
@@ -737,7 +708,7 @@ mod tests {
                     allow_unknown_attributes = "any"
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
-                SubstitutionGroup(
+                Dynamic(
                     ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
@@ -881,7 +852,7 @@ mod tests {
                     allow_unknown_attributes = "any"
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
-                SubstitutionGroup(
+                Dynamic(
                     ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
@@ -1023,7 +994,7 @@ mod tests {
                     allow_unknown_attributes = "any"
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
-                SubstitutionGroup(
+                Dynamic(
                     ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
@@ -1146,7 +1117,7 @@ mod tests {
                     allow_unknown_attributes = "any"
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
-                SubstitutionGroup(
+                Dynamic(
                     ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
@@ -1195,7 +1166,7 @@ mod tests {
             pub enum SimpleSequence {
                 #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
                 SimpleSequence(String),
-                SubstitutionGroup(
+                Dynamic(
                     ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
@@ -1258,7 +1229,7 @@ mod tests {
             pub enum SimpleSequence {
                 #[xelement(name = "SimpleSequence", namespace = "http://example.com", allow_unknown_attributes = "any")]
                 SimpleSequence(#[xgroup] types::ChildType),
-                SubstitutionGroup(
+                Dynamic(
                     ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }
@@ -1374,7 +1345,7 @@ mod tests {
                     allow_unknown_attributes = "any"
                 )]
                 SimpleSequence(#[xgroup] simple_sequence_items::SimpleSequence),
-                SubstitutionGroup(
+                Dynamic(
                     ::xmlity_ns::SubstitutionGroup<test_ns::SimpleSequence>,
                 ),
             }

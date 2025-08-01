@@ -2,6 +2,7 @@ pub mod augments;
 pub mod binds;
 mod complex;
 pub mod misc;
+mod naming_strategies;
 mod simple;
 pub mod templates;
 
@@ -38,12 +39,12 @@ use crate::{
     augments::{ItemAugmentation, ItemAugmentationExt},
     complex::{
         attributes::{
-            AttributeDeclarationHandler, LocalAttributeHandler, TopLevelAttributeHandler,
+            AnyAttributesHandler, AttributeDeclarationHandler, AttributeDeclarationsHandler,
+            LocalAttributeHandler, TopLevelAttributeHandler,
         },
         complex_type::{
-            AttributeDeclarationsHandler, ComplexContentHandler, ComplexTypeModelHandler,
-            ComplexTypeRootHandler, RestrictionHandler, SimpleContentFragmentHandler,
-            SimpleExtensionFragmentHandler,
+            ComplexContentHandler, ComplexTypeModelHandler, ComplexTypeRootHandler,
+            RestrictionHandler, SimpleContentFragmentHandler, SimpleExtensionFragmentHandler,
         },
         elements::{
             DeclaredElementHandler, ElementTypeContentIdHandler, LocalElementHandler,
@@ -55,6 +56,7 @@ use crate::{
             TopLevelGroupHandler, TypeDefParticleIdHandler,
         },
     },
+    naming_strategies::{IndexedNamingStrategy, WrappingNamingStrategy},
     simple::{simple_type::SimpleTypeRootHandler, SimpleToTypeTemplate},
 };
 
@@ -640,26 +642,8 @@ pub struct BoundType {
 #[derive(Debug)]
 pub struct HandlerContainer {
     pub nested_particle_handler: Arc<NestedParticleIdHandler>,
-    pub type_def_particle_handler: Arc<TypeDefParticleIdHandler>,
-    pub restriction_fragment_handler: Arc<RestrictionHandler>,
-    pub complex_content_handler: Arc<ComplexContentHandler>,
-    pub all_handler: Arc<AllFragmentHandler>,
-    pub sequence_handler: Arc<SequenceFragmentHandler>,
-    pub choice_handler: Arc<ChoiceFragmentHandler>,
-    pub group_ref_handler: Arc<GroupRefFragmentHandler>,
-    pub element_type_content_handler: Arc<ElementTypeContentIdHandler>,
-    pub local_element_handler: Arc<LocalElementHandler>,
-    pub declared_element_handler: Arc<DeclaredElementHandler>,
-    pub reference_element_handler: Arc<ReferenceElementHandler>,
-    pub complex_type_model_handler: Arc<ComplexTypeModelHandler>,
     pub simple_type_root_handler: Arc<SimpleTypeRootHandler>,
-    pub local_attribute_handler: Arc<LocalAttributeHandler>,
-    pub attribute_declaration_handler: Arc<AttributeDeclarationHandler>,
-    pub attribute_declarations_handler: Arc<AttributeDeclarationsHandler>,
-    pub simple_extension_handler: Arc<SimpleExtensionFragmentHandler>,
-    pub simple_content_handler: Arc<SimpleContentFragmentHandler>,
     pub complex_type_root_handler: Arc<ComplexTypeRootHandler>,
-    pub named_group_type_content_handler: Arc<NamedGroupTypeContentIdHandler>,
     pub top_level_attribute_handler: Arc<TopLevelAttributeHandler>,
     pub top_level_element_handler: Arc<TopLevelElementHandler>,
     pub top_level_group_handler: Arc<TopLevelGroupHandler>,
@@ -694,147 +678,160 @@ impl<'a> Generator<'a> {
         let simple_type_root_handler = Arc::new(SimpleTypeRootHandler {});
 
         let local_attribute_handler = Arc::new(LocalAttributeHandler {
-            simple_type_handler: Arc::downgrade(&simple_type_root_handler),
+            simple_type_handler: simple_type_root_handler.clone(),
+            value_type_naming: WrappingNamingStrategy::new(|name| format!("{}Value", name)),
+        });
+
+        let any_attributes_handler = Arc::new(AnyAttributesHandler {
+            any_attributes_ident: format_ident!("AnyAttributes"),
         });
 
         let attribute_declaration_handler = Arc::new(AttributeDeclarationHandler {
-            local_attribute_handler: Arc::downgrade(&local_attribute_handler),
+            local_attribute_handler,
         });
 
         let attribute_declarations_handler = Arc::new(AttributeDeclarationsHandler {
-            attribute_declaration_handler: Arc::downgrade(&attribute_declaration_handler),
+            any_attributes_handler,
+            attribute_declaration_handler,
+            suggested_attribute_type_naming: IndexedNamingStrategy::new(|index| {
+                format!("Attribute{index}")
+            }),
+            default_attribute_ident_naming: IndexedNamingStrategy::new(|index| {
+                format!("attribute_{index}")
+            }),
         });
 
         let simple_extension_handler = Arc::new(SimpleExtensionFragmentHandler {
-            attribute_declarations_handler: Arc::downgrade(&attribute_declarations_handler),
+            attribute_declarations_handler: attribute_declarations_handler.clone(),
+            content_field_ident: format_ident!("content"),
+            attribute_suffix_naming: WrappingNamingStrategy::new(|name| {
+                if name.ends_with("_") {
+                    format!("{name}attribute")
+                } else {
+                    format!("{name}_attribute")
+                }
+            }),
         });
 
         let simple_content_handler = Arc::new(SimpleContentFragmentHandler {
-            simple_extension_handler: Arc::downgrade(&simple_extension_handler),
+            simple_extension_handler,
         });
 
         let mut all_handler = Arc::new(AllFragmentHandler {
             nested_particle_handler: Weak::new(),
+            child_naming: IndexedNamingStrategy::new(|index| format!("Child{}", index)),
+            mod_naming: WrappingNamingStrategy::new(|name| format!("{}_items", name)),
         });
 
         let mut sequence_handler = Arc::new(SequenceFragmentHandler {
             nested_particle_handler: Weak::new(),
+            child_naming: IndexedNamingStrategy::new(|index| format!("Child{}", index)),
+            mod_naming: WrappingNamingStrategy::new(|name| format!("{}_items", name)),
         });
 
         let mut choice_handler = Arc::new(ChoiceFragmentHandler {
             nested_particle_handler: Weak::new(),
+            variant_naming: IndexedNamingStrategy::new(|index| format!("Variant{}", index)),
+            mod_naming: WrappingNamingStrategy::new(|name| format!("{}_variants", name)),
         });
 
-        let mut local_element_handler_export = None;
+        // let mut local_element_handler_export = None;
+        let mut element_type_content_handler_export = None;
+        let mut complex_type_root_handler_export = None;
 
-        let local_element_handler = Arc::new_cyclic(|local_element_handler| {
-            let nested_particle_handler = Arc::new_cyclic(|nested_particle_handler| {
-                Arc::get_mut(&mut all_handler)
-                    .unwrap()
-                    .nested_particle_handler = nested_particle_handler.clone();
-                Arc::get_mut(&mut sequence_handler)
-                    .unwrap()
-                    .nested_particle_handler = nested_particle_handler.clone();
-                Arc::get_mut(&mut choice_handler)
-                    .unwrap()
-                    .nested_particle_handler = nested_particle_handler.clone();
-
-                NestedParticleIdHandler {
-                    local_element_handler: local_element_handler.clone(),
-                    group_ref_handler: Arc::downgrade(&group_ref_handler),
-                    choice_handler: Arc::downgrade(&choice_handler),
-                    sequence_handler: Arc::downgrade(&sequence_handler),
-                    any_handler: Arc::downgrade(&any_handler),
-                }
-            });
+        let nested_particle_handler = Arc::new_cyclic(|nested_particle_handler| {
+            Arc::get_mut(&mut all_handler)
+                .unwrap()
+                .nested_particle_handler = nested_particle_handler.clone();
+            Arc::get_mut(&mut sequence_handler)
+                .unwrap()
+                .nested_particle_handler = nested_particle_handler.clone();
+            Arc::get_mut(&mut choice_handler)
+                .unwrap()
+                .nested_particle_handler = nested_particle_handler.clone();
 
             let type_def_particle_handler = Arc::new(TypeDefParticleIdHandler {
-                group_ref_handler: Arc::downgrade(&group_ref_handler),
-                all_handler: Arc::downgrade(&all_handler),
-                choice_handler: Arc::downgrade(&choice_handler),
-                sequence_handler: Arc::downgrade(&sequence_handler),
+                group_ref_handler: group_ref_handler.clone(),
+                all_handler: all_handler.clone(),
+                choice_handler: choice_handler.clone(),
+                sequence_handler: sequence_handler.clone(),
             });
 
             let restriction_fragment_handler = Arc::new(RestrictionHandler {
-                attribute_declarations_handler: Arc::downgrade(&attribute_declarations_handler),
-                type_def_particle_handler: Arc::downgrade(&type_def_particle_handler),
+                attribute_declarations_handler: attribute_declarations_handler.clone(),
+                type_def_particle_handler: type_def_particle_handler.clone(),
+                default_particle_ident: format_ident!("Particle"),
+                content_type_naming: WrappingNamingStrategy::new(|name| format!("{name}Content")),
+                attribute_suffix_naming: WrappingNamingStrategy::new(|name| {
+                    if name.ends_with("_") {
+                        format!("{name}attribute")
+                    } else {
+                        format!("{name}_attribute")
+                    }
+                }),
             });
 
             let complex_content_handler = Arc::new(ComplexContentHandler {
-                restriction_fragment_handler: Arc::downgrade(&restriction_fragment_handler),
+                restriction_fragment_handler,
             });
 
             let complex_type_model_handler = Arc::new(ComplexTypeModelHandler {
-                simple_content_handler: Arc::downgrade(&simple_content_handler),
-                complex_content_handler: Arc::downgrade(&complex_content_handler),
-                attribute_declarations_handler: Arc::downgrade(&attribute_declarations_handler),
-                type_def_particle_handler: Arc::downgrade(&type_def_particle_handler),
+                simple_content_handler,
+                complex_content_handler,
+                attribute_declarations_handler,
+                type_def_particle_handler,
+                other_content_type_naming: WrappingNamingStrategy::new(|name| {
+                    format!("{}Content", name)
+                }),
+                other_content_field_ident: format_ident!("content"),
             });
 
             let complex_type_root_handler = Arc::new(ComplexTypeRootHandler {
-                complex_type_model_handler: Arc::downgrade(&complex_type_model_handler),
+                complex_type_model_handler,
             });
+
+            complex_type_root_handler_export = Some(complex_type_root_handler.clone());
 
             let element_type_content_handler = Arc::new(ElementTypeContentIdHandler {
-                simple_type_handler: Arc::downgrade(&simple_type_root_handler),
-                complex_type_handler: Arc::downgrade(&complex_type_root_handler),
+                simple_type_root_handler: simple_type_root_handler.clone(),
+                complex_type_root_handler,
             });
 
+            element_type_content_handler_export = Some(element_type_content_handler.clone());
+
             let declared_element_handler = Arc::new(DeclaredElementHandler {
-                element_type_content_handler: Arc::downgrade(&element_type_content_handler),
+                element_type_content_handler,
             });
 
             let reference_element_handler = Arc::new(ReferenceElementHandler {});
 
-            let handler = LocalElementHandler {
-                declared_element_handler: Arc::downgrade(&declared_element_handler),
-                reference_element_handler: Arc::downgrade(&reference_element_handler),
-            };
-
-            local_element_handler_export = Some((
-                nested_particle_handler,
-                type_def_particle_handler,
-                restriction_fragment_handler,
-                complex_content_handler,
-                all_handler,
-                sequence_handler,
-                choice_handler,
-                group_ref_handler,
-                complex_type_model_handler,
-                complex_type_root_handler,
-                element_type_content_handler,
+            let local_element_handler = Arc::new(LocalElementHandler {
                 declared_element_handler,
                 reference_element_handler,
-            ));
+            });
 
-            handler
+            NestedParticleIdHandler {
+                local_element_handler,
+                group_ref_handler: group_ref_handler.clone(),
+                choice_handler: choice_handler.clone(),
+                sequence_handler: sequence_handler.clone(),
+                any_handler: any_handler.clone(),
+                mod_naming: WrappingNamingStrategy::new(|name| format!("{}_items", name)),
+            }
         });
 
-        let Some((
-            nested_particle_handler,
-            type_def_particle_handler,
-            restriction_fragment_handler,
-            complex_content_handler,
-            all_handler,
-            sequence_handler,
-            choice_handler,
-            group_ref_handler,
-            complex_type_model_handler,
-            complex_type_root_handler,
-            element_type_content_handler,
-            declared_element_handler,
-            reference_element_handler,
-        )) = local_element_handler_export
-        else {
-            panic!("Failed to create local element handler");
-        };
+        let element_type_content_handler =
+            element_type_content_handler_export.expect("Element type content handler export");
+        let complex_type_root_handler =
+            complex_type_root_handler_export.expect("Complex type root handler export");
 
         let top_level_attribute_handler = Arc::new(TopLevelAttributeHandler);
 
         let top_level_element_handler = Arc::new(TopLevelElementHandler {
             dynamic_substitute_group: true,
             standalone_element_type: true,
-            element_type_content_handler: Arc::downgrade(&element_type_content_handler),
+            element_type_content_handler,
+            dynamic_variant_ident: format_ident!("Dynamic"),
         });
 
         let named_group_type_content_handler = Arc::new(NamedGroupTypeContentIdHandler {
@@ -844,31 +841,13 @@ impl<'a> Generator<'a> {
         });
 
         let top_level_group_handler = Arc::new(TopLevelGroupHandler {
-            named_group_content_handler: Arc::downgrade(&named_group_type_content_handler),
+            named_group_type_content_handler,
         });
 
         HandlerContainer {
             nested_particle_handler,
-            type_def_particle_handler,
-            restriction_fragment_handler,
-            complex_content_handler,
-            all_handler,
-            sequence_handler,
-            choice_handler,
-            group_ref_handler,
-            element_type_content_handler,
-            local_element_handler,
-            declared_element_handler,
-            reference_element_handler,
-            complex_type_model_handler,
             simple_type_root_handler,
-            local_attribute_handler,
-            attribute_declaration_handler,
-            attribute_declarations_handler,
-            simple_extension_handler,
-            simple_content_handler,
             complex_type_root_handler,
-            named_group_type_content_handler,
             top_level_attribute_handler,
             top_level_element_handler,
             top_level_group_handler,

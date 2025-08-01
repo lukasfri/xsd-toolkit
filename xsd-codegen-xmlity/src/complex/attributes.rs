@@ -1,22 +1,110 @@
-use std::any::type_name;
-use std::sync::Weak;
+use std::sync::Arc;
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 use crate::complex::ComplexToTypeTemplateExt;
+use crate::misc::{dedup_field_idents, TypeReference};
+use crate::naming_strategies::{IndexedNamingStrategy, WrappingNamingStrategy};
+use crate::templates::element_record::{ElementField, ElementFieldGroup};
 use crate::{
-    misc::WeakExt,
     simple::{simple_type::SimpleTypeRootHandler, SimpleContext, SimpleToTypeTemplate},
     templates::element_record::ElementFieldAttribute,
     Result, ToIdentTypesExt,
 };
-use quote::format_ident;
 use syn::parse_quote;
 use xmlity::ExpandedName;
 use xsd_fragments::fragments::complex::{self as cx, AttributeUse};
 
 #[derive(Debug)]
+pub struct AnyAttributesHandler {
+    pub any_attributes_ident: syn::Ident,
+}
+
+impl ComplexToTypeTemplate<cx::AnyAttributeFragment> for AnyAttributesHandler {
+    type TypeTemplate = (syn::Ident, ElementField);
+
+    fn to_type_template<C: ComplexContext, S: Scope>(
+        &self,
+        _context: &C,
+        _scope: &mut S,
+        _item: &cx::AnyAttributeFragment,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let ident = self.any_attributes_ident.clone();
+
+        let any_attributes = (
+            ident.to_field_ident(),
+            ElementField::Group(ElementFieldGroup {
+                ty: TypeReference::new_static(parse_quote!(::xmlity_ns::AnyAttributes)),
+            }),
+        );
+
+        Ok(ToTypeTemplateData {
+            ident: Some(ident),
+            template: any_attributes,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct AttributeDeclarationsHandler {
+    pub attribute_declaration_handler: Arc<AttributeDeclarationHandler>,
+    pub any_attributes_handler: Arc<AnyAttributesHandler>,
+    pub suggested_attribute_type_naming: IndexedNamingStrategy,
+    pub default_attribute_ident_naming: IndexedNamingStrategy,
+}
+
+impl ComplexToTypeTemplate<cx::AttributeDeclarationsFragment> for AttributeDeclarationsHandler {
+    type TypeTemplate = Vec<(syn::Ident, ElementField)>;
+
+    fn to_type_template<C: ComplexContext, S: Scope>(
+        &self,
+        context: &C,
+        scope: &mut S,
+        item: &cx::AttributeDeclarationsFragment,
+    ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let attributes = item
+            .declarations
+            .iter()
+            .enumerate()
+            .map(|(i, a)| {
+                let sub_context =
+                    context.sub_context(self.suggested_attribute_type_naming.ident_for_index(i));
+
+                self.attribute_declaration_handler
+                    .to_type_template(&sub_context, scope, a)
+                    .map(|a| {
+                        (
+                            a.ident.map(|a| a.to_field_ident()).unwrap_or_else(|| {
+                                self.default_attribute_ident_naming.ident_for_index(i)
+                            }),
+                            ElementField::Attribute(a.template),
+                        )
+                    })
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let any_attributes = item
+            .any_attribute
+            .as_ref()
+            .map(|id| {
+                self.any_attributes_handler
+                    .resolve_type_template(context, scope, id)
+            })
+            .transpose()?
+            .map(|a| a.template);
+
+        let attributes = dedup_field_idents(attributes.into_iter().chain(any_attributes));
+
+        Ok(ToTypeTemplateData {
+            ident: None,
+            template: attributes,
+        })
+    }
+}
+
+#[derive(Debug)]
 pub struct LocalAttributeHandler {
-    pub simple_type_handler: Weak<SimpleTypeRootHandler>,
+    pub simple_type_handler: Arc<SimpleTypeRootHandler>,
+    pub value_type_naming: WrappingNamingStrategy,
 }
 
 impl ComplexToTypeTemplate<cx::LocalAttributeFragment> for LocalAttributeHandler {
@@ -41,14 +129,10 @@ impl ComplexToTypeTemplate<cx::LocalAttributeFragment> for LocalAttributeHandler
 
                 let simple_context = context
                     .simple_context()
-                    .sub_context(format_ident!("{}Value", ident));
+                    .sub_context(self.value_type_naming.wrap_ident(&ident));
 
                 let ty = self
                     .simple_type_handler
-                    .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                        origin: type_name::<Self>(),
-                        handler: type_name::<SimpleTypeRootHandler>(),
-                    })?
                     .to_type_template(&simple_context, scope, &local.type_)?
                     .template;
 
@@ -88,7 +172,7 @@ impl ComplexToTypeTemplate<cx::LocalAttributeFragment> for LocalAttributeHandler
 
 #[derive(Debug)]
 pub struct AttributeDeclarationHandler {
-    pub local_attribute_handler: Weak<LocalAttributeHandler>,
+    pub local_attribute_handler: Arc<LocalAttributeHandler>,
 }
 
 impl ComplexToTypeTemplate<cx::AttributeDeclarationId> for AttributeDeclarationHandler {
@@ -103,10 +187,6 @@ impl ComplexToTypeTemplate<cx::AttributeDeclarationId> for AttributeDeclarationH
         match item {
             cx::AttributeDeclarationId::Attribute(fragment_idx) => self
                 .local_attribute_handler
-                .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
-                    origin: type_name::<Self>(),
-                    handler: type_name::<LocalAttributeHandler>(),
-                })?
                 .resolve_type_template(context, scope, fragment_idx),
             cx::AttributeDeclarationId::AttributeGroupRef(_fragment_idx) => {
                 Err(crate::Error::UnsupportedFragment {
