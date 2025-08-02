@@ -2312,7 +2312,7 @@ impl ComplexFragmentEquivalent for xs::groups::AttrDecls {
             .transpose()?;
 
         Ok(compiler.push_fragment(AttributeDeclarationsFragment {
-            declarations: declarations,
+            declarations,
             any_attribute,
         }))
     }

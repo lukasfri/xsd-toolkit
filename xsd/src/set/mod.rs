@@ -27,6 +27,14 @@ pub enum GlobError {
     UrlParse { path: PathBuf },
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error<E> {
+    #[error("Failed to parse URL")]
+    UrlParse(#[from] url::ParseError),
+    #[error("Failed to resolve URL: {error}")]
+    ResolveError { error: E },
+}
+
 pub enum TopLevelType<'a> {
     SimpleType(&'a xs::types::TopLevelSimpleType),
     ComplexType(&'a xs::types::TopLevelComplexType),
@@ -79,7 +87,7 @@ impl XmlSchemaSet {
             .try_for_each(|url| url.map(|url| self.inform_location(&url)))
     }
 
-    fn load_location_internal(&mut self, url: &Url, schema: xs::Schema) {
+    fn load_location_internal<E>(&mut self, url: &Url, schema: xs::Schema) -> Result<(), Error<E>> {
         let schema = XmlSchema::new(schema);
 
         let imports = schema
@@ -101,11 +109,12 @@ impl XmlSchemaSet {
                 let location = a
                     .schema_location
                     .as_ref()
-                    .map(|sl| url.resolve_xml_url(sl).unwrap());
+                    .map(|sl| url.resolve_xml_url(sl))
+                    .transpose()?;
 
-                (namespace, location)
+                Ok((namespace, location))
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<Result<HashMap<_, _>, Error<E>>>()?;
 
         imports
             .iter()
@@ -120,8 +129,8 @@ impl XmlSchemaSet {
                 xs::Include::Include(a) => a,
                 _ => panic!("Expected an include, but found: {:?}", a),
             })
-            .map(|a| url.resolve_xml_url(&a.schema_location).unwrap())
-            .collect::<Vec<_>>();
+            .map(|a| url.resolve_xml_url(&a.schema_location))
+            .collect::<Result<Vec<_>, _>>()?;
 
         includes.iter().for_each(|location| {
             self.inform_location(location);
@@ -130,21 +139,23 @@ impl XmlSchemaSet {
         let location = SchemaLocation { schema };
 
         self.locations.insert(url.clone(), Some(location));
+
+        Ok(())
     }
 
     pub fn load_location<R: Fn(&Url) -> Result<xs::Schema, E>, E>(
         &mut self,
         resolver: &R,
         url: &Url,
-    ) -> Result<bool, E> {
+    ) -> Result<bool, Error<E>> {
         if self.locations.get(url).is_some_and(|loc| loc.is_some()) {
             // Already loaded, no need to load again
             return Ok(false);
         }
 
-        let schema = (resolver)(url)?;
+        let schema = (resolver)(url).map_err(|e| Error::ResolveError { error: e })?;
 
-        self.load_location_internal(url, schema);
+        self.load_location_internal::<E>(url, schema)?;
 
         Ok(true)
     }
@@ -157,15 +168,17 @@ impl XmlSchemaSet {
         &mut self,
         resolver: &R,
         url: &Url,
-    ) -> Result<bool, E> {
+    ) -> Result<bool, Error<E>> {
         if self.locations.get(url).is_some_and(|loc| loc.is_some()) {
             // Already loaded, no need to load again
             return Ok(false);
         }
 
-        let schema = (resolver)(url).await?;
+        let schema = (resolver)(url)
+            .await
+            .map_err(|e| Error::ResolveError { error: e })?;
 
-        self.load_location_internal(url, schema);
+        self.load_location_internal::<E>(url, schema)?;
 
         Ok(true)
     }
@@ -173,7 +186,7 @@ impl XmlSchemaSet {
     pub fn explore_locations<'a, E, R: Fn(&Url) -> Result<xs::Schema, E>>(
         &'a mut self,
         resolver: &'a R,
-    ) -> impl Iterator<Item = Result<Url, E>> + 'a {
+    ) -> impl Iterator<Item = Result<Url, Error<E>>> + 'a {
         std::iter::from_fn(|| {
             let url = self
                 .locations
@@ -199,7 +212,7 @@ impl XmlSchemaSet {
     >(
         &'a mut self,
         resolver: &'a R,
-    ) -> impl futures::Stream<Item = Result<Url, E>> + 'a {
+    ) -> impl futures::Stream<Item = Result<Url, Error<E>>> + 'a {
         futures::stream::unfold(self, |this| async {
             let url = this
                 .locations

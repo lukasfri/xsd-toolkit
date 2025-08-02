@@ -64,8 +64,8 @@ pub enum Error {
     TransformationError(#[from] xsd_codegen_xmlity::CodegenTransformerError),
     #[display("Error when generating namespace: {}", _0)]
     GenerationError(#[from] xsd_codegen_xmlity::Error),
-    #[display("Error when resolving URL: {}", _0)]
-    ResolverError(#[from] ResolverError),
+    #[display("Error when loading XSD set: {}", _0)]
+    SetError(#[from] xsd::set::Error<ResolverError>),
 }
 
 struct Resolver {
