@@ -191,8 +191,7 @@ mod tests {
                                 .child_1(
                                     xs::types::complex_restriction_type_items::Child1::builder()
                                         .type_def_particle(Box::new(sequence.clone().into()))
-                                        .build()
-                                        .into(),
+                                        .build(),
                                 )
                                 .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                 .assertions(xs::groups::Assertions::builder().build().into())

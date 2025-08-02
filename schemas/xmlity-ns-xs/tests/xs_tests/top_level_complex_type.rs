@@ -619,7 +619,7 @@ fn xsd_all() -> xs::ComplexType {
                                     .any_attributes(xmlity_ns::AnyAttributes::default())
                                     .build()
                                     .into(),
-                                    )).build().into()
+                                    )).build()
                             )
                             .attr_decls(
                                 xs::groups::AttrDecls::builder()
@@ -660,7 +660,6 @@ fn xsd_all() -> xs::ComplexType {
                                                                     .into(),
                                                                 ])
                                                                 .build()
-                                                                .into()
                                                             )
                                                             .build())
                                                             .into()

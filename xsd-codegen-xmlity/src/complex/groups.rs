@@ -988,8 +988,7 @@ mod tests {
                                         .build(),
                                 )
                                 .into())
-                                ).build()
-                                .into(),
+                                ).build(),
                             )
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
                             .assertions(xs::groups::Assertions::builder().build().into())
@@ -1127,8 +1126,7 @@ mod tests {
                                             )
                                             .into(),
                                         ))
-                                        .build()
-                                        .into(),
+                                        .build(),
                                 )
                                 .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                 .assertions(xs::groups::Assertions::builder().build().into())

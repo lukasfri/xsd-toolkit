@@ -362,8 +362,7 @@ mod tests {
                                         .build()
                                     ).into()
                                 ))
-                                .build()
-                                .into())
+                                .build())
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
                             .assertions(xs::groups::Assertions::builder().build().into())
                             .any_attributes(ns::AnyAttributes::default())
@@ -453,7 +452,7 @@ mod tests {
                                         .any_attributes(ns::AnyAttributes::default())
                                         .build()
                                 )
-                                .into())).build().into(),
+                                .into())).build(),
                             )
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
                             .assertions(xs::groups::Assertions::builder().build().into())
@@ -538,7 +537,6 @@ mod tests {
                                     ).into())
                                 )
                                 .build()
-                                .into()
                             )
                             .attr_decls(
                                 xs::groups::AttrDecls::builder()
@@ -670,7 +668,6 @@ mod tests {
                                         .build()
                                 ).into()))
                                 .build()
-                                .into()
                             )
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
                             .assertions(xs::groups::Assertions::builder().build().into())
@@ -794,7 +791,7 @@ mod tests {
                                     ])
                                     .any_attributes(ns::AnyAttributes::default())
                                     .build()
-                            ).into())).build().into())
+                            ).into())).build())
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
                             .assertions(xs::groups::Assertions::builder().build().into())
                             .any_attributes(ns::AnyAttributes::default())

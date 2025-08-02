@@ -15,7 +15,7 @@ fn main() {
         .bound_namespaces(vec![(XmlNamespace::XML, parse_quote!(crate))])
         .build();
 
-    let engine = engine.start().unwrap();
+    let engine = engine.start().expect("Failed to start the engine");
     println!(
         "Starting the engine took {:?}",
         time.elapsed().as_secs_f32()
@@ -26,14 +26,18 @@ fn main() {
     engine
         .generate_namespace(
             xmlity_build::GenerateNamespace::builder()
-                .output_file("schemas/xmlity-ns-xml/src/lib.rs".parse().unwrap())
+                .output_file(
+                    "schemas/xmlity-ns-xml/src/lib.rs"
+                        .parse()
+                        .expect("Failed to parse output file path"),
+                )
                 .namespace(XmlNamespace::XML)
                 .bon_builders(true)
                 .enum_from(true)
                 .struct_from(true)
                 .build(),
         )
-        .unwrap();
+        .expect("Failed to generate namespace");
 
     println!(
         "Generating the xs namespace took {:?}",

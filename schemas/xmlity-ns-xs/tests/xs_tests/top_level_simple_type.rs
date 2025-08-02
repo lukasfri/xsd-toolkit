@@ -154,8 +154,7 @@ fn xsd_type_derivation_control() -> xs::SimpleType {
                                 ))
                                 .into(),
                             ])
-                            .build()
-                            .into(),
+                            .build(),
                     )
                     .build(),
             )
@@ -283,8 +282,7 @@ fn xsd_block_set() -> xs::SimpleType {
                                         ))
                                         .into(),
                                     ])
-                                    .build()
-                                    .into(),
+                                    .build(),
                             )
                             .build())
                             .into(),
@@ -331,8 +329,7 @@ fn xsd_block_set() -> xs::SimpleType {
                                                 ))
                                                 .into(),
                                             ])
-                                            .build()
-                                            .into(),
+                                            .build(),
                                     )
                                     .build())
                                     .into(),

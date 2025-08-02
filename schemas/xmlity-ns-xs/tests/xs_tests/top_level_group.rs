@@ -254,7 +254,7 @@ fn xsd_all_model() -> xs::Group {
                                                             ])
                                                             .any_attributes(xmlity_ns::AnyAttributes::default())
                                                             .build()).into())
-                                                      ).build().into()
+                                                      ).build()
                                                     )
                                                     .attr_decls(xs::groups::AttrDecls::builder().attribute(vec![
                                                         xs::types::Attribute::builder()

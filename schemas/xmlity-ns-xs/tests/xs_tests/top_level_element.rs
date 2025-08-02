@@ -1,6 +1,5 @@
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xmlity_ns_xs as xs;
-use xmlity_quick_xml::to_string;
 
 #[rstest::rstest]
 #[case::schema(XSD_SCHEMA, None)]
@@ -847,8 +846,7 @@ fn xsd_total_digits() -> xs::Element {
                                             )
                                             .into(),
                                         ))
-                                        .build()
-                                        .into(),
+                                        .build(),
                                 )
                                 .attr_decls(
                                     xs::groups::AttrDecls::builder()
@@ -1026,7 +1024,7 @@ fn xsd_white_space() -> xs::Element {
                                                 )
                                                 .into(),
                                             )
-                                          ).build().into()
+                                          ).build()
                                         )
                                         .attr_decls(
                                             xs::groups::AttrDecls::builder()
@@ -1068,8 +1066,7 @@ fn xsd_white_space() -> xs::Element {
                                                                                 .build()
                                                                         ))
                                                                         .into(),
-                                                                    ]).build()
-                                                                .into())
+                                                                    ]).build())
                                                                 .build())
                                                                 .into())
                                                             )

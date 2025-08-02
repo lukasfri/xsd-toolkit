@@ -374,8 +374,7 @@ mod tests {
                                 .child_1(
                                     xs::types::complex_restriction_type_items::Child1::builder()
                                         .type_def_particle(Box::new(parent_seq.clone().into()))
-                                        .build()
-                                        .into(),
+                                        .build(),
                                 )
                                 .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                 .assertions(xs::groups::Assertions::builder().build().into())
@@ -494,8 +493,7 @@ mod tests {
                                             )
                                             .into(),
                                         ))
-                                        .build()
-                                        .into(),
+                                        .build(),
                                     )
                                     .attr_decls(xs::groups::AttrDecls::builder().build().into())
                                     .assertions(xs::groups::Assertions::builder().build().into())
@@ -792,8 +790,7 @@ mod tests {
                                         )
                                         .into(),
                                     ))
-                                    .build()
-                                    .into(),
+                                    .build(),
                             )
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
                             .assertions(xs::groups::Assertions::builder().build().into())
@@ -913,8 +910,7 @@ mod tests {
                                             )
                                             .into(),
                                         ))
-                                        .build()
-                                        .into(),
+                                        .build(),
                                     )
                                     .attr_decls(
                                         xs::groups::AttrDecls::builder()
@@ -1046,8 +1042,7 @@ mod tests {
                                         )
                                         .into(),
                                     ))
-                                    .build()
-                                    .into(),
+                                    .build(),
                             )
                             .attr_decls(xs::groups::AttrDecls::builder().build().into())
                             .assertions(xs::groups::Assertions::builder().build().into())
@@ -1284,8 +1279,7 @@ mod tests {
                                             )
                                             .into(),
                                         ))
-                                        .build()
-                                        .into(),
+                                        .build(),
                                     )
                                     .attr_decls(
                                         xs::groups::AttrDecls::builder()
