@@ -1,3 +1,12 @@
+//! This crate provides a wrapper around the XML Schema (XSD) definitions
+//! from the `xmlity_ns_xs` crate, allowing for easier access and manipulation of
+//! XML Schema components such as elements, attributes, and types.
+//!
+//! It includes methods to retrieve top-level elements, attributes, and types,
+//! as well as to navigate through schema compositions like includes and imports.
+//!
+//! Furthermore, it provides you with a convenient way to load an XML schema set
+//! from a URL tree through the [`set`] module.
 use std::ops::Deref;
 
 use xmlity::XmlNamespace;

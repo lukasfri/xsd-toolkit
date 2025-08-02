@@ -263,7 +263,7 @@ impl<'a> Generator<'a> {
         let type_ = self
             .handlers
             .complex_type_root_handler
-            .to_type_template(&context, &mut scope, &fragment)?;
+            .to_type_template(&context, &mut scope, fragment)?;
 
         let mut items = Vec::new();
 
@@ -630,7 +630,7 @@ impl<'a> Generator<'a> {
         let type_ = self
             .handlers
             .top_level_group_handler
-            .to_type_template(&context, &mut scope, &fragment)?;
+            .to_type_template(&context, &mut scope, fragment)?;
 
         let mut items = Vec::new();
 

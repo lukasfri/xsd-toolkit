@@ -1,3 +1,5 @@
+//! This crate provides utilities for dynamically querying XML Schema (XSD) definitions
+//! and extracting information about elements, attributes, and types.
 use std::num::NonZeroUsize;
 
 use xmlity::ExpandedName;
@@ -15,6 +17,9 @@ pub enum Error {
     FragmentNotFound {},
 }
 
+/// A collection of parsed facets from an XML Schema simple type.
+/// This struct is used to hold various facets such as length, min/max values,
+/// enumerations, patterns, and assertions that are extracted from the schema.
 #[derive(Default, Debug)]
 pub struct ParsedFacets<'a> {
     pub min_length: Option<&'a usize>,

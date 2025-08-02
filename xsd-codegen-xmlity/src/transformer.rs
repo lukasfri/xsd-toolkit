@@ -46,11 +46,11 @@ pub enum Error {
 #[non_exhaustive]
 #[derive(Debug)]
 /// This transformer is used to transform the XSD into a form that is required for the codegen to work.
-pub struct XmlityCodegenTransformer {
+pub struct CodegenTransformer {
     allowed_simple_bases: HashSet<ExpandedName<'static>>,
 }
 
-impl XmlityCodegenTransformer {
+impl CodegenTransformer {
     #[allow(clippy::new_without_default)]
     pub fn new(allowed_simple_bases: HashSet<ExpandedName<'static>>) -> Self {
         Self {
@@ -59,7 +59,7 @@ impl XmlityCodegenTransformer {
     }
 }
 
-impl XmlnsContextTransformer for XmlityCodegenTransformer {
+impl XmlnsContextTransformer for CodegenTransformer {
     type Error = Error;
     fn transform(
         self,

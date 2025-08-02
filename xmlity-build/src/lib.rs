@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::{collections::HashSet, path::PathBuf};
 
 use bon::Builder;
@@ -12,13 +11,14 @@ use xmlity::types::utils::XmlRoot;
 use xmlity::{ExpandedName, XmlNamespace};
 use xsd::set::XmlSchemaSet;
 use xsd::{xs, xsn};
+use xsd_codegen_xmlity::CodegenTransformer;
 use xsd_codegen_xmlity::{
     augments::{
         AdditionalDerives, BonAugmentation, EnumFromAugmentation, ItemAugmentation,
         StructFromAugmentation,
     },
     misc::TypeReference,
-    BoundType, XmlityCodegenTransformer,
+    BoundType,
 };
 use xsd_fragments::XmlnsContext;
 
@@ -60,6 +60,81 @@ pub enum Error {
     FileWriteError(std::io::Error, PathBuf),
     #[display("Error when importing namespace map: {}", _0)]
     XsdFragmentImportError(#[from] xsd_fragments::Error),
+    #[display("Error when transforming XSD: {}", _0)]
+    TransformationError(#[from] xsd_codegen_xmlity::CodegenTransformerError),
+    #[display("Error when generating namespace: {}", _0)]
+    GenerationError(#[from] xsd_codegen_xmlity::Error),
+    #[display("Error when resolving URL: {}", _0)]
+    ResolverError(#[from] ResolverError),
+}
+
+struct Resolver {
+    client: reqwest::blocking::Client,
+    cache_dir: PathBuf,
+    net_resolution: bool,
+}
+
+#[derive(Debug, derive_more::derive::From, derive_more::derive::Display)]
+pub enum ResolverError {
+    #[display("Error when resolving URL using `reqwest`: {}", _0)]
+    Reqwest(reqwest::Error),
+    #[display("Error when reading from file: {}", _0)]
+    Io(std::io::Error),
+    #[display("Error when parsing XML: {}", _0)]
+    XmlParse(xmlity_quick_xml::de::Error),
+    XsdMissingRoot,
+    #[display("Unsupported URL scheme: {}", _0)]
+    UnsupportedUrlScheme(Url),
+}
+
+impl Resolver {
+    fn new() -> Self {
+        Self {
+            client: reqwest::blocking::Client::new(),
+            cache_dir: std::env::temp_dir().join("xsd-toolkit-built-cache"),
+            net_resolution: true,
+        }
+    }
+
+    fn url_to_file_name(url: &Url) -> String {
+        url.as_str().replace('/', "__")
+    }
+
+    fn resolve(&self, url: &Url) -> Result<xs::Schema, ResolverError> {
+        let potential_cache_file_path = self.cache_dir.join(Self::url_to_file_name(url));
+
+        let schema_text = match url.scheme() {
+            "http" | "https" if std::fs::exists(&potential_cache_file_path)? => {
+                std::fs::read_to_string(&potential_cache_file_path)?
+            }
+            "http" | "https" if self.net_resolution => {
+                let response = self.client.get(url.as_str()).send()?;
+                let schema_text = response.text()?;
+
+                std::fs::create_dir_all(&self.cache_dir)?;
+                std::fs::write(&potential_cache_file_path, &schema_text)?;
+
+                schema_text
+            }
+            "file" => std::fs::read_to_string(url.path())?,
+            _ => {
+                return Err(ResolverError::UnsupportedUrlScheme(url.clone()));
+            }
+        };
+
+        let document = xmlity_quick_xml::from_str::<XmlRoot<xs::Schema>>(schema_text.as_str())?;
+
+        let schema = document
+            .elements
+            .into_iter()
+            .find_map(|e| match e {
+                xmlity::types::utils::XmlRootTop::Value(e) => Some(e),
+                _ => None,
+            })
+            .ok_or(ResolverError::XsdMissingRoot)?;
+
+        Ok(schema)
+    }
 }
 
 pub struct StartedBuildEngine {
@@ -78,73 +153,10 @@ impl BuildEngine {
 
         let root_uris = map.locations.keys().cloned().collect::<Vec<_>>();
 
-        struct Resolver {
-            client: reqwest::blocking::Client,
-            cache_dir: PathBuf,
-        }
-
-        impl Resolver {
-            fn new() -> Self {
-                Self {
-                    client: reqwest::blocking::Client::new(),
-                    cache_dir: std::env::temp_dir().join("xsd-toolkit-built-cache"),
-                }
-            }
-
-            fn url_to_file_name(url: &Url) -> String {
-                url.as_str().replace('/', "__")
-            }
-
-            fn resolve(&self, url: &Url) -> Result<xs::Schema, Infallible> {
-                let potential_cache_file_path = self.cache_dir.join(Self::url_to_file_name(url));
-
-                let schema_text = match url.scheme() {
-                    "http" | "https"
-                        if std::fs::exists(&potential_cache_file_path)
-                            .expect("Could not check if file exists") =>
-                    {
-                        std::fs::read_to_string(&potential_cache_file_path)
-                            .expect("Could not read cached file")
-                    }
-                    "http" | "https" => {
-                        let response = self.client.get(url.as_str()).send().unwrap();
-                        let schema_text = response.text().unwrap();
-
-                        std::fs::create_dir_all(&self.cache_dir)
-                            .expect("Could not create cache directory");
-                        std::fs::write(&potential_cache_file_path, &schema_text)
-                            .expect("Could not write to cache file");
-
-                        schema_text
-                    }
-                    "file" => std::fs::read_to_string(url.path()).unwrap(),
-                    _ => {
-                        todo!()
-                    }
-                };
-
-                let document =
-                    xmlity_quick_xml::from_str::<XmlRoot<xs::Schema>>(schema_text.as_str())
-                        .unwrap();
-
-                let schema = document
-                    .elements
-                    .into_iter()
-                    .find_map(|e| match e {
-                        xmlity::types::utils::XmlRootTop::Value(e) => Some(e),
-                        _ => None,
-                    })
-                    .unwrap();
-
-                Ok(schema)
-            }
-        }
-
         let resolver = Resolver::new();
 
         map.explore_locations(&|url| resolver.resolve(url))
-            .try_for_each(|a| a.map(|_| ()))
-            .unwrap();
+            .try_for_each(|a| a.map(|_| ()))?;
 
         let mut context = XmlnsContext::new();
 
@@ -193,9 +205,7 @@ impl BuildEngine {
         .map(|a| (***a).clone())
         .collect();
 
-        context
-            .context_transform(XmlityCodegenTransformer::new(allowed_simple_bases.clone()))
-            .unwrap();
+        context.context_transform(CodegenTransformer::new(allowed_simple_bases.clone()))?;
 
         Ok(StartedBuildEngine {
             engine: self,
@@ -250,9 +260,7 @@ impl StartedBuildEngine {
 
         generator.bind_attributes(self.engine.bound_attributes.iter().cloned());
 
-        let items = generator
-            .generate_namespace(&generate_namespace.namespace)
-            .unwrap();
+        let items = generator.generate_namespace(&generate_namespace.namespace)?;
 
         let file = syn::File {
             attrs: Vec::new(),

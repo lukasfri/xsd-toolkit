@@ -22,3 +22,7 @@ url.workspace = true
 rstest.workspace = true
 pretty_assertions.workspace = true
 ntest.workspace = true
+
+
+[lints]
+workspace = true

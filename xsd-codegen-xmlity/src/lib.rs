@@ -6,7 +6,7 @@ mod naming_strategies;
 mod simple;
 pub mod templates;
 mod transformer;
-pub use transformer::XmlityCodegenTransformer;
+pub use transformer::{CodegenTransformer, Error as CodegenTransformerError};
 mod generator;
 pub use generator::{Generator, GeneratorContext, GeneratorScope};
 
