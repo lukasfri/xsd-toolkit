@@ -20,6 +20,7 @@ dyn-clone = "1.0.14"
 Inflector = "0.11.4"
 rust_decimal = "1.37.2"
 xsd-dynamic-query = { path = "../xsd-dynamic-query" }
+static_assertions.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true

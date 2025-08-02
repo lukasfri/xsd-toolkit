@@ -108,7 +108,9 @@ impl SingleChoiceToSequence {
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: FragmentIdx<ChoiceFragment>,
     ) -> Result<ChoiceToSequence, <Self as XmlnsLocalTransformer>::Error> {
-        let fragment = ctx.get_complex_fragment(&fragment_id).unwrap();
+        let fragment = ctx
+            .get_complex_fragment(&fragment_id)
+            .expect("Fragment not found in compiler.");
 
         if fragment.group_content().len() != 1 {
             return Ok(ChoiceToSequence::Choice(fragment_id));
@@ -165,7 +167,9 @@ impl SingleChoiceToSequence {
     {
         let mut change = TransformChange::default();
 
-        let fragment = context.get_complex_fragment(fragment_id).unwrap();
+        let fragment = context
+            .get_complex_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let unexpanded_fragments = fragment.group_content().clone();
 
@@ -180,7 +184,9 @@ impl SingleChoiceToSequence {
             })
             .collect::<Result<_, <Self as XmlnsLocalTransformer>::Error>>()?;
 
-        let fragment = context.get_complex_fragment_mut(fragment_id).unwrap();
+        let fragment = context
+            .get_complex_fragment_mut(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         *fragment.group_content_mut() = expanded_fragments;
 
@@ -207,7 +213,9 @@ impl SingleChoiceToSequence {
     where
         ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
-        let fragment = context.get_complex_fragment(fragment_id).unwrap();
+        let fragment = context
+            .get_complex_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let Some(unexpanded_fragment) = fragment.type_def_particle().copied() else {
             return Ok(TransformChange::Unchanged);
@@ -215,7 +223,9 @@ impl SingleChoiceToSequence {
 
         let expanded_fragment = Self::expand_type_def_particle(context, unexpanded_fragment)?;
 
-        let fragment = context.get_complex_fragment_mut(fragment_id).unwrap();
+        let fragment = context
+            .get_complex_fragment_mut(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         *fragment.type_def_particle_mut().expect("Already checked") = expanded_fragment;
 

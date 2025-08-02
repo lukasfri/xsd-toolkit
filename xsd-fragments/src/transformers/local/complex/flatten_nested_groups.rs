@@ -23,7 +23,9 @@ impl FlattenNestedSequences {
         ctx: &mut XmlnsLocalTransformerContext,
         fragment_idx: &FragmentIdx<SequenceFragment>,
     ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
-        let SequenceFragment { fragments, .. } = ctx.get_complex_fragment(fragment_idx).unwrap();
+        let SequenceFragment { fragments, .. } = ctx
+            .get_complex_fragment(fragment_idx)
+            .expect("Fragment not found in compiler.");
 
         let mut flattened = TransformChange::default();
 
@@ -39,7 +41,9 @@ impl FlattenNestedSequences {
                 fragments: sub_fragments,
                 max_occurs,
                 min_occurs,
-            } = ctx.get_complex_fragment(seq_fragment_id).unwrap();
+            } = ctx
+                .get_complex_fragment(seq_fragment_id)
+                .expect("Fragment not found in compiler.");
 
             if max_occurs.is_some() || min_occurs.is_some() {
                 new_fragments.push_back(*fragment_id);
@@ -50,7 +54,9 @@ impl FlattenNestedSequences {
             flattened = TransformChange::Changed;
         }
 
-        let fragment = ctx.get_complex_fragment_mut(fragment_idx).unwrap();
+        let fragment = ctx
+            .get_complex_fragment_mut(fragment_idx)
+            .expect("Fragment not found in compiler.");
         fragment.fragments = new_fragments;
 
         Ok(flattened)
@@ -99,7 +105,9 @@ impl FlattenNestedChoices {
         ctx: &mut XmlnsLocalTransformerContext,
         fragment_idx: &FragmentIdx<ChoiceFragment>,
     ) -> Result<TransformChange, <Self as XmlnsLocalTransformer>::Error> {
-        let ChoiceFragment { fragments, .. } = ctx.get_complex_fragment(fragment_idx).unwrap();
+        let ChoiceFragment { fragments, .. } = ctx
+            .get_complex_fragment(fragment_idx)
+            .expect("Fragment not found in compiler.");
 
         let mut flattened = TransformChange::default();
 
@@ -114,7 +122,9 @@ impl FlattenNestedChoices {
                 fragments: sub_fragments,
                 max_occurs,
                 min_occurs,
-            } = ctx.get_complex_fragment(choice_fragment_id).unwrap();
+            } = ctx
+                .get_complex_fragment(choice_fragment_id)
+                .expect("Fragment not found in compiler.");
 
             if max_occurs.is_some() || min_occurs.is_some() {
                 new_fragments.push_back(*fragment_id);
@@ -125,7 +135,9 @@ impl FlattenNestedChoices {
             flattened = TransformChange::Changed;
         }
 
-        let fragment = ctx.get_complex_fragment_mut(fragment_idx).unwrap();
+        let fragment = ctx
+            .get_complex_fragment_mut(fragment_idx)
+            .expect("Fragment not found in compiler.");
         fragment.fragments = new_fragments;
 
         Ok(flattened)

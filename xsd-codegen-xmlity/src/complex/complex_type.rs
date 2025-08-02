@@ -9,6 +9,7 @@ use crate::{
     }, Result, ToIdentTypesExt
 };
 
+use quote::format_ident;
 use syn::parse_quote;
 use xsd_fragments::fragments::complex::{self as cx};
 
@@ -39,7 +40,7 @@ fn dedup_attribute_field_idents<T, E>(
 pub struct RestrictionHandler {
     pub attribute_declarations_handler: Arc<AttributeDeclarationsHandler>,
     pub type_def_particle_handler: Arc<TypeDefParticleIdHandler>,
-    pub default_particle_ident: syn::Ident,
+    pub default_particle_ident: String,
     pub content_type_naming: WrappingNamingStrategy,
     pub attribute_suffix_naming: WrappingNamingStrategy,
 }
@@ -66,7 +67,7 @@ impl ComplexToTypeTemplate<cx::RestrictionFragment> for RestrictionHandler {
             .transpose()?;
 
         let mut template = template.map(|a| {
-            let ident = a.ident.unwrap_or_else(|| self.default_particle_ident.clone());
+            let ident = a.ident.unwrap_or_else(|| format_ident!("{}", self.default_particle_ident));
 
                 match a.template {
                     TypeDefParticleTemplate::Record(item_record) => {
@@ -125,7 +126,7 @@ impl ComplexToTypeTemplate<cx::RestrictionFragment> for RestrictionHandler {
 #[derive(Debug)]
 pub struct SimpleExtensionFragmentHandler {
    pub attribute_declarations_handler: Arc<AttributeDeclarationsHandler>,
-   pub content_field_ident: syn::Ident,
+   pub content_field_ident: String,
    pub attribute_suffix_naming: WrappingNamingStrategy,
 }
 
@@ -147,7 +148,7 @@ impl ComplexToTypeTemplate<cx::SimpleExtensionFragment> for SimpleExtensionFragm
             });
         }
 
-        let mut template = GroupRecord::new_single_field(Some(self.content_field_ident.clone()), ElementField::Item(ItemFieldItem {
+        let mut template = GroupRecord::new_single_field(Some(format_ident!("{}", self.content_field_ident)), ElementField::Item(ItemFieldItem {
             ty: simple_type.ty,
             default: false,
             // Todo: This should only be added to certain simple types that allow empty strings
@@ -244,7 +245,7 @@ pub struct ComplexTypeModelHandler {
     pub attribute_declarations_handler: Arc<AttributeDeclarationsHandler>,
     pub type_def_particle_handler: Arc<TypeDefParticleIdHandler>,
     pub other_content_type_naming: WrappingNamingStrategy,
-    pub other_content_field_ident: syn::Ident,
+    pub other_content_field_ident: String,
 }
 
 impl ComplexToTypeTemplate<cx::ComplexTypeModelId> for ComplexTypeModelHandler {
@@ -281,7 +282,7 @@ impl ComplexToTypeTemplate<cx::ComplexTypeModelId> for ComplexTypeModelHandler {
                                 (
                                     a.ident,
                                     a.template
-                                        .into_group_record(Some(self.other_content_field_ident.clone())),
+                                        .into_group_record(Some(format_ident!("{}", self.other_content_field_ident))),
                                 )
                             })
                     })

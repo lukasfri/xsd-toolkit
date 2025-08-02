@@ -31,7 +31,9 @@ impl<'a> ExpandSimpleRestriction<'a> {
         ctx: &mut XmlnsContextTransformerContext,
         fragment_idx: &FragmentIdx<SimpleTypeRootFragment>,
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
-        let simple_type = ctx.get_simple_fragment(fragment_idx).unwrap();
+        let simple_type = ctx
+            .get_simple_fragment(fragment_idx)
+            .expect("Fragment not found in compiler.");
 
         let SimpleDerivation::Restriction(restriction_fragment_idx) = simple_type.simple_derivation
         else {
@@ -39,8 +41,9 @@ impl<'a> ExpandSimpleRestriction<'a> {
             return Ok(TransformChange::default());
         };
 
-        let RestrictionFragment { base, .. } =
-            ctx.get_simple_fragment(&restriction_fragment_idx).unwrap();
+        let RestrictionFragment { base, .. } = ctx
+            .get_simple_fragment(&restriction_fragment_idx)
+            .expect("Fragment not found in compiler.");
 
         let Some(base) = base.as_ref() else {
             // If the base is not set, we skip it
@@ -73,7 +76,7 @@ impl<'a> ExpandSimpleRestriction<'a> {
                 // We need to replace the base with the base restriction and then flatten the facets
                 let fragment = ctx
                     .get_simple_fragment_mut(&restriction_fragment_idx)
-                    .unwrap();
+                    .expect("Fragment not found in compiler.");
                 fragment.base = base_restriction.base.clone();
 
                 Ok(TransformChange::Changed)

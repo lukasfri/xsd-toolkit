@@ -51,7 +51,7 @@ impl ExpandShortFormComplexTypes {
     ) -> Result<TransformChange, Error> {
         let root_fragment = ctx
             .get_complex_fragment::<ComplexTypeRootFragment>(fragment_id)
-            .unwrap();
+            .expect("Fragment not found in compiler.");
 
         let ComplexTypeModelId::Other {
             particle,
@@ -76,7 +76,9 @@ impl ExpandShortFormComplexTypes {
             mixed: None,
         });
 
-        let root_fragment = ctx.get_complex_fragment_mut(fragment_id).unwrap();
+        let root_fragment = ctx
+            .get_complex_fragment_mut(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         root_fragment.content = ComplexTypeModelId::ComplexContent(complex_content);
 

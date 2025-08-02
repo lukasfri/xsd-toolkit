@@ -624,11 +624,14 @@ impl AsRef<ComplexTypeFragmentCompiler> for ComplexTypeFragmentCompiler {
 }
 
 #[derive(Debug, Clone)]
-pub struct Error;
+pub enum Error {
+    Simple(simple::Error),
+    NameMissingInTopLevel,
+}
 
 impl From<simple::Error> for Error {
-    fn from(_err: simple::Error) -> Self {
-        Error
+    fn from(err: simple::Error) -> Self {
+        Error::Simple(err)
     }
 }
 
@@ -638,7 +641,7 @@ pub trait ComplexFragmentEquivalent: Sized {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         compiler: T,
-    ) -> Self::FragmentId;
+    ) -> Result<Self::FragmentId, Error>;
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
         compiler: T,
@@ -658,19 +661,18 @@ impl ComplexFragmentEquivalent for xs::types::top_level_element_items::Type {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
-        let mut compiler = compiler.as_mut();
-
+    ) -> Result<Self::FragmentId, Error> {
         match self {
             xs::types::top_level_element_items::Type::SimpleType(local_simple_type) => {
-                let simple_type_fragment = local_simple_type.to_simple_fragments(&mut compiler);
+                let simple_type_fragment =
+                    local_simple_type.to_simple_fragments(compiler.as_mut())?;
 
-                ElementTypeContentId::SimpleType(simple_type_fragment)
+                Ok(ElementTypeContentId::SimpleType(simple_type_fragment))
             }
             xs::types::top_level_element_items::Type::ComplexType(local_complex_type) => {
-                let complex_type_fragment = local_complex_type.to_complex_fragments(compiler);
+                let complex_type_fragment = local_complex_type.to_complex_fragments(compiler)?;
 
-                ElementTypeContentId::ComplexType(complex_type_fragment)
+                Ok(ElementTypeContentId::ComplexType(complex_type_fragment))
             }
         }
     }
@@ -703,19 +705,21 @@ impl ComplexFragmentEquivalent for xs::types::local_element_items::Type {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
         match self {
             xs::types::local_element_items::Type::SimpleType(local_simple_type) => {
-                let simple_type_fragment = local_simple_type.to_simple_fragments(&mut compiler);
+                let simple_type_fragment = local_simple_type
+                    .to_simple_fragments(&mut compiler)
+                    .expect("Failed to convert simple type to fragments");
 
-                ElementTypeContentId::SimpleType(simple_type_fragment)
+                Ok(ElementTypeContentId::SimpleType(simple_type_fragment))
             }
             xs::types::local_element_items::Type::ComplexType(local_complex_type) => {
-                let complex_type_fragment = local_complex_type.to_complex_fragments(compiler);
+                let complex_type_fragment = local_complex_type.to_complex_fragments(compiler)?;
 
-                ElementTypeContentId::ComplexType(complex_type_fragment)
+                Ok(ElementTypeContentId::ComplexType(complex_type_fragment))
             }
         }
     }
@@ -748,7 +752,7 @@ impl ComplexFragmentEquivalent for xs::types::LocalElement {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
         let max_occurs = self.max_occurs.clone().map(|a| AllNNI::from(*a));
@@ -780,7 +784,7 @@ impl ComplexFragmentEquivalent for xs::types::LocalElement {
                     .as_ref()
                     .expect("If ref is none and type is none, type_choice should be Some");
 
-                let content_type = type_choice.to_complex_fragments(&mut compiler);
+                let content_type = type_choice.to_complex_fragments(&mut compiler)?;
 
                 NamedOrAnonymous::Anonymous(content_type)
             };
@@ -788,11 +792,11 @@ impl ComplexFragmentEquivalent for xs::types::LocalElement {
             LocalElementFragmentType::Local(DeclaredElementFragment { name, type_ })
         };
 
-        compiler.push_fragment(LocalElementFragment {
+        Ok(compiler.push_fragment(LocalElementFragment {
             type_,
             max_occurs,
             min_occurs,
-        })
+        }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -801,7 +805,9 @@ impl ComplexFragmentEquivalent for xs::types::LocalElement {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let element_builder = xs::types::LocalElement::builder()
             .maybe_min_occurs(fragment.min_occurs)
@@ -844,7 +850,7 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelElement {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
         let name = self.name.clone();
@@ -857,7 +863,7 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelElement {
                     .with_default_namespace(|| compiler.namespace.clone()),
             )),
             (None, Some(type_choice)) => {
-                let content_type = type_choice.to_complex_fragments(&mut compiler);
+                let content_type = type_choice.to_complex_fragments(&mut compiler)?;
                 Some(NamedOrAnonymous::Anonymous(content_type))
             }
             (Some(_), Some(_)) => panic!("Both type and type_choice are Some. Name: {name}"),
@@ -871,12 +877,12 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelElement {
             .map(|expanded_name| expanded_name.0.clone())
             .collect();
 
-        compiler.push_fragment(TopLevelElementFragment {
+        Ok(compiler.push_fragment(TopLevelElementFragment {
             name,
             type_,
             substitution_groups,
             abstract_: self.abstract_.unwrap_or_default(),
-        })
+        }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -885,7 +891,9 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelElement {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         Ok(xs::types::TopLevelElement::builder()
             .name(fragment.name.clone())
@@ -921,18 +929,20 @@ impl ComplexFragmentEquivalent for xs::types::GroupRef {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(GroupRefFragment {
+        let ref_ = self
+            .ref_
+            .0
+            .clone()
+            .with_default_namespace(|| compiler.namespace.clone());
+
+        Ok(compiler.push_fragment(GroupRefFragment {
             min_occurs: self.min_occurs,
             max_occurs: self.max_occurs.clone().map(|a| AllNNI::from(*a)),
-            ref_: self
-                .ref_
-                .0
-                .clone()
-                .with_default_namespace(|| compiler.namespace.clone()),
-        })
+            ref_,
+        }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -941,7 +951,9 @@ impl ComplexFragmentEquivalent for xs::types::GroupRef {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         Ok(xs::types::GroupRef {
             id: None,
@@ -960,10 +972,10 @@ impl ComplexFragmentEquivalent for xs::Any {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(AnyFragment {})
+        Ok(compiler.push_fragment(AnyFragment {}))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1031,23 +1043,27 @@ impl ComplexFragmentEquivalent for xs::groups::NestedParticle {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let compiler: &mut ComplexTypeFragmentCompiler = compiler.as_mut();
 
         use xs::groups::NestedParticle;
 
         match self {
-            NestedParticle::Element(local_element) => {
-                local_element.to_complex_fragments(compiler).into()
-            }
-            NestedParticle::Group(group_type) => group_type.to_complex_fragments(compiler).into(),
-            NestedParticle::Choice(choice_type) => {
-                choice_type.to_complex_fragments(compiler).into()
-            }
-            NestedParticle::Sequence(sequence_type) => {
-                sequence_type.to_complex_fragments(compiler).into()
-            }
-            NestedParticle::Any(any) => any.to_complex_fragments(compiler).into(),
+            NestedParticle::Element(local_element) => local_element
+                .to_complex_fragments(compiler)
+                .map(NestedParticleId::Element),
+            NestedParticle::Group(group_type) => group_type
+                .to_complex_fragments(compiler)
+                .map(NestedParticleId::Group),
+            NestedParticle::Choice(choice_type) => choice_type
+                .to_complex_fragments(compiler)
+                .map(NestedParticleId::Choice),
+            NestedParticle::Sequence(sequence_type) => sequence_type
+                .to_complex_fragments(compiler)
+                .map(NestedParticleId::Sequence),
+            NestedParticle::Any(any) => any
+                .to_complex_fragments(compiler)
+                .map(NestedParticleId::Any),
         }
     }
 
@@ -1086,23 +1102,23 @@ impl ComplexFragmentEquivalent for xs::groups::all_model_items::Child1 {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let compiler: &mut ComplexTypeFragmentCompiler = compiler.as_mut();
 
         match self {
-            xs::groups::all_model_items::Child1::Element(local_element) => {
-                local_element.to_complex_fragments(compiler).into()
-            }
-            xs::groups::all_model_items::Child1::Any(any) => {
-                any.to_complex_fragments(compiler).into()
-            }
+            xs::groups::all_model_items::Child1::Element(local_element) => local_element
+                .to_complex_fragments(compiler)
+                .map(NestedParticleId::Element),
+            xs::groups::all_model_items::Child1::Any(any) => any
+                .to_complex_fragments(compiler)
+                .map(NestedParticleId::Any),
             xs::groups::all_model_items::Child1::Group {
                 id: _,
                 ref_,
                 min_occurs,
                 max_occurs,
                 annotation: _,
-            } => compiler
+            } => Ok(compiler
                 .push_fragment(GroupRefFragment {
                     min_occurs: *min_occurs,
                     max_occurs: max_occurs.map(AllNNI::Bounded),
@@ -1111,7 +1127,7 @@ impl ComplexFragmentEquivalent for xs::groups::all_model_items::Child1 {
                         .clone()
                         .with_default_namespace(|| compiler.namespace.clone()),
                 })
-                .into(),
+                .into()),
         }
     }
 
@@ -1131,7 +1147,7 @@ impl ComplexFragmentEquivalent for xs::All {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let all = match self {
             xs::All::All(all) => all,
             _ => {
@@ -1141,18 +1157,20 @@ impl ComplexFragmentEquivalent for xs::All {
 
         let mut compiler = compiler.as_mut();
 
+        let fragments = all
+            .all_model
+            .child_1
+            .iter()
+            .map(|content| content.to_complex_fragments(&mut compiler))
+            .collect::<Result<_, _>>()?;
+
         let all = AllFragment {
             min_occurs: None,
             max_occurs: None,
-            fragments: all
-                .all_model
-                .child_1
-                .iter()
-                .map(|content| content.to_complex_fragments(&mut compiler))
-                .collect(),
+            fragments,
         };
 
-        compiler.push_fragment(all)
+        Ok(compiler.push_fragment(all))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1171,7 +1189,7 @@ impl ComplexFragmentEquivalent for xs::Choice {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
         let choice = match self {
             xs::Choice::Choice(choice) => choice,
@@ -1187,10 +1205,10 @@ impl ComplexFragmentEquivalent for xs::Choice {
                 .nested_particle
                 .iter()
                 .map(|content| content.to_complex_fragments(&mut compiler))
-                .collect(),
+                .collect::<Result<_, _>>()?,
         };
 
-        compiler.push_fragment(all)
+        Ok(compiler.push_fragment(all))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1198,7 +1216,9 @@ impl ComplexFragmentEquivalent for xs::Choice {
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         Ok(xs::Choice::from(
             xs::types::ExplicitGroup::builder()
@@ -1225,7 +1245,7 @@ impl ComplexFragmentEquivalent for xs::Sequence {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
         let sequence = match self {
@@ -1243,10 +1263,10 @@ impl ComplexFragmentEquivalent for xs::Sequence {
                 .nested_particle
                 .iter()
                 .map(|content| content.to_complex_fragments(&mut compiler))
-                .collect(),
+                .collect::<Result<_, _>>()?,
         };
 
-        compiler.push_fragment(seq)
+        Ok(compiler.push_fragment(seq))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1254,7 +1274,9 @@ impl ComplexFragmentEquivalent for xs::Sequence {
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         Ok(xs::Sequence::from(
             xs::types::ExplicitGroup::builder()
@@ -1281,16 +1303,24 @@ impl ComplexFragmentEquivalent for xs::groups::TypeDefParticle {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
         use xs::groups::TypeDefParticle;
 
         match self {
-            TypeDefParticle::Group(group_ref) => group_ref.to_complex_fragments(compiler).into(),
-            TypeDefParticle::All(all) => all.to_complex_fragments(compiler).into(),
-            TypeDefParticle::Choice(choice) => choice.to_complex_fragments(compiler).into(),
-            TypeDefParticle::Sequence(sequence) => sequence.to_complex_fragments(compiler).into(),
+            TypeDefParticle::Group(group_ref) => group_ref
+                .to_complex_fragments(compiler)
+                .map(TypeDefParticleId::Group),
+            TypeDefParticle::All(all) => all
+                .to_complex_fragments(compiler)
+                .map(TypeDefParticleId::All),
+            TypeDefParticle::Choice(choice) => choice
+                .to_complex_fragments(compiler)
+                .map(TypeDefParticleId::Choice),
+            TypeDefParticle::Sequence(sequence) => sequence
+                .to_complex_fragments(compiler)
+                .map(TypeDefParticleId::Sequence),
         }
     }
 
@@ -1326,7 +1356,7 @@ impl ComplexFragmentEquivalent for xs::types::ExtensionType {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
         let base = self.base.0.clone();
@@ -1334,9 +1364,10 @@ impl ComplexFragmentEquivalent for xs::types::ExtensionType {
         let content_fragment = self
             .type_def_particle
             .as_ref()
-            .map(|content| content.to_complex_fragments(&mut compiler));
+            .map(|content| content.to_complex_fragments(&mut compiler))
+            .transpose()?;
 
-        let attribute_declarations = self.attr_decls.to_complex_fragments(&mut compiler);
+        let attribute_declarations = self.attr_decls.to_complex_fragments(&mut compiler)?;
 
         let root_fragment = ExtensionFragment {
             base,
@@ -1344,7 +1375,7 @@ impl ComplexFragmentEquivalent for xs::types::ExtensionType {
             attribute_declarations,
         };
 
-        compiler.push_fragment(root_fragment)
+        Ok(compiler.push_fragment(root_fragment))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1353,7 +1384,9 @@ impl ComplexFragmentEquivalent for xs::types::ExtensionType {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let extension = compiler.get_fragment(fragment_id).unwrap();
+        let extension = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let particle = extension
             .content_fragment
@@ -1384,18 +1417,22 @@ impl ComplexFragmentEquivalent for xs::types::ComplexRestrictionType {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
         let base = self.base.0.clone();
 
-        let content_fragment = self.child_1.as_ref().map(|particle| {
-            particle
-                .type_def_particle
-                .to_complex_fragments(&mut compiler)
-        });
+        let content_fragment = self
+            .child_1
+            .as_ref()
+            .map(|particle| {
+                particle
+                    .type_def_particle
+                    .to_complex_fragments(&mut compiler)
+            })
+            .transpose()?;
 
-        let attribute_declarations = self.attr_decls.to_complex_fragments(&mut compiler);
+        let attribute_declarations = self.attr_decls.to_complex_fragments(&mut compiler)?;
 
         let root_fragment = RestrictionFragment {
             base,
@@ -1403,7 +1440,7 @@ impl ComplexFragmentEquivalent for xs::types::ComplexRestrictionType {
             attribute_declarations,
         };
 
-        compiler.push_fragment(root_fragment)
+        Ok(compiler.push_fragment(root_fragment))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1412,7 +1449,9 @@ impl ComplexFragmentEquivalent for xs::types::ComplexRestrictionType {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let particle = fragment
             .content_fragment
@@ -1445,17 +1484,17 @@ impl ComplexFragmentEquivalent for xs::groups::attr_decls_items::Attribute {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
         use xs::groups::attr_decls_items::Attribute;
 
         match self {
-            Attribute::Attribute(local) => {
-                AttributeDeclarationId::Attribute(local.to_complex_fragments(compiler))
-            }
-            Attribute::AttributeGroup(group) => {
-                AttributeDeclarationId::AttributeGroupRef(group.to_complex_fragments(compiler))
-            }
+            Attribute::Attribute(local) => Ok(AttributeDeclarationId::Attribute(
+                local.to_complex_fragments(compiler)?,
+            )),
+            Attribute::AttributeGroup(group) => Ok(AttributeDeclarationId::AttributeGroupRef(
+                group.to_complex_fragments(compiler)?,
+            )),
         }
     }
 
@@ -1485,7 +1524,7 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
         let use_ = self.use_.as_ref().map(|a| match a {
@@ -1511,7 +1550,11 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
                 Some(NamedOrAnonymous::Named(type_.0.clone()))
             } else {
                 self.simple_type.as_ref().map(|simple_type| {
-                    NamedOrAnonymous::Anonymous(simple_type.to_simple_fragments(&mut compiler))
+                    NamedOrAnonymous::Anonymous(
+                        simple_type
+                            .to_simple_fragments(&mut compiler)
+                            .expect("Failed to convert simple type to fragments"),
+                    )
                 })
             };
 
@@ -1520,11 +1563,11 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
                 type_,
             })
         };
-        compiler.push_fragment(LocalAttributeFragment {
+        Ok(compiler.push_fragment(LocalAttributeFragment {
             type_mode,
             use_,
             default: self.default.clone(),
-        })
+        }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1533,16 +1576,17 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         match &fragment.type_mode {
             LocalAttributeFragmentTypeMode::Declared(local) => {
                 let name = local.name.clone();
-                let type_ = local.type_.as_ref().unwrap();
-                let type_ = match type_ {
+                let type_ = local.type_.as_ref().and_then(|a| match a {
                     NamedOrAnonymous::Named(ref_) => Some(xs::types::QName(ref_.clone())),
                     NamedOrAnonymous::Anonymous(_) => None,
-                };
+                });
                 let use_ = fragment.use_.map(|a| match a {
                     AttributeUse::Required => xs::types::attribute_items::UseValue::Required,
                     AttributeUse::Optional => xs::types::attribute_items::UseValue::Optional,
@@ -1568,21 +1612,22 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelAttribute {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
         let name = self.name.clone();
 
         let type_ = match (self.type_.as_ref(), self.simple_type.as_ref()) {
             (None, Some(s)) => Some(NamedOrAnonymous::Anonymous(
-                s.to_simple_fragments(&mut compiler),
+                s.to_simple_fragments(&mut compiler)
+                    .expect("Failed to convert simple type to fragments"),
             )),
             (Some(t), None) => Some(NamedOrAnonymous::Named(t.0.clone())),
             (Some(_), Some(_)) => todo!("Cannot have both type and simpleType"),
             (None, None) => None,
         };
 
-        compiler.push_fragment(TopLevelAttributeFragment { name, type_ })
+        Ok(compiler.push_fragment(TopLevelAttributeFragment { name, type_ }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1591,14 +1636,15 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelAttribute {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let name = fragment.name.clone();
-        let type_ = fragment.type_.as_ref().unwrap();
-        let type_ = match type_ {
+        let type_ = fragment.type_.as_ref().and_then(|a| match a {
             NamedOrAnonymous::Named(ref_) => Some(xs::types::QName(ref_.clone())),
             NamedOrAnonymous::Anonymous(_) => None,
-        };
+        });
         Ok(xs::types::TopLevelAttribute::builder()
             .name(name)
             .maybe_type_(type_)
@@ -1613,16 +1659,16 @@ impl ComplexFragmentEquivalent for xs::types::AttributeGroupRef {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
-        compiler.push_fragment(AttributeGroupRefFragment {
+        Ok(compiler.push_fragment(AttributeGroupRefFragment {
             ref_: self
                 .ref_
                 .0
                 .clone()
                 .with_default_namespace(|| compiler.namespace.clone()),
-        })
+        }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1631,7 +1677,9 @@ impl ComplexFragmentEquivalent for xs::types::AttributeGroupRef {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         Ok(xs::types::AttributeGroupRef::builder()
             .ref_(xs::types::QName(fragment.ref_.clone()))
@@ -1646,19 +1694,19 @@ impl ComplexFragmentEquivalent for xs::types::SimpleExtensionType {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
-        let attribute_declarations = self.attr_decls.to_complex_fragments(&mut *compiler);
+        let attribute_declarations = self.attr_decls.to_complex_fragments(&mut *compiler)?;
 
-        compiler.push_fragment(SimpleExtensionFragment {
+        Ok(compiler.push_fragment(SimpleExtensionFragment {
             base: self
                 .base
                 .0
                 .clone()
                 .with_default_namespace(|| compiler.namespace.clone()),
             attribute_declarations,
-        })
+        }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1674,9 +1722,22 @@ impl ComplexFragmentEquivalent for xs::types::SimpleRestrictionType {
 
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
-        _compiler: T,
-    ) -> Self::FragmentId {
-        todo!()
+        mut compiler: T,
+    ) -> Result<Self::FragmentId, Error> {
+        let mut compiler = compiler.as_mut();
+
+        let base = self
+            .base
+            .0
+            .clone()
+            .with_default_namespace(|| compiler.namespace.clone());
+
+        let attribute_declarations = self.attr_decls.to_complex_fragments(&mut compiler)?;
+
+        Ok(compiler.push_fragment(SimpleRestrictionFragment {
+            base,
+            attribute_declarations,
+        }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1694,7 +1755,7 @@ impl ComplexFragmentEquivalent for xs::SimpleContent {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
         let simple_content = match self {
@@ -1709,18 +1770,18 @@ impl ComplexFragmentEquivalent for xs::SimpleContent {
 
         let content_fragment = match &simple_content.child_1 {
             xs::simple_content_items::Child1::Extension(extension) => {
-                let fragment_id = extension.to_complex_fragments(&mut compiler);
+                let fragment_id = extension.to_complex_fragments(&mut compiler)?;
 
                 SimpleContentChildId::Extension(fragment_id)
             }
             xs::simple_content_items::Child1::Restriction(restriction) => {
-                let fragment_id = restriction.to_complex_fragments(&mut compiler);
+                let fragment_id = restriction.to_complex_fragments(&mut compiler)?;
 
                 SimpleContentChildId::Restriction(fragment_id)
             }
         };
 
-        compiler.push_fragment(SimpleContentFragment { content_fragment })
+        Ok(compiler.push_fragment(SimpleContentFragment { content_fragment }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1740,7 +1801,7 @@ impl ComplexFragmentEquivalent for xs::ComplexContent {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
         let complex_content = match self {
@@ -1755,21 +1816,21 @@ impl ComplexFragmentEquivalent for xs::ComplexContent {
 
         let content_fragment = match &complex_content.child_1 {
             xs::complex_content_items::Child1::Extension(extension) => {
-                let fragment_id = extension.to_complex_fragments(&mut compiler);
+                let fragment_id = extension.to_complex_fragments(&mut compiler)?;
 
                 ComplexContentChildId::Extension(fragment_id)
             }
             xs::complex_content_items::Child1::Restriction(restriction) => {
-                let fragment_id = restriction.to_complex_fragments(&mut compiler);
+                let fragment_id = restriction.to_complex_fragments(&mut compiler)?;
 
                 ComplexContentChildId::Restriction(fragment_id)
             }
         };
 
-        compiler.push_fragment(ComplexContentFragment {
+        Ok(compiler.push_fragment(ComplexContentFragment {
             content_fragment,
             mixed: complex_content.mixed,
-        })
+        }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1778,7 +1839,9 @@ impl ComplexFragmentEquivalent for xs::ComplexContent {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
         let child_1 = match &fragment.content_fragment {
             ComplexContentChildId::Extension(fragment_id) => {
                 xs::types::ExtensionType::from_complex_fragments(compiler, fragment_id)?.into()
@@ -1807,18 +1870,18 @@ impl ComplexFragmentEquivalent for xs::groups::ComplexTypeModel {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
         use xs::groups::ComplexTypeModel;
 
         match self {
-            ComplexTypeModel::SimpleContent(simple_content) => {
-                ComplexTypeModelId::SimpleContent(simple_content.to_complex_fragments(compiler))
-            }
-            ComplexTypeModel::ComplexContent(complex_content) => {
-                ComplexTypeModelId::ComplexContent(complex_content.to_complex_fragments(compiler))
-            }
+            ComplexTypeModel::SimpleContent(simple_content) => simple_content
+                .to_complex_fragments(compiler)
+                .map(ComplexTypeModelId::SimpleContent),
+            ComplexTypeModel::ComplexContent(complex_content) => complex_content
+                .to_complex_fragments(compiler)
+                .map(ComplexTypeModelId::ComplexContent),
             ComplexTypeModel::Variant2(variant_2) => {
                 let xs::groups::complex_type_model_items::complex_type_model_variants::Variant2 {
                     type_def_particle,
@@ -1829,14 +1892,15 @@ impl ComplexFragmentEquivalent for xs::groups::ComplexTypeModel {
                 //TODO: Review open content
                 let particle = type_def_particle
                     .as_deref()
-                    .map(|a| a.to_complex_fragments(&mut compiler));
+                    .map(|a| a.to_complex_fragments(&mut compiler))
+                    .transpose()?;
 
-                let attributes = attr_decls.to_complex_fragments(&mut compiler);
+                let attr_decls = attr_decls.to_complex_fragments(&mut compiler)?;
 
-                ComplexTypeModelId::Other {
+                Ok(ComplexTypeModelId::Other {
                     particle,
-                    attr_decls: attributes,
-                }
+                    attr_decls,
+                })
             }
         }
     }
@@ -1890,10 +1954,12 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelComplexType {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
-        let content = self.complex_type_model.to_complex_fragments(&mut compiler);
+        let content = self
+            .complex_type_model
+            .to_complex_fragments(&mut compiler)?;
 
         let fragment = ComplexTypeRootFragment {
             name: Some(self.name.clone()),
@@ -1901,7 +1967,7 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelComplexType {
             mixed: self.mixed,
         };
 
-        compiler.push_fragment(fragment)
+        Ok(compiler.push_fragment(fragment))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1910,14 +1976,16 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelComplexType {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let complex_type_model =
             xs::groups::ComplexTypeModel::from_complex_fragments(compiler, &fragment.content)?;
 
         Ok(Self::builder()
             //TODO
-            .name(fragment.name.clone().ok_or(Error)?)
+            .name(fragment.name.clone().ok_or(Error::NameMissingInTopLevel)?)
             .maybe_mixed(fragment.mixed)
             .complex_type_model(complex_type_model.into())
             .any_attributes(ns::AnyAttributes::default())
@@ -1931,10 +1999,12 @@ impl ComplexFragmentEquivalent for xs::types::LocalComplexType {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
-        let content = self.complex_type_model.to_complex_fragments(&mut compiler);
+        let content = self
+            .complex_type_model
+            .to_complex_fragments(&mut compiler)?;
 
         let fragment = ComplexTypeRootFragment {
             name: None,
@@ -1942,7 +2012,7 @@ impl ComplexFragmentEquivalent for xs::types::LocalComplexType {
             mixed: self.mixed,
         };
 
-        compiler.push_fragment(fragment)
+        Ok(compiler.push_fragment(fragment))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -1951,7 +2021,9 @@ impl ComplexFragmentEquivalent for xs::types::LocalComplexType {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let content =
             xs::groups::ComplexTypeModel::from_complex_fragments(compiler, &fragment.content)?;
@@ -1995,7 +2067,7 @@ impl ComplexFragmentEquivalent for xs::types::named_group_items::Child1 {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
         use xs::types::named_group_items::Child1;
 
@@ -2007,44 +2079,56 @@ impl ComplexFragmentEquivalent for xs::types::named_group_items::Child1 {
                 ..
             } => {
                 //TODO: Handle any_attributes
+                let fragments = all_model
+                    .child_1
+                    .iter()
+                    .map(|content| content.to_complex_fragments(&mut compiler))
+                    .collect::<Result<_, _>>()?;
+
                 let fragment = AllFragment {
                     min_occurs: *min_occurs,
                     max_occurs: max_occurs.as_ref().map(|a| AllNNI::from(&**a)),
-                    fragments: all_model
-                        .child_1
-                        .iter()
-                        .map(|content| content.to_complex_fragments(&mut compiler))
-                        .collect(),
+                    fragments,
                 };
 
-                NamedGroupTypeContentId::All(compiler.push_fragment(fragment))
+                Ok(NamedGroupTypeContentId::All(
+                    compiler.push_fragment(fragment),
+                ))
             }
             Child1::Choice(choice) => {
+                let fragments = choice
+                    .nested_particle
+                    .iter()
+                    .map(|content| content.to_complex_fragments(&mut compiler))
+                    .collect::<Result<_, _>>()?;
+
                 let fragment = ChoiceFragment {
                     min_occurs: None,
                     max_occurs: None,
-                    fragments: choice
-                        .nested_particle
-                        .iter()
-                        .map(|content| content.to_complex_fragments(&mut compiler))
-                        .collect(),
+                    fragments,
                 };
 
-                NamedGroupTypeContentId::Choice(compiler.push_fragment(fragment))
+                Ok(NamedGroupTypeContentId::Choice(
+                    compiler.push_fragment(fragment),
+                ))
             }
             Child1::Sequence(sequence) => {
+                let fragments = sequence
+                    .nested_particle
+                    .iter()
+                    .map(|content| content.to_complex_fragments(&mut compiler))
+                    .collect::<Result<_, _>>()?;
+
                 let fragment = SequenceFragment {
                     id: None,
                     min_occurs: None,
                     max_occurs: None,
-                    fragments: sequence
-                        .nested_particle
-                        .iter()
-                        .map(|content| content.to_complex_fragments(&mut compiler))
-                        .collect(),
+                    fragments,
                 };
 
-                NamedGroupTypeContentId::Sequence(compiler.push_fragment(fragment))
+                Ok(NamedGroupTypeContentId::Sequence(
+                    compiler.push_fragment(fragment),
+                ))
             }
         }
     }
@@ -2057,7 +2141,9 @@ impl ComplexFragmentEquivalent for xs::types::named_group_items::Child1 {
 
         match fragment_id {
             NamedGroupTypeContentId::All(all) => {
-                let all = compiler.get_fragment(all).unwrap();
+                let all = compiler
+                    .get_fragment(all)
+                    .expect("Fragment not found in compiler.");
 
                 Ok(xs::types::named_group_items::Child1::All {
                     id: None,
@@ -2080,7 +2166,9 @@ impl ComplexFragmentEquivalent for xs::types::named_group_items::Child1 {
                 })
             }
             NamedGroupTypeContentId::Choice(choice) => {
-                let choice = compiler.get_fragment(choice).unwrap();
+                let choice = compiler
+                    .get_fragment(choice)
+                    .expect("Fragment not found in compiler.");
 
                 Ok(xs::types::named_group_items::Child1::Choice(
                     xs::types::SimpleExplicitGroup::builder()
@@ -2101,7 +2189,9 @@ impl ComplexFragmentEquivalent for xs::types::named_group_items::Child1 {
                 ))
             }
             NamedGroupTypeContentId::Sequence(sequence) => {
-                let sequence = compiler.get_fragment(sequence).unwrap();
+                let sequence = compiler
+                    .get_fragment(sequence)
+                    .expect("Fragment not found in compiler.");
 
                 Ok(xs::types::named_group_items::Child1::Sequence(
                     xs::types::SimpleExplicitGroup::builder()
@@ -2131,17 +2221,17 @@ impl ComplexFragmentEquivalent for xs::types::NamedGroup {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
-        let content = self.child_1.to_complex_fragments(&mut compiler);
+        let content = self.child_1.to_complex_fragments(&mut compiler)?;
 
         let fragment = TopLevelGroupFragment {
             name: self.name.clone(),
             content,
         };
 
-        compiler.push_fragment(fragment)
+        Ok(compiler.push_fragment(fragment))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -2150,7 +2240,9 @@ impl ComplexFragmentEquivalent for xs::types::NamedGroup {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let content = xs::types::named_group_items::Child1::from_complex_fragments(
             compiler,
@@ -2171,13 +2263,13 @@ impl ComplexFragmentEquivalent for xs::AnyAttribute {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
         match self {
             xs::AnyAttribute::AnyAttribute(_) => {
                 //TODO: Handle any_attribute
-                compiler.push_fragment(AnyAttributeFragment {})
+                Ok(compiler.push_fragment(AnyAttributeFragment {}))
             }
             xs::AnyAttribute::Dynamic(substitution_group) => panic!(
                 "SubstitutionGroup is not supported in complex fragments, found: {:?}",
@@ -2204,24 +2296,25 @@ impl ComplexFragmentEquivalent for xs::groups::AttrDecls {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
-        let attributes = self
+        let declarations = self
             .attribute
             .iter()
             .map(|decl| decl.to_complex_fragments(&mut compiler))
-            .collect();
+            .collect::<Result<_, _>>()?;
 
         let any_attribute = self
             .any_attribute
             .as_ref()
-            .map(|a| a.to_complex_fragments(&mut compiler));
+            .map(|a| a.to_complex_fragments(&mut compiler))
+            .transpose()?;
 
-        compiler.push_fragment(AttributeDeclarationsFragment {
-            declarations: attributes,
+        Ok(compiler.push_fragment(AttributeDeclarationsFragment {
+            declarations: declarations,
             any_attribute,
-        })
+        }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -2230,7 +2323,9 @@ impl ComplexFragmentEquivalent for xs::groups::AttrDecls {
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
 
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         Ok(xs::groups::AttrDecls::builder()
             .attribute(
@@ -2254,15 +2349,15 @@ impl ComplexFragmentEquivalent for xs::types::NamedAttributeGroup {
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         mut compiler: T,
-    ) -> Self::FragmentId {
+    ) -> Result<Self::FragmentId, Error> {
         let mut compiler = compiler.as_mut();
 
-        let attr_decls = self.attr_decls.to_complex_fragments(&mut compiler);
+        let attr_decls = self.attr_decls.to_complex_fragments(&mut compiler)?;
 
-        compiler.push_fragment(TopLevelAttributeGroupFragment {
+        Ok(compiler.push_fragment(TopLevelAttributeGroupFragment {
             name: self.name.clone(),
             attr_decls,
-        })
+        }))
     }
 
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
@@ -2270,7 +2365,9 @@ impl ComplexFragmentEquivalent for xs::types::NamedAttributeGroup {
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
         let compiler = compiler.as_ref();
-        let fragment = compiler.get_fragment(fragment_id).unwrap();
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let attr_decls =
             xs::groups::AttrDecls::from_complex_fragments(compiler, &fragment.attr_decls)?;

@@ -1,7 +1,5 @@
 use std::sync::{Arc, Weak};
 
-use quote::format_ident;
-
 use crate::{
     complex::{
         attributes::{
@@ -49,7 +47,7 @@ pub fn handler_container() -> HandlerContainer {
     });
 
     let any_attributes_handler = Arc::new(AnyAttributesHandler {
-        any_attributes_ident: format_ident!("AnyAttributes"),
+        any_attributes_ident: "AnyAttributes".to_string(),
     });
 
     let attribute_declaration_handler = Arc::new(AttributeDeclarationHandler {
@@ -69,7 +67,7 @@ pub fn handler_container() -> HandlerContainer {
 
     let simple_extension_handler = Arc::new(SimpleExtensionFragmentHandler {
         attribute_declarations_handler: attribute_declarations_handler.clone(),
-        content_field_ident: format_ident!("content"),
+        content_field_ident: "content".to_string(),
         attribute_suffix_naming: WrappingNamingStrategy::new(|name| {
             if name.ends_with("_") {
                 format!("{name}attribute")
@@ -126,7 +124,7 @@ pub fn handler_container() -> HandlerContainer {
         let restriction_fragment_handler = Arc::new(RestrictionHandler {
             attribute_declarations_handler: attribute_declarations_handler.clone(),
             type_def_particle_handler: type_def_particle_handler.clone(),
-            default_particle_ident: format_ident!("Particle"),
+            default_particle_ident: "Particle".to_string(),
             content_type_naming: WrappingNamingStrategy::new(|name| format!("{name}Content")),
             attribute_suffix_naming: WrappingNamingStrategy::new(|name| {
                 if name.ends_with("_") {
@@ -149,7 +147,7 @@ pub fn handler_container() -> HandlerContainer {
             other_content_type_naming: WrappingNamingStrategy::new(|name| {
                 format!("{}Content", name)
             }),
-            other_content_field_ident: format_ident!("content"),
+            other_content_field_ident: "content".to_string(),
         });
 
         let complex_type_root_handler = Arc::new(ComplexTypeRootHandler {
@@ -197,7 +195,7 @@ pub fn handler_container() -> HandlerContainer {
         dynamic_substitute_group: true,
         standalone_element_type: true,
         element_type_content_handler,
-        dynamic_variant_ident: format_ident!("Dynamic"),
+        dynamic_variant_ident: "Dynamic".to_string(),
     });
 
     let named_group_type_content_handler = Arc::new(NamedGroupTypeContentIdHandler {

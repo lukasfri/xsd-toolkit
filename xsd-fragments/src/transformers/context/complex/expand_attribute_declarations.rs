@@ -33,7 +33,9 @@ impl ExpandAttributeDeclarations {
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let mut change = TransformChange::default();
 
-        let fragment = context.get_complex_fragment(fragment_id).unwrap();
+        let fragment = context
+            .get_complex_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let mut new_attributes = VecDeque::new();
 
@@ -85,7 +87,10 @@ impl ExpandAttributeDeclarations {
             ctx: &mut XmlnsContextTransformerContext<'_>,
             fragment_idx: &FragmentIdx<LocalAttributeFragment>,
         ) -> Result<(), Error> {
-            let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
+            let possible = ctx
+                .get_complex_fragment(fragment_idx)
+                .expect("Fragment not found in compiler.")
+                .clone();
 
             // Check if the attribute already exists in the new_attributes list
             let attribute_exists = new_attributes
@@ -95,7 +100,13 @@ impl ExpandAttributeDeclarations {
                     AttributeDeclarationId::Attribute(a) => Some((i, a)),
                     _ => None,
                 })
-                .map(|(i, a)| (i, ctx.get_complex_fragment(a).unwrap()))
+                .map(|(i, a)| {
+                    (
+                        i,
+                        ctx.get_complex_fragment(a)
+                            .expect("Fragment not found in compiler."),
+                    )
+                })
                 .find(
                     |(_, existing)| match (&existing.type_mode, &possible.type_mode) {
                         (
@@ -125,7 +136,9 @@ impl ExpandAttributeDeclarations {
                 unreachable!("Attribute must exist in the list since we just found it - we filtered out attribute groups")
             };
 
-            let existing = ctx.get_complex_fragment_mut(existing_idx).unwrap();
+            let existing = ctx
+                .get_complex_fragment_mut(existing_idx)
+                .expect("Fragment not found in compiler.");
 
             merge_attribute(existing, &possible)?;
 
@@ -137,7 +150,10 @@ impl ExpandAttributeDeclarations {
             ctx: &mut XmlnsContextTransformerContext<'_>,
             fragment_idx: &FragmentIdx<AttributeGroupRefFragment>,
         ) {
-            let possible = ctx.get_complex_fragment(fragment_idx).unwrap().clone();
+            let possible = ctx
+                .get_complex_fragment(fragment_idx)
+                .expect("Fragment not found in compiler.")
+                .clone();
 
             // Check if the attribute group already exists in the new_attributes list
             let group_exists = new_attributes
@@ -147,7 +163,13 @@ impl ExpandAttributeDeclarations {
                     AttributeDeclarationId::AttributeGroupRef(a) => Some((i, a)),
                     _ => None,
                 })
-                .map(|(i, a)| (i, ctx.get_complex_fragment(a).unwrap()))
+                .map(|(i, a)| {
+                    (
+                        i,
+                        ctx.get_complex_fragment(a)
+                            .expect("Fragment not found in compiler."),
+                    )
+                })
                 .any(|(_, existing)| existing.ref_ == possible.ref_);
 
             // If the attribute group does not exist, add it to the new_attributes list
@@ -167,7 +189,7 @@ impl ExpandAttributeDeclarations {
 
                     let attribute_fragment = context
                         .get_complex_fragment::<AttributeGroupRefFragment>(fragment_idx)
-                        .unwrap();
+                        .expect("Fragment not found in compiler.");
 
                     let group = context
                         .get_named_attribute_group(&attribute_fragment.ref_)
@@ -182,8 +204,12 @@ impl ExpandAttributeDeclarations {
                                     .map_or("None", |ns| ns.as_str())
                             )
                         });
-                    let group = context.get_complex_fragment(&group.root_fragment).unwrap();
-                    let attr_decls = context.get_complex_fragment(&group.attr_decls).unwrap();
+                    let group = context
+                        .get_complex_fragment(&group.root_fragment)
+                        .expect("Fragment not found in compiler.");
+                    let attr_decls = context
+                        .get_complex_fragment(&group.attr_decls)
+                        .expect("Fragment not found in compiler.");
 
                     for declaration in attr_decls.declarations.clone().iter() {
                         match declaration {
@@ -199,7 +225,9 @@ impl ExpandAttributeDeclarations {
             }
         }
 
-        let fragment = context.get_complex_fragment_mut(fragment_id).unwrap();
+        let fragment = context
+            .get_complex_fragment_mut(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         fragment.declarations = new_attributes;
 

@@ -10,13 +10,14 @@ use crate::{
     templates::element_record::ElementFieldAttribute,
     Result, ToIdentTypesExt,
 };
+use quote::format_ident;
 use syn::parse_quote;
 use xmlity::ExpandedName;
 use xsd_fragments::fragments::complex::{self as cx, AttributeUse};
 
 #[derive(Debug)]
 pub struct AnyAttributesHandler {
-    pub any_attributes_ident: syn::Ident,
+    pub any_attributes_ident: String,
 }
 
 impl ComplexToTypeTemplate<cx::AnyAttributeFragment> for AnyAttributesHandler {
@@ -28,7 +29,7 @@ impl ComplexToTypeTemplate<cx::AnyAttributeFragment> for AnyAttributesHandler {
         _scope: &mut S,
         _item: &cx::AnyAttributeFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let ident = self.any_attributes_ident.clone();
+        let ident = format_ident!("{}", self.any_attributes_ident);
 
         let any_attributes = (
             ident.to_field_ident(),

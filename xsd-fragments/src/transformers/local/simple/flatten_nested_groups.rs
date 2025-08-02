@@ -26,14 +26,18 @@ impl FlattenNestedUnions {
             member_types,
             simple_types,
             ..
-        } = ctx.get_simple_fragment(fragment_idx).unwrap();
+        } = ctx
+            .get_simple_fragment(fragment_idx)
+            .expect("Fragment not found in compiler.");
 
         let mut flattened = TransformChange::default();
 
         let mut new_member_types = member_types.clone();
         let mut new_simple_types = VecDeque::new();
         for fragment_id in simple_types {
-            let simple_type = ctx.get_simple_fragment(fragment_id).unwrap();
+            let simple_type = ctx
+                .get_simple_fragment(fragment_id)
+                .expect("Fragment not found in compiler.");
 
             let SimpleDerivation::Union(union_fragment_id) = simple_type.simple_derivation else {
                 new_simple_types.push_back(*fragment_id);
@@ -43,14 +47,18 @@ impl FlattenNestedUnions {
             let UnionFragment {
                 member_types: sub_member_types,
                 simple_types: sub_simple_types,
-            } = ctx.get_simple_fragment(&union_fragment_id).unwrap();
+            } = ctx
+                .get_simple_fragment(&union_fragment_id)
+                .expect("Fragment not found in compiler.");
 
             new_member_types.extend(sub_member_types.iter().cloned());
             new_simple_types.extend(sub_simple_types.iter().cloned());
             flattened = TransformChange::Changed;
         }
 
-        let fragment = ctx.get_simple_fragment_mut(fragment_idx).unwrap();
+        let fragment = ctx
+            .get_simple_fragment_mut(fragment_idx)
+            .expect("Fragment not found in compiler.");
         fragment.simple_types = new_simple_types;
 
         Ok(flattened)

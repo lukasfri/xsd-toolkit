@@ -45,8 +45,13 @@ impl ExpandExtensionFragments {
         attribute: &FragmentIdx<LocalAttributeFragment>,
         base_attribute: &FragmentIdx<LocalAttributeFragment>,
     ) -> Result<(), <Self as XmlnsContextTransformer>::Error> {
-        let base_attribute = ctx.get_complex_fragment(base_attribute).unwrap().clone();
-        let attribute = ctx.get_complex_fragment_mut(attribute).unwrap();
+        let base_attribute = ctx
+            .get_complex_fragment(base_attribute)
+            .expect("Fragment not found in compiler.")
+            .clone();
+        let attribute = ctx
+            .get_complex_fragment_mut(attribute)
+            .expect("Fragment not found in compiler.");
 
         let decl_base_attribute = match base_attribute.type_mode {
             LocalAttributeFragmentTypeMode::Declared(local) => local,
@@ -77,7 +82,9 @@ impl ExpandExtensionFragments {
             ctx: &XmlnsContextTransformerContext,
             a: &FragmentIdx<LocalAttributeFragment>,
         ) -> ExpandedName<'static> {
-            let fragment = ctx.get_complex_fragment(a).unwrap();
+            let fragment = ctx
+                .get_complex_fragment(a)
+                .expect("Fragment not found in compiler.");
             match &fragment.type_mode {
                 LocalAttributeFragmentTypeMode::Declared(local) => {
                     ExpandedName::new(local.name.clone(), None)
@@ -86,8 +93,14 @@ impl ExpandExtensionFragments {
             }
         }
 
-        let base_attribute_fragment = ctx.get_complex_fragment(&base_attributes).unwrap().clone();
-        let child_attribute_fragment = ctx.get_complex_fragment(&child_attributes).unwrap().clone();
+        let base_attribute_fragment = ctx
+            .get_complex_fragment(&base_attributes)
+            .expect("Fragment not found in compiler.")
+            .clone();
+        let child_attribute_fragment = ctx
+            .get_complex_fragment(&child_attributes)
+            .expect("Fragment not found in compiler.")
+            .clone();
 
         let resolved_base_attributes = base_attribute_fragment
             .declarations
@@ -113,7 +126,9 @@ impl ExpandExtensionFragments {
                 todo!()
             };
 
-            let base_attribute_name = resolved_base_attributes.get(base_attribute).unwrap();
+            let base_attribute_name = resolved_base_attributes
+                .get(base_attribute)
+                .expect("Fragment not found in compiler.");
 
             let Some((matching_child_attribute, _)) = resolved_child_attributes
                 .iter()
@@ -136,7 +151,9 @@ impl ExpandExtensionFragments {
                 todo!()
             };
 
-            let child_attribute_name = resolved_child_attributes.get(child_attribute).unwrap();
+            let child_attribute_name = resolved_child_attributes
+                .get(child_attribute)
+                .expect("Fragment not found in compiler.");
 
             if resolved_base_attributes
                 .iter()
@@ -149,7 +166,9 @@ impl ExpandExtensionFragments {
                 .push_back(AttributeDeclarationId::Attribute(*child_attribute));
         }
 
-        let child_attribute_fragment = ctx.get_complex_fragment_mut(&child_attributes).unwrap();
+        let child_attribute_fragment = ctx
+            .get_complex_fragment_mut(&child_attributes)
+            .expect("Fragment not found in compiler.");
         child_attribute_fragment.declarations = new_attribute_declarations;
 
         Ok(child_attributes)
@@ -161,7 +180,7 @@ impl ExpandExtensionFragments {
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let child_complex_content_fragment = ctx
             .get_complex_fragment(child_complex_content_fragment_idx)
-            .unwrap();
+            .expect("Fragment not found in compiler.");
         let child_fragment_idx = match child_complex_content_fragment.content_fragment {
             ComplexContentChildId::Extension(fragment_idx) => fragment_idx,
             ComplexContentChildId::Restriction(_) => {
@@ -169,7 +188,9 @@ impl ExpandExtensionFragments {
             }
         };
 
-        let child_fragment = ctx.get_complex_fragment(&child_fragment_idx).unwrap();
+        let child_fragment = ctx
+            .get_complex_fragment(&child_fragment_idx)
+            .expect("Fragment not found in compiler.");
 
         let base = child_fragment.base.clone();
 
@@ -190,7 +211,7 @@ impl ExpandExtensionFragments {
 
         let base_root_fragment = ctx
             .get_complex_fragment::<ComplexTypeRootFragment>(&base_fragment.root_fragment)
-            .unwrap();
+            .expect("Fragment not found in compiler.");
 
         let (base_content_content_fragment_id, base_content_base, base_attributes) =
             match base_root_fragment.content {
@@ -204,8 +225,9 @@ impl ExpandExtensionFragments {
                     return Ok(TransformChange::Unchanged);
                 }
                 ComplexTypeModelId::ComplexContent(base_complex_content_id) => {
-                    let base_content_fragment =
-                        ctx.get_complex_fragment(&base_complex_content_id).unwrap();
+                    let base_content_fragment = ctx
+                        .get_complex_fragment(&base_complex_content_id)
+                        .expect("Fragment not found in compiler.");
 
                     // Checks if base content is either a restriction of xs:anyType or an extension. If it is a non-anyType restriction, we cannot expand it since it could create a type that is not a valid derivative of the base's base type.
 
@@ -213,7 +235,7 @@ impl ExpandExtensionFragments {
                         ComplexContentChildId::Extension(fragment_idx) => {
                             let base_extension_fragment = ctx
                                 .get_complex_fragment::<ExtensionFragment>(&fragment_idx)
-                                .unwrap();
+                                .expect("Fragment not found in compiler.");
                             (
                                 base_extension_fragment.content_fragment,
                                 base_extension_fragment.base.clone(),
@@ -223,7 +245,7 @@ impl ExpandExtensionFragments {
                         ComplexContentChildId::Restriction(fragment_idx) => {
                             let base_restriction_fragment = ctx
                                 .get_complex_fragment::<RestrictionFragment>(&fragment_idx)
-                                .unwrap();
+                                .expect("Fragment not found in compiler.");
 
                             if base_restriction_fragment.base != *xsn::ANY_TYPE {
                                 // Cannot expand a restriction of a non-anyType type.
@@ -292,7 +314,7 @@ impl ExpandExtensionFragments {
         let new_child_content = ns.complex_type.push_fragment(new_child_content);
 
         ctx.get_complex_fragment_mut(child_complex_content_fragment_idx)
-            .unwrap()
+            .expect("Fragment not found in compiler.")
             .content_fragment = ComplexContentChildId::Restriction(new_child_content);
 
         Ok(TransformChange::Changed)

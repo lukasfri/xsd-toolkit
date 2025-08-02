@@ -1,9 +1,9 @@
-use crate::transformers::{
-    TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext,
-};
 use crate::fragments::{
     complex::{self as cx, AttributeDeclarationId, AttributeDeclarationsFragment, AttributeUse},
     FragmentIdx,
+};
+use crate::transformers::{
+    TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -24,7 +24,9 @@ impl RemoveProhibitedAttributes {
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let mut change = TransformChange::default();
 
-        let fragment = context.get_complex_fragment(fragment_id).unwrap();
+        let fragment = context
+            .get_complex_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         let unfiltered_fragments = fragment.declarations.clone();
 
@@ -34,7 +36,7 @@ impl RemoveProhibitedAttributes {
                 AttributeDeclarationId::Attribute(fragment_idx) => {
                     let fragment = context
                         .get_complex_fragment::<cx::LocalAttributeFragment>(&fragment_idx)
-                        .unwrap();
+                        .expect("Fragment not found in compiler.");
 
                     if fragment.use_ == Some(AttributeUse::Prohibited) {
                         change |= TransformChange::Changed;
@@ -47,7 +49,9 @@ impl RemoveProhibitedAttributes {
             })
             .collect::<Vec<_>>();
 
-        let fragment = context.get_complex_fragment_mut(fragment_id).unwrap();
+        let fragment = context
+            .get_complex_fragment_mut(fragment_id)
+            .expect("Fragment not found in compiler.");
 
         fragment.declarations = filtered_fragments.into_iter().collect();
 

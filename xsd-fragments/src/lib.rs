@@ -33,6 +33,10 @@ pub enum Error {
     NonExistentXmlNamespace { namespace: XmlNamespace<'static> },
     #[display("Tried to use an undefined namespace")]
     UndefinedNamespace,
+    #[display("Error when processing complex fragments")]
+    ComplexFragmentError(fragments::complex::Error),
+    #[display("Error when processing simple fragments")]
+    SimpleFragmentError(fragments::simple::Error),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

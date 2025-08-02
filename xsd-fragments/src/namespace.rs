@@ -102,7 +102,7 @@ impl CompiledNamespace {
             return Ok(name);
         }
 
-        let root_fragment = simple_type.to_simple_fragments(&mut self.complex_type);
+        let root_fragment = simple_type.to_simple_fragments(&mut self.complex_type)?;
         let type_ = TopLevelType::Simple(TopLevelSimpleType { root_fragment });
         self.top_level_types.insert(local_name.clone(), type_);
 
@@ -120,8 +120,7 @@ impl CompiledNamespace {
         let fragment_id = &type_.root_fragment;
 
         let type_ =
-            xs::types::TopLevelSimpleType::from_simple_fragments(&self.complex_type, fragment_id)
-                .unwrap();
+            xs::types::TopLevelSimpleType::from_simple_fragments(&self.complex_type, fragment_id)?;
 
         Ok(Some(xs::SimpleType::from(type_)))
     }
@@ -142,7 +141,7 @@ impl CompiledNamespace {
             return Ok(name);
         }
 
-        let root_fragment = complex_type.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = complex_type.to_complex_fragments(&mut self.complex_type)?;
 
         let type_ = TopLevelType::Complex(TopLevelComplexType {
             root_fragment,
@@ -163,9 +162,10 @@ impl CompiledNamespace {
 
         let fragment_id = &type_.root_fragment;
 
-        let type_ =
-            xs::types::TopLevelComplexType::from_complex_fragments(&self.complex_type, fragment_id)
-                .unwrap();
+        let type_ = xs::types::TopLevelComplexType::from_complex_fragments(
+            &self.complex_type,
+            fragment_id,
+        )?;
 
         Ok(Some(xs::ComplexType::from(type_)))
     }
@@ -186,7 +186,7 @@ impl CompiledNamespace {
             return Ok(name);
         }
 
-        let root_fragment = element.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = element.to_complex_fragments(&mut self.complex_type)?;
 
         self.top_level_elements
             .insert(local_name.clone(), TopLevelElement { root_fragment });
@@ -205,8 +205,7 @@ impl CompiledNamespace {
         let fragment_id = &top_level_element.root_fragment;
 
         let element =
-            xs::types::TopLevelElement::from_complex_fragments(&self.complex_type, fragment_id)
-                .unwrap();
+            xs::types::TopLevelElement::from_complex_fragments(&self.complex_type, fragment_id)?;
 
         Ok(Some(xs::Element::from(element)))
     }
@@ -227,7 +226,7 @@ impl CompiledNamespace {
             return Ok(name);
         }
 
-        let root_fragment = attribute.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = attribute.to_complex_fragments(&mut self.complex_type)?;
 
         self.top_level_attributes
             .insert(local_name.clone(), TopLevelAttribute { root_fragment });
@@ -250,7 +249,7 @@ impl CompiledNamespace {
             return Ok(name);
         }
 
-        let root_fragment = group.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = group.to_complex_fragments(&mut self.complex_type)?;
         let type_ = TopLevelGroup { root_fragment };
         self.top_level_groups.insert(local_name.clone(), type_);
 
@@ -278,7 +277,7 @@ impl CompiledNamespace {
             return Ok(name);
         }
 
-        let root_fragment = attribute_group.to_complex_fragments(&mut self.complex_type);
+        let root_fragment = attribute_group.to_complex_fragments(&mut self.complex_type)?;
         let type_ = TopLevelAttributeGroup { root_fragment };
         self.top_level_attribute_groups
             .insert(local_name.clone(), type_);

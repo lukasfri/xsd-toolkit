@@ -3,7 +3,7 @@ use std::fmt;
 use quote::format_ident;
 use syn::Ident;
 
-pub struct WrappingNamingStrategy(Box<dyn Fn(&str) -> String + Send + Sync>);
+pub struct WrappingNamingStrategy(Box<dyn (Fn(&str) -> String) + Send + Sync>);
 
 impl fmt::Debug for WrappingNamingStrategy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -12,7 +12,7 @@ impl fmt::Debug for WrappingNamingStrategy {
 }
 
 impl WrappingNamingStrategy {
-    pub fn new<F: Fn(&str) -> String + Send + Sync + 'static>(f: F) -> Self {
+    pub fn new<F: (Fn(&str) -> String) + Send + Sync + 'static>(f: F) -> Self {
         Self(Box::new(f))
     }
 
@@ -26,7 +26,7 @@ impl WrappingNamingStrategy {
     }
 }
 
-pub struct IndexedNamingStrategy(Box<dyn Fn(usize) -> String + Send + Sync>);
+pub struct IndexedNamingStrategy(Box<dyn (Fn(usize) -> String) + Send + Sync>);
 
 impl fmt::Debug for IndexedNamingStrategy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -35,7 +35,7 @@ impl fmt::Debug for IndexedNamingStrategy {
 }
 
 impl IndexedNamingStrategy {
-    pub fn new<F: Fn(usize) -> String + Send + Sync + 'static>(f: F) -> Self {
+    pub fn new<F: (Fn(usize) -> String) + Send + Sync + 'static>(f: F) -> Self {
         Self(Box::new(f))
     }
 

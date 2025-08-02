@@ -16,6 +16,7 @@ use crate::{
     Result, ToIdentTypesExt, TypeType,
 };
 
+use quote::format_ident;
 use syn::parse_quote;
 use xsd_fragments::fragments::complex as cx;
 
@@ -233,7 +234,7 @@ pub struct TopLevelElementHandler {
     pub dynamic_substitute_group: bool,
     pub standalone_element_type: bool,
     pub element_type_content_handler: Arc<ElementTypeContentIdHandler>,
-    pub dynamic_variant_ident: syn::Ident,
+    pub dynamic_variant_ident: String,
 }
 
 impl ComplexToTypeTemplate<cx::TopLevelElementFragment> for TopLevelElementHandler {
@@ -286,7 +287,7 @@ impl ComplexToTypeTemplate<cx::TopLevelElementFragment> for TopLevelElementHandl
             });
 
             substitution_choices.push((
-                self.dynamic_variant_ident.clone(),
+                format_ident!("{}", self.dynamic_variant_ident),
                 choice::ChoiceVariantType::Item(value_record::ItemRecord::new_single_field(
                     None,
                     value_record::ItemField::Item(ItemFieldItem {

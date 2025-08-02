@@ -39,6 +39,8 @@ pub enum Error {
     BaseCannotBeSimpleType { base: ExpandedName<'static> },
     #[error("Cannot restrict base type {base:?} to an extension type. Only complex types can be extended.")]
     BaseCannotBeExtensionType { base: ExpandedName<'static> },
+    #[error("Base type {base:?} does not exist in the namespace. Cannot expand restriction.")]
+    BaseDoesNotExist { base: ExpandedName<'static> },
 }
 
 impl ExpandRestrictionFragments {
@@ -52,8 +54,13 @@ impl ExpandRestrictionFragments {
         attribute_id: &FragmentIdx<LocalAttributeFragment>,
         base_attribute_id: &FragmentIdx<LocalAttributeFragment>,
     ) -> Result<(), <Self as XmlnsContextTransformer>::Error> {
-        let base_attribute = ctx.get_complex_fragment(base_attribute_id).unwrap().clone();
-        let attribute = ctx.get_complex_fragment_mut(attribute_id).unwrap();
+        let base_attribute = ctx
+            .get_complex_fragment(base_attribute_id)
+            .expect("Fragment not found in compiler.")
+            .clone();
+        let attribute = ctx
+            .get_complex_fragment_mut(attribute_id)
+            .expect("Fragment not found in compiler.");
 
         use LocalAttributeFragmentTypeMode as TypeMode;
 
@@ -92,7 +99,9 @@ impl ExpandRestrictionFragments {
             ctx: &XmlnsContextTransformerContext,
             a: &FragmentIdx<LocalAttributeFragment>,
         ) -> ExpandedName<'static> {
-            let fragment = ctx.get_complex_fragment(a).unwrap();
+            let fragment = ctx
+                .get_complex_fragment(a)
+                .expect("Fragment not found in compiler.");
             match &fragment.type_mode {
                 LocalAttributeFragmentTypeMode::Declared(local) => {
                     ExpandedName::new(local.name.clone(), None)
@@ -101,8 +110,14 @@ impl ExpandRestrictionFragments {
             }
         }
 
-        let base_attribute_fragment = ctx.get_complex_fragment(&base_attributes).unwrap().clone();
-        let child_attribute_fragment = ctx.get_complex_fragment(&child_attributes).unwrap().clone();
+        let base_attribute_fragment = ctx
+            .get_complex_fragment(&base_attributes)
+            .expect("Fragment not found in compiler.")
+            .clone();
+        let child_attribute_fragment = ctx
+            .get_complex_fragment(&child_attributes)
+            .expect("Fragment not found in compiler.")
+            .clone();
 
         let resolved_base_attributes = base_attribute_fragment
             .declarations
@@ -132,7 +147,9 @@ impl ExpandRestrictionFragments {
                 unreachable!("If attribute group reference was present, it would have been handled in the previous map.");
             };
 
-            let base_attribute_name = resolved_base_attributes.get(base_attribute).unwrap();
+            let base_attribute_name = resolved_base_attributes
+                .get(base_attribute)
+                .expect("Attribute not found in resolved base attributes.");
 
             let Some((matching_child_attribute, _)) = resolved_child_attributes
                 .iter()
@@ -155,7 +172,9 @@ impl ExpandRestrictionFragments {
                 unreachable!("If attribute group reference was present, it would have been handled in the previous map.");
             };
 
-            let child_attribute_name = resolved_child_attributes.get(child_attribute).unwrap();
+            let child_attribute_name = resolved_child_attributes
+                .get(child_attribute)
+                .expect("Attribute not found in resolved child attributes.");
 
             if resolved_base_attributes
                 .iter()
@@ -168,7 +187,9 @@ impl ExpandRestrictionFragments {
                 .push_back(AttributeDeclarationId::Attribute(*child_attribute));
         }
 
-        let child_attribute_fragment = ctx.get_complex_fragment_mut(&child_attributes).unwrap();
+        let child_attribute_fragment = ctx
+            .get_complex_fragment_mut(&child_attributes)
+            .expect("Fragment not found in compiler.");
         child_attribute_fragment.declarations = new_attribute_declarations;
 
         Ok(child_attributes)
@@ -178,7 +199,9 @@ impl ExpandRestrictionFragments {
         ctx: &mut XmlnsContextTransformerContext<'_>,
         child_fragment_idx: &FragmentIdx<RestrictionFragment>,
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
-        let child_fragment = ctx.get_complex_fragment(child_fragment_idx).unwrap();
+        let child_fragment = ctx
+            .get_complex_fragment(child_fragment_idx)
+            .expect("Fragment not found in compiler.");
 
         let base = child_fragment.base.clone();
 
@@ -186,7 +209,9 @@ impl ExpandRestrictionFragments {
             return Ok(TransformChange::Unchanged);
         }
 
-        let base_fragment = ctx.get_named_type(&base).unwrap();
+        let base_fragment = ctx
+            .get_named_type(&base)
+            .ok_or_else(|| Error::BaseDoesNotExist { base: base.clone() })?;
 
         let base_fragment = match base_fragment {
             TopLevelType::Complex(complex) => complex,
@@ -197,7 +222,7 @@ impl ExpandRestrictionFragments {
 
         let base_root_fragment = ctx
             .get_complex_fragment::<ComplexTypeRootFragment>(&base_fragment.root_fragment)
-            .unwrap();
+            .expect("Fragment not found in compiler.");
 
         let base_complex_content_id = match base_root_fragment.content {
             ComplexTypeModelId::ComplexContent(base_complex_content_id) => base_complex_content_id,
@@ -208,7 +233,9 @@ impl ExpandRestrictionFragments {
             } => todo!(),
         };
 
-        let base_content_fragment = ctx.get_complex_fragment(&base_complex_content_id).unwrap();
+        let base_content_fragment = ctx
+            .get_complex_fragment(&base_complex_content_id)
+            .expect("Fragment not found in compiler.");
 
         let base_restriction_id = match base_content_fragment.content_fragment {
             ComplexContentChildId::Restriction(base_restriction_id) => base_restriction_id,
@@ -219,10 +246,12 @@ impl ExpandRestrictionFragments {
 
         let base = ctx
             .get_complex_fragment(&base_restriction_id)
-            .unwrap()
+            .expect("Fragment not found in compiler.")
             .clone();
 
-        let child = ctx.get_complex_fragment(child_fragment_idx).unwrap();
+        let child = ctx
+            .get_complex_fragment(child_fragment_idx)
+            .expect("Fragment not found in compiler.");
 
         let new_attribute_declarations = Self::expand_restricted_attributes(
             ctx,
@@ -230,7 +259,9 @@ impl ExpandRestrictionFragments {
             base.attribute_declarations,
         )?;
 
-        let child_restriction = ctx.get_complex_fragment_mut(child_fragment_idx).unwrap();
+        let child_restriction = ctx
+            .get_complex_fragment_mut(child_fragment_idx)
+            .expect("Fragment not found in compiler.");
         child_restriction.base = base.base.clone();
         child_restriction.attribute_declarations = new_attribute_declarations;
 
