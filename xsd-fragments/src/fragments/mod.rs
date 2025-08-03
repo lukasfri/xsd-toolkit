@@ -1,4 +1,8 @@
+//! Fragment management and indexing types for XSD processing.
+
+/// Complex type fragments module.
 pub mod complex;
+/// Simple type fragments module.
 pub mod simple;
 
 use std::collections::BTreeMap;
@@ -6,15 +10,18 @@ use std::fmt;
 use std::marker::PhantomData;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// Index identifying a specific namespace within the fragment system.
 pub struct NamespaceIdx(usize);
 
 impl NamespaceIdx {
+    /// Creates a new namespace index with the given numeric value.
     pub fn new(index: usize) -> Self {
         Self(index)
     }
 }
 
 #[derive(Debug)]
+/// Index identifying a specific fragment within a namespace.
 pub struct FragmentIdx<T>(NamespaceIdx, usize, PhantomData<T>);
 
 impl<T> fmt::Display for FragmentIdx<T> {
@@ -30,10 +37,12 @@ impl<T> fmt::Display for FragmentIdx<T> {
 }
 
 impl<T> FragmentIdx<T> {
+    /// Creates a new fragment index for the given namespace and index.
     pub fn new(namespace: NamespaceIdx, index: usize) -> Self {
         Self(namespace, index, PhantomData)
     }
 
+    /// Returns the namespace index of this fragment.
     pub fn namespace_idx(&self) -> NamespaceIdx {
         self.0
     }
@@ -72,13 +81,16 @@ impl<T> std::hash::Hash for FragmentIdx<T> {
 }
 
 #[derive(Debug, Clone)]
+/// Collection of fragments indexed by fragment ID within a namespace.
 pub struct FragmentCollection<T> {
     fragment_id_count: usize,
+    /// Map of fragment IDs to their corresponding fragments.
     pub fragments: BTreeMap<FragmentIdx<T>, T>,
     namespace_idx: NamespaceIdx,
 }
 
 impl<T> FragmentCollection<T> {
+    /// Creates a new fragment collection for the given namespace.
     pub fn new(namespace_idx: NamespaceIdx) -> Self {
         Self {
             fragment_id_count: 0,
@@ -93,10 +105,12 @@ impl<T> FragmentCollection<T> {
         fragment_id
     }
 
+    /// Returns the number of fragments in the collection.
     pub fn len(&self) -> usize {
         self.fragments.len()
     }
 
+    /// Returns true if the collection contains no fragments.
     pub fn is_empty(&self) -> bool {
         self.fragments.is_empty()
     }
@@ -117,17 +131,23 @@ impl<T> FragmentCollection<T> {
         fragment_id
     }
 
+    /// Returns a vector of all fragment IDs in the collection.
     pub fn iter_fragment_ids(&self) -> Vec<FragmentIdx<T>> {
         self.fragments.keys().copied().collect::<Vec<_>>()
     }
 }
 
+/// Trait for accessing fragments in a collection.
 pub trait FragmentAccess<F>: Sized {
+    /// Gets a reference to a fragment by its ID.
     fn get_fragment(&self, fragment_id: &FragmentIdx<F>) -> Option<&F>;
+    /// Gets a mutable reference to a fragment by its ID.
     fn get_fragment_mut(&mut self, fragment_id: &FragmentIdx<F>) -> Option<&mut F>;
 
+    /// Adds a new fragment to the collection and returns its ID.
     fn push_fragment(&mut self, fragment: F) -> FragmentIdx<F>;
 
+    /// Returns a vector of all fragment IDs in the collection.
     fn iter_fragment_ids(&self) -> Vec<FragmentIdx<F>>;
 }
 

@@ -1,7 +1,12 @@
+//! This crate provides an easy API for generating XMLity-based Rust code from XSD schemas.
+//!
+//! It is designed to be able to be used in a build script, and provides a easy-to-use step-by-step API.
 use std::{collections::HashSet, path::PathBuf};
 
 use bon::Builder;
 use syn::parse_quote;
+
+/// The `reexports` module provides re-exports of dependencies required during configuration.
 pub mod reexports {
     pub use url;
 }
@@ -22,48 +27,72 @@ use xsd_codegen_xmlity::{
 };
 use xsd_fragments::XmlnsContext;
 
+/// The `BuildEngine` struct is used to configure the build process, including allowed files, URLs, and bound namespaces.
 #[derive(Debug, Builder)]
 pub struct BuildEngine {
+    /// A list of allowed files, which can be glob patterns.
     #[builder(default)]
-    pub glob_patterns: Vec<String>,
+    pub allowed_files: Vec<String>,
+    /// A list of URLs to be used in the build process.
     #[builder(default)]
     pub urls: Vec<url::Url>,
+    /// Whether to allow network access for resolving URLs. If urls are provided, this defaults to true.
     #[builder(default = true)]
-    pub url_net_resolution: bool,
+    pub allow_network_access: bool,
+    /// A list of namespaces to bind to specific paths.
     #[builder(default)]
     pub bound_namespaces: Vec<(XmlNamespace<'static>, syn::Path)>,
+    /// A list of types to bind to specific types.
     #[builder(default)]
     pub bound_types: Vec<(ExpandedName<'static>, BoundType)>,
+    /// A list of elements to bind to specific types.
     #[builder(default)]
     pub bound_elements: Vec<(ExpandedName<'static>, TypeReference<'static>)>,
+    /// A list of attributes to bind to specific types.
     #[builder(default)]
     pub bound_attributes: Vec<(ExpandedName<'static>, TypeReference<'static>)>,
+    /// A list of groups to bind to specific types.
+    #[builder(default)]
+    pub bound_groups: Vec<(ExpandedName<'static>, TypeReference<'static>)>,
 }
 
+/// Represents a configuration for generating a namespace.
 #[derive(Debug, Builder)]
-pub struct GenerateNamespace {
+pub struct GenerateNamespaceConfig {
+    /// The XML namespace to generate code for.
     pub namespace: XmlNamespace<'static>,
+    /// The output file where the generated code will be written.
     pub output_file: PathBuf,
+    /// Derive `bon::builders::Builder` for structs.
     #[builder(default = false)]
     pub bon_builders: bool,
+    /// Generate `From`-implementations for enums.
     #[builder(default = false)]
-    pub enum_from: bool,
+    pub enum_from_impls: bool,
+    /// Generate `From`-implementations for structs.
     #[builder(default = false)]
-    pub struct_from: bool,
+    pub struct_from_impls: bool,
 }
 
+/// Error type for using the build engine.
 #[derive(Debug, derive_more::derive::From, derive_more::derive::Display)]
 pub enum Error {
+    /// Error when processing glob patterns.
     #[display("glob pattern error {}", _0)]
     GlobPath(xsd::set::GlobError),
+    /// Error when writing output file.
     #[display("Error when writing output file {}: {}", _1.display(), _0)]
     FileWriteError(std::io::Error, PathBuf),
+    /// Error when importing a namespace map.
     #[display("Error when importing namespace map: {}", _0)]
     XsdFragmentImportError(#[from] xsd_fragments::Error),
+    /// Error when transforming XSD.
     #[display("Error when transforming XSD: {}", _0)]
     TransformationError(#[from] xsd_codegen_xmlity::CodegenTransformerError),
+    /// Error when generating namespace.
     #[display("Error when generating namespace: {}", _0)]
     GenerationError(#[from] xsd_codegen_xmlity::Error),
+    /// Error when loading XSD set.
     #[display("Error when loading XSD set: {}", _0)]
     SetError(#[from] xsd::set::Error<ResolverError>),
 }
@@ -71,28 +100,37 @@ pub enum Error {
 struct Resolver {
     client: reqwest::blocking::Client,
     cache_dir: PathBuf,
-    net_resolution: bool,
+    allow_network_access: bool,
 }
 
+/// Error type used for resolving XSD schemas.
 #[derive(Debug, derive_more::derive::From, derive_more::derive::Display)]
 pub enum ResolverError {
+    /// Error when resolving a URL using `reqwest`.
     #[display("Error when resolving URL using `reqwest`: {}", _0)]
     Reqwest(reqwest::Error),
+    /// Error when reading from a file.
     #[display("Error when reading from file: {}", _0)]
     Io(std::io::Error),
+    /// Error when parsing XML.
     #[display("Error when parsing XML: {}", _0)]
     XmlParse(xmlity_quick_xml::de::Error),
+    /// A resolved XSD schema is missing the root element.
     XsdMissingRoot,
+    /// Resolver tried to resolve a URL with an unsupported scheme.
     #[display("Unsupported URL scheme: {}", _0)]
     UnsupportedUrlScheme(Url),
+    /// Unauthorized network access attempt.
+    #[display("Unauthorized network access attempt")]
+    UnauthorizedNetworkAccess,
 }
 
 impl Resolver {
-    fn new() -> Self {
+    fn new(allow_network_access: bool) -> Self {
         Self {
             client: reqwest::blocking::Client::new(),
             cache_dir: std::env::temp_dir().join("xsd-toolkit-built-cache"),
-            net_resolution: true,
+            allow_network_access,
         }
     }
 
@@ -107,7 +145,11 @@ impl Resolver {
             "http" | "https" if std::fs::exists(&potential_cache_file_path)? => {
                 std::fs::read_to_string(&potential_cache_file_path)?
             }
-            "http" | "https" if self.net_resolution => {
+            "http" | "https" => {
+                if !self.allow_network_access {
+                    return Err(ResolverError::UnauthorizedNetworkAccess);
+                }
+
                 let response = self.client.get(url.as_str()).send()?;
                 let schema_text = response.text()?;
 
@@ -137,15 +179,15 @@ impl Resolver {
     }
 }
 
-pub struct StartedBuildEngine {
-    engine: BuildEngine,
-    context: XmlnsContext,
-}
-
 impl BuildEngine {
-    pub fn start(self) -> Result<StartedBuildEngine, Error> {
+    /// Starts the build process, initializing the XML schema set and context.
+    pub fn start(mut self) -> Result<StartedBuildEngine, Error> {
+        if !self.urls.is_empty() {
+            self.allow_network_access = true;
+        }
+
         let mut map = XmlSchemaSet::new();
-        self.glob_patterns
+        self.allowed_files
             .iter()
             .try_for_each(|pattern| map.inform_glob_pattern(pattern))?;
 
@@ -153,7 +195,7 @@ impl BuildEngine {
 
         let root_uris = map.locations.keys().cloned().collect::<Vec<_>>();
 
-        let resolver = Resolver::new();
+        let resolver = Resolver::new(self.allow_network_access);
 
         map.explore_locations(&|url| resolver.resolve(url))
             .try_for_each(|a| a.map(|_| ()))?;
@@ -214,8 +256,15 @@ impl BuildEngine {
     }
 }
 
+/// Represents a started build engine with an initialized XML namespace context.
+pub struct StartedBuildEngine {
+    engine: BuildEngine,
+    context: XmlnsContext,
+}
+
 impl StartedBuildEngine {
-    pub fn generate_namespace<N: Into<GenerateNamespace>>(
+    /// Generates a namespace based on the provided configuration.
+    pub fn generate_namespace<N: Into<GenerateNamespaceConfig>>(
         &self,
         generate_namespace: N,
     ) -> Result<(), Error> {
@@ -226,11 +275,14 @@ impl StartedBuildEngine {
             vec![
                 Box::new(generate_namespace.bon_builders.then(BonAugmentation::new))
                     as Box<dyn ItemAugmentation>,
-                Box::new(generate_namespace.enum_from.then(EnumFromAugmentation::new))
-                    as Box<dyn ItemAugmentation>,
                 Box::new(
                     generate_namespace
-                        .struct_from
+                        .enum_from_impls
+                        .then(EnumFromAugmentation::new),
+                ) as Box<dyn ItemAugmentation>,
+                Box::new(
+                    generate_namespace
+                        .struct_from_impls
                         .then(StructFromAugmentation::new),
                 ) as Box<dyn ItemAugmentation>,
                 Box::new(Some(AdditionalDerives {
@@ -254,11 +306,13 @@ impl StartedBuildEngine {
                 generator.bind_namespace(namespace.clone(), path.clone())
             });
 
-        generator.bind_types(self.engine.bound_types.iter().cloned());
+        generator.bind_types(self.engine.bound_types.clone());
 
-        generator.bind_elements(self.engine.bound_elements.iter().cloned());
+        generator.bind_elements(self.engine.bound_elements.clone());
 
-        generator.bind_attributes(self.engine.bound_attributes.iter().cloned());
+        generator.bind_attributes(self.engine.bound_attributes.clone());
+
+        generator.bind_groups(self.engine.bound_groups.clone());
 
         let items = generator.generate_namespace(&generate_namespace.namespace)?;
 

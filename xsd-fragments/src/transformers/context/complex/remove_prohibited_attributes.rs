@@ -6,13 +6,16 @@ use crate::transformers::{
     TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext,
 };
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {}
-
+/// This transformer removes attributes that are marked as prohibited from the attribute declarations
 #[non_exhaustive]
 pub struct RemoveProhibitedAttributes {}
 
+/// Error type for the [`RemoveProhibitedAttributes`] transformer.
+#[derive(Debug, thiserror::Error)]
+pub enum Error {}
+
 impl RemoveProhibitedAttributes {
+    /// Creates a new instance of the [`RemoveProhibitedAttributes`] transformer.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}

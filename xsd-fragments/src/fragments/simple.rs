@@ -1,3 +1,5 @@
+//! Simple type fragments for XSD processing.
+
 use std::num::NonZeroUsize;
 use xsd::{ns, xs};
 
@@ -12,50 +14,72 @@ use crate::{
 };
 use std::collections::VecDeque;
 
+/// Fragment representing a simple type extension.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExtensionFragment {
+    /// The base type being extended.
     pub base: ExpandedName<'static>,
 }
 
+/// Fragment representing a simple type restriction.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RestrictionFragment {
+    /// The base type being restricted.
     pub base: Option<ExpandedName<'static>>,
+    /// Facets applied in this restriction.
     pub facets: Vec<FragmentIdx<FacetFragment>>,
+    /// Inline simple type definition.
     pub simple_type: Option<FragmentIdx<SimpleTypeRootFragment>>,
 }
 
+/// Root fragment for a simple type definition.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleTypeRootFragment {
+    /// Name of the simple type (None for anonymous types).
     pub name: Option<LocalName<'static>>,
+    /// How the simple type is derived.
     pub simple_derivation: SimpleDerivation,
 }
 
+/// Fragment representing a list type.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ListFragment {
+    /// Type of items in the list.
     pub item_type: NamedOrAnonymous<FragmentIdx<SimpleTypeRootFragment>>,
 }
 
+/// Fragment representing a union type.
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnionFragment {
+    /// Named member types.
     pub member_types: VecDeque<ExpandedName<'static>>,
+    /// Inline simple type definitions.
     pub simple_types: VecDeque<FragmentIdx<SimpleTypeRootFragment>>,
 }
 
+/// Fragment representing a group reference.
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupRefFragment {
+    /// Reference to the group.
     pub ref_: ExpandedName<'static>,
 }
 
+/// A value used in facets.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Value(pub String);
 
+/// A pattern used in facets.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Pattern(pub String);
 
+/// White space handling options.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WhiteSpaceValue {
+    /// Preserve all whitespace.
     Preserve,
+    /// Replace tabs and newlines with spaces.
     Replace,
+    /// Collapse consecutive whitespace into single spaces.
     Collapse,
 }
 
@@ -79,10 +103,14 @@ impl From<WhiteSpaceValue> for xs::white_space_items::ValueValue {
     }
 }
 
+/// Explicit timezone handling options.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ExplicitTimezoneValue {
+    /// Timezone is required.
     Required,
+    /// Timezone is prohibited.
     Prohibited,
+    /// Timezone is optional.
     Optional,
 }
 
@@ -110,37 +138,96 @@ impl From<ExplicitTimezoneValue> for xs::explicit_timezone_items::ValueValue {
     }
 }
 
+/// An assertion for simple types.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Assertion(pub String);
 
+/// Fragment representing various facets that can be applied to simple types.
 #[derive(Debug, Clone, PartialEq)]
 pub enum FacetFragment {
-    Length { value: usize },
-    MinLength { value: usize },
-    MaxLength { value: usize },
-    MinExclusive { value: Value },
-    MinInclusive { value: Value },
-    MaxExclusive { value: Value },
-    MaxInclusive { value: Value },
-    Enumeration { value: Value },
-    TotalDigits { value: NonZeroUsize },
-    FractionDigits { value: usize },
-    WhiteSpace { value: WhiteSpaceValue },
-    Pattern { value: Pattern },
-    Assertion { test: Option<Assertion> },
-    ExplicitTimezone { value: ExplicitTimezoneValue },
+    /// Exact length facet.
+    Length {
+        /// The required length.
+        value: usize,
+    },
+    /// Minimum length facet.
+    MinLength {
+        /// The minimum length.
+        value: usize,
+    },
+    /// Maximum length facet.
+    MaxLength {
+        /// The maximum length.
+        value: usize,
+    },
+    /// Minimum exclusive bound facet.
+    MinExclusive {
+        /// The exclusive minimum value.
+        value: Value,
+    },
+    /// Minimum inclusive bound facet.
+    MinInclusive {
+        /// The inclusive minimum value.
+        value: Value,
+    },
+    /// Maximum exclusive bound facet.
+    MaxExclusive {
+        /// The exclusive maximum value.
+        value: Value,
+    },
+    /// Maximum inclusive bound facet.
+    MaxInclusive {
+        /// The inclusive maximum value.
+        value: Value,
+    },
+    /// Enumeration facet.
+    Enumeration {
+        /// An allowed enumeration value.
+        value: Value,
+    },
+    /// Total digits facet for decimal types.
+    TotalDigits {
+        /// Maximum number of digits.
+        value: NonZeroUsize,
+    },
+    /// Fraction digits facet for decimal types.
+    FractionDigits {
+        /// Number of fractional digits.
+        value: usize,
+    },
+    /// White space handling facet.
+    WhiteSpace {
+        /// How to handle whitespace.
+        value: WhiteSpaceValue,
+    },
+    /// Pattern facet.
+    Pattern {
+        /// Regular expression pattern.
+        value: Pattern,
+    },
+    /// Assertion facet.
+    Assertion {
+        /// XPath test expression.
+        test: Option<Assertion>,
+    },
+    /// Explicit timezone facet.
+    ExplicitTimezone {
+        /// Timezone requirement.
+        value: ExplicitTimezoneValue,
+    },
 }
 
+/// Compiler for simple type fragments.
 #[derive(Debug, Clone)]
 pub struct SimpleTypeFragmentCompiler {
-    pub namespace: XmlNamespace<'static>,
-    pub simple_types: FragmentCollection<SimpleTypeRootFragment>,
-    pub restrictions: FragmentCollection<RestrictionFragment>,
-    pub extensions: FragmentCollection<ExtensionFragment>,
-    pub facets: FragmentCollection<FacetFragment>,
-    pub lists: FragmentCollection<ListFragment>,
-    pub unions: FragmentCollection<UnionFragment>,
-    pub group_refs: FragmentCollection<GroupRefFragment>,
+    namespace: XmlNamespace<'static>,
+    simple_types: FragmentCollection<SimpleTypeRootFragment>,
+    restrictions: FragmentCollection<RestrictionFragment>,
+    extensions: FragmentCollection<ExtensionFragment>,
+    facets: FragmentCollection<FacetFragment>,
+    lists: FragmentCollection<ListFragment>,
+    unions: FragmentCollection<UnionFragment>,
+    group_refs: FragmentCollection<GroupRefFragment>,
 }
 
 impl AsMut<SimpleTypeFragmentCompiler> for SimpleTypeFragmentCompiler {
@@ -156,6 +243,7 @@ impl AsRef<SimpleTypeFragmentCompiler> for SimpleTypeFragmentCompiler {
 }
 
 impl SimpleTypeFragmentCompiler {
+    /// Creates a new `SimpleTypeFragmentCompiler` with the given namespace and namespace index.
     pub fn new(namespace: XmlNamespace<'static>, namespace_idx: NamespaceIdx) -> Self {
         Self {
             namespace,
@@ -255,19 +343,25 @@ where
     }
 }
 
+/// Error type for simple type fragment operations.
 #[derive(Debug, Clone)]
 pub enum Error {
+    /// List type is missing its item type definition.
     ListMissingType,
 }
 
+/// Trait for types that can be converted to and from simple type fragments.
 pub trait SimpleFragmentEquivalent: Sized {
+    /// The fragment identifier type for this equivalent.
     type FragmentId;
 
+    /// Converts this type to simple fragments in the compiler.
     fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
         &self,
         compiler: T,
     ) -> Result<Self::FragmentId, Error>;
 
+    /// Creates this type from simple fragments in the compiler.
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
         _compiler: T,
         _fragment_id: &Self::FragmentId,
@@ -1158,10 +1252,16 @@ impl SimpleFragmentEquivalent for xs::Restriction {
     }
 }
 
+/// Simple type derivation methods.
+///
+/// Represents the three ways a simple type can be derived in XML Schema.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SimpleDerivation {
+    /// Derivation by restriction, constraining an existing type.
     Restriction(FragmentIdx<RestrictionFragment>),
+    /// Derivation by list, creating a space-separated list of base type values.
     List(FragmentIdx<ListFragment>),
+    /// Derivation by union, allowing values from multiple member types.
     Union(FragmentIdx<UnionFragment>),
 }
 

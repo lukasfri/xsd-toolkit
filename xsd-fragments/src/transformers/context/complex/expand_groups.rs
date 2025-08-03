@@ -87,9 +87,11 @@ impl HasTypeDefParticle for ComplexTypeRootFragment {
     }
 }
 
+/// This transformer expands group content and type definition particles in complex fragments.
 #[non_exhaustive]
 pub struct ExpandGroups {}
 
+/// Error type for the [`ExpandGroups`] transformer.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {}
 

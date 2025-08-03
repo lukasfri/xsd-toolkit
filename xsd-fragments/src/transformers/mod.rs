@@ -1,17 +1,30 @@
+//! This module provides the core functionality for transforming and managing XSD fragments.
+//!
+//! It includes two main transformer types: [`XmlnsContextTransformer`] and [`XmlnsLocalTransformer`], which are used to transform XSDs on both a set-wide and a local level.
+
 pub mod context;
 pub use context::{XmlnsContextTransformer, XmlnsContextTransformerContext};
 pub mod local;
 pub use local::{XmlnsLocalTransformer, XmlnsLocalTransformerContext};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// The [`TransformChange`] enum is used to indicate whether a transformation has changed the context or not.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransformChange {
+    /// Indicates that changes were made during the transformation.
     Changed,
-    #[default]
+    /// Indicates that no changes were made during the transformation.
     Unchanged,
 }
 impl TransformChange {
-    fn new() -> Self {
+    /// Creates a new `TransformChange` instance indicating no changes.
+    pub const fn new() -> Self {
         Self::Unchanged
+    }
+}
+
+impl Default for TransformChange {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

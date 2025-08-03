@@ -15,10 +15,9 @@ use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
 use xsd::{ns, xs};
 
-// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-// pub struct FragmentId(pub XmlNamespace<'static>, pub FragmentIdx);
-
+/// Extension trait for `ExpandedName` to handle default namespaces.
 pub trait XmlNamespaceExt<'a> {
+    /// Sets a default namespace if none is present.
     fn with_default_namespace<F: FnOnce() -> XmlNamespace<'a>>(self, f: F) -> Self;
 }
 
@@ -32,11 +31,16 @@ impl<'a> XmlNamespaceExt<'a> for ExpandedName<'a> {
     }
 }
 
+/// Identifier for type definition particles in complex types.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TypeDefParticleId {
+    /// Group reference particle.
     Group(FragmentIdx<GroupRefFragment>),
+    /// All particle.
     All(FragmentIdx<AllFragment>),
+    /// Sequence particle.
     Sequence(FragmentIdx<SequenceFragment>),
+    /// Choice particle.
     Choice(FragmentIdx<ChoiceFragment>),
 }
 
@@ -61,23 +65,34 @@ impl From<FragmentIdx<ChoiceFragment>> for TypeDefParticleId {
     }
 }
 
+/// Fragment representing a complex type extension.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExtensionFragment {
+    /// The base type being extended.
     pub base: ExpandedName<'static>,
+    /// Optional content particle.
     pub content_fragment: Option<TypeDefParticleId>,
+    /// Attribute declarations for this extension.
     pub attribute_declarations: FragmentIdx<AttributeDeclarationsFragment>,
 }
 
+/// Fragment representing a complex type restriction.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RestrictionFragment {
+    /// The base type being restricted.
     pub base: ExpandedName<'static>,
+    /// Optional content particle.
     pub content_fragment: Option<TypeDefParticleId>,
+    /// Attribute declarations for this restriction.
     pub attribute_declarations: FragmentIdx<AttributeDeclarationsFragment>,
 }
 
+/// Identifier for attribute declarations, either direct attributes or attribute group references.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AttributeDeclarationId {
+    /// Direct attribute declaration.
     Attribute(FragmentIdx<LocalAttributeFragment>),
+    /// Attribute group reference.
     AttributeGroupRef(FragmentIdx<AttributeGroupRefFragment>),
 }
 
@@ -92,123 +107,182 @@ impl From<FragmentIdx<AttributeGroupRefFragment>> for AttributeDeclarationId {
     }
 }
 
+/// How an attribute is used in a complex type.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum AttributeUse {
+    /// Attribute is required.
     Required,
+    /// Attribute is optional.
     #[default]
     Optional,
+    /// Attribute is prohibited.
     Prohibited,
 }
 
+/// Fragment for a declared attribute with a local name.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeclaredAttributeFragment {
+    /// Local name of the attribute.
     pub name: LocalName<'static>,
+    /// Type of the attribute.
     pub type_: Option<NamedOrAnonymous<FragmentIdx<simple::SimpleTypeRootFragment>>>,
 }
 
+/// Fragment for a reference to a top-level attribute.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReferenceAttributeFragment {
+    /// Reference to the top-level attribute.
     pub ref_: ExpandedName<'static>,
 }
 
+/// Type mode for local attribute fragments.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LocalAttributeFragmentTypeMode {
+    /// Declared attribute with local name and type.
     Declared(DeclaredAttributeFragment),
+    /// Reference to a top-level attribute.
     Reference(ReferenceAttributeFragment),
 }
 
+/// Fragment representing a local attribute declaration.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocalAttributeFragment {
+    /// How the attribute is declared (local or reference).
     pub type_mode: LocalAttributeFragmentTypeMode,
+    /// How the attribute is used.
     pub use_: Option<AttributeUse>,
+    /// Default value for the attribute.
     pub default: Option<String>,
 }
 
+/// Fragment representing a top-level attribute declaration.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TopLevelAttributeFragment {
+    /// Name of the attribute.
     pub name: LocalName<'static>,
+    /// Type of the attribute.
     pub type_: Option<NamedOrAnonymous<FragmentIdx<simple::SimpleTypeRootFragment>>>,
 }
 
+/// Fragment representing a top-level group declaration.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TopLevelGroupFragment {
+    /// Name of the group.
     pub name: LocalName<'static>,
+    /// Content of the group.
     pub content: NamedGroupTypeContentId,
 }
 
+/// Fragment representing a reference to an attribute group.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AttributeGroupRefFragment {
+    /// Reference to the attribute group.
     pub ref_: ExpandedName<'static>,
 }
 
+/// Fragment representing a top-level attribute group declaration.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TopLevelAttributeGroupFragment {
+    /// Name of the attribute group.
     pub name: LocalName<'static>,
+    /// Attribute declarations in this group.
     pub attr_decls: FragmentIdx<AttributeDeclarationsFragment>,
 }
 
+/// Fragment containing attribute declarations and any-attribute.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AttributeDeclarationsFragment {
+    /// List of attribute declarations.
     pub declarations: VecDeque<AttributeDeclarationId>,
+    /// Optional any-attribute declaration.
     pub any_attribute: Option<FragmentIdx<AnyAttributeFragment>>,
 }
 
+/// Fragment representing simple content in a complex type.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleContentFragment {
+    /// The content fragment (extension or restriction).
     pub content_fragment: SimpleContentChildId,
 }
 
+/// Fragment representing a simple content extension.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleExtensionFragment {
+    /// The base type being extended.
     pub base: ExpandedName<'static>,
+    /// Attribute declarations for this extension.
     pub attribute_declarations: FragmentIdx<AttributeDeclarationsFragment>,
 }
 
+/// Fragment representing a simple content restriction.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleRestrictionFragment {
+    /// The base type being restricted.
     pub base: ExpandedName<'static>,
+    /// Attribute declarations for this restriction.
     pub attribute_declarations: FragmentIdx<AttributeDeclarationsFragment>,
 }
 
+/// Identifier for simple content child fragments.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SimpleContentChildId {
+    /// Simple content extension.
     Extension(FragmentIdx<SimpleExtensionFragment>),
+    /// Simple content restriction.
     Restriction(FragmentIdx<SimpleRestrictionFragment>),
 }
 
+/// Fragment representing complex content in a complex type.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ComplexContentFragment {
+    /// Whether the content is mixed.
     pub mixed: Option<bool>,
+    /// The content fragment (extension or restriction).
     pub content_fragment: ComplexContentChildId,
 }
 
+/// Identifier for complex content child fragments.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ComplexContentChildId {
+    /// Complex content extension.
     Extension(FragmentIdx<ExtensionFragment>),
+    /// Complex content restriction.
     Restriction(FragmentIdx<RestrictionFragment>),
 }
 
+/// Fragment for a declared element with local name and type.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeclaredElementFragment {
+    /// Local name of the element.
     pub name: LocalName<'static>,
+    /// Type of the element.
     pub type_: NamedOrAnonymous<ElementTypeContentId>,
 }
 
+/// Fragment for a reference to a top-level element.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReferenceElementFragment {
+    /// Reference to the top-level element.
     pub ref_: ExpandedName<'static>,
 }
 
+/// Type of local element fragment.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LocalElementFragmentType {
+    /// Local element declaration.
     Local(DeclaredElementFragment),
+    /// Reference to top-level element.
     Reference(ReferenceElementFragment),
 }
 
+/// Fragment representing a local element declaration.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocalElementFragment {
+    /// Minimum number of occurrences.
     pub min_occurs: Option<usize>,
+    /// Maximum number of occurrences.
     pub max_occurs: Option<AllNNI>,
+    /// Type of the element (local or reference).
     pub type_: LocalElementFragmentType,
 }
 
@@ -309,6 +383,7 @@ pub struct ComplexTypeRootFragment {
     pub name: Option<LocalName<'static>>,
     pub content: ComplexTypeModelId,
     pub mixed: Option<bool>,
+    pub abstract_: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -319,29 +394,30 @@ pub struct AnyAttributeFragment {}
 
 #[derive(Debug, Clone)]
 pub struct ComplexTypeFragmentCompiler {
-    pub namespace: XmlNamespace<'static>,
-    pub simple_type_fragments: SimpleTypeFragmentCompiler,
-    pub complex_types: FragmentCollection<ComplexTypeRootFragment>,
-    pub simple_restrictions: FragmentCollection<SimpleRestrictionFragment>,
-    pub simple_extensions: FragmentCollection<SimpleExtensionFragment>,
-    pub simple_contents: FragmentCollection<SimpleContentFragment>,
-    pub restrictions: FragmentCollection<RestrictionFragment>,
-    pub extensions: FragmentCollection<ExtensionFragment>,
-    pub complex_contents: FragmentCollection<ComplexContentFragment>,
-    pub group_refs: FragmentCollection<GroupRefFragment>,
-    pub alls: FragmentCollection<AllFragment>,
-    pub choices: FragmentCollection<ChoiceFragment>,
-    pub sequences: FragmentCollection<SequenceFragment>,
-    pub anys: FragmentCollection<AnyFragment>,
-    pub elements: FragmentCollection<LocalElementFragment>,
-    pub top_level_elements: FragmentCollection<TopLevelElementFragment>,
-    pub local_attributes: FragmentCollection<LocalAttributeFragment>,
-    pub top_level_attributes: FragmentCollection<TopLevelAttributeFragment>,
-    pub attribute_group_refs: FragmentCollection<AttributeGroupRefFragment>,
-    pub groups: FragmentCollection<TopLevelGroupFragment>,
-    pub attribute_groups: FragmentCollection<TopLevelAttributeGroupFragment>,
-    pub attribute_declarations: FragmentCollection<AttributeDeclarationsFragment>,
-    pub any_attributes: FragmentCollection<AnyAttributeFragment>,
+    namespace: XmlNamespace<'static>,
+    /// The simple type compiler for this complex type compiler.
+    pub simple_type_compiler: SimpleTypeFragmentCompiler,
+    complex_types: FragmentCollection<ComplexTypeRootFragment>,
+    simple_restrictions: FragmentCollection<SimpleRestrictionFragment>,
+    simple_extensions: FragmentCollection<SimpleExtensionFragment>,
+    simple_contents: FragmentCollection<SimpleContentFragment>,
+    restrictions: FragmentCollection<RestrictionFragment>,
+    extensions: FragmentCollection<ExtensionFragment>,
+    complex_contents: FragmentCollection<ComplexContentFragment>,
+    group_refs: FragmentCollection<GroupRefFragment>,
+    alls: FragmentCollection<AllFragment>,
+    choices: FragmentCollection<ChoiceFragment>,
+    sequences: FragmentCollection<SequenceFragment>,
+    anys: FragmentCollection<AnyFragment>,
+    elements: FragmentCollection<LocalElementFragment>,
+    top_level_elements: FragmentCollection<TopLevelElementFragment>,
+    local_attributes: FragmentCollection<LocalAttributeFragment>,
+    top_level_attributes: FragmentCollection<TopLevelAttributeFragment>,
+    attribute_group_refs: FragmentCollection<AttributeGroupRefFragment>,
+    groups: FragmentCollection<TopLevelGroupFragment>,
+    attribute_groups: FragmentCollection<TopLevelAttributeGroupFragment>,
+    attribute_declarations: FragmentCollection<AttributeDeclarationsFragment>,
+    any_attributes: FragmentCollection<AnyAttributeFragment>,
 }
 
 impl HasFragmentCollection<ComplexTypeRootFragment> for ComplexTypeFragmentCompiler {
@@ -566,14 +642,24 @@ where
 }
 
 impl ComplexTypeFragmentCompiler {
-    pub fn new(
+    /// Creates a new `ComplexTypeFragmentCompiler` with the given namespace and namespace index.
+    pub fn new(namespace: XmlNamespace<'static>, namespace_idx: NamespaceIdx) -> Self {
+        Self::new_with_simple_compiler(
+            namespace.clone(),
+            namespace_idx,
+            SimpleTypeFragmentCompiler::new(namespace, namespace_idx),
+        )
+    }
+
+    /// Creates a new `ComplexTypeFragmentCompiler` with a given `SimpleTypeFragmentCompiler`.
+    pub fn new_with_simple_compiler(
         namespace: XmlNamespace<'static>,
         namespace_idx: NamespaceIdx,
-        simple_type_fragments: SimpleTypeFragmentCompiler,
+        simple_type_compiler: SimpleTypeFragmentCompiler,
     ) -> Self {
         Self {
             namespace,
-            simple_type_fragments,
+            simple_type_compiler,
             complex_types: FragmentCollection::new(namespace_idx),
             simple_restrictions: FragmentCollection::new(namespace_idx),
             simple_extensions: FragmentCollection::new(namespace_idx),
@@ -601,7 +687,7 @@ impl ComplexTypeFragmentCompiler {
 
 impl AsMut<SimpleTypeFragmentCompiler> for ComplexTypeFragmentCompiler {
     fn as_mut(&mut self) -> &mut SimpleTypeFragmentCompiler {
-        &mut self.simple_type_fragments
+        &mut self.simple_type_compiler
     }
 }
 
@@ -613,7 +699,7 @@ impl AsMut<ComplexTypeFragmentCompiler> for ComplexTypeFragmentCompiler {
 
 impl AsRef<SimpleTypeFragmentCompiler> for ComplexTypeFragmentCompiler {
     fn as_ref(&self) -> &SimpleTypeFragmentCompiler {
-        &self.simple_type_fragments
+        &self.simple_type_compiler
     }
 }
 
@@ -1965,6 +2051,7 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelComplexType {
             name: Some(self.name.clone()),
             content,
             mixed: self.mixed,
+            abstract_: self.abstract_,
         };
 
         Ok(compiler.push_fragment(fragment))
@@ -2010,6 +2097,7 @@ impl ComplexFragmentEquivalent for xs::types::LocalComplexType {
             name: None,
             content,
             mixed: self.mixed,
+            abstract_: None,
         };
 
         Ok(compiler.push_fragment(fragment))

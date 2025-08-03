@@ -7,13 +7,17 @@ use xsd::{xs, UrlExt};
 use crate::{fragments::NamespaceIdx, CompiledNamespace, Error};
 
 #[derive(Debug)]
+/// Context for managing XML Schema namespaces and their compiled representations.
 pub struct XmlnsContext {
+    /// Map of namespace indices to their compiled representations.
     pub namespaces: BTreeMap<NamespaceIdx, CompiledNamespace>,
+    /// Map of namespace URIs to their indices.
     pub namespace_idxs: BTreeMap<XmlNamespace<'static>, NamespaceIdx>,
     namespace_id_count: usize,
 }
 
 impl XmlnsContext {
+    /// Creates a new empty XML namespace context.
     pub fn new() -> Self {
         Self {
             namespaces: BTreeMap::new(),
@@ -28,6 +32,7 @@ impl XmlnsContext {
         fragment_id
     }
 
+    /// Initializes a new namespace in the context and returns a mutable reference to it.
     pub fn init_namespace(&mut self, namespace: XmlNamespace<'static>) -> &mut CompiledNamespace {
         let namespace_idx = self.generate_fragment_id();
         self.namespace_idxs.insert(namespace.clone(), namespace_idx);
@@ -41,12 +46,14 @@ impl XmlnsContext {
             .expect("Just inserted namespace")
     }
 
+    /// Gets a reference to a compiled namespace by its URI.
     pub fn get_namespace(&self, namespace: &XmlNamespace<'_>) -> Option<&CompiledNamespace> {
         let namespace_idx = self.namespace_idxs.get(namespace)?;
 
         self.namespaces.get(namespace_idx)
     }
 
+    /// Gets a mutable reference to a compiled namespace by its URI.
     pub fn get_namespace_mut(
         &mut self,
         namespace: &XmlNamespace<'_>,
@@ -56,6 +63,7 @@ impl XmlnsContext {
         self.namespaces.get_mut(namespace_idx)
     }
 
+    /// Imports a redefine element into the context.
     pub fn import_redefine(&mut self, _redefine: &xs::Redefine) -> Result<(), Error> {
         // use xs::redefine_items::RedefineContent;
         // let redefine = match redefine {
@@ -79,6 +87,7 @@ impl XmlnsContext {
         todo!("Implement import_redefine for XmlnsContext")
     }
 
+    /// Imports a namespace map with all its dependencies from the schema set.
     pub fn import_namespace_map(
         &mut self,
         map: &xsd::set::XmlSchemaSet,
@@ -162,6 +171,7 @@ impl XmlnsContext {
         Ok(())
     }
 
+    /// Imports an XML Schema into the context, creating or updating the relevant namespace.
     pub fn import_schema(
         &mut self,
         known_namespace: Option<XmlNamespace<'_>>,

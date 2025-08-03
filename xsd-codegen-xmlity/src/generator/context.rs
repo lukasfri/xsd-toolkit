@@ -76,8 +76,8 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
     {
         let namespace = self.current_namespace()?;
         namespace
-            .complex_type
-            .simple_type_fragments
+            .complex_type_compiler
+            .simple_type_compiler
             .get_fragment(fragment_id)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "simple type fragment".to_string(),
@@ -172,7 +172,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
             })?;
 
         let fragment = namespace
-            .complex_type
+            .complex_type_compiler
             .get_fragment(fragment_id)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "complex type fragment".to_string(),
@@ -299,7 +299,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
                     .iter()
                     .filter_map(|(key, fragment_id)| {
                         let fragment = namespace
-                            .complex_type
+                            .complex_type_compiler
                             .get_fragment(&fragment_id.root_fragment)?;
 
                         if fragment.substitution_groups.contains(name) {

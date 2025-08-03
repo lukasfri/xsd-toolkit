@@ -1,3 +1,5 @@
+//! This module provides the [`XmlnsLocalTransformer`] trait with implementations in the [complex] and [simple] modules.
+
 pub mod complex;
 pub mod simple;
 
@@ -41,7 +43,7 @@ impl XmlnsLocalTransformerContext<'_> {
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace()
-            .complex_type
+            .complex_type_compiler
             .iter_fragment_ids()
             .into_iter()
     }
@@ -51,7 +53,7 @@ impl XmlnsLocalTransformerContext<'_> {
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace()
-            .complex_type
+            .complex_type_compiler
             .get_fragment(fragment_idx)
     }
 
@@ -60,7 +62,7 @@ impl XmlnsLocalTransformerContext<'_> {
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace_mut()
-            .complex_type
+            .complex_type_compiler
             .get_fragment_mut(fragment_idx)
     }
 
@@ -69,8 +71,8 @@ impl XmlnsLocalTransformerContext<'_> {
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace()
-            .complex_type
-            .simple_type_fragments
+            .complex_type_compiler
+            .simple_type_compiler
             .iter_fragment_ids()
     }
 
@@ -79,8 +81,8 @@ impl XmlnsLocalTransformerContext<'_> {
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace()
-            .complex_type
-            .simple_type_fragments
+            .complex_type_compiler
+            .simple_type_compiler
             .get_fragment(fragment_idx)
     }
 
@@ -89,8 +91,8 @@ impl XmlnsLocalTransformerContext<'_> {
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace_mut()
-            .complex_type
-            .simple_type_fragments
+            .complex_type_compiler
+            .simple_type_compiler
             .get_fragment_mut(fragment_idx)
     }
 

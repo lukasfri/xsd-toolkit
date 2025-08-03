@@ -1,3 +1,5 @@
+//! Transformer for expanding attribute group references into individual attributes.
+
 use std::collections::VecDeque;
 
 use crate::fragments::{
@@ -11,17 +13,21 @@ use crate::transformers::{
     TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext,
 };
 
+/// Transformer that expands attribute group references into their constituent attributes.
 #[non_exhaustive]
 pub struct ExpandAttributeDeclarations {}
 
+/// Error type for the [`ExpandAttributeDeclarations`] transformer.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    //TODO: Review
+    //TODO: Review if this is actually a requirement.
+    /// When merging attributes, the type modes must be compatible.
     #[error("When merging, the attribute type modes must be the same")]
     MismatchedAttributeModes,
 }
 
 impl ExpandAttributeDeclarations {
+    /// Creates a new instance of the [`ExpandAttributeDeclarations`] transformer.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}

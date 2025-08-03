@@ -25,22 +25,34 @@ pub use namespace::{
     TopLevelElement, TopLevelGroup, TopLevelSimpleType, TopLevelType,
 };
 
+/// Error type used for when importing, exporting and otherwise interacting with namespaces.
 #[derive(Debug, derive_more::derive::From, derive_more::derive::Display)]
 pub enum Error {
+    /// Tried to import an existing entity.
     #[display("Tried to import an existing entity")]
     ImportOfExistingEntity,
+    /// Tried to import a namespace that does not exist.
     #[display("Tried to import a namespace that does not exist")]
-    NonExistentXmlNamespace { namespace: XmlNamespace<'static> },
+    NonExistentXmlNamespace {
+        /// The namespace that was attempted to be accessed.
+        namespace: XmlNamespace<'static>,
+    },
+    /// Tried to use an undefined namespace.
     #[display("Tried to use an undefined namespace")]
     UndefinedNamespace,
+    /// Tried to use an undefined fragment.
     #[display("Error when processing complex fragments")]
     ComplexFragmentError(fragments::complex::Error),
+    /// Tried to use an undefined simple fragment.
     #[display("Error when processing simple fragments")]
     SimpleFragmentError(fragments::simple::Error),
 }
 
+/// A type that can be either a named or an anonymous type.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum NamedOrAnonymous<T> {
+    /// A named type, represented by an [`ExpandedName`].
     Named(ExpandedName<'static>),
+    /// An anonymous type, represented by a value of type `T`.
     Anonymous(T),
 }

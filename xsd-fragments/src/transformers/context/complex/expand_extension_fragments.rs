@@ -27,14 +27,24 @@ use xsd::xsn;
 pub struct ExpandExtensionFragments {}
 
 #[derive(Debug, thiserror::Error)]
+/// Error type for the [`ExpandExtensionFragments`] transformer.
 pub enum Error {
+    /// Base type was not found in the context.
     #[error("Base {base} not found in the context")]
-    BaseNotFound { base: ExpandedName<'static> },
+    BaseNotFound {
+        /// The base type that was not found.
+        base: ExpandedName<'static>,
+    },
+    /// Base type is not a complex type.
     #[error("Base {base} is not a complex type")]
-    BaseNotComplexType { base: ExpandedName<'static> },
+    BaseNotComplexType {
+        /// The base type that is not a complex type.
+        base: ExpandedName<'static>,
+    },
 }
 
 impl ExpandExtensionFragments {
+    /// Creates a new instance of the [`ExpandExtensionFragments`] transformer.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
@@ -290,7 +300,8 @@ impl ExpandExtensionFragments {
                     .get_mut(&child_complex_content_fragment_idx.namespace_idx())
                     .unwrap();
 
-                let new_content_fragment = ns.complex_type.push_fragment(new_content_fragment);
+                let new_content_fragment =
+                    ns.complex_type_compiler.push_fragment(new_content_fragment);
 
                 new_content_fragment.into()
             })
@@ -311,7 +322,7 @@ impl ExpandExtensionFragments {
             .get_mut(&child_complex_content_fragment_idx.namespace_idx())
             .unwrap();
 
-        let new_child_content = ns.complex_type.push_fragment(new_child_content);
+        let new_child_content = ns.complex_type_compiler.push_fragment(new_child_content);
 
         ctx.get_complex_fragment_mut(child_complex_content_fragment_idx)
             .expect("Fragment not found in compiler.")

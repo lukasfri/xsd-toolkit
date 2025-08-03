@@ -10,7 +10,8 @@ use crate::transformers::{
     TransformChange,
 };
 
-pub struct FlattenNestedUnions;
+#[non_exhaustive]
+pub struct FlattenNestedUnions {}
 
 impl FlattenNestedUnions {
     #[allow(clippy::new_without_default)]

@@ -22,28 +22,46 @@ use crate::transformers::XmlnsContextTransformerContext;
 #[non_exhaustive]
 pub struct ExpandRestrictionFragments {}
 
+/// Error type for the [`ExpandRestrictionFragments`] transformer.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// Tried to restrict a reference attribute with a base attribute that is not a reference.
     #[error(
         "Cannot restrict reference attribute {attribute:?} with base attribute {base_attribute:?}"
     )]
     CannotRestrictReferenceAttribute {
+        /// The attribute that was attempted to be restricted.
         attribute: FragmentIdx<LocalAttributeFragment>,
+        /// The base attribute that was attempted to be used for restriction.
         base_attribute: FragmentIdx<LocalAttributeFragment>,
     },
+    /// Cannot handle attribute group references in attribute declarations.
     #[error(
         "Cannot handle attribute group reference in attribute declarations. This transformer does not support attribute group references."
     )]
     CannotHandleAttributeGroupRef {},
+    /// Cannot restrict a base type to a simple type, only complex types can be restricted.
     #[error("Cannot restrict base type {base:?} to a simple type. Only complex types can be restricted.")]
-    BaseCannotBeSimpleType { base: ExpandedName<'static> },
+    BaseCannotBeSimpleType {
+        /// The base type that was attempted to be restricted.
+        base: ExpandedName<'static>,
+    },
+    /// Cannot restrict a base type to an extension type, only complex types can be extended.
     #[error("Cannot restrict base type {base:?} to an extension type. Only complex types can be extended.")]
-    BaseCannotBeExtensionType { base: ExpandedName<'static> },
+    BaseCannotBeExtensionType {
+        /// The base type that was attempted to be restricted.
+        base: ExpandedName<'static>,
+    },
+    /// The base type does not exist in the namespace, so it cannot be expanded.
     #[error("Base type {base:?} does not exist in the namespace. Cannot expand restriction.")]
-    BaseDoesNotExist { base: ExpandedName<'static> },
+    BaseDoesNotExist {
+        /// The base type that was attempted to be expanded.
+        base: ExpandedName<'static>,
+    },
 }
 
 impl ExpandRestrictionFragments {
+    /// Creates a new instance of the [`ExpandRestrictionFragments`] transformer.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}

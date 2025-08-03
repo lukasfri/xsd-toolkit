@@ -113,6 +113,15 @@ impl<'a> Generator<'a> {
         self.bound_groups.insert(name, ty);
     }
 
+    pub fn bind_groups<T: IntoIterator<Item = (ExpandedName<'static>, TypeReference<'static>)>>(
+        &mut self,
+        types: T,
+    ) {
+        types
+            .into_iter()
+            .for_each(|(name, bound_type)| self.bind_group(name, bound_type));
+    }
+
     pub fn generate_namespace(
         &mut self,
         namespace: &xmlity::XmlNamespace<'_>,
@@ -150,12 +159,14 @@ impl<'a> Generator<'a> {
         for expanded_name in compiled_namespace
             .top_level_elements
             .keys()
-            .map(|local_name| ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())))
+            .map(|local_name| {
+                ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())).into_owned()
+            })
         {
             if self.bound_elements.contains_key(&expanded_name) {
                 continue;
             }
-            let (mut bound_type, i) = self.generate_element(&expanded_name)?;
+            let (mut ty, i) = self.generate_element(&expanded_name)?;
 
             let bound_namespace =
                 self.bound_namespaces
@@ -166,9 +177,9 @@ impl<'a> Generator<'a> {
 
             let path: syn::Path = parse_quote!(#bound_namespace);
 
-            bound_type = TypeReference::new_static(bound_type.into_type(Some(&path)));
+            ty = TypeReference::new_static(ty.into_type(Some(&path)));
 
-            self.bind_element(expanded_name.into_owned(), bound_type);
+            self.bind_element(expanded_name, ty);
             items.extend(i)
         }
 
@@ -190,8 +201,8 @@ impl<'a> Generator<'a> {
                 })?;
 
         let fragment = compiled_namespace
-            .complex_type
-            .simple_type_fragments
+            .complex_type_compiler
+            .simple_type_compiler
             .get_fragment(&simple_type.root_fragment)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "simple type fragment".to_string(),
@@ -248,7 +259,7 @@ impl<'a> Generator<'a> {
                 })?;
 
         let fragment = compiled_namespace
-            .complex_type
+            .complex_type_compiler
             .get_fragment(&complex_type.root_fragment)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "complex type fragment".to_string(),
@@ -336,7 +347,7 @@ impl<'a> Generator<'a> {
             .iter()
             .filter_map(|(key, type_)| match type_ {
                 TopLevelType::Simple(simple_type) => Some((
-                    ExpandedName::new(key.as_ref(), Some(namespace.as_ref())),
+                    ExpandedName::new(key.as_ref(), Some(namespace.as_ref())).into_owned(),
                     simple_type,
                 )),
                 _ => None,
@@ -368,7 +379,7 @@ impl<'a> Generator<'a> {
 
                 bound_type.ty = TypeReference::new_static(bound_type.ty.into_type(Some(&path)));
 
-                self.bind_type(expanded_name.into_owned(), bound_type);
+                self.bind_type(expanded_name, bound_type);
 
                 Some(Ok(i))
             })
@@ -378,16 +389,20 @@ impl<'a> Generator<'a> {
             .top_level_types
             .iter()
             .filter_map(|(key, type_)| match type_ {
-                TopLevelType::Complex(
-                    complex_type @ TopLevelComplexType {
-                        abstract_: Some(false) | None,
-                        ..
-                    },
-                ) => Some((
-                    ExpandedName::new(key.as_ref(), Some(namespace.as_ref())),
+                TopLevelType::Complex(complex_type) => Some((
+                    ExpandedName::new(key.as_ref(), Some(namespace.as_ref())).into_owned(),
                     complex_type,
                 )),
                 _ => None,
+            })
+            // Remove abstract types
+            .filter(|(_, complex_type)| {
+                let fragment = compiled_namespace
+                    .complex_type_compiler
+                    .get_fragment(&complex_type.root_fragment)
+                    .expect("Fragment should exist");
+
+                matches!(fragment.abstract_, Some(false) | None)
             })
             .map(|(expanded_name, complex_type)| {
                 let (mut bound_type, i) =
@@ -403,7 +418,7 @@ impl<'a> Generator<'a> {
 
                 bound_type.ty = TypeReference::new_static(bound_type.ty.into_type(Some(&path)));
 
-                self.bind_type(expanded_name.into_owned(), bound_type);
+                self.bind_type(expanded_name, bound_type);
 
                 Ok(i)
             })
@@ -450,7 +465,7 @@ impl<'a> Generator<'a> {
             })?;
 
         let fragment = compiled_namespace
-            .complex_type
+            .complex_type_compiler
             .get_fragment(&attribute.root_fragment)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "attribute fragment".to_string(),
@@ -501,7 +516,9 @@ impl<'a> Generator<'a> {
         let attributes_items = compiled_namespace
             .top_level_attributes
             .keys()
-            .map(|local_name| ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())))
+            .map(|local_name| {
+                ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())).into_owned()
+            })
             .map(|expanded_name| {
                 let (mut bound_type, i) = self.generate_attribute(&expanded_name)?;
 
@@ -515,7 +532,7 @@ impl<'a> Generator<'a> {
 
                 bound_type = TypeReference::new_static(bound_type.into_type(Some(&path)));
 
-                self.bind_attribute(expanded_name.into_owned(), bound_type);
+                self.bind_attribute(expanded_name, bound_type);
 
                 Ok(i)
             })
@@ -558,7 +575,7 @@ impl<'a> Generator<'a> {
             })?;
 
         let fragment = compiled_namespace
-            .complex_type
+            .complex_type_compiler
             .get_fragment(&element.root_fragment)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "element fragment".to_string(),
@@ -615,7 +632,7 @@ impl<'a> Generator<'a> {
             })?;
 
         let fragment = compiled_namespace
-            .complex_type
+            .complex_type_compiler
             .get_fragment(&group.root_fragment)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "group fragment".to_string(),
@@ -666,7 +683,9 @@ impl<'a> Generator<'a> {
         let group_items = compiled_namespace
             .top_level_groups
             .keys()
-            .map(|local_name| ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())))
+            .map(|local_name| {
+                ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())).into_owned()
+            })
             .map(|expanded_name| {
                 let (mut bound_type, i) = self.generate_group(&expanded_name)?;
 
@@ -680,7 +699,7 @@ impl<'a> Generator<'a> {
 
                 bound_type = TypeReference::new_static(bound_type.into_type(Some(&path)));
 
-                self.bind_group(expanded_name.into_owned(), bound_type);
+                self.bind_group(expanded_name, bound_type);
 
                 Ok(i)
             })
