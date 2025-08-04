@@ -16,7 +16,7 @@ pub enum TransformChange {
     Unchanged,
 }
 impl TransformChange {
-    /// Creates a new `TransformChange` instance indicating no changes.
+    /// Creates a new [`TransformChange`] instance indicating no changes.
     pub const fn new() -> Self {
         Self::Unchanged
     }

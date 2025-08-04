@@ -92,13 +92,16 @@ enum ChoiceToSequence {
     Choice(FragmentIdx<ChoiceFragment>),
 }
 
+/// Error type for [`SingleChoiceToSequence`] operations.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {}
 
+/// Transformer for converting single-element choices to sequences.
 #[non_exhaustive]
 pub struct SingleChoiceToSequence {}
 
 impl SingleChoiceToSequence {
+    /// Creates a new [`SingleChoiceToSequence`] transformer.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
@@ -130,6 +133,7 @@ impl SingleChoiceToSequence {
         Ok(ChoiceToSequence::Sequence(sequence))
     }
 
+    /// Expands group content by converting single-element choices to sequences.
     pub fn expand_group_content(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: NestedParticleId,
@@ -144,6 +148,7 @@ impl SingleChoiceToSequence {
         }
     }
 
+    /// Expands type definition particles by converting single-element choices to sequences.
     pub fn expand_type_def_particle(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: TypeDefParticleId,

@@ -96,11 +96,13 @@ pub struct ExpandGroups {}
 pub enum Error {}
 
 impl ExpandGroups {
+    /// Creates a new [`ExpandGroups`] transformer.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
 
+    /// Expands group content in nested particles.
     pub fn expand_group_content(
         _context: &mut XmlnsLocalTransformerContext<'_>,
         _group_contents: NestedParticleId,
@@ -108,6 +110,7 @@ impl ExpandGroups {
         todo!()
     }
 
+    /// Expands group content in type definition particles.
     pub fn expand_type_def_particle(
         _context: &mut XmlnsLocalTransformerContext<'_>,
         _group_contents: TypeDefParticleId,

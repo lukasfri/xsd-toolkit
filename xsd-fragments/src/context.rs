@@ -17,7 +17,7 @@ pub struct XmlnsContext {
 }
 
 impl XmlnsContext {
-    /// Creates a new empty XML namespace context.
+    /// Creates a new empty [`XmlnsContext`].
     pub fn new() -> Self {
         Self {
             namespaces: BTreeMap::new(),

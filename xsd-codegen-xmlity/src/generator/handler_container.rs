@@ -99,7 +99,6 @@ pub fn handler_container() -> HandlerContainer {
         mod_naming: WrappingNamingStrategy::new(|name| format!("{}_variants", name)),
     });
 
-    // let mut local_element_handler_export = None;
     let mut element_type_content_handler_export = None;
     let mut complex_type_root_handler_export = None;
 

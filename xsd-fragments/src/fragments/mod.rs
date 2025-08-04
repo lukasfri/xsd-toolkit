@@ -14,7 +14,7 @@ use std::marker::PhantomData;
 pub struct NamespaceIdx(usize);
 
 impl NamespaceIdx {
-    /// Creates a new namespace index with the given numeric value.
+    /// Creates a new [`NamespaceIdx`] with the given numeric value.
     pub fn new(index: usize) -> Self {
         Self(index)
     }
@@ -37,7 +37,7 @@ impl<T> fmt::Display for FragmentIdx<T> {
 }
 
 impl<T> FragmentIdx<T> {
-    /// Creates a new fragment index for the given namespace and index.
+    /// Creates a new [`FragmentIdx`] for the given namespace and index.
     pub fn new(namespace: NamespaceIdx, index: usize) -> Self {
         Self(namespace, index, PhantomData)
     }
@@ -90,7 +90,7 @@ pub struct FragmentCollection<T> {
 }
 
 impl<T> FragmentCollection<T> {
-    /// Creates a new fragment collection for the given namespace.
+    /// Creates a new [`FragmentCollection`] for the given namespace.
     pub fn new(namespace_idx: NamespaceIdx) -> Self {
         Self {
             fragment_id_count: 0,
@@ -137,7 +137,7 @@ impl<T> FragmentCollection<T> {
     }
 }
 
-/// Trait for accessing fragments in a collection.
+/// Trait for accessing fragments in a [`FragmentCollection`].
 pub trait FragmentAccess<F>: Sized {
     /// Gets a reference to a fragment by its ID.
     fn get_fragment(&self, fragment_id: &FragmentIdx<F>) -> Option<&F>;

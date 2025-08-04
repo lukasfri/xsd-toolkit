@@ -7,13 +7,16 @@ use crate::fragments::{
 
 use crate::transformers::{TransformChange, XmlnsLocalTransformer, XmlnsLocalTransformerContext};
 
+/// Transformer for flattening nested sequences.
 #[non_exhaustive]
 pub struct FlattenNestedSequences {}
 
+/// Error type for [`FlattenNestedSequences`] operations.
 #[derive(Debug, thiserror::Error)]
 pub enum FlattenNestedSequencesError {}
 
 impl FlattenNestedSequences {
+    /// Creates a new [`FlattenNestedSequences`] transformer.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
@@ -89,13 +92,16 @@ impl XmlnsLocalTransformer for FlattenNestedSequences {
     }
 }
 
+/// Error type for [`FlattenNestedChoices`] operations.
 #[derive(Debug, thiserror::Error)]
 pub enum FlattenNestedChoicesError {}
 
+/// Transformer for flattening nested choices.
 #[non_exhaustive]
 pub struct FlattenNestedChoices {}
 
 impl FlattenNestedChoices {
+    /// Creates a new [`FlattenNestedChoices`] transformer.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}

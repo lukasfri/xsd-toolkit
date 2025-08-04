@@ -16,7 +16,7 @@ use crate::{
 pub struct CompiledNamespace {
     /// The XML namespace associated with this compiled namespace.
     pub namespace: XmlNamespace<'static>,
-    /// The compiler for complex types, which also contains a simple type compiler.
+    /// The [`ComplexTypeFragmentCompiler`] for complex types, which also contains a [`SimpleTypeFragmentCompiler`].
     pub complex_type_compiler: fragments::complex::ComplexTypeFragmentCompiler,
     /// A map of top-level types, which can be either simple or complex.
     pub top_level_types: BTreeMap<LocalName<'static>, TopLevelType>,
@@ -31,7 +31,7 @@ pub struct CompiledNamespace {
 }
 
 impl CompiledNamespace {
-    /// Creates a new `CompiledNamespace` with the given namespace and namespace index.
+    /// Creates a new [`CompiledNamespace`] with the given namespace and namespace index.
     pub fn new(namespace: XmlNamespace<'static>, namespace_idx: NamespaceIdx) -> Self {
         let simple_type_compiler =
             fragments::simple::SimpleTypeFragmentCompiler::new(namespace.clone(), namespace_idx);

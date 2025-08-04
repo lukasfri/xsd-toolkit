@@ -9,19 +9,30 @@ use crate::fragments::{
 use crate::transformers::context::{XmlnsContextTransformer, XmlnsContextTransformerContext};
 use crate::transformers::TransformChange;
 
+/// Transformer for expanding simple type restrictions.
 pub struct ExpandSimpleRestriction<'a> {
     allowed_bases: &'a HashSet<ExpandedName<'static>>,
 }
 
+/// Error types for simple restriction expansion.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// Base type not found.
     #[error("Base {base} not found in the context")]
-    BaseNotFound { base: ExpandedName<'static> },
+    BaseNotFound {
+        /// The base type name that was not found.
+        base: ExpandedName<'static>,
+    },
+    /// Base type is not a simple type.
     #[error("Base {base} is not a simple type")]
-    BaseNotSimpleType { base: ExpandedName<'static> },
+    BaseNotSimpleType {
+        /// The base type name that is not simple.
+        base: ExpandedName<'static>,
+    },
 }
 
 impl<'a> ExpandSimpleRestriction<'a> {
+    /// Creates a new [`ExpandSimpleRestriction`] transformer.
     pub fn new(allowed_bases: &'a HashSet<ExpandedName<'static>>) -> Self {
         Self { allowed_bases }
     }

@@ -13,7 +13,7 @@ use crate::transformers::{
     TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext,
 };
 
-/// Transformer that expands attribute group references into their constituent attributes.
+/// Transformer that expands [`AttributeGroupRefFragment`] into their constituent attributes.
 #[non_exhaustive]
 pub struct ExpandAttributeDeclarations {}
 

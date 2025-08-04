@@ -12,9 +12,9 @@ use crate::{
     transformers::TransformChange,
 };
 
-/// Trait for transformers that operate on XML namespace contexts.
+/// Trait for transformers that operate on [`XmlnsContext`] instances.
 pub trait XmlnsContextTransformer {
-    /// Error type returned by the transformer.
+    /// Error type returned by the [`XmlnsContextTransformer`].
     type Error: std::fmt::Debug;
 
     /// Returns true if the context was changed.
@@ -43,6 +43,7 @@ impl XmlnsContextTransformerContext<'_> {
         self.xmlns_context.namespaces.get_mut(namespace_idx)
     }
 
+    /// Returns an iterator over all complex fragment IDs of a specific type.
     pub fn iter_complex_fragment_ids<F: 'static>(&self) -> impl Iterator<Item = FragmentIdx<F>> + '_
     where
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
@@ -53,6 +54,7 @@ impl XmlnsContextTransformerContext<'_> {
             .flat_map(|(_, ns)| ns.complex_type_compiler.iter_fragment_ids())
     }
 
+    /// Gets a complex fragment by its ID.
     pub fn get_complex_fragment<F>(&self, fragment_idx: &FragmentIdx<F>) -> Option<&F>
     where
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
@@ -62,6 +64,7 @@ impl XmlnsContextTransformerContext<'_> {
             .get_fragment(fragment_idx)
     }
 
+    /// Gets a mutable complex fragment by its ID.
     pub fn get_complex_fragment_mut<F>(&mut self, fragment_idx: &FragmentIdx<F>) -> Option<&mut F>
     where
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
@@ -71,6 +74,7 @@ impl XmlnsContextTransformerContext<'_> {
             .get_fragment_mut(fragment_idx)
     }
 
+    /// Returns an iterator over all simple fragment IDs of a specific type.
     pub fn iter_simple_fragment_ids<F: 'static>(&self) -> impl Iterator<Item = FragmentIdx<F>> + '_
     where
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
@@ -82,6 +86,7 @@ impl XmlnsContextTransformerContext<'_> {
         })
     }
 
+    /// Gets a simple fragment by its ID.
     pub fn get_simple_fragment<F>(&self, fragment_idx: &FragmentIdx<F>) -> Option<&F>
     where
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
@@ -92,6 +97,7 @@ impl XmlnsContextTransformerContext<'_> {
             .get_fragment(fragment_idx)
     }
 
+    /// Gets a mutable simple fragment by its ID.
     pub fn get_simple_fragment_mut<F>(&mut self, fragment_idx: &FragmentIdx<F>) -> Option<&mut F>
     where
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
@@ -102,6 +108,7 @@ impl XmlnsContextTransformerContext<'_> {
             .get_fragment_mut(fragment_idx)
     }
 
+    /// Gets a named type by its expanded name.
     pub fn get_named_type<'a>(
         &'a self,
         name: &'a ExpandedName<'_>,
@@ -112,6 +119,7 @@ impl XmlnsContextTransformerContext<'_> {
             .get(name.local_name())
     }
 
+    /// Gets a named attribute group by its expanded name.
     pub fn get_named_attribute_group<'a>(
         &'a self,
         name: &'a ExpandedName<'_>,
@@ -124,6 +132,7 @@ impl XmlnsContextTransformerContext<'_> {
 }
 
 impl crate::XmlnsContext {
+    /// Applies a context transformer to this context.
     pub fn context_transform<T: XmlnsContextTransformer>(
         &mut self,
         transformer: T,

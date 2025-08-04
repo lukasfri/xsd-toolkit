@@ -36,15 +36,18 @@ use xsd::xsn;
 #[non_exhaustive]
 pub struct ExpandShortFormComplexTypes {}
 
+/// Error type for [`ExpandShortFormComplexTypes`] operations.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {}
 
 impl ExpandShortFormComplexTypes {
+    /// Creates a new [`ExpandShortFormComplexTypes`] transformer.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
 
+    /// Expands a short form [`ComplexTypeRootFragment`] into its full representation.
     pub fn expand_short_form_complex_type(
         ctx: &mut XmlnsLocalTransformerContext<'_>,
         fragment_id: &FragmentIdx<ComplexTypeRootFragment>,

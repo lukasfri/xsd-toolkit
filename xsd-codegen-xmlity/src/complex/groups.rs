@@ -416,7 +416,6 @@ impl ComplexToTypeTemplate<cx::GroupRefFragment> for GroupRefFragmentHandler {
 
 #[derive(Debug)]
 pub enum GroupTypeContentTemplate {
-    // Record(ItemRecord),
     ElementRecord {
         record: ElementRecord,
         min_occurs: usize,

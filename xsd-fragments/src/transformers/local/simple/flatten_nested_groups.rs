@@ -11,10 +11,12 @@ use crate::transformers::{
 };
 
 #[non_exhaustive]
+/// Transformer for flattening nested union groups in simple types.
 pub struct FlattenNestedUnions {}
 
 impl FlattenNestedUnions {
     #[allow(clippy::new_without_default)]
+    /// Creates a new [`FlattenNestedUnions`] transformer.
     pub fn new() -> Self {
         Self {}
     }

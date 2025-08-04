@@ -1,6 +1,8 @@
 //! This module provides the [`XmlnsLocalTransformer`] trait with implementations in the [complex] and [simple] modules.
 
+/// Complex type local transformers.
 pub mod complex;
+/// Simple type local transformers.
 pub mod simple;
 
 use xmlity::{LocalName, XmlNamespace};
@@ -15,6 +17,7 @@ use crate::{
 ///
 /// It is useful for things like expanding extension fragments, or resolving local references, but not for things like resolving global references.
 pub trait XmlnsLocalTransformer {
+    /// Error type for [`XmlnsLocalTransformer`] failures.
     type Error: std::fmt::Debug;
 
     /// Returns true if the context was changed.
@@ -24,20 +27,25 @@ pub trait XmlnsLocalTransformer {
     ) -> Result<TransformChange, Self::Error>;
 }
 
+/// Context for local transformers, providing access to a single namespace.
 #[derive(Debug)]
 pub struct XmlnsLocalTransformerContext<'a> {
+    /// The namespace being transformed.
     pub namespace: &'a mut CompiledNamespace,
 }
 
 impl XmlnsLocalTransformerContext<'_> {
+    /// Gets the current namespace.
     pub fn current_namespace(&self) -> &crate::CompiledNamespace {
         self.namespace
     }
 
+    /// Gets the current namespace mutably.
     pub fn current_namespace_mut(&mut self) -> &mut crate::CompiledNamespace {
         self.namespace
     }
 
+    /// Returns an iterator over all complex fragment IDs of a specific type in this namespace.
     pub fn iter_complex_fragment_ids<F: 'static>(&self) -> impl Iterator<Item = FragmentIdx<F>> + '_
     where
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
@@ -48,6 +56,7 @@ impl XmlnsLocalTransformerContext<'_> {
             .into_iter()
     }
 
+    /// Gets a complex fragment by its ID.
     pub fn get_complex_fragment<F>(&self, fragment_idx: &FragmentIdx<F>) -> Option<&F>
     where
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
@@ -57,6 +66,7 @@ impl XmlnsLocalTransformerContext<'_> {
             .get_fragment(fragment_idx)
     }
 
+    /// Gets a mutable complex fragment by its ID.
     pub fn get_complex_fragment_mut<F>(&mut self, fragment_idx: &FragmentIdx<F>) -> Option<&mut F>
     where
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
@@ -66,6 +76,7 @@ impl XmlnsLocalTransformerContext<'_> {
             .get_fragment_mut(fragment_idx)
     }
 
+    /// Returns all simple fragment IDs of a specific type in this namespace.
     pub fn iter_simple_fragment_ids<F: 'static>(&self) -> Vec<FragmentIdx<F>>
     where
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
@@ -76,6 +87,7 @@ impl XmlnsLocalTransformerContext<'_> {
             .iter_fragment_ids()
     }
 
+    /// Gets a simple fragment by its ID.
     pub fn get_simple_fragment<F>(&self, fragment_idx: &FragmentIdx<F>) -> Option<&F>
     where
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
@@ -86,6 +98,7 @@ impl XmlnsLocalTransformerContext<'_> {
             .get_fragment(fragment_idx)
     }
 
+    /// Gets a mutable simple fragment by its ID.
     pub fn get_simple_fragment_mut<F>(&mut self, fragment_idx: &FragmentIdx<F>) -> Option<&mut F>
     where
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
@@ -96,6 +109,7 @@ impl XmlnsLocalTransformerContext<'_> {
             .get_fragment_mut(fragment_idx)
     }
 
+    /// Gets a named type by its local name within this namespace.
     pub fn get_named_type<'a>(
         &'a self,
         name: &'a LocalName<'_>,
@@ -103,6 +117,7 @@ impl XmlnsLocalTransformerContext<'_> {
         self.current_namespace().top_level_types.get(name)
     }
 
+    /// Gets a named attribute group by its local name within this namespace.
     pub fn get_named_attribute_group<'a>(
         &'a self,
         name: &'a LocalName<'_>,
@@ -114,6 +129,7 @@ impl XmlnsLocalTransformerContext<'_> {
 }
 
 impl crate::XmlnsContext {
+    /// Applies a local transformer to a specific namespace.
     pub fn local_transform<T: XmlnsLocalTransformer>(
         &mut self,
         namespace: &XmlNamespace<'_>,
@@ -128,6 +144,7 @@ impl crate::XmlnsContext {
         self.local_transform_id(&namespace, transformer)
     }
 
+    /// Applies a local transformer to a namespace by its ID.
     pub fn local_transform_id<T: XmlnsLocalTransformer>(
         &mut self,
         namespace: &NamespaceIdx,
@@ -139,6 +156,7 @@ impl crate::XmlnsContext {
             .transform(transformer)
     }
 
+    /// Applies a local transformer to all namespaces.
     pub fn local_transform_all<T: XmlnsLocalTransformer + Clone>(
         &mut self,
         transformer: T,
@@ -154,6 +172,7 @@ impl crate::XmlnsContext {
 }
 
 impl crate::CompiledNamespace {
+    /// Applies a local transformer to this namespace.
     pub fn transform<T: XmlnsLocalTransformer>(
         &mut self,
         transformer: T,

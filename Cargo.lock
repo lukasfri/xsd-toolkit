@@ -2352,25 +2352,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "xmlity-ns-xhtml"
-version = "0.0.0"
-dependencies = [
- "bon",
- "derive_more",
- "ntest",
- "pretty_assertions",
- "rstest",
- "syn 2.0.101",
- "thiserror",
- "xmlity",
- "xmlity-build",
- "xmlity-ns",
- "xmlity-ns-xml",
- "xmlity-ns-xs",
- "xmlity-quick-xml",
-]
-
-[[package]]
 name = "xmlity-ns-xml"
 version = "0.0.0"
 dependencies = [

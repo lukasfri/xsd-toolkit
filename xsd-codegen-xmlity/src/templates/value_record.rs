@@ -255,10 +255,6 @@ impl ItemRecord {
         mode: FieldMode,
         path: Option<&'a syn::Path>,
     ) -> impl Iterator<Item = Field> + use<'a> {
-        // self.fields.iter().map(move |(ident, field)| {
-        //     Self::field(&self.field_type, ident.as_ref(), field, mode, path)
-        // })
-
         match &self.fields {
             ItemFieldType::Named(items) => items
                 .iter()

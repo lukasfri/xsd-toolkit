@@ -721,7 +721,7 @@ fn xsd_all() -> xs::ComplexType {
                                         xs::AnyAttribute::from(xs::any_attribute_items::AnyAttribute::builder()
                                             .namespace(xs::types::NamespaceList::from(xs::types::SpecialNamespaceList::Other).into())
                                             .process_contents(
-                                                xs::any_attribute_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
+                                                xs::any_attribute_items::ProcessContentsValue::Lax,
                                             )
                                             .build()).into(),
                                     )
@@ -855,7 +855,7 @@ fn xsd_any_type() -> xs::ComplexType {
                                 .min_occurs(0)
                                 .max_occurs(xs::types::AllNNI::from(xs::types::all_nni_items::all_nni_variants::Variant0::Unbounded).into())
                                 .process_contents(
-                                    xs::any_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
+                                    xs::any_items::ProcessContentsValue::Lax,
                                 )
                                 .build())
                                 .into()])
@@ -868,7 +868,7 @@ fn xsd_any_type() -> xs::ComplexType {
                     .any_attribute(
                         xs::AnyAttribute::from(xs::any_attribute_items::AnyAttribute::builder()
                             .process_contents(
-                                xs::any_attribute_items::ProcessContentsValue::Lax, // xs::ProcessContentsType::Lax
+                                xs::any_attribute_items::ProcessContentsValue::Lax,
                             )
                             .build())
                             .into(),

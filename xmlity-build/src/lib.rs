@@ -27,7 +27,7 @@ use xsd_codegen_xmlity::{
 };
 use xsd_fragments::XmlnsContext;
 
-/// The `BuildEngine` struct is used to configure the build process, including allowed files, URLs, and bound namespaces.
+/// The [`BuildEngine`] struct is used to configure the build process, including allowed files, URLs, and bound namespaces.
 #[derive(Debug, Builder)]
 pub struct BuildEngine {
     /// A list of allowed files, which can be glob patterns.
@@ -74,7 +74,7 @@ pub struct GenerateNamespaceConfig {
     pub struct_from_impls: bool,
 }
 
-/// Error type for using the build engine.
+/// Error type for [`BuildEngine`] operations.
 #[derive(Debug, derive_more::derive::From, derive_more::derive::Display)]
 pub enum Error {
     /// Error when processing glob patterns.

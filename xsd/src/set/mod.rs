@@ -5,42 +5,65 @@ use crate::{link::UrlExt, xs, XmlSchema};
 use url::Url;
 use xmlity::{ExpandedName, XmlNamespace};
 
+/// A schema location containing its loaded schema.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SchemaLocation {
+    /// The loaded XML schema.
     pub schema: XmlSchema,
 }
 
+/// A set of XML schemas indexed by their URLs.
 pub struct XmlSchemaSet {
+    /// Map of URLs to their schema locations.
     pub locations: HashMap<Url, Option<SchemaLocation>>,
 }
 
+/// Errors that can occur when working with glob patterns.
 #[derive(Debug, thiserror::Error)]
 pub enum GlobError {
+    /// Pattern compilation error.
     #[error("Pattern error: {0}")]
     Pattern(#[from] glob::PatternError),
+    /// Glob iteration error.
     #[error("Glob error at index {index}: {error}")]
     Glob {
+        /// Index of the error.
         index: usize,
+        /// The underlying glob error.
         error: glob::GlobError,
     },
+    /// URL parsing error.
     #[error("Failed to parse URL")]
-    UrlParse { path: PathBuf },
+    UrlParse {
+        /// Path that failed to parse.
+        path: PathBuf,
+    },
 }
 
+/// Errors that can occur during schema set operations.
 #[derive(Debug, thiserror::Error)]
 pub enum Error<E> {
+    /// URL parsing error.
     #[error("Failed to parse URL")]
     UrlParse(#[from] url::ParseError),
+    /// Schema resolution error.
     #[error("Failed to resolve URL: {error}")]
-    ResolveError { error: E },
+    ResolveError {
+        /// The underlying error.
+        error: E,
+    },
 }
 
+/// Reference to a top-level type definition.
 pub enum TopLevelType<'a> {
+    /// Simple type definition.
     SimpleType(&'a xs::types::TopLevelSimpleType),
+    /// Complex type definition.
     ComplexType(&'a xs::types::TopLevelComplexType),
 }
 
 impl XmlSchemaSet {
+    /// Creates a new empty [`XmlSchemaSet`].
     pub fn new() -> Self {
         Self {
             locations: HashMap::new(),
@@ -55,6 +78,7 @@ impl Default for XmlSchemaSet {
 }
 
 impl XmlSchemaSet {
+    /// Informs the set about a location that should be tracked.
     pub fn inform_location(&mut self, location: &Url) {
         if !self.locations.contains_key(location) {
             // If the location is not already present, insert it with None
@@ -62,12 +86,14 @@ impl XmlSchemaSet {
         }
     }
 
+    /// Informs the set about multiple locations that should be tracked.
     pub fn inform_locations<T: IntoIterator<Item = Url>>(&mut self, locations: T) {
         locations.into_iter().for_each(|location| {
             self.inform_location(&location);
         });
     }
 
+    /// Informs the set about locations matching a glob pattern.
     pub fn inform_glob_pattern(&mut self, glob_pattern: &str) -> Result<(), GlobError> {
         glob::glob(glob_pattern)?
             .enumerate()
@@ -143,6 +169,7 @@ impl XmlSchemaSet {
         Ok(())
     }
 
+    /// Loads a schema from the given URL using the resolver.
     pub fn load_location<R: Fn(&Url) -> Result<xs::Schema, E>, E>(
         &mut self,
         resolver: &R,
@@ -160,6 +187,7 @@ impl XmlSchemaSet {
         Ok(true)
     }
 
+    /// Asynchronously loads a schema from the given URL using the resolver.
     pub async fn load_location_async<
         F: Future<Output = Result<xs::Schema, E>>,
         E,
@@ -183,6 +211,7 @@ impl XmlSchemaSet {
         Ok(true)
     }
 
+    /// Explores and loads all unloaded locations in the set.
     pub fn explore_locations<'a, E, R: Fn(&Url) -> Result<xs::Schema, E>>(
         &'a mut self,
         resolver: &'a R,
@@ -203,7 +232,7 @@ impl XmlSchemaSet {
         })
     }
 
-    // fn resolve_document(&self, location: &Url) -> Result<T, Self::Error>;
+    /// Asynchronously explores and loads all unloaded locations in the set.
     pub fn explore_locations_async<
         'a,
         F: Future<Output = Result<xs::Schema, E>>,
@@ -229,6 +258,7 @@ impl XmlSchemaSet {
         })
     }
 
+    /// Resolves a type by its expanded name.
     pub fn resolve_type(&self, name: &ExpandedName<'_>) -> Option<TopLevelType<'_>> {
         self.locations
             .iter()
@@ -274,6 +304,7 @@ impl XmlSchemaSet {
             .filter(move |schema| schema.namespace().as_ref() == namespace.as_ref())
     }
 
+    /// Resolves type inheritance chain for a given type name.
     pub fn resolve_type_inheritance<'a>(
         &'a self,
         name: &'a ExpandedName<'a>,
@@ -399,6 +430,7 @@ impl XmlSchemaSet {
         }
     }
 
+    /// Resolves an element by its expanded name.
     pub fn resolve_element(&self, name: &ExpandedName<'_>) -> Option<&xs::types::TopLevelElement> {
         self.locations
             .iter()
@@ -411,6 +443,7 @@ impl XmlSchemaSet {
             })
     }
 
+    /// Resolves an attribute by its expanded name.
     pub fn resolve_attribute(
         &self,
         name: &ExpandedName<'_>,

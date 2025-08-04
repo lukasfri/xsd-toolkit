@@ -2,7 +2,9 @@ use std::str::FromStr;
 
 use url::Url;
 
+/// Extension trait for [`Url`] handling in XML contexts.
 pub trait UrlExt {
+    /// Resolves a relative XML link against this URL.
     fn resolve_xml_url(&self, relative_xml_link: &str) -> Result<Url, url::ParseError>;
 }
 

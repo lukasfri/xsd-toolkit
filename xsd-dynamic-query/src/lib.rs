@@ -7,12 +7,22 @@ use xsd_fragments::fragments::simple::{
     self as sm, Assertion, ExplicitTimezoneValue, Pattern, Value,
 };
 
+/// Error types for dynamic query operations.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// Named type was not found.
     #[error("Fragment not found in the context")]
-    TypeNotFound { name: ExpandedName<'static> },
+    TypeNotFound {
+        /// The name that was not found.
+        name: ExpandedName<'static>,
+    },
+    /// The named type is not a simple type.
     #[error("Type {name} is not a simple type")]
-    TypeNotSimpleType { name: ExpandedName<'static> },
+    TypeNotSimpleType {
+        /// The name of the type that is not simple.
+        name: ExpandedName<'static>,
+    },
+    /// Fragment was not found in the context.
     #[error("Fragment not found in the context")]
     FragmentNotFound {},
 }
@@ -22,19 +32,33 @@ pub enum Error {
 /// enumerations, patterns, and assertions that are extracted from the schema.
 #[derive(Default, Debug)]
 pub struct ParsedFacets<'a> {
+    /// Minimum length facet.
     pub min_length: Option<&'a usize>,
+    /// Maximum length facet.
     pub max_length: Option<&'a usize>,
+    /// Exact length facet.
     pub length: Option<&'a usize>,
+    /// Minimum inclusive value facet.
     pub min_inclusive: Option<&'a Value>,
+    /// Minimum exclusive value facet.
     pub min_exclusive: Option<&'a Value>,
+    /// Maximum inclusive value facet.
     pub max_inclusive: Option<&'a Value>,
+    /// Maximum exclusive value facet.
     pub max_exclusive: Option<&'a Value>,
+    /// Whitespace handling facet.
     pub white_space: Option<&'a sm::WhiteSpaceValue>,
+    /// Enumeration values.
     pub enumerations: Vec<&'a Value>,
+    /// Pattern restrictions.
     pub patterns: Vec<&'a Pattern>,
+    /// Assertion restrictions.
     pub assertions: Vec<&'a Assertion>,
+    /// Total digits facet.
     pub total_digits: Option<&'a NonZeroUsize>,
+    /// Fraction digits facet.
     pub fraction_digits: Option<&'a usize>,
+    /// Explicit timezone facet.
     pub explicit_timezone: Option<&'a ExplicitTimezoneValue>,
 }
 

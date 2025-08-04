@@ -31,7 +31,7 @@ impl StringBaseValue for String {
     }
 
     fn to_pattern_value(value: &syn::Expr) -> syn::Expr {
-        // In code: String::from("value")
+        // In code: String::as_str(&value)
         parse_quote!(::std::string::String::as_str(&#value))
     }
 

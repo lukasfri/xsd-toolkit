@@ -15,7 +15,7 @@ use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
 use xsd::{ns, xs};
 
-/// Extension trait for `ExpandedName` to handle default namespaces.
+/// Extension trait for [`ExpandedName`] to handle default namespaces.
 pub trait XmlNamespaceExt<'a> {
     /// Sets a default namespace if none is present.
     fn with_default_namespace<F: FnOnce() -> XmlNamespace<'a>>(self, f: F) -> Self;
@@ -286,32 +286,49 @@ pub struct LocalElementFragment {
     pub type_: LocalElementFragmentType,
 }
 
+/// Fragment representing a top-level element declaration.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TopLevelElementFragment {
+    /// Name of the element.
     pub name: LocalName<'static>,
+    /// Type of the element (named or anonymous).
     pub type_: Option<NamedOrAnonymous<ElementTypeContentId>>,
+    /// List of substitution groups this element belongs to.
     pub substitution_groups: Vec<ExpandedName<'static>>,
+    /// Whether the element is abstract.
     pub abstract_: bool,
 }
 
+/// Fragment representing a reference to a group.
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupRefFragment {
+    /// Minimum number of occurrences.
     pub min_occurs: Option<usize>,
+    /// Maximum number of occurrences.
     pub max_occurs: Option<AllNNI>,
+    /// Reference to the group.
     pub ref_: ExpandedName<'static>,
 }
 
+/// Fragment representing an "all" compositor.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AllFragment {
+    /// Minimum number of occurrences.
     pub min_occurs: Option<usize>,
+    /// Maximum number of occurrences.
     pub max_occurs: Option<AllNNI>,
+    /// Child particles.
     pub fragments: VecDeque<NestedParticleId>,
 }
 
+/// Fragment representing a "choice" compositor.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChoiceFragment {
+    /// Minimum number of occurrences.
     pub min_occurs: Option<usize>,
+    /// Maximum number of occurrences.
     pub max_occurs: Option<AllNNI>,
+    /// Child particles.
     pub fragments: VecDeque<NestedParticleId>,
 }
 
@@ -359,43 +376,63 @@ impl From<AllNNI> for xs::types::AllNNI {
     }
 }
 
+/// Fragment representing a "sequence" compositor.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SequenceFragment {
+    /// Optional identifier.
     pub id: Option<String>,
+    /// Minimum number of occurrences.
     pub min_occurs: Option<usize>,
+    /// Maximum number of occurrences.
     pub max_occurs: Option<AllNNI>,
+    /// Child particles.
     pub fragments: VecDeque<NestedParticleId>,
 }
 
+/// Identifier for complex type content models.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ComplexTypeModelId {
+    /// Simple content model.
     SimpleContent(FragmentIdx<SimpleContentFragment>),
+    /// Complex content model.
     ComplexContent(FragmentIdx<ComplexContentFragment>),
+    /// Other content model with particles and attributes.
     Other {
+        //TODO: Add open content
         // open_content: Option<OpenContentId>,
+        /// Optional particle content.
         particle: Option<TypeDefParticleId>,
+        /// Attribute declarations.
         attr_decls: FragmentIdx<AttributeDeclarationsFragment>,
     },
 }
 
+/// Fragment representing a complex type definition.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ComplexTypeRootFragment {
+    /// Optional name for named types.
     pub name: Option<LocalName<'static>>,
+    /// Content model of the complex type.
     pub content: ComplexTypeModelId,
+    /// Whether content is mixed.
     pub mixed: Option<bool>,
+    /// Whether the type is abstract.
     pub abstract_: Option<bool>,
 }
 
+/// Fragment representing any element wildcard.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AnyFragment {}
 
+/// Fragment representing any attribute wildcard.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AnyAttributeFragment {}
 
+/// Complex type fragment compiler responsible for converting XSD complex types to fragment representations.
 #[derive(Debug, Clone)]
 pub struct ComplexTypeFragmentCompiler {
     namespace: XmlNamespace<'static>,
-    /// The simple type compiler for this complex type compiler.
+    /// The [`SimpleTypeFragmentCompiler`] for this complex type compiler.
     pub simple_type_compiler: SimpleTypeFragmentCompiler,
     complex_types: FragmentCollection<ComplexTypeRootFragment>,
     simple_restrictions: FragmentCollection<SimpleRestrictionFragment>,
@@ -642,7 +679,7 @@ where
 }
 
 impl ComplexTypeFragmentCompiler {
-    /// Creates a new `ComplexTypeFragmentCompiler` with the given namespace and namespace index.
+    /// Creates a new [`ComplexTypeFragmentCompiler`] with the given namespace and namespace index.
     pub fn new(namespace: XmlNamespace<'static>, namespace_idx: NamespaceIdx) -> Self {
         Self::new_with_simple_compiler(
             namespace.clone(),
@@ -651,7 +688,7 @@ impl ComplexTypeFragmentCompiler {
         )
     }
 
-    /// Creates a new `ComplexTypeFragmentCompiler` with a given `SimpleTypeFragmentCompiler`.
+    /// Creates a new [`ComplexTypeFragmentCompiler`] with a given [`SimpleTypeFragmentCompiler`].
     pub fn new_with_simple_compiler(
         namespace: XmlNamespace<'static>,
         namespace_idx: NamespaceIdx,
@@ -709,9 +746,12 @@ impl AsRef<ComplexTypeFragmentCompiler> for ComplexTypeFragmentCompiler {
     }
 }
 
+/// Error types for complex fragment operations.
 #[derive(Debug, Clone)]
 pub enum Error {
+    /// Error from simple type processing.
     Simple(simple::Error),
+    /// Name is missing in top-level declaration.
     NameMissingInTopLevel,
 }
 
@@ -721,23 +761,30 @@ impl From<simple::Error> for Error {
     }
 }
 
+/// Trait for types that can be converted to and from [`ComplexTypeFragmentCompiler`] fragments.
 pub trait ComplexFragmentEquivalent: Sized {
+    /// The identifier type for the fragment.
     type FragmentId;
 
+    /// Converts this type to complex fragments.
     fn to_complex_fragments<T: AsMut<ComplexTypeFragmentCompiler>>(
         &self,
         compiler: T,
     ) -> Result<Self::FragmentId, Error>;
 
+    /// Reconstructs this type from complex fragments.
     fn from_complex_fragments<T: AsRef<ComplexTypeFragmentCompiler>>(
         compiler: T,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error>;
 }
 
+/// Identifier for element type content (simple or complex type).
 #[derive(Debug, Clone, PartialEq)]
 pub enum ElementTypeContentId {
+    /// Simple type content.
     SimpleType(FragmentIdx<simple::SimpleTypeRootFragment>),
+    /// Complex type content.
     ComplexType(FragmentIdx<ComplexTypeRootFragment>),
 }
 
@@ -1074,12 +1121,18 @@ impl ComplexFragmentEquivalent for xs::Any {
     }
 }
 
+/// Identifier for nested particles within complex type content.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum NestedParticleId {
+    /// Element particle.
     Element(FragmentIdx<LocalElementFragment>),
+    /// Group reference particle.
     Group(FragmentIdx<GroupRefFragment>),
+    /// Choice particle.
     Choice(FragmentIdx<ChoiceFragment>),
+    /// Sequence particle.
     Sequence(FragmentIdx<SequenceFragment>),
+    /// Any element wildcard particle.
     Any(FragmentIdx<AnyFragment>),
 }
 
@@ -2124,10 +2177,14 @@ impl ComplexFragmentEquivalent for xs::types::LocalComplexType {
     }
 }
 
+/// Identifier for named group type content.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum NamedGroupTypeContentId {
+    /// All compositor content.
     All(FragmentIdx<AllFragment>),
+    /// Sequence compositor content.
     Sequence(FragmentIdx<SequenceFragment>),
+    /// Choice compositor content.
     Choice(FragmentIdx<ChoiceFragment>),
 }
 

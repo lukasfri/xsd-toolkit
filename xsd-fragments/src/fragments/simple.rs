@@ -243,7 +243,7 @@ impl AsRef<SimpleTypeFragmentCompiler> for SimpleTypeFragmentCompiler {
 }
 
 impl SimpleTypeFragmentCompiler {
-    /// Creates a new `SimpleTypeFragmentCompiler` with the given namespace and namespace index.
+    /// Creates a new [`SimpleTypeFragmentCompiler`] with the given namespace and namespace index.
     pub fn new(namespace: XmlNamespace<'static>, namespace_idx: NamespaceIdx) -> Self {
         Self {
             namespace,
@@ -343,7 +343,7 @@ where
     }
 }
 
-/// Error type for simple type fragment operations.
+/// Error type for [`SimpleTypeFragmentCompiler`] operations.
 #[derive(Debug, Clone)]
 pub enum Error {
     /// List type is missing its item type definition.

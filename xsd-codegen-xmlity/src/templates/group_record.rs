@@ -63,9 +63,6 @@ impl GroupRecord {
                 .into_iter(),
             ElementFieldType::Empty => vec![].into_iter(),
         }
-        // self.fields
-        //     .iter()
-        //     .map(move |(ident, field)| field.to_field(&self.field_type, ident.as_ref(), mode, path))
     }
 
     pub fn option_attributes(&self) -> impl Iterator<Item = syn::MetaNameValue> {
