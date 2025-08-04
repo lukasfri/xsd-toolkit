@@ -57,7 +57,7 @@ pub mod types {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -168,7 +168,7 @@ pub mod types {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -285,7 +285,7 @@ pub mod types {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -371,7 +371,7 @@ pub mod types {
                     match self {
                         Variant1ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -493,9 +493,7 @@ pub mod types {
             ) -> ::core::result::Result<(), ::core::fmt::Error> {
                 match self {
                     DerivationControlParseError::NonExistent { value } => {
-                        write!(
-                            f, "Value '{:?}' does not exist in the enumeration", value
-                        )
+                        write!(f, "Value '{value:?}' does not exist in the enumeration")
                     }
                 }
             }
@@ -596,7 +594,7 @@ pub mod types {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -717,9 +715,7 @@ pub mod types {
             ) -> ::core::result::Result<(), ::core::fmt::Error> {
                 match self {
                     FormChoiceParseError::NonExistent { value } => {
-                        write!(
-                            f, "Value '{:?}' does not exist in the enumeration", value
-                        )
+                        write!(f, "Value '{value:?}' does not exist in the enumeration")
                     }
                 }
             }
@@ -808,7 +804,7 @@ pub mod types {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -1012,7 +1008,7 @@ pub mod types {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -1126,7 +1122,7 @@ pub mod types {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -1236,9 +1232,7 @@ pub mod types {
             ) -> ::core::result::Result<(), ::core::fmt::Error> {
                 match self {
                     ReducedDerivationControlParseError::NonExistent { value } => {
-                        write!(
-                            f, "Value '{:?}' does not exist in the enumeration", value
-                        )
+                        write!(f, "Value '{value:?}' does not exist in the enumeration")
                     }
                 }
             }
@@ -1332,7 +1326,7 @@ pub mod types {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -1419,7 +1413,7 @@ pub mod types {
                     match self {
                         Variant1ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -1538,9 +1532,7 @@ pub mod types {
             ) -> ::core::result::Result<(), ::core::fmt::Error> {
                 match self {
                     SpecialNamespaceListParseError::NonExistent { value } => {
-                        write!(
-                            f, "Value '{:?}' does not exist in the enumeration", value
-                        )
+                        write!(f, "Value '{value:?}' does not exist in the enumeration")
                     }
                 }
             }
@@ -1631,9 +1623,7 @@ pub mod types {
             ) -> ::core::result::Result<(), ::core::fmt::Error> {
                 match self {
                     TypeDerivationControlParseError::NonExistent { value } => {
-                        write!(
-                            f, "Value '{:?}' does not exist in the enumeration", value
-                        )
+                        write!(f, "Value '{value:?}' does not exist in the enumeration")
                     }
                 }
             }
@@ -1732,7 +1722,7 @@ pub mod types {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -1849,9 +1839,7 @@ pub mod types {
             ) -> ::core::result::Result<(), ::core::fmt::Error> {
                 match self {
                     TestEnumParseError::NonExistent { value } => {
-                        write!(
-                            f, "Value '{:?}' does not exist in the enumeration", value
-                        )
+                        write!(f, "Value '{value:?}' does not exist in the enumeration")
                     }
                 }
             }
@@ -1935,7 +1923,7 @@ pub mod types {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -2172,9 +2160,7 @@ pub mod types {
             ) -> ::core::result::Result<(), ::core::fmt::Error> {
                 match self {
                     UseValueParseError::NonExistent { value } => {
-                        write!(
-                            f, "Value '{:?}' does not exist in the enumeration", value
-                        )
+                        write!(f, "Value '{value:?}' does not exist in the enumeration")
                     }
                 }
             }
@@ -3182,7 +3168,7 @@ pub mod types {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -3295,9 +3281,7 @@ pub mod types {
             ) -> ::core::result::Result<(), ::core::fmt::Error> {
                 match self {
                     ProcessContentsValueParseError::NonExistent { value } => {
-                        write!(
-                            f, "Value '{:?}' does not exist in the enumeration", value
-                        )
+                        write!(f, "Value '{value:?}' does not exist in the enumeration")
                     }
                 }
             }
@@ -4062,9 +4046,7 @@ pub mod any_items {
             ) -> ::core::result::Result<(), ::core::fmt::Error> {
                 match self {
                     Variant0ParseError::NonExistent { value } => {
-                        write!(
-                            f, "Value '{:?}' does not exist in the enumeration", value
-                        )
+                        write!(f, "Value '{value:?}' does not exist in the enumeration")
                     }
                 }
             }
@@ -4175,7 +4157,7 @@ pub mod any_items {
         ) -> ::core::result::Result<(), ::core::fmt::Error> {
             match self {
                 ProcessContentsValueParseError::NonExistent { value } => {
-                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                    write!(f, "Value '{value:?}' does not exist in the enumeration")
                 }
             }
         }
@@ -4322,9 +4304,7 @@ pub mod any_attribute_items {
             ) -> ::core::result::Result<(), ::core::fmt::Error> {
                 match self {
                     Variant0ParseError::NonExistent { value } => {
-                        write!(
-                            f, "Value '{:?}' does not exist in the enumeration", value
-                        )
+                        write!(f, "Value '{value:?}' does not exist in the enumeration")
                     }
                 }
             }
@@ -4435,7 +4415,7 @@ pub mod any_attribute_items {
         ) -> ::core::result::Result<(), ::core::fmt::Error> {
             match self {
                 ProcessContentsValueParseError::NonExistent { value } => {
-                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                    write!(f, "Value '{value:?}' does not exist in the enumeration")
                 }
             }
         }
@@ -4843,7 +4823,7 @@ pub mod default_open_content_items {
         ) -> ::core::result::Result<(), ::core::fmt::Error> {
             match self {
                 ModeValueParseError::NonExistent { value } => {
-                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                    write!(f, "Value '{value:?}' does not exist in the enumeration")
                 }
             }
         }
@@ -5094,7 +5074,7 @@ pub mod explicit_timezone_items {
         ) -> ::core::result::Result<(), ::core::fmt::Error> {
             match self {
                 ValueValueParseError::NonExistent { value } => {
-                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                    write!(f, "Value '{value:?}' does not exist in the enumeration")
                 }
             }
         }
@@ -5961,7 +5941,7 @@ pub mod open_content_items {
         ) -> ::core::result::Result<(), ::core::fmt::Error> {
             match self {
                 ModeValueParseError::NonExistent { value } => {
-                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                    write!(f, "Value '{value:?}' does not exist in the enumeration")
                 }
             }
         }
@@ -6797,7 +6777,7 @@ pub mod white_space_items {
         ) -> ::core::result::Result<(), ::core::fmt::Error> {
             match self {
                 ValueValueParseError::NonExistent { value } => {
-                    write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                    write!(f, "Value '{value:?}' does not exist in the enumeration")
                 }
             }
         }

@@ -85,7 +85,7 @@ pub mod attributes {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
                             write!(
-                                f, "Value '{:?}' does not exist in the enumeration", value
+                                f, "Value '{value:?}' does not exist in the enumeration"
                             )
                         }
                     }
@@ -207,9 +207,7 @@ pub mod attributes {
             ) -> ::core::result::Result<(), ::core::fmt::Error> {
                 match self {
                     SpaceParseError::NonExistent { value } => {
-                        write!(
-                            f, "Value '{:?}' does not exist in the enumeration", value
-                        )
+                        write!(f, "Value '{value:?}' does not exist in the enumeration")
                     }
                 }
             }
