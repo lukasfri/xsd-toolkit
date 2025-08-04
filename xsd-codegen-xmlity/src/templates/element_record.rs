@@ -238,15 +238,15 @@ impl ElementFieldType {
                 Self::Named(new_items) => {
                     items.splice(0..0, new_items);
                 }
-                Self::Unnamed(_) => panic!("cannot prefix named fields with unnamed fields"),
                 Self::Empty => (),
+                Self::Unnamed(_) => panic!("cannot prefix named fields with unnamed fields"),
             },
             Self::Unnamed(items) => match new {
-                Self::Named(_) => panic!("cannot prefix unnamed fields with named fields"),
                 Self::Unnamed(new_items) => {
                     items.splice(0..0, new_items);
                 }
                 Self::Empty => (),
+                Self::Named(_) => panic!("cannot prefix unnamed fields with named fields"),
             },
             Self::Empty => *self = new,
         }

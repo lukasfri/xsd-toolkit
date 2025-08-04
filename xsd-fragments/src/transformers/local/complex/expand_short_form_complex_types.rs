@@ -59,12 +59,14 @@ impl ExpandShortFormComplexTypes {
         let ComplexTypeModelId::Other {
             particle,
             attr_decls,
+            assertions,
         } = &root_fragment.content
         else {
             return Ok(TransformChange::Unchanged);
         };
         let content_fragment = *particle;
         let attribute_declarations = *attr_decls;
+        let assertions = *assertions;
 
         let compiler = &mut ctx.current_namespace_mut().complex_type_compiler;
 
@@ -72,6 +74,7 @@ impl ExpandShortFormComplexTypes {
             base: xsn::ANY_TYPE.clone(),
             content_fragment,
             attribute_declarations,
+            assertions,
         });
 
         let complex_content = compiler.push_fragment(cx::ComplexContentFragment {

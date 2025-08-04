@@ -2,6 +2,8 @@
 
 use std::collections::VecDeque;
 
+use xmlity::ExpandedName;
+
 use crate::fragments::{
     complex::{
         AttributeDeclarationId, AttributeDeclarationsFragment, AttributeGroupRefFragment,
@@ -24,6 +26,12 @@ pub enum Error {
     /// When merging attributes, the type modes must be compatible.
     #[error("When merging, the attribute type modes must be the same")]
     MismatchedAttributeModes,
+    /// When an attribute group is referenced, but the group is not found in the context.
+    #[error("Named attribute group not found: {name}")]
+    NamedAttributeGroupNotFound {
+        /// The name of the attribute group that was not found.
+        name: ExpandedName<'static>,
+    },
 }
 
 impl ExpandAttributeDeclarations {
@@ -199,17 +207,10 @@ impl ExpandAttributeDeclarations {
 
                     let group = context
                         .get_named_attribute_group(&attribute_fragment.ref_)
-                        .unwrap_or_else(|| {
-                            panic!(
-                                "Named attribute group not found for ref: {}:{}",
-                                attribute_fragment.ref_.local_name(),
-                                attribute_fragment
-                                    .ref_
-                                    .namespace()
-                                    .as_ref()
-                                    .map_or("None", |ns| ns.as_str())
-                            )
-                        });
+                        .ok_or_else(|| Error::NamedAttributeGroupNotFound {
+                            name: attribute_fragment.ref_.clone(),
+                        })?;
+
                     let group = context
                         .get_complex_fragment(&group.root_fragment)
                         .expect("Fragment not found in compiler.");

@@ -154,7 +154,7 @@ impl<'a, T: IntoIterator<Item = (&'a Ident, &'a syn::Pat)>, F: FnOnce(&syn::Expr
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         #ident::NonExistent { value } => {
-                            write!(f, "Value '{:?}' does not exist in the enumeration", value)
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }

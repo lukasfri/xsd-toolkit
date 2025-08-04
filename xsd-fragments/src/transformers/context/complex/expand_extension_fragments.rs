@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 
 use xmlity::ExpandedName;
 
+use crate::fragments::complex::AssertionsFragment;
 use crate::fragments::complex::AttributeDeclarationId;
 use crate::fragments::complex::AttributeDeclarationsFragment;
 use crate::fragments::complex::ComplexContentChildId;
@@ -40,6 +41,16 @@ pub enum Error {
     BaseNotComplexType {
         /// The base type that is not a complex type.
         base: ExpandedName<'static>,
+    },
+    /// Base attribute group exists.
+    #[error("Base attribute group exists")]
+    BaseAttributeGroupExists {
+        //TODO: Add more context.
+    },
+    /// Child attribute group exists.
+    #[error("Child attribute group exists")]
+    ChildAttributeGroupExists {
+        //TODO: Add more context.
     },
 }
 
@@ -116,24 +127,28 @@ impl ExpandExtensionFragments {
             .declarations
             .iter()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(ctx, a)),
-                AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
+                AttributeDeclarationId::Attribute(a) => Ok((*a, resolve_attr_name(ctx, a))),
+                AttributeDeclarationId::AttributeGroupRef(_) => {
+                    Err(Error::BaseAttributeGroupExists {})
+                }
             })
-            .collect::<BTreeMap<_, _>>();
+            .collect::<Result<BTreeMap<_, _>, _>>()?;
         let resolved_child_attributes = child_attribute_fragment
             .declarations
             .iter()
             .map(|a| match a {
-                AttributeDeclarationId::Attribute(a) => (*a, resolve_attr_name(ctx, a)),
-                AttributeDeclarationId::AttributeGroupRef(_) => todo!(),
+                AttributeDeclarationId::Attribute(a) => Ok((*a, resolve_attr_name(ctx, a))),
+                AttributeDeclarationId::AttributeGroupRef(_) => {
+                    Err(Error::ChildAttributeGroupExists {})
+                }
             })
-            .collect::<BTreeMap<_, _>>();
+            .collect::<Result<BTreeMap<_, _>, _>>()?;
 
         let mut new_attribute_declarations = VecDeque::new();
 
         for base_attribute in base_attribute_fragment.declarations.iter() {
             let AttributeDeclarationId::Attribute(base_attribute) = base_attribute else {
-                todo!()
+                unreachable!("Can only expand attributes, not attribute groups.");
             };
 
             let base_attribute_name = resolved_base_attributes
@@ -158,7 +173,7 @@ impl ExpandExtensionFragments {
         // Now we iterate through children attributes and only add those that have not been added yet because they were in the base.
         for child_attribute in child_attribute_fragment.declarations.iter() {
             let AttributeDeclarationId::Attribute(child_attribute) = child_attribute else {
-                todo!()
+                unreachable!("Can only expand attributes, not attribute groups.");
             };
 
             let child_attribute_name = resolved_child_attributes
@@ -182,6 +197,28 @@ impl ExpandExtensionFragments {
         child_attribute_fragment.declarations = new_attribute_declarations;
 
         Ok(child_attributes)
+    }
+
+    fn expand_expanded_assertions(
+        ctx: &mut XmlnsContextTransformerContext<'_>,
+        child_assertions: FragmentIdx<AssertionsFragment>,
+        base_assertions: FragmentIdx<AssertionsFragment>,
+    ) -> Result<FragmentIdx<AssertionsFragment>, <Self as XmlnsContextTransformer>::Error> {
+        let base_assertions = ctx
+            .get_complex_fragment(&base_assertions)
+            .expect("Fragment not found in compiler.")
+            .assertions
+            .clone();
+
+        let child_assertions_fragment = ctx
+            .get_complex_fragment_mut(&child_assertions)
+            .expect("Fragment not found in compiler.");
+
+        base_assertions.into_iter().for_each(|value| {
+            child_assertions_fragment.assertions.push_front(value);
+        });
+
+        Ok(child_assertions)
     }
 
     fn expand_extension(
@@ -223,13 +260,14 @@ impl ExpandExtensionFragments {
             .get_complex_fragment::<ComplexTypeRootFragment>(&base_fragment.root_fragment)
             .expect("Fragment not found in compiler.");
 
-        let (base_content_content_fragment_id, base_content_base, base_attributes) =
+        let (base_content_content_fragment_id, base_content_base, base_attributes, base_assertions) =
             match base_root_fragment.content {
                 ComplexTypeModelId::Other {
                     particle,
                     attr_decls,
+                    assertions,
                     ..
-                } => (particle, xsn::ANY_TYPE.clone(), attr_decls),
+                } => (particle, xsn::ANY_TYPE.clone(), attr_decls, assertions),
                 ComplexTypeModelId::SimpleContent(_) => {
                     //TODO
                     return Ok(TransformChange::Unchanged);
@@ -250,6 +288,7 @@ impl ExpandExtensionFragments {
                                 base_extension_fragment.content_fragment,
                                 base_extension_fragment.base.clone(),
                                 base_extension_fragment.attribute_declarations,
+                                base_extension_fragment.assertions.clone(),
                             )
                         }
                         ComplexContentChildId::Restriction(fragment_idx) => {
@@ -266,6 +305,7 @@ impl ExpandExtensionFragments {
                                 base_restriction_fragment.content_fragment,
                                 base_restriction_fragment.base.clone(),
                                 base_restriction_fragment.attribute_declarations,
+                                base_restriction_fragment.assertions.clone(),
                             )
                         }
                     }
@@ -273,6 +313,8 @@ impl ExpandExtensionFragments {
             };
 
         let child_attributes = child_fragment.attribute_declarations;
+
+        let child_assertions = child_fragment.assertions;
 
         let new_content_fragment = child_fragment
             .content_fragment
@@ -288,8 +330,16 @@ impl ExpandExtensionFragments {
                     min_occurs: None,
                     fragments: {
                         let mut fragments = VecDeque::with_capacity(2);
-                        fragments.push_back(base_content_content_fragment_id.into());
-                        fragments.push_back(child_content_content_fragment_id.into());
+                        fragments.push_back(
+                            base_content_content_fragment_id
+                                .try_into()
+                                .expect("TODO: Error handling for conversion failure"),
+                        );
+                        fragments.push_back(
+                            child_content_content_fragment_id
+                                .try_into()
+                                .expect("TODO: Error handling for conversion failure"),
+                        );
                         fragments
                     },
                 };
@@ -310,10 +360,14 @@ impl ExpandExtensionFragments {
         let new_attribute_declarations =
             Self::expand_expanded_attributes(ctx, child_attributes, base_attributes)?;
 
+        let new_assertions =
+            Self::expand_expanded_assertions(ctx, child_assertions, base_assertions)?;
+
         let new_child_content = RestrictionFragment {
             base: base_content_base,
             content_fragment: new_content_fragment,
             attribute_declarations: new_attribute_declarations,
+            assertions: new_assertions,
         };
 
         let ns = &mut ctx

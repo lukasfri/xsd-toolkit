@@ -46,6 +46,18 @@ pub enum Error {
         /// The base type that was attempted to be restricted.
         base: ExpandedName<'static>,
     },
+    /// The base type that was attempted to be restricted cannot be simple content.
+    #[error("Base type {base:?} cannot be simple content. Only complex types with complex content can be restricted.")]
+    BaseContentCannotBeSimpleContent {
+        /// The base type that was attempted to be restricted.
+        base: ExpandedName<'static>,
+    },
+    /// The base type that was attempted to be restricted cannot be standalone.
+    #[error("Base type {base:?} cannot be standalone. Only complex types with complex content can be restricted.")]
+    BaseContentCannotBeStandalone {
+        /// The base type that was attempted to be restricted.
+        base: ExpandedName<'static>,
+    },
     /// Cannot restrict a base type to an extension type, only complex types can be extended.
     #[error("Cannot restrict base type {base:?} to an extension type. Only complex types can be extended.")]
     BaseCannotBeExtensionType {
@@ -244,11 +256,12 @@ impl ExpandRestrictionFragments {
 
         let base_complex_content_id = match base_root_fragment.content {
             ComplexTypeModelId::ComplexContent(base_complex_content_id) => base_complex_content_id,
-            ComplexTypeModelId::SimpleContent(_) => todo!(),
-            ComplexTypeModelId::Other {
-                particle: _,
-                attr_decls: _,
-            } => todo!(),
+            ComplexTypeModelId::SimpleContent(_) => {
+                return Err(Error::BaseContentCannotBeSimpleContent { base: base.clone() })
+            }
+            ComplexTypeModelId::Other { .. } => {
+                return Err(Error::BaseContentCannotBeStandalone { base: base.clone() })
+            }
         };
 
         let base_content_fragment = ctx

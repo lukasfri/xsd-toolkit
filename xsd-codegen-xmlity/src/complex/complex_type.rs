@@ -269,6 +269,7 @@ impl ComplexToTypeTemplate<cx::ComplexTypeModelId> for ComplexTypeModelHandler {
             cx::ComplexTypeModelId::Other {
                 particle,
                 attr_decls,
+                ..
             } => {
                 let (ident, mut template) = particle
                     .as_ref()

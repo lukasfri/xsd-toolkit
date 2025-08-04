@@ -1,6 +1,6 @@
 //! Simple type fragments for XSD processing.
 
-use std::num::NonZeroUsize;
+use std::{any::type_name, num::NonZeroUsize};
 use xsd::{ns, xs};
 
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
@@ -14,13 +14,6 @@ use crate::{
 };
 use std::collections::VecDeque;
 
-/// Fragment representing a simple type extension.
-#[derive(Debug, Clone, PartialEq)]
-pub struct ExtensionFragment {
-    /// The base type being extended.
-    pub base: ExpandedName<'static>,
-}
-
 /// Fragment representing a simple type restriction.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RestrictionFragment {
@@ -30,6 +23,8 @@ pub struct RestrictionFragment {
     pub facets: Vec<FragmentIdx<FacetFragment>>,
     /// Inline simple type definition.
     pub simple_type: Option<FragmentIdx<SimpleTypeRootFragment>>,
+    /// ID attribute for the restriction.
+    pub id: Option<String>,
 }
 
 /// Root fragment for a simple type definition.
@@ -46,6 +41,8 @@ pub struct SimpleTypeRootFragment {
 pub struct ListFragment {
     /// Type of items in the list.
     pub item_type: NamedOrAnonymous<FragmentIdx<SimpleTypeRootFragment>>,
+    /// ID attribute for the list.
+    pub id: Option<String>,
 }
 
 /// Fragment representing a union type.
@@ -55,6 +52,8 @@ pub struct UnionFragment {
     pub member_types: VecDeque<ExpandedName<'static>>,
     /// Inline simple type definitions.
     pub simple_types: VecDeque<FragmentIdx<SimpleTypeRootFragment>>,
+    /// ID attribute for the union.
+    pub id: Option<String>,
 }
 
 /// Fragment representing a group reference.
@@ -223,7 +222,6 @@ pub struct SimpleTypeFragmentCompiler {
     namespace: XmlNamespace<'static>,
     simple_types: FragmentCollection<SimpleTypeRootFragment>,
     restrictions: FragmentCollection<RestrictionFragment>,
-    extensions: FragmentCollection<ExtensionFragment>,
     facets: FragmentCollection<FacetFragment>,
     lists: FragmentCollection<ListFragment>,
     unions: FragmentCollection<UnionFragment>,
@@ -249,7 +247,6 @@ impl SimpleTypeFragmentCompiler {
             namespace,
             simple_types: FragmentCollection::new(namespace_idx),
             restrictions: FragmentCollection::new(namespace_idx),
-            extensions: FragmentCollection::new(namespace_idx),
             facets: FragmentCollection::new(namespace_idx),
             lists: FragmentCollection::new(namespace_idx),
             unions: FragmentCollection::new(namespace_idx),
@@ -273,15 +270,6 @@ impl HasFragmentCollection<RestrictionFragment> for SimpleTypeFragmentCompiler {
     }
     fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<RestrictionFragment> {
         &mut self.restrictions
-    }
-}
-
-impl HasFragmentCollection<ExtensionFragment> for SimpleTypeFragmentCompiler {
-    fn get_fragment_collection(&self) -> &FragmentCollection<ExtensionFragment> {
-        &self.extensions
-    }
-    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<ExtensionFragment> {
-        &mut self.extensions
     }
 }
 
@@ -348,6 +336,11 @@ where
 pub enum Error {
     /// List type is missing its item type definition.
     ListMissingType,
+    /// Substitution group is not supported.
+    SubstitutionGroupNotSupported {
+        /// Name of the element with unsupported substitution group.
+        fragment_type: &'static str,
+    },
 }
 
 /// Trait for types that can be converted to and from simple type fragments.
@@ -493,14 +486,76 @@ impl SimpleFragmentEquivalent for xs::types::SimpleRestrictionType {
             base: Some(base),
             facets,
             simple_type,
+            id: self.id.clone(),
         }))
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        let base = xs::types::QName(
+            fragment
+                .base
+                .clone()
+                .unwrap_or_else(|| panic!("Base type must be present for SimpleRestrictionType")),
+        );
+
+        let simple_restriction_model =
+            if fragment.simple_type.is_some() || !fragment.facets.is_empty() {
+                let simple_type = fragment
+                    .simple_type
+                    .as_ref()
+                    .map(|simple_type| {
+                        xs::types::LocalSimpleType::from_simple_fragments(compiler, simple_type)
+                    })
+                    .transpose()?;
+
+                let facets = fragment
+                    .facets
+                    .iter()
+                    .map(|facet| xs::Facet::from_simple_fragments(compiler, facet))
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                let child_1 = if facets.is_empty() {
+                    None
+                } else {
+                    Some(
+                        facets
+                            .into_iter()
+                            .map(xs::groups::simple_restriction_model_items::Child1::from)
+                            .collect(),
+                    )
+                };
+
+                Some(
+                    xs::types::simple_restriction_type_items::SimpleRestrictionModel::builder()
+                        .simple_restriction_model(Box::new(
+                            xs::groups::SimpleRestrictionModel::builder()
+                                .maybe_simple_type(simple_type.map(Box::new))
+                                .maybe_child_1(child_1)
+                                .build(),
+                        ))
+                        .build(),
+                )
+            } else {
+                None
+            };
+
+        Ok(xs::types::SimpleRestrictionType::builder()
+            .base(base)
+            .maybe_id(fragment.id.clone())
+            .any_attributes(ns::AnyAttributes::default())
+            .maybe_simple_restriction_model(simple_restriction_model)
+            .attr_decls(Box::new(xs::groups::AttrDecls::builder().build()))
+            .assertions(Box::new(xs::groups::Assertions::builder().build()))
+            .build())
     }
 }
 
@@ -527,7 +582,9 @@ impl SimpleFragmentEquivalent for xs::Facet {
             F::Pattern(f) => f.to_simple_fragments(compiler),
             F::Assertion(f) => f.to_simple_fragments(compiler),
             F::ExplicitTimezone(f) => f.to_simple_fragments(compiler),
-            F::Dynamic(_) => panic!("Dynamic facets are not supported in simple fragments"),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
         }
     }
 
@@ -541,95 +598,50 @@ impl SimpleFragmentEquivalent for xs::Facet {
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
 
-        let facet: xs::Facet = match fragment {
-            FacetFragment::Length { value } => xs::Length::from(
-                xs::types::NumFacet::builder()
-                    .value(*value)
-                    .any_attributes(ns::AnyAttributes::default())
-                    .build(),
-            )
-            .into(),
-            FacetFragment::MinLength { value } => xs::MinLength::from(
-                xs::types::NumFacet::builder()
-                    .value(*value)
-                    .any_attributes(ns::AnyAttributes::default())
-                    .build(),
-            )
-            .into(),
-            FacetFragment::MaxLength { value } => xs::MaxLength::from(
-                xs::types::NumFacet::builder()
-                    .value(*value)
-                    .any_attributes(ns::AnyAttributes::default())
-                    .build(),
-            )
-            .into(),
-            FacetFragment::MinExclusive { value } => {
-                xs::MinExclusive::from(xs::types::Facet::builder().value(value.0.clone()).build())
-                    .into()
+        match fragment {
+            FacetFragment::Length { .. } => {
+                xs::Length::from_simple_fragments(compiler, fragment_id).map(From::from)
             }
-            FacetFragment::MinInclusive { value } => {
-                xs::MinInclusive::from(xs::types::Facet::builder().value(value.0.clone()).build())
-                    .into()
+            FacetFragment::MinLength { .. } => {
+                xs::MinLength::from_simple_fragments(compiler, fragment_id).map(From::from)
             }
-            FacetFragment::MaxExclusive { value } => {
-                xs::MaxExclusive::from(xs::types::Facet::builder().value(value.0.clone()).build())
-                    .into()
+            FacetFragment::MaxLength { .. } => {
+                xs::MaxLength::from_simple_fragments(compiler, fragment_id).map(From::from)
             }
-            FacetFragment::MaxInclusive { value } => {
-                xs::MaxInclusive::from(xs::types::Facet::builder().value(value.0.clone()).build())
-                    .into()
+            FacetFragment::MinExclusive { .. } => {
+                xs::MinExclusive::from_simple_fragments(compiler, fragment_id).map(From::from)
             }
-            FacetFragment::Enumeration { value } => xs::Enumeration::from(
-                xs::types::NoFixedFacet::builder()
-                    .value(value.0.clone())
-                    .any_attributes(ns::AnyAttributes::default())
-                    .build(),
-            )
-            .into(),
-            FacetFragment::TotalDigits { value } => xs::TotalDigits::from(
-                xs::total_digits_items::TotalDigits::builder()
-                    .value(*value)
-                    .any_attributes(ns::AnyAttributes::default())
-                    .build(),
-            )
-            .into(),
-            FacetFragment::FractionDigits { value } => xs::FractionDigits::from(
-                xs::types::NumFacet::builder()
-                    .value(*value)
-                    .any_attributes(ns::AnyAttributes::default())
-                    .build(),
-            )
-            .into(),
-            FacetFragment::WhiteSpace { value } => xs::WhiteSpace::from(
-                xs::white_space_items::WhiteSpace::builder()
-                    .value(xs::white_space_items::ValueValue::from(*value))
-                    .any_attributes(ns::AnyAttributes::default())
-                    .build(),
-            )
-            .into(),
-            FacetFragment::Pattern { value } => xs::Pattern::from(
-                xs::pattern_items::Pattern::builder()
-                    .value(value.0.clone())
-                    .any_attributes(ns::AnyAttributes::default())
-                    .build(),
-            )
-            .into(),
-            FacetFragment::Assertion { test } => xs::Assertion::from(
-                xs::types::Assertion::builder()
-                    .maybe_test(test.as_ref().map(|a| a.0.clone()))
-                    .build(),
-            )
-            .into(),
-            FacetFragment::ExplicitTimezone { value } => xs::ExplicitTimezone::from(
-                xs::explicit_timezone_items::ExplicitTimezone::builder()
-                    .value(xs::explicit_timezone_items::ValueValue::from(*value))
-                    .any_attributes(ns::AnyAttributes::default())
-                    .build(),
-            )
-            .into(),
-        };
-
-        Ok(facet)
+            FacetFragment::MinInclusive { .. } => {
+                xs::MinInclusive::from_simple_fragments(compiler, fragment_id).map(From::from)
+            }
+            FacetFragment::MaxExclusive { .. } => {
+                xs::MaxExclusive::from_simple_fragments(compiler, fragment_id).map(From::from)
+            }
+            FacetFragment::MaxInclusive { .. } => {
+                xs::MaxInclusive::from_simple_fragments(compiler, fragment_id).map(From::from)
+            }
+            FacetFragment::Enumeration { .. } => {
+                xs::Enumeration::from_simple_fragments(compiler, fragment_id).map(From::from)
+            }
+            FacetFragment::TotalDigits { .. } => {
+                xs::TotalDigits::from_simple_fragments(compiler, fragment_id).map(From::from)
+            }
+            FacetFragment::FractionDigits { .. } => {
+                xs::FractionDigits::from_simple_fragments(compiler, fragment_id).map(From::from)
+            }
+            FacetFragment::WhiteSpace { .. } => {
+                xs::WhiteSpace::from_simple_fragments(compiler, fragment_id).map(From::from)
+            }
+            FacetFragment::Pattern { .. } => {
+                xs::Pattern::from_simple_fragments(compiler, fragment_id).map(From::from)
+            }
+            FacetFragment::Assertion { .. } => {
+                xs::Assertion::from_simple_fragments(compiler, fragment_id).map(From::from)
+            }
+            FacetFragment::ExplicitTimezone { .. } => {
+                xs::ExplicitTimezone::from_simple_fragments(compiler, fragment_id).map(From::from)
+            }
+        }
     }
 }
 
@@ -644,7 +656,11 @@ impl SimpleFragmentEquivalent for xs::MinExclusive {
 
         let facet = match self {
             xs::MinExclusive::MinExclusive(facet) => facet,
-            _ => panic!("Expected a minExclusive facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::MinExclusive {
@@ -653,10 +669,23 @@ impl SimpleFragmentEquivalent for xs::MinExclusive {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::MinExclusive { value } => Ok(xs::MinExclusive::from(
+                xs::types::Facet::builder().value(value.0.clone()).build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -671,7 +700,11 @@ impl SimpleFragmentEquivalent for xs::MinInclusive {
 
         let facet = match self {
             xs::MinInclusive::MinInclusive(facet) => facet,
-            _ => panic!("Expected a minInclusive facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::MinInclusive {
@@ -680,10 +713,23 @@ impl SimpleFragmentEquivalent for xs::MinInclusive {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::MinInclusive { value } => Ok(xs::MinInclusive::from(
+                xs::types::Facet::builder().value(value.0.clone()).build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -698,7 +744,11 @@ impl SimpleFragmentEquivalent for xs::MaxExclusive {
 
         let facet = match self {
             xs::MaxExclusive::MaxExclusive(facet) => facet,
-            _ => panic!("Expected a maxExclusive facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::MaxExclusive {
@@ -707,10 +757,23 @@ impl SimpleFragmentEquivalent for xs::MaxExclusive {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::MaxExclusive { value } => Ok(xs::MaxExclusive::from(
+                xs::types::Facet::builder().value(value.0.clone()).build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -725,7 +788,11 @@ impl SimpleFragmentEquivalent for xs::MaxInclusive {
 
         let facet = match self {
             xs::MaxInclusive::MaxInclusive(facet) => facet,
-            _ => panic!("Expected a maxInclusive facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::MaxInclusive {
@@ -734,10 +801,23 @@ impl SimpleFragmentEquivalent for xs::MaxInclusive {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::MaxInclusive { value } => Ok(xs::MaxInclusive::from(
+                xs::types::Facet::builder().value(value.0.clone()).build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -752,7 +832,11 @@ impl SimpleFragmentEquivalent for xs::Enumeration {
 
         let facet = match self {
             xs::Enumeration::Enumeration(facet) => facet,
-            _ => panic!("Expected an enumeration facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::Enumeration {
@@ -761,10 +845,26 @@ impl SimpleFragmentEquivalent for xs::Enumeration {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::Enumeration { value } => Ok(xs::Enumeration::from(
+                xs::types::NoFixedFacet::builder()
+                    .value(value.0.clone())
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -779,17 +879,37 @@ impl SimpleFragmentEquivalent for xs::TotalDigits {
 
         let facet = match self {
             xs::TotalDigits::TotalDigits(facet) => facet,
-            _ => panic!("Expected a total digits facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::TotalDigits { value: facet.value }))
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::TotalDigits { value } => Ok(xs::TotalDigits::from(
+                xs::total_digits_items::TotalDigits::builder()
+                    .value(*value)
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -804,17 +924,37 @@ impl SimpleFragmentEquivalent for xs::FractionDigits {
 
         let facet = match self {
             xs::FractionDigits::FractionDigits(facet) => facet,
-            _ => panic!("Expected a fraction digits facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::FractionDigits { value: facet.value }))
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::FractionDigits { value } => Ok(xs::FractionDigits::from(
+                xs::types::NumFacet::builder()
+                    .value(*value)
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -829,17 +969,37 @@ impl SimpleFragmentEquivalent for xs::Length {
 
         let facet = match self {
             xs::Length::Length(facet) => facet,
-            _ => panic!("Expected a length facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::Length { value: facet.value }))
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::Length { value } => Ok(xs::Length::from(
+                xs::types::NumFacet::builder()
+                    .value(*value)
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -854,17 +1014,37 @@ impl SimpleFragmentEquivalent for xs::MinLength {
 
         let facet = match self {
             xs::MinLength::MinLength(facet) => facet,
-            _ => panic!("Expected a min length facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::MinLength { value: facet.value }))
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::MinLength { value } => Ok(xs::MinLength::from(
+                xs::types::NumFacet::builder()
+                    .value(*value)
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -879,17 +1059,37 @@ impl SimpleFragmentEquivalent for xs::MaxLength {
 
         let facet = match self {
             xs::MaxLength::MaxLength(facet) => facet,
-            _ => panic!("Expected a max length facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::MaxLength { value: facet.value }))
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::MaxLength { value } => Ok(xs::MaxLength::from(
+                xs::types::NumFacet::builder()
+                    .value(*value)
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -904,7 +1104,11 @@ impl SimpleFragmentEquivalent for xs::WhiteSpace {
 
         let facet = match self {
             xs::WhiteSpace::WhiteSpace(facet) => facet,
-            _ => panic!("Expected a white space facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::WhiteSpace {
@@ -913,10 +1117,26 @@ impl SimpleFragmentEquivalent for xs::WhiteSpace {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::WhiteSpace { value } => Ok(xs::WhiteSpace::from(
+                xs::white_space_items::WhiteSpace::builder()
+                    .value(xs::white_space_items::ValueValue::from(*value))
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -931,7 +1151,11 @@ impl SimpleFragmentEquivalent for xs::Pattern {
 
         let facet = match self {
             xs::Pattern::Pattern(facet) => facet,
-            _ => panic!("Expected a pattern facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::Pattern {
@@ -940,10 +1164,26 @@ impl SimpleFragmentEquivalent for xs::Pattern {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::Pattern { value } => Ok(xs::Pattern::from(
+                xs::pattern_items::Pattern::builder()
+                    .value(value.0.clone())
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -958,7 +1198,11 @@ impl SimpleFragmentEquivalent for xs::Assertion {
 
         let facet = match self {
             xs::Assertion::Assertion(facet) => facet,
-            _ => panic!("Expected an assertion facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::Assertion {
@@ -967,10 +1211,25 @@ impl SimpleFragmentEquivalent for xs::Assertion {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::Assertion { test } => Ok(xs::Assertion::from(
+                xs::types::Assertion::builder()
+                    .maybe_test(test.as_ref().map(|a| a.0.clone()))
+                    .build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -985,7 +1244,11 @@ impl SimpleFragmentEquivalent for xs::ExplicitTimezone {
 
         let facet = match self {
             xs::ExplicitTimezone::ExplicitTimezone(facet) => facet,
-            _ => panic!("Expected an explicit timezone facet"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         Ok(compiler.push_fragment(FacetFragment::ExplicitTimezone {
@@ -994,10 +1257,26 @@ impl SimpleFragmentEquivalent for xs::ExplicitTimezone {
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
-        _fragment_id: &Self::FragmentId,
+        compiler: T,
+        fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        unimplemented!()
+        let compiler = compiler.as_ref();
+
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        match fragment {
+            FacetFragment::ExplicitTimezone { value } => Ok(xs::ExplicitTimezone::from(
+                xs::explicit_timezone_items::ExplicitTimezone::builder()
+                    .value(xs::explicit_timezone_items::ValueValue::from(*value))
+                    .any_attributes(ns::AnyAttributes::default())
+                    .build(),
+            )),
+            _ => Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            }),
+        }
     }
 }
 
@@ -1012,7 +1291,11 @@ impl SimpleFragmentEquivalent for xs::List {
 
         let list = match self {
             xs::List::List(list) => list,
-            _ => panic!("Expected a list"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         let item_type = if let Some(item_type) = list.item_type.as_ref() {
@@ -1024,7 +1307,10 @@ impl SimpleFragmentEquivalent for xs::List {
             return Err(Error::ListMissingType);
         };
 
-        Ok(compiler.push_fragment(ListFragment { item_type }))
+        Ok(compiler.push_fragment(ListFragment {
+            item_type,
+            id: list.id.clone(),
+        }))
     }
 
     fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
@@ -1051,6 +1337,7 @@ impl SimpleFragmentEquivalent for xs::List {
         Ok(xs::list_items::List::builder()
             .maybe_item_type(item_type)
             .maybe_simple_type(simple_type)
+            .maybe_id(fragment.id.clone())
             .build()
             .into())
     }
@@ -1087,7 +1374,11 @@ impl SimpleFragmentEquivalent for xs::Union {
 
         let union = match self {
             xs::Union::Union(union) => union,
-            _ => panic!("Expected a union"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         let member_types = union
@@ -1114,6 +1405,7 @@ impl SimpleFragmentEquivalent for xs::Union {
         Ok(compiler.push_fragment(UnionFragment {
             member_types,
             simple_types,
+            id: union.id.clone(),
         }))
     }
 
@@ -1156,6 +1448,7 @@ impl SimpleFragmentEquivalent for xs::Union {
         Ok(xs::union_items::Union::builder()
             .maybe_member_types(member_types)
             .maybe_simple_type(simple_type)
+            .maybe_id(fragment.id.clone())
             .build()
             .into())
     }
@@ -1172,7 +1465,11 @@ impl SimpleFragmentEquivalent for xs::Restriction {
 
         let restriction = match self {
             xs::Restriction::Restriction(restriction) => restriction,
-            _ => panic!("Expected a restriction"),
+            _ => {
+                return Err(Error::SubstitutionGroupNotSupported {
+                    fragment_type: type_name::<Self>(),
+                })
+            }
         };
 
         let base = restriction.base.as_ref().map(|a| a.0.clone());
@@ -1199,6 +1496,7 @@ impl SimpleFragmentEquivalent for xs::Restriction {
             base,
             simple_type,
             facets,
+            id: restriction.id.clone(),
         }))
     }
 
@@ -1241,6 +1539,7 @@ impl SimpleFragmentEquivalent for xs::Restriction {
 
         Ok(xs::restriction_items::Restriction::builder()
             .maybe_base(base)
+            .maybe_id(fragment.id.clone())
             .simple_restriction_model(
                 xs::groups::SimpleRestrictionModel::builder()
                     .maybe_simple_type(simple_type.map(Box::new))

@@ -50,6 +50,7 @@ impl FlattenNestedUnions {
             let UnionFragment {
                 member_types: sub_member_types,
                 simple_types: sub_simple_types,
+                ..
             } = ctx
                 .get_simple_fragment(&union_fragment_id)
                 .expect("Fragment not found in compiler.");
