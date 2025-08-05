@@ -341,6 +341,7 @@ pub enum Error {
         /// Name of the element with unsupported substitution group.
         fragment_type: &'static str,
     },
+    /// Name is missing in a top-level simple type.
     NameMissingInTopLevelSimpleType,
 }
 

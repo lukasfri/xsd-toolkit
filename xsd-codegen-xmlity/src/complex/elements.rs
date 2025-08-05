@@ -2,7 +2,7 @@ use std::{fmt::Debug, sync::Arc};
 
 use crate::{
     complex::{complex_type::ComplexTypeRootHandler, ComplexToTypeTemplateExt},
-    misc::{unbox_type, TypeReference},
+    misc::TypeReference,
     simple::{simple_type::SimpleTypeRootHandler, SimpleContext},
     templates::{
         choice,
@@ -17,7 +17,7 @@ use crate::{
 };
 
 use quote::format_ident;
-use syn::{parse_quote, Type};
+use syn::Type;
 use xsd_fragments::fragments::complex as cx;
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};

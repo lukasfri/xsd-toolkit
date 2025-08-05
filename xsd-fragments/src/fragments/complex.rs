@@ -920,6 +920,7 @@ pub enum Error {
         /// Name of the element without a type.
         name: LocalName<'static>,
     },
+    /// Name or reference is missing in a top-level element.
     NameOrRefMissingInTopLevelElement {},
     /// Substitution group is not supported.
     SubstitutionGroupNotSupported {
