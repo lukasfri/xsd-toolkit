@@ -268,25 +268,17 @@ impl XmlSchemaSet {
             .find_map(|a| match a {
                 xmlity_ns_xs::groups::Redefinable::SimpleType(simple_type) => {
                     match simple_type.deref() {
-                        xmlity_ns_xs::SimpleType::SimpleType(simple_type) => {
-                            if simple_type.name == *name.local_name() {
-                                Some(TopLevelType::SimpleType(simple_type.deref()))
-                            } else {
-                                None
-                            }
-                        }
+                        xmlity_ns_xs::SimpleType::SimpleType(simple_type) => (simple_type.name
+                            == *name.local_name())
+                        .then(|| TopLevelType::SimpleType(simple_type.deref())),
                         _ => None,
                     }
                 }
                 xmlity_ns_xs::groups::Redefinable::ComplexType(complex_type) => {
                     match complex_type.deref() {
-                        xmlity_ns_xs::ComplexType::ComplexType(complex_type) => {
-                            if complex_type.name == *name.local_name() {
-                                Some(TopLevelType::ComplexType(complex_type.deref()))
-                            } else {
-                                None
-                            }
-                        }
+                        xmlity_ns_xs::ComplexType::ComplexType(complex_type) => (complex_type.name
+                            == *name.local_name())
+                        .then(|| TopLevelType::ComplexType(complex_type.deref())),
                         _ => None,
                     }
                 }
@@ -335,7 +327,7 @@ impl XmlSchemaSet {
                             xs::groups::Redefinable::SimpleType(simple_type) => {
                                 match simple_type.deref() {
                                     xs::SimpleType::SimpleType(simple_type) => {
-                                        if simple_type.name == local_name {
+                                        (simple_type.name == local_name).then(|| {
                                             let type_ =
                                                 TopLevelType::SimpleType(simple_type.deref());
 
@@ -356,10 +348,8 @@ impl XmlSchemaSet {
                                                 SimpleDerivation::Union(_) => None,
                                             };
 
-                                            Some((type_, base))
-                                        } else {
-                                            None
-                                        }
+                                            (type_, base)
+                                        })
                                     }
                                     _ => None,
                                 }
@@ -367,7 +357,7 @@ impl XmlSchemaSet {
                             xs::groups::Redefinable::ComplexType(complex_type) => {
                                 match complex_type.deref() {
                                     xs::ComplexType::ComplexType(complex_type) => {
-                                        if complex_type.name == local_name {
+                                        (complex_type.name == local_name).then(|| {
                                             let type_ =
                                                 TopLevelType::ComplexType(complex_type.deref());
 
@@ -406,10 +396,8 @@ impl XmlSchemaSet {
                                                 ComplexTypeModel::Variant2(_) => None,
                                             };
 
-                                            Some((type_, base))
-                                        } else {
-                                            None
-                                        }
+                                            (type_, base)
+                                        })
                                     }
                                     _ => None,
                                 }

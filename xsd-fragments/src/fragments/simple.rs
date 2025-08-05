@@ -445,120 +445,6 @@ impl SimpleFragmentEquivalent for xs::types::LocalSimpleType {
     }
 }
 
-impl SimpleFragmentEquivalent for xs::types::SimpleRestrictionType {
-    type FragmentId = FragmentIdx<RestrictionFragment>;
-
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
-        &self,
-        mut compiler: T,
-    ) -> Result<Self::FragmentId, Error> {
-        let mut compiler = compiler.as_mut();
-
-        let base = self.base.0.clone();
-
-        let simple_restriction_model = self
-            .simple_restriction_model
-            .as_ref()
-            .map(|a| &a.simple_restriction_model);
-
-        let simple_type = simple_restriction_model
-            .and_then(|a| a.simple_type.as_ref())
-            .map(|simple_type| simple_type.to_simple_fragments(&mut compiler))
-            .transpose()?;
-
-        let facets = simple_restriction_model
-            .map(|a| {
-                a.child_1
-                    .iter()
-                    .filter_map(|a| match a {
-                        xs::groups::simple_restriction_model_items::Child1::Facet(facet) => {
-                            Some(facet)
-                        }
-                        _ => None,
-                    })
-                    .map(|facet| facet.to_simple_fragments(&mut compiler))
-                    .collect::<Result<Vec<_>, _>>()
-            })
-            .transpose()?
-            .unwrap_or_default();
-
-        Ok(compiler.push_fragment(RestrictionFragment {
-            base: Some(base),
-            facets,
-            simple_type,
-            id: self.id.clone(),
-        }))
-    }
-
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
-        fragment_id: &Self::FragmentId,
-    ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
-        let fragment = compiler
-            .get_fragment(fragment_id)
-            .expect("Fragment not found in compiler.");
-
-        let base = xs::types::QName(
-            fragment
-                .base
-                .clone()
-                .unwrap_or_else(|| panic!("Base type must be present for SimpleRestrictionType")),
-        );
-
-        let simple_restriction_model =
-            if fragment.simple_type.is_some() || !fragment.facets.is_empty() {
-                let simple_type = fragment
-                    .simple_type
-                    .as_ref()
-                    .map(|simple_type| {
-                        xs::types::LocalSimpleType::from_simple_fragments(compiler, simple_type)
-                    })
-                    .transpose()?;
-
-                let facets = fragment
-                    .facets
-                    .iter()
-                    .map(|facet| xs::Facet::from_simple_fragments(compiler, facet))
-                    .collect::<Result<Vec<_>, _>>()?;
-
-                let child_1 = if facets.is_empty() {
-                    None
-                } else {
-                    Some(
-                        facets
-                            .into_iter()
-                            .map(xs::groups::simple_restriction_model_items::Child1::from)
-                            .collect(),
-                    )
-                };
-
-                Some(
-                    xs::types::simple_restriction_type_items::SimpleRestrictionModel::builder()
-                        .simple_restriction_model(Box::new(
-                            xs::groups::SimpleRestrictionModel::builder()
-                                .maybe_simple_type(simple_type.map(Box::new))
-                                .maybe_child_1(child_1)
-                                .build(),
-                        ))
-                        .build(),
-                )
-            } else {
-                None
-            };
-
-        Ok(xs::types::SimpleRestrictionType::builder()
-            .base(base)
-            .maybe_id(fragment.id.clone())
-            .any_attributes(ns::AnyAttributes::default())
-            .maybe_simple_restriction_model(simple_restriction_model)
-            .attr_decls(Box::new(xs::groups::AttrDecls::builder().build()))
-            .assertions(Box::new(xs::groups::Assertions::builder().build()))
-            .build())
-    }
-}
-
 impl SimpleFragmentEquivalent for xs::Facet {
     type FragmentId = FragmentIdx<FacetFragment>;
 
@@ -1425,11 +1311,7 @@ impl SimpleFragmentEquivalent for xs::Union {
             .map(|name| xs::types::QName(name.clone()))
             .collect::<xsd::ns::List<_>>();
 
-        let member_types = if member_types.is_empty() {
-            None
-        } else {
-            Some(member_types)
-        };
+        let member_types = (!member_types.is_empty()).then_some(member_types);
 
         let simple_type = fragment
             .simple_types
@@ -1439,11 +1321,7 @@ impl SimpleFragmentEquivalent for xs::Union {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        let simple_type = if simple_type.is_empty() {
-            None
-        } else {
-            Some(simple_type)
-        };
+        let simple_type = (!simple_type.is_empty()).then_some(simple_type);
 
         Ok(xs::union_items::Union::builder()
             .maybe_member_types(member_types)
@@ -1526,16 +1404,12 @@ impl SimpleFragmentEquivalent for xs::Restriction {
             .map(|facet| xs::Facet::from_simple_fragments(compiler, facet))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let child_1 = if facets.is_empty() {
-            None
-        } else {
-            Some(
-                facets
-                    .into_iter()
-                    .map(xs::groups::simple_restriction_model_items::Child1::from)
-                    .collect(),
-            )
-        };
+        let child_1 = (!facets.is_empty()).then(|| {
+            facets
+                .into_iter()
+                .map(xs::groups::simple_restriction_model_items::Child1::from)
+                .collect()
+        });
 
         Ok(xs::restriction_items::Restriction::builder()
             .maybe_base(base)

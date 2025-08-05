@@ -63,34 +63,40 @@ impl ExpandExtensionFragments {
 
     fn expand_attribute(
         ctx: &mut XmlnsContextTransformerContext<'_>,
-        attribute: &FragmentIdx<LocalAttributeFragment>,
+        child_attribute: &FragmentIdx<LocalAttributeFragment>,
         base_attribute: &FragmentIdx<LocalAttributeFragment>,
     ) -> Result<(), <Self as XmlnsContextTransformer>::Error> {
         let base_attribute = ctx
             .get_complex_fragment(base_attribute)
             .expect("Fragment not found in compiler.")
             .clone();
-        let attribute = ctx
-            .get_complex_fragment_mut(attribute)
+        let child_attribute = ctx
+            .get_complex_fragment_mut(child_attribute)
             .expect("Fragment not found in compiler.");
 
-        let decl_base_attribute = match base_attribute.type_mode {
-            LocalAttributeFragmentTypeMode::Declared(local) => local,
-            _ => todo!(),
-        };
-        let decl_attribute = match &mut attribute.type_mode {
-            LocalAttributeFragmentTypeMode::Declared(local) => local,
-            _ => todo!(),
-        };
-
-        if attribute.use_.is_none() {
-            attribute.use_ = base_attribute.use_;
-        }
-        if decl_attribute.type_.is_none() {
-            decl_attribute.type_ = decl_base_attribute.type_;
+        if child_attribute.use_.is_none() {
+            child_attribute.use_ = base_attribute.use_;
         }
 
-        Ok(())
+        match (base_attribute.type_mode, &mut child_attribute.type_mode) {
+            (
+                LocalAttributeFragmentTypeMode::Declared(base),
+                LocalAttributeFragmentTypeMode::Declared(child),
+            ) => {
+                if child.type_.is_none() {
+                    child.type_ = base.type_;
+                }
+
+                Ok(())
+            }
+            (
+                LocalAttributeFragmentTypeMode::Reference(_base),
+                LocalAttributeFragmentTypeMode::Reference(_child),
+            ) => Ok(()),
+            _ => unreachable!(
+                "Cannot expand attributes with different type modes. These should never intersect."
+            ),
+        }
     }
 
     fn expand_expanded_attributes(
@@ -1487,5 +1493,190 @@ mod tests {
             .unwrap();
 
         assert_eq!(expected_flattened_a, actual_flattened_a);
+    }
+
+    #[test]
+    fn expand_ref_attribute() {
+        const TEST_NAMESPACE: XmlNamespace<'static> = XmlNamespace::XHTML;
+
+        // <xs:complexType name="parent">
+        //     <xs:complexContent>
+        //     <xs:sequence/>
+        //     <xs:attribute ref="attrs" use="required"/>
+        // </xs:complexType>
+        let parent = xs::types::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("parent"))
+            .complex_type_model(Box::new(
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ComplexRestrictionType::builder()
+                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                .child_1(
+                                    xs::types::complex_restriction_type_items::Child1::builder()
+                                        .type_def_particle(Box::new(
+                                            xs::Sequence::from(
+                                                xs::types::ExplicitGroup::builder()
+                                                    .nested_particle(vec![])
+                                                    .any_attributes(ns::AnyAttributes::default())
+                                                    .build(),
+                                            )
+                                            .into(),
+                                        ))
+                                        .build(),
+                                )
+                                .attr_decls(
+                                    xs::groups::AttrDecls::builder()
+                                        .attribute(vec![xs::types::Attribute::builder()
+                                            .ref_(xs::types::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("attrs"),
+                                                Some(XmlNamespace::XHTML),
+                                            )))
+                                            .use_(xs::types::attribute_items::UseValue::Required)
+                                            .build()
+                                            .into()])
+                                        .build()
+                                        .into(),
+                                )
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
+            ))
+            .any_attributes(ns::AnyAttributes::default())
+            .build()
+            .into();
+
+        // <xs:complexType name="child">
+        //     <xs:complexContent>
+        //         <xs:extension base="parent">
+        //             <xs:sequence/>
+        //             <xs:attribute ref="attrs" use="optional"/>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+        let child = xs::types::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("child"))
+            .complex_type_model(Box::new(
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ExtensionType::builder()
+                                .base(xs::types::QName(ExpandedName::new(
+                                    LocalName::new_dangerous("parent"),
+                                    Some(XmlNamespace::XHTML),
+                                )))
+                                .attr_decls(
+                                    xs::groups::AttrDecls::builder()
+                                        .attribute(vec![xs::types::Attribute::builder()
+                                            .ref_(xs::types::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("attrs"),
+                                                Some(XmlNamespace::XHTML),
+                                            )))
+                                            .use_(xs::types::attribute_items::UseValue::Optional)
+                                            .build()
+                                            .into()])
+                                        .build()
+                                        .into(),
+                                )
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
+            ))
+            .any_attributes(ns::AnyAttributes::default())
+            .build()
+            .into();
+
+        // <xs:complexType name="child">
+        //     <xs:complexContent>
+        //         <xs:restriction base="xs:anyType">
+        //             <xs:sequence/>
+        //             <xs:attribute ref="attrs" use="optional"/>
+        //         </xs:restriction>
+        //     </xs:complexContent>
+        // </xs:complexType>
+        let expected: xs::ComplexType = xs::types::TopLevelComplexType::builder()
+            .name(LocalName::new_dangerous("child"))
+            .complex_type_model(Box::new(
+                xs::ComplexContent::from(
+                    xs::complex_content_items::ComplexContent::builder()
+                        .child_1(
+                            xs::types::ComplexRestrictionType::builder()
+                                .base(xs::types::QName(xsn::ANY_TYPE.clone()))
+                                .child_1(
+                                    xs::types::complex_restriction_type_items::Child1::builder()
+                                        .type_def_particle(Box::new(
+                                            xs::Sequence::from(
+                                                xs::types::ExplicitGroup::builder()
+                                                    .nested_particle(vec![])
+                                                    .any_attributes(ns::AnyAttributes::default())
+                                                    .build(),
+                                            )
+                                            .into(),
+                                        ))
+                                        .build(),
+                                )
+                                .attr_decls(
+                                    xs::groups::AttrDecls::builder()
+                                        .attribute(vec![xs::types::Attribute::builder()
+                                            .ref_(xs::types::QName(ExpandedName::new(
+                                                LocalName::new_dangerous("attrs"),
+                                                Some(XmlNamespace::XHTML),
+                                            )))
+                                            .use_(xs::types::attribute_items::UseValue::Optional)
+                                            .build()
+                                            .into()])
+                                        .build()
+                                        .into(),
+                                )
+                                .assertions(xs::groups::Assertions::builder().build().into())
+                                .any_attributes(ns::AnyAttributes::default())
+                                .build()
+                                .into(),
+                        )
+                        .build(),
+                )
+                .into(),
+            ))
+            .any_attributes(ns::AnyAttributes::default())
+            .build()
+            .into();
+
+        let mut ctx = XmlnsContext::new();
+        let ns = ctx.init_namespace(TEST_NAMESPACE);
+
+        ns.import_top_level_complex_type(&parent).unwrap();
+        let child = ns
+            .import_top_level_complex_type(&child)
+            .unwrap()
+            .local_name()
+            .clone()
+            .into_owned();
+
+        let transform_changed = ctx
+            .context_transform(ExpandExtensionFragments::new())
+            .unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Changed);
+
+        let transform_changed = ctx
+            .context_transform(ExpandExtensionFragments::new())
+            .unwrap();
+
+        assert_eq!(transform_changed, TransformChange::Unchanged);
+
+        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+
+        let actual = ns.export_top_level_complex_type(&child).unwrap().unwrap();
+
+        assert_eq!(expected, actual);
     }
 }

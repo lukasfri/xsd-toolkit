@@ -245,6 +245,12 @@ pub struct SimpleExtensionFragment {
 pub struct SimpleRestrictionFragment {
     /// The base type being restricted.
     pub base: ExpandedName<'static>,
+    /// Facets applied in this restriction.
+    pub facets: Vec<FragmentIdx<simple::FacetFragment>>,
+    /// Inline simple type definition.
+    pub simple_type: Option<FragmentIdx<simple::SimpleTypeRootFragment>>,
+    /// ID attribute for the restriction.
+    pub id: Option<String>,
     /// Attribute declarations for this restriction.
     pub attribute_declarations: FragmentIdx<AttributeDeclarationsFragment>,
     /// Assertions for this restriction.
@@ -1548,7 +1554,7 @@ impl ComplexFragmentEquivalent for xs::All {
                         .min_occurs
                         .map(|min| min.try_into().expect("Invalid min occurs value")),
                 )
-                .maybe_max_occurs(fragment.max_occurs.map(|a| a.into()))
+                .maybe_max_occurs(fragment.max_occurs.map(Into::into))
                 .all_model(
                     xs::groups::AllModel::builder()
                         .child_1(child_1)
@@ -2028,7 +2034,7 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
         };
         Ok(compiler.push_fragment(LocalAttributeFragment {
             type_mode,
-            use_: self.use_.map(|a| a.into()),
+            use_: self.use_.map(Into::into),
             default: self.default.clone(),
         }))
     }
@@ -2043,6 +2049,10 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
 
+        let builder = xs::types::Attribute::builder()
+            .maybe_use_(fragment.use_.map(Into::into))
+            .maybe_default(fragment.default.clone());
+
         match &fragment.type_mode {
             LocalAttributeFragmentTypeMode::Declared(local) => {
                 let name = local.name.clone();
@@ -2050,17 +2060,11 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
                     NamedOrAnonymous::Named(ref_) => Some(xs::types::QName(ref_.clone())),
                     NamedOrAnonymous::Anonymous(_) => None,
                 });
-                let use_ = fragment.use_.map(|a| a.into());
-                Ok(xs::types::Attribute::builder()
-                    .name(name)
-                    .maybe_type_(type_)
-                    .maybe_use_(use_)
-                    .maybe_default(fragment.default.clone())
-                    .build())
+                Ok(builder.name(name).maybe_type_(type_).build())
             }
-            LocalAttributeFragmentTypeMode::Reference(ref_) => Ok(xs::types::Attribute::builder()
-                .ref_(xs::types::QName(ref_.ref_.clone()))
-                .build()),
+            LocalAttributeFragmentTypeMode::Reference(ref_) => {
+                Ok(builder.ref_(xs::types::QName(ref_.ref_.clone())).build())
+            }
         }
     }
 }
@@ -2202,6 +2206,7 @@ impl ComplexFragmentEquivalent for xs::types::SimpleExtensionType {
     }
 }
 
+
 impl ComplexFragmentEquivalent for xs::types::SimpleRestrictionType {
     type FragmentId = FragmentIdx<SimpleRestrictionFragment>;
 
@@ -2217,14 +2222,43 @@ impl ComplexFragmentEquivalent for xs::types::SimpleRestrictionType {
             .clone()
             .with_default_namespace(|| compiler.namespace.clone());
 
+        let simple_restriction_model = self
+            .simple_restriction_model
+            .as_ref()
+            .map(|a| &a.simple_restriction_model);
+
+        let simple_type = simple_restriction_model
+            .and_then(|a| a.simple_type.as_ref())
+            .map(|simple_type| simple_type.to_simple_fragments(&mut compiler))
+            .transpose()?;
+
+        let facets = simple_restriction_model
+            .map(|a| {
+                a.child_1
+                    .iter()
+                    .filter_map(|a| match a {
+                        xs::groups::simple_restriction_model_items::Child1::Facet(facet) => {
+                            Some(facet)
+                        }
+                        _ => None,
+                    })
+                    .map(|facet| facet.to_simple_fragments(&mut compiler))
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .transpose()?
+            .unwrap_or_default();
+
         let attribute_declarations = self.attr_decls.to_complex_fragments(&mut compiler)?;
 
         let assertions = self.assertions.to_complex_fragments(&mut compiler)?;
 
         Ok(compiler.push_fragment(SimpleRestrictionFragment {
             base,
+            simple_type,
+            facets,
             attribute_declarations,
             assertions,
+            id: self.id.clone(),
         }))
     }
 
@@ -2238,6 +2272,43 @@ impl ComplexFragmentEquivalent for xs::types::SimpleRestrictionType {
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
 
+        let simple_restriction_model = (fragment.simple_type.is_some()
+            || !fragment.facets.is_empty())
+        .then(|| {
+            let simple_type = fragment
+                .simple_type
+                .as_ref()
+                .map(|simple_type| {
+                    xs::types::LocalSimpleType::from_simple_fragments(compiler, simple_type)
+                })
+                .transpose()?;
+
+            let facets = fragment
+                .facets
+                .iter()
+                .map(|facet| xs::Facet::from_simple_fragments(compiler, facet))
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let child_1 = (!facets.is_empty()).then(|| {
+                facets
+                    .into_iter()
+                    .map(xs::groups::simple_restriction_model_items::Child1::from)
+                    .collect()
+            });
+
+            Result::<_, Error>::Ok(
+                xs::types::simple_restriction_type_items::SimpleRestrictionModel::builder()
+                    .simple_restriction_model(Box::new(
+                        xs::groups::SimpleRestrictionModel::builder()
+                            .maybe_simple_type(simple_type.map(Box::new))
+                            .maybe_child_1(child_1)
+                            .build(),
+                    ))
+                    .build(),
+            )
+        })
+        .transpose()?;
+
         let attr_decls = xs::groups::AttrDecls::from_complex_fragments(
             compiler,
             &fragment.attribute_declarations,
@@ -2248,6 +2319,8 @@ impl ComplexFragmentEquivalent for xs::types::SimpleRestrictionType {
 
         Ok(Self::builder()
             .base(xs::types::QName(fragment.base.clone()))
+            .maybe_id(fragment.id.clone())
+            .maybe_simple_restriction_model(simple_restriction_model)
             .attr_decls(attr_decls.into())
             .assertions(assertions.into())
             .any_attributes(ns::AnyAttributes::default())
@@ -2811,7 +2884,7 @@ impl ComplexFragmentEquivalent for xs::AnyAttribute {
         //TODO: Handle any_attribute
         Ok(compiler.push_fragment(AnyAttributeFragment {
             id: any_attribute.id.clone(),
-            process_contents: any_attribute.process_contents.map(|a| a.into()),
+            process_contents: any_attribute.process_contents.map(Into::into),
         }))
     }
 
@@ -2828,7 +2901,7 @@ impl ComplexFragmentEquivalent for xs::AnyAttribute {
         Ok(xs::AnyAttribute::from(
             xs::any_attribute_items::AnyAttribute::builder()
                 .maybe_id(fragment.id.clone())
-                .maybe_process_contents(fragment.process_contents.map(|a| a.into()))
+                .maybe_process_contents(fragment.process_contents.map(Into::into))
                 .build(),
         ))
     }
