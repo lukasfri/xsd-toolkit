@@ -18,6 +18,7 @@ use xsd_fragments::fragments::complex::{self as cx, AttributeUse};
 #[derive(Debug)]
 pub struct AnyAttributesHandler {
     pub any_attributes_ident: String,
+    pub any_attributes_type: syn::Type,
 }
 
 impl ComplexToTypeTemplate<cx::AnyAttributeFragment> for AnyAttributesHandler {
@@ -34,7 +35,7 @@ impl ComplexToTypeTemplate<cx::AnyAttributeFragment> for AnyAttributesHandler {
         let any_attributes = (
             ident.to_field_ident(),
             ElementField::Group(ElementFieldGroup {
-                ty: TypeReference::new_static(parse_quote!(::xmlity_ns::AnyAttributes)),
+                ty: TypeReference::new_static(self.any_attributes_type.clone()),
             }),
         );
 
@@ -199,7 +200,9 @@ impl ComplexToTypeTemplate<cx::AttributeDeclarationId> for AttributeDeclarationH
 }
 
 #[derive(Debug)]
-pub struct TopLevelAttributeHandler;
+pub struct TopLevelAttributeHandler {
+    pub simple_type_handler: Arc<SimpleTypeRootHandler>,
+}
 
 impl ComplexToTypeTemplate<cx::TopLevelAttributeFragment> for TopLevelAttributeHandler {
     type TypeTemplate = ElementFieldAttribute;
@@ -216,7 +219,8 @@ impl ComplexToTypeTemplate<cx::TopLevelAttributeFragment> for TopLevelAttributeH
         );
         let ident = item.name.to_item_ident();
 
-        let ty = SimpleTypeRootHandler
+        let ty = self
+            .simple_type_handler
             .to_type_template(context.simple_context(), scope, &item.type_)?
             .template;
 

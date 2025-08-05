@@ -915,6 +915,12 @@ pub enum Error {
         /// Name of the element with conflicting type representations.
         name: LocalName<'static>,
     },
+    /// Element type is invalid, neither type nor type_choice are present.
+    NoTypePresent {
+        /// Name of the element without a type.
+        name: LocalName<'static>,
+    },
+    NameOrRefMissingInTopLevelElement {},
     /// Substitution group is not supported.
     SubstitutionGroupNotSupported {
         /// Name of the element with unsupported substitution group.
@@ -1059,18 +1065,17 @@ impl ComplexFragmentEquivalent for xs::types::LocalElement {
         let min_occurs = self.min_occurs;
 
         let type_ = if let Some(ref_) = self.ref_.as_ref() {
+            if self.name.is_some() {
+                //TODO
+            }
+
             LocalElementFragmentType::Reference(ReferenceElementFragment {
                 ref_: ref_
                     .0
                     .clone()
                     .with_default_namespace(|| compiler.namespace.clone()),
             })
-        } else {
-            let name = self
-                .name
-                .clone()
-                .expect("If ref is none, name should be Some");
-
+        } else if let Some(name) = self.name.clone() {
             let type_ = if let Some(type_) = self.type_attribute.as_ref() {
                 NamedOrAnonymous::Named(
                     type_
@@ -1078,17 +1083,17 @@ impl ComplexFragmentEquivalent for xs::types::LocalElement {
                         .clone()
                         .with_default_namespace(|| compiler.namespace.clone()),
                 )
-            } else {
-                let type_choice = self
-                    .type_
-                    .as_ref()
-                    .expect("If ref is none and type is none, type_choice should be Some");
+            } else if let Some(type_choice) = self.type_.as_ref() {
                 let content_type = type_choice.to_complex_fragments(&mut compiler)?;
 
                 NamedOrAnonymous::Anonymous(content_type)
+            } else {
+                return Err(Error::NoTypePresent { name: name.clone() });
             };
 
             LocalElementFragmentType::Local(DeclaredElementFragment { name, type_ })
+        } else {
+            return Err(Error::NameOrRefMissingInTopLevelElement {});
         };
 
         Ok(compiler.push_fragment(LocalElementFragment {
@@ -2018,13 +2023,14 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
             let type_ = if let Some(type_) = self.type_.as_ref() {
                 Some(NamedOrAnonymous::Named(type_.0.clone()))
             } else {
-                self.simple_type.as_ref().map(|simple_type| {
-                    NamedOrAnonymous::Anonymous(
+                self.simple_type
+                    .as_ref()
+                    .map(|simple_type| {
                         simple_type
                             .to_simple_fragments(&mut compiler)
-                            .expect("Failed to convert simple type to fragments"),
-                    )
-                })
+                            .map(NamedOrAnonymous::Anonymous)
+                    })
+                    .transpose()?
             };
 
             LocalAttributeFragmentTypeMode::Declared(DeclaredAttributeFragment {
@@ -2082,8 +2088,7 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelAttribute {
 
         let type_ = match (self.type_.as_ref(), self.simple_type.as_ref()) {
             (None, Some(s)) => Some(NamedOrAnonymous::Anonymous(
-                s.to_simple_fragments(&mut compiler)
-                    .expect("Failed to convert simple type to fragments"),
+                s.to_simple_fragments(&mut compiler)?,
             )),
             (Some(t), None) => Some(NamedOrAnonymous::Named(t.0.clone())),
             (Some(_), Some(_)) => {
@@ -2205,7 +2210,6 @@ impl ComplexFragmentEquivalent for xs::types::SimpleExtensionType {
             .build())
     }
 }
-
 
 impl ComplexFragmentEquivalent for xs::types::SimpleRestrictionType {
     type FragmentId = FragmentIdx<SimpleRestrictionFragment>;
@@ -2587,8 +2591,8 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelComplexType {
         let complex_type_model =
             xs::groups::ComplexTypeModel::from_complex_fragments(compiler, &fragment.content)?;
 
+        //TODO
         Ok(Self::builder()
-            //TODO
             .name(fragment.name.clone().ok_or(Error::NameMissingInTopLevel)?)
             .maybe_mixed(fragment.mixed)
             .complex_type_model(complex_type_model.into())
@@ -2881,7 +2885,6 @@ impl ComplexFragmentEquivalent for xs::AnyAttribute {
             });
         };
 
-        //TODO: Handle any_attribute
         Ok(compiler.push_fragment(AnyAttributeFragment {
             id: any_attribute.id.clone(),
             process_contents: any_attribute.process_contents.map(Into::into),

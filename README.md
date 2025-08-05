@@ -42,7 +42,6 @@ Pre-generated Rust bindings for standard XML namespaces:
 - **[`xmlity-ns-xml`](./schemas/xmlity-ns-xml)** - XML namespace bindings (`http://www.w3.org/XML/1998/namespace`)
 - **[`xmlity-ns-xs`](./schemas/xmlity-ns-xs)** - XML Schema namespace bindings (`http://www.w3.org/2001/XMLSchema`)
 - **[`xmlity-ns-xsi`](./schemas/xmlity-ns-xsi)** - XML Schema Instance namespace bindings (`http://www.w3.org/2001/XMLSchema-instance`)
-- **[`xmlity-ns-xhtml`](./schemas/xmlity-ns-xhtml)** - XHTML 1.0 Strict namespace bindings
 
 ## Features
 

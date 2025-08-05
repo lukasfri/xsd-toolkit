@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use crate::{
     complex::{complex_type::ComplexTypeRootHandler, ComplexToTypeTemplateExt},
@@ -17,7 +17,7 @@ use crate::{
 };
 
 use quote::format_ident;
-use syn::parse_quote;
+use syn::{parse_quote, Type};
 use xsd_fragments::fragments::complex as cx;
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
@@ -229,12 +229,23 @@ impl TopLevelElementTemplate {
     }
 }
 
-#[derive(Debug)]
 pub struct TopLevelElementHandler {
     pub dynamic_substitute_group: bool,
     pub standalone_element_type: bool,
     pub element_type_content_handler: Arc<ElementTypeContentIdHandler>,
     pub dynamic_variant_ident: String,
+    pub substitution_group_wrapper: Arc<dyn Fn(Type) -> Type + 'static>,
+}
+
+impl Debug for TopLevelElementHandler {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TopLevelElementHandler")
+            .field("dynamic_substitute_group", &self.dynamic_substitute_group)
+            .field("standalone_element_type", &self.standalone_element_type)
+            .field("dynamic_variant_ident", &self.dynamic_variant_ident)
+            .field("substitution_group", &"<Fn(Type) -> Type>")
+            .finish()
+    }
 }
 
 impl ComplexToTypeTemplate<cx::TopLevelElementFragment> for TopLevelElementHandler {
@@ -277,14 +288,8 @@ impl ComplexToTypeTemplate<cx::TopLevelElementFragment> for TopLevelElementHandl
         );
 
         if self.dynamic_substitute_group {
-            let substitute_group_ty = self_type.wrap(|ty| {
-                let ty = match ty {
-                    syn::Type::Path(ty) => unbox_type(&ty).unwrap_or(syn::Type::Path(ty)),
-                    _ => ty,
-                };
-
-                parse_quote!(::xmlity_ns::SubstitutionGroup<#ty>)
-            });
+            let substitute_group = self.substitution_group_wrapper.clone();
+            let substitute_group_ty = self_type.wrap(move |ty| (substitute_group)(ty));
 
             substitution_choices.push((
                 format_ident!("{}", self.dynamic_variant_ident),

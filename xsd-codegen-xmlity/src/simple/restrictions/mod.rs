@@ -20,6 +20,7 @@ trait RestrictionBuilder<C: super::SimpleContext, S: crate::Scope> {
     ) -> crate::Result<crate::ToTypeTemplateData<TypeReference<'static>>>;
 }
 
+#[derive(Debug)]
 pub struct RestrictionHandler;
 
 impl SimpleToTypeTemplate<sm::RestrictionFragment> for RestrictionHandler {

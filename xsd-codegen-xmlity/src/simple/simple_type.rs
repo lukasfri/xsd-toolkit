@@ -1,6 +1,7 @@
 use crate::generator::GeneratorScope;
 use crate::misc::common_name;
 use crate::misc::dedup_field_idents;
+use crate::misc::WeakExt;
 use crate::misc::COMMON_NAME_MIN_LENGTH;
 use crate::simple::restrictions::RestrictionHandler;
 use crate::simple::SimpleContext;
@@ -14,12 +15,29 @@ use crate::TypeType;
 use crate::{misc::TypeReference, simple::SimpleToTypeTemplate, templates, ToTypeTemplateData};
 use quote::format_ident;
 use quote::ToTokens;
+use std::any::type_name;
+use std::fmt::Debug;
+use std::ops::Deref;
+use std::sync::Arc;
 use std::sync::LazyLock;
+use std::sync::Weak;
 use syn::parse_quote;
+use syn::Type;
 use xsd_fragments::fragments::FragmentIdx;
 use xsd_fragments::{fragments::simple as sm, NamedOrAnonymous};
 
-struct ListHandler;
+pub struct ListHandler {
+    pub simple_type_handler: Weak<SimpleTypeRootHandler>,
+    pub list_wrapper: Arc<dyn Fn(Type) -> Type + 'static>,
+}
+
+impl Debug for ListHandler {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ListHandler")
+            .field("list_wrapper", &"&<dyn Fn(Type) -> Type + 'static>")
+            .finish()
+    }
+}
 
 impl SimpleToTypeTemplate<sm::ListFragment> for ListHandler {
     type TypeTemplate = TypeReference<'static>;
@@ -30,20 +48,30 @@ impl SimpleToTypeTemplate<sm::ListFragment> for ListHandler {
         scope: &mut S,
         item: &sm::ListFragment,
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
-        let ty = SimpleTypeRootHandler.to_type_template(context, scope, &item.item_type)?;
+        let simple_type_handler =
+            self.simple_type_handler
+                .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                    origin: type_name::<Self>(),
+                    handler: type_name::<SimpleTypeRootHandler>(),
+                })?;
+
+        let ty = simple_type_handler.to_type_template(context, scope, &item.item_type)?;
+
+        let list_wrapper = self.list_wrapper.clone();
 
         Ok(crate::ToTypeTemplateData {
             ident: None,
-            template: ty.template.wrap(|ty: syn::Type| -> syn::Type {
-                parse_quote!(
-                    ::xmlity_ns::List<#ty>
-                )
-            }),
+            template: ty
+                .template
+                .wrap(move |ty: syn::Type| -> syn::Type { list_wrapper(ty) }),
         })
     }
 }
 
-struct UnionHandler;
+#[derive(Debug)]
+pub struct UnionHandler {
+    pub simple_type_handler: Weak<SimpleTypeRootHandler>,
+}
 
 impl SimpleToTypeTemplate<sm::UnionFragment> for UnionHandler {
     type TypeTemplate = templates::choice::Choice;
@@ -55,6 +83,13 @@ impl SimpleToTypeTemplate<sm::UnionFragment> for UnionHandler {
         item: &sm::UnionFragment,
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
         let mut sub_scope = GeneratorScope::new(scope.augmenter());
+
+        let simple_type_handler =
+            self.simple_type_handler
+                .upgrade_or_else(|| crate::Error::HandlerDoesNotExist {
+                    origin: type_name::<Self>(),
+                    handler: type_name::<SimpleTypeRootHandler>(),
+                })?;
 
         // Struct with strict order
         let member_type_variants = item
@@ -83,7 +118,11 @@ impl SimpleToTypeTemplate<sm::UnionFragment> for UnionHandler {
                 let suggested_ident = format_ident!("Variant{i}");
                 let res = context
                     .sub_context(suggested_ident.clone())
-                    .resolve_type_template(fragment_id, &mut sub_scope, &SimpleTypeRootHandler)?;
+                    .resolve_type_template(
+                        fragment_id,
+                        &mut sub_scope,
+                        simple_type_handler.deref(),
+                    )?;
 
                 let ident = res.ident.unwrap_or(suggested_ident);
 
@@ -145,7 +184,12 @@ impl SimpleToTypeTemplate<sm::UnionFragment> for UnionHandler {
     }
 }
 
-struct SimpleDerivationHandler;
+#[derive(Debug)]
+pub struct SimpleDerivationHandler {
+    pub restriction_handler: RestrictionHandler,
+    pub list_handler: ListHandler,
+    pub union_handler: UnionHandler,
+}
 
 impl SimpleToTypeTemplate<sm::SimpleDerivation> for SimpleDerivationHandler {
     type TypeTemplate = TypeReference<'static>;
@@ -158,14 +202,15 @@ impl SimpleToTypeTemplate<sm::SimpleDerivation> for SimpleDerivationHandler {
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
         match item {
             sm::SimpleDerivation::Restriction(fragment_idx) => {
-                context.resolve_type_template(fragment_idx, scope, &RestrictionHandler)
+                context.resolve_type_template(fragment_idx, scope, &self.restriction_handler)
             }
             sm::SimpleDerivation::List(fragment_idx) => {
-                context.resolve_type_template(fragment_idx, scope, &ListHandler)
+                context.resolve_type_template(fragment_idx, scope, &self.list_handler)
             }
             sm::SimpleDerivation::Union(fragment_idx) => {
                 let ident = context.suggested_ident();
-                let res = context.resolve_type_template(fragment_idx, scope, &UnionHandler)?;
+                let res =
+                    context.resolve_type_template(fragment_idx, scope, &self.union_handler)?;
 
                 let enum_ = res.template.to_enum(&ident.to_item_ident(), None);
 
@@ -181,7 +226,9 @@ impl SimpleToTypeTemplate<sm::SimpleDerivation> for SimpleDerivationHandler {
 }
 
 #[derive(Debug)]
-pub struct SimpleTypeRootHandler;
+pub struct SimpleTypeRootHandler {
+    pub simple_derivation_handler: SimpleDerivationHandler,
+}
 
 impl SimpleToTypeTemplate<sm::SimpleTypeRootFragment> for SimpleTypeRootHandler {
     type TypeTemplate = TypeReference<'static>;
@@ -192,7 +239,8 @@ impl SimpleToTypeTemplate<sm::SimpleTypeRootFragment> for SimpleTypeRootHandler 
         scope: &mut S,
         item: &sm::SimpleTypeRootFragment,
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
-        SimpleDerivationHandler.to_type_template(context, scope, &item.simple_derivation)
+        self.simple_derivation_handler
+            .to_type_template(context, scope, &item.simple_derivation)
     }
 }
 

@@ -1,5 +1,7 @@
 use std::sync::{Arc, Weak};
 
+use syn::parse_quote;
+
 use crate::{
     complex::{
         attributes::{
@@ -21,7 +23,10 @@ use crate::{
         },
     },
     naming_strategies::{IndexedNamingStrategy, WrappingNamingStrategy},
-    simple::simple_type::SimpleTypeRootHandler,
+    simple::{
+        restrictions::RestrictionHandler as SimpleRestrictionHandler,
+        simple_type::{ListHandler, SimpleDerivationHandler, SimpleTypeRootHandler, UnionHandler},
+    },
 };
 
 #[derive(Debug)]
@@ -39,7 +44,32 @@ pub fn handler_container() -> HandlerContainer {
 
     let any_handler = Arc::new(AnyFragmentHandler);
 
-    let simple_type_root_handler = Arc::new(SimpleTypeRootHandler {});
+    let simple_type_root_handler = Arc::new_cyclic(|weak| {
+        let list_handler = ListHandler {
+            simple_type_handler: weak.clone(),
+            list_wrapper: Arc::new(|ty: syn::Type| -> syn::Type {
+                parse_quote!(
+                    ::xmlity_ns::List<#ty>
+                )
+            }),
+        };
+
+        let union_handler = UnionHandler {
+            simple_type_handler: weak.clone(),
+        };
+
+        let restriction_handler = SimpleRestrictionHandler;
+
+        let simple_derivation_handler = SimpleDerivationHandler {
+            restriction_handler,
+            list_handler,
+            union_handler,
+        };
+
+        SimpleTypeRootHandler {
+            simple_derivation_handler,
+        }
+    });
 
     let local_attribute_handler = Arc::new(LocalAttributeHandler {
         simple_type_handler: simple_type_root_handler.clone(),
@@ -48,6 +78,7 @@ pub fn handler_container() -> HandlerContainer {
 
     let any_attributes_handler = Arc::new(AnyAttributesHandler {
         any_attributes_ident: "AnyAttributes".to_string(),
+        any_attributes_type: parse_quote!(::xmlity_ns::AnyAttributes),
     });
 
     let attribute_declaration_handler = Arc::new(AttributeDeclarationHandler {
@@ -188,13 +219,23 @@ pub fn handler_container() -> HandlerContainer {
     let complex_type_root_handler =
         complex_type_root_handler_export.expect("Complex type root handler export");
 
-    let top_level_attribute_handler = Arc::new(TopLevelAttributeHandler);
+    let top_level_attribute_handler = Arc::new(TopLevelAttributeHandler {
+        simple_type_handler: simple_type_root_handler.clone(),
+    });
 
     let top_level_element_handler = Arc::new(TopLevelElementHandler {
         dynamic_substitute_group: true,
         standalone_element_type: true,
         element_type_content_handler,
         dynamic_variant_ident: "Dynamic".to_string(),
+        substitution_group_wrapper: Arc::new(|ty: syn::Type| {
+            let ty = match ty {
+                syn::Type::Path(ty) => crate::misc::unbox_type(&ty).unwrap_or(syn::Type::Path(ty)),
+                _ => ty,
+            };
+
+            parse_quote!(::xmlity_ns::SubstitutionGroup<#ty>)
+        }),
     });
 
     let named_group_type_content_handler = Arc::new(NamedGroupTypeContentIdHandler {

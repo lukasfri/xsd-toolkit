@@ -341,6 +341,7 @@ pub enum Error {
         /// Name of the element with unsupported substitution group.
         fragment_type: &'static str,
     },
+    NameMissingInTopLevelSimpleType,
 }
 
 /// Trait for types that can be converted to and from simple type fragments.
@@ -391,7 +392,7 @@ impl SimpleFragmentEquivalent for xs::types::TopLevelSimpleType {
         let name = fragment
             .name
             .clone()
-            .expect("Name should be present for top-level simple type");
+            .ok_or(Error::NameMissingInTopLevelSimpleType)?;
 
         let simple_derivation = xs::groups::SimpleDerivation::from_simple_fragments(
             compiler,
