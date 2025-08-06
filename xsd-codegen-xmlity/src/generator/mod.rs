@@ -11,9 +11,10 @@ pub use scope::GeneratorScope;
 mod handler_container;
 pub use handler_container::handler_container;
 use syn::{parse_quote, Ident, Item, ItemMod};
-use xmlity::{ExpandedName, XmlNamespace};
+use xmlity::ExpandedName;
 use xsd_fragments::{
-    fragments::FragmentAccess, TopLevelComplexType, TopLevelSimpleType, TopLevelType,
+    fragments::{FragmentAccess, LocalNamespaceIdx},
+    CompileNamespaceName, TopLevelComplexType, TopLevelSimpleType, TopLevelType,
 };
 
 use crate::{
@@ -28,7 +29,7 @@ use crate::{
 #[derive(Debug)]
 pub struct Generator<'a> {
     pub context: &'a xsd_fragments::XmlnsContext,
-    pub bound_namespaces: BTreeMap<XmlNamespace<'static>, syn::Path>,
+    pub bound_namespaces: BTreeMap<LocalNamespaceIdx, syn::Path>,
     pub bound_types: BTreeMap<ExpandedName<'static>, BoundType>,
     pub bound_elements: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
     pub bound_attributes: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
@@ -58,8 +59,18 @@ impl<'a> Generator<'a> {
         Self::new_with_augmenter(context, augments::NoopAugmentation::new())
     }
 
-    pub fn bind_namespace(&mut self, namespace: XmlNamespace<'static>, path: syn::Path) {
-        self.bound_namespaces.insert(namespace, path);
+    pub fn bind_namespace(&mut self, namespace: CompileNamespaceName, path: syn::Path) {
+        let namespace_idx = self
+            .context
+            .namespace_idxs
+            .get(&namespace)
+            .expect("Namespace should exist");
+
+        self.bound_namespaces.insert(*namespace_idx, path);
+    }
+
+    pub fn bind_namespace_idx(&mut self, namespace_idx: LocalNamespaceIdx, path: syn::Path) {
+        self.bound_namespaces.insert(namespace_idx, path);
     }
 
     pub fn bind_type(
@@ -122,37 +133,36 @@ impl<'a> Generator<'a> {
             .for_each(|(name, bound_type)| self.bind_group(name, bound_type));
     }
 
-    pub fn generate_namespace(
-        &mut self,
-        namespace: &xmlity::XmlNamespace<'_>,
-    ) -> Result<Vec<Item>> {
+    pub fn generate_namespace(&mut self, key: &LocalNamespaceIdx) -> Result<Vec<Item>> {
         let mut items = Vec::new();
 
         let compiled_namespace =
             self.context
-                .get_namespace(namespace)
-                .ok_or_else(|| Error::MissingNamespace {
-                    namespace: namespace.clone().into_owned(),
+                .namespaces
+                .get(key)
+                .ok_or_else(|| Error::MissingKey {
+                    key: key.clone(),
+                    name: todo!(),
                 })?;
 
         let types_module_name = format_ident!("types");
 
         items.extend(
-            self.generate_types_module(namespace, &types_module_name)?
+            self.generate_types_module(key, &types_module_name)?
                 .map(Item::Mod),
         );
 
         let attributes_module_name = format_ident!("attributes");
 
         items.extend(
-            self.generate_attributes_module(namespace, &attributes_module_name)?
+            self.generate_attributes_module(key, &attributes_module_name)?
                 .map(Item::Mod),
         );
 
         let groups_module_name = format_ident!("groups");
 
         items.extend(
-            self.generate_groups_module(namespace, &groups_module_name)?
+            self.generate_groups_module(key, &groups_module_name)?
                 .map(Item::Mod),
         );
 
@@ -160,19 +170,24 @@ impl<'a> Generator<'a> {
             .top_level_elements
             .keys()
             .map(|local_name| {
-                ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())).into_owned()
+                ExpandedName::new(
+                    local_name.as_ref(),
+                    Some(compiled_namespace.namespace.clone()),
+                )
+                .into_owned()
             })
         {
             if self.bound_elements.contains_key(&expanded_name) {
                 continue;
             }
-            let (mut ty, i) = self.generate_element(&expanded_name)?;
+            let (mut ty, i) = self.generate_element(key, &expanded_name)?;
 
             let bound_namespace =
                 self.bound_namespaces
-                    .get(namespace)
-                    .ok_or_else(|| Error::MissingNamespace {
-                        namespace: namespace.clone().into_owned(),
+                    .get(key)
+                    .ok_or_else(|| Error::MissingKey {
+                        key: key.clone(),
+                        name: todo!(),
                     })?;
 
             let path: syn::Path = parse_quote!(#bound_namespace);
@@ -188,6 +203,7 @@ impl<'a> Generator<'a> {
 
     pub fn generate_simple_type(
         &self,
+        key: &LocalNamespaceIdx,
         name: &xmlity::ExpandedName<'_>,
         simple_type: &TopLevelSimpleType,
     ) -> Result<(BoundType, Vec<Item>)> {
@@ -195,9 +211,11 @@ impl<'a> Generator<'a> {
 
         let compiled_namespace =
             self.context
-                .get_namespace(namespace)
-                .ok_or_else(|| Error::MissingNamespace {
-                    namespace: namespace.clone().into_owned(),
+                .namespaces
+                .get(key)
+                .ok_or_else(|| Error::MissingKey {
+                    key: key.clone(),
+                    name: todo!(),
                 })?;
 
         let fragment = compiled_namespace
@@ -211,7 +229,7 @@ impl<'a> Generator<'a> {
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-        let context = GeneratorContext::new(self, namespace, item_name.clone());
+        let context = GeneratorContext::new(self, namespace, key, item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
         let type_ = self
@@ -246,6 +264,7 @@ impl<'a> Generator<'a> {
 
     pub fn generate_complex_type(
         &self,
+        key: &LocalNamespaceIdx,
         name: &xmlity::ExpandedName<'_>,
         complex_type: &TopLevelComplexType,
     ) -> Result<(BoundType, Vec<Item>)> {
@@ -253,9 +272,11 @@ impl<'a> Generator<'a> {
 
         let compiled_namespace =
             self.context
-                .get_namespace(namespace)
-                .ok_or_else(|| Error::MissingNamespace {
-                    namespace: namespace.clone().into_owned(),
+                .namespaces
+                .get(key)
+                .ok_or_else(|| Error::MissingKey {
+                    key: key.clone(),
+                    name: todo!(),
                 })?;
 
         let fragment = compiled_namespace
@@ -268,7 +289,7 @@ impl<'a> Generator<'a> {
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-        let context = GeneratorContext::new(self, namespace, item_name.clone());
+        let context = GeneratorContext::new(self, namespace, key, item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
         let type_ = self
@@ -303,14 +324,20 @@ impl<'a> Generator<'a> {
         Ok((bound_type, items))
     }
 
-    pub fn generate_type(&self, name: &ExpandedName<'_>) -> Result<(BoundType, Vec<Item>)> {
+    pub fn generate_type(
+        &self,
+        key: &LocalNamespaceIdx,
+        name: &ExpandedName<'_>,
+    ) -> Result<(BoundType, Vec<Item>)> {
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
 
         let compiled_namespace =
             self.context
-                .get_namespace(namespace)
-                .ok_or_else(|| Error::MissingNamespace {
-                    namespace: namespace.clone().into_owned(),
+                .namespaces
+                .get(key)
+                .ok_or_else(|| Error::MissingKey {
+                    key: key.clone(),
+                    name: todo!(),
                 })?;
 
         let type_ = compiled_namespace
@@ -322,24 +349,26 @@ impl<'a> Generator<'a> {
 
         match type_ {
             xsd_fragments::TopLevelType::Simple(simple_type) => {
-                self.generate_simple_type(name, simple_type)
+                self.generate_simple_type(key, name, simple_type)
             }
             xsd_fragments::TopLevelType::Complex(complex_type) => {
-                self.generate_complex_type(name, complex_type)
+                self.generate_complex_type(key, name, complex_type)
             }
         }
     }
 
     pub fn generate_types_module(
         &mut self,
-        namespace: &XmlNamespace<'_>,
+        key: &LocalNamespaceIdx,
         module_name: &Ident,
     ) -> Result<Option<ItemMod>> {
         let compiled_namespace =
             self.context
-                .get_namespace(namespace)
-                .ok_or_else(|| Error::MissingNamespace {
-                    namespace: namespace.clone().into_owned(),
+                .namespaces
+                .get(key)
+                .ok_or_else(|| Error::MissingKey {
+                    key: key.clone(),
+                    name: todo!(),
                 })?;
 
         let simple_types = compiled_namespace
@@ -347,7 +376,8 @@ impl<'a> Generator<'a> {
             .iter()
             .filter_map(|(key, type_)| match type_ {
                 TopLevelType::Simple(simple_type) => Some((
-                    ExpandedName::new(key.as_ref(), Some(namespace.as_ref())).into_owned(),
+                    ExpandedName::new(key.as_ref(), Some(compiled_namespace.namespace.clone()))
+                        .into_owned(),
                     simple_type,
                 )),
                 _ => None,
@@ -358,16 +388,18 @@ impl<'a> Generator<'a> {
                     return None;
                 }
 
-                let (mut bound_type, i) = match self.generate_simple_type(&expanded_name, type_) {
-                    Ok(ok) => ok,
-                    Err(err) => return Some(Err(err)),
-                };
+                let (mut bound_type, i) =
+                    match self.generate_simple_type(key, &expanded_name, type_) {
+                        Ok(ok) => ok,
+                        Err(err) => return Some(Err(err)),
+                    };
 
                 let bound_namespace =
                     self.bound_namespaces
-                        .get(namespace)
-                        .ok_or_else(|| Error::MissingNamespace {
-                            namespace: namespace.clone().into_owned(),
+                        .get(key)
+                        .ok_or_else(|| Error::MissingKey {
+                            key: key.clone(),
+                            name: todo!(),
                         });
 
                 let bound_namespace = match bound_namespace {
@@ -390,7 +422,8 @@ impl<'a> Generator<'a> {
             .iter()
             .filter_map(|(key, type_)| match type_ {
                 TopLevelType::Complex(complex_type) => Some((
-                    ExpandedName::new(key.as_ref(), Some(namespace.as_ref())).into_owned(),
+                    ExpandedName::new(key.as_ref(), Some(compiled_namespace.namespace.clone()))
+                        .into_owned(),
                     complex_type,
                 )),
                 _ => None,
@@ -406,13 +439,15 @@ impl<'a> Generator<'a> {
             })
             .map(|(expanded_name, complex_type)| {
                 let (mut bound_type, i) =
-                    self.generate_complex_type(&expanded_name, complex_type)?;
+                    self.generate_complex_type(key, &expanded_name, complex_type)?;
 
-                let bound_namespace = self.bound_namespaces.get(namespace).ok_or_else(|| {
-                    Error::MissingNamespace {
-                        namespace: namespace.clone().into_owned(),
-                    }
-                })?;
+                let bound_namespace =
+                    self.bound_namespaces
+                        .get(key)
+                        .ok_or_else(|| Error::MissingKey {
+                            key: key.clone(),
+                            name: todo!(),
+                        })?;
 
                 let path: syn::Path = parse_quote!(#bound_namespace::#module_name);
 
@@ -446,15 +481,18 @@ impl<'a> Generator<'a> {
 
     pub fn generate_attribute(
         &self,
+        key: &LocalNamespaceIdx,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
 
         let compiled_namespace =
             self.context
-                .get_namespace(namespace)
-                .ok_or_else(|| Error::MissingNamespace {
-                    namespace: namespace.clone().into_owned(),
+                .namespaces
+                .get(key)
+                .ok_or_else(|| Error::MissingKey {
+                    key: key.clone(),
+                    name: todo!(),
                 })?;
 
         let attribute = compiled_namespace
@@ -474,7 +512,7 @@ impl<'a> Generator<'a> {
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-        let context = GeneratorContext::new(self, namespace, item_name.clone());
+        let context = GeneratorContext::new(self, namespace, key, item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
         let type_ = self
@@ -503,30 +541,38 @@ impl<'a> Generator<'a> {
 
     pub fn generate_attributes_module(
         &mut self,
-        namespace: &xmlity::XmlNamespace,
+        key: &LocalNamespaceIdx,
         module_name: &syn::Ident,
     ) -> Result<Option<ItemMod>> {
         let compiled_namespace =
             self.context
-                .get_namespace(namespace)
-                .ok_or_else(|| Error::MissingNamespace {
-                    namespace: namespace.clone().into_owned(),
+                .namespaces
+                .get(key)
+                .ok_or_else(|| Error::MissingKey {
+                    key: key.clone(),
+                    name: todo!(),
                 })?;
 
         let attributes_items = compiled_namespace
             .top_level_attributes
             .keys()
             .map(|local_name| {
-                ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())).into_owned()
+                ExpandedName::new(
+                    local_name.as_ref(),
+                    Some(compiled_namespace.namespace.clone()),
+                )
+                .into_owned()
             })
             .map(|expanded_name| {
-                let (mut bound_type, i) = self.generate_attribute(&expanded_name)?;
+                let (mut bound_type, i) = self.generate_attribute(key, &expanded_name)?;
 
-                let bound_namespace = self.bound_namespaces.get(namespace).ok_or_else(|| {
-                    Error::MissingNamespace {
-                        namespace: namespace.clone().into_owned(),
-                    }
-                })?;
+                let bound_namespace =
+                    self.bound_namespaces
+                        .get(key)
+                        .ok_or_else(|| Error::MissingKey {
+                            key: key.clone(),
+                            name: todo!(),
+                        })?;
 
                 let path: syn::Path = parse_quote!(#bound_namespace::#module_name);
 
@@ -556,15 +602,16 @@ impl<'a> Generator<'a> {
 
     pub fn generate_element(
         &self,
+        key: &LocalNamespaceIdx,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-
         let compiled_namespace =
             self.context
-                .get_namespace(namespace)
-                .ok_or_else(|| Error::MissingNamespace {
-                    namespace: namespace.clone().into_owned(),
+                .namespaces
+                .get(key)
+                .ok_or_else(|| Error::MissingKey {
+                    key: key.clone(),
+                    name: todo!(),
                 })?;
 
         let element = compiled_namespace
@@ -574,23 +621,17 @@ impl<'a> Generator<'a> {
                 name: name.clone().into_owned(),
             })?;
 
-        let fragment = compiled_namespace
-            .complex_type_compiler
-            .get_fragment(&element.root_fragment)
-            .ok_or_else(|| Error::FragmentNotFound {
-                fragment_type: "element fragment".to_string(),
-            })?;
-
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-        let context = GeneratorContext::new(self, namespace, item_name.clone());
+        let context = GeneratorContext::new(self, namespace, key, item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
-        let type_ = self
-            .handlers
-            .top_level_element_handler
-            .to_type_template(&context, &mut scope, fragment)?;
+        let type_ = self.handlers.top_level_element_handler.to_type_template(
+            &context,
+            &mut scope,
+            &element.root_fragment,
+        )?;
 
         let mut items = Vec::new();
 
@@ -613,15 +654,18 @@ impl<'a> Generator<'a> {
 
     pub fn generate_group(
         &self,
+        key: &LocalNamespaceIdx,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
 
         let compiled_namespace =
             self.context
-                .get_namespace(namespace)
-                .ok_or_else(|| Error::MissingNamespace {
-                    namespace: namespace.clone().into_owned(),
+                .namespaces
+                .get(key)
+                .ok_or_else(|| Error::MissingKey {
+                    key: key.clone(),
+                    name: todo!(),
                 })?;
 
         let group = compiled_namespace
@@ -641,7 +685,7 @@ impl<'a> Generator<'a> {
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-        let context = GeneratorContext::new(self, namespace, item_name.clone());
+        let context = GeneratorContext::new(self, namespace, key, item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
         let type_ = self
@@ -670,30 +714,38 @@ impl<'a> Generator<'a> {
 
     pub fn generate_groups_module(
         &mut self,
-        namespace: &xmlity::XmlNamespace,
+        key: &LocalNamespaceIdx,
         groups_module_name: &syn::Ident,
     ) -> Result<Option<ItemMod>> {
         let compiled_namespace =
             self.context
-                .get_namespace(namespace)
-                .ok_or_else(|| Error::MissingNamespace {
-                    namespace: namespace.clone().into_owned(),
+                .namespaces
+                .get(key)
+                .ok_or_else(|| Error::MissingKey {
+                    key: key.clone(),
+                    name: todo!(),
                 })?;
 
         let group_items = compiled_namespace
             .top_level_groups
             .keys()
             .map(|local_name| {
-                ExpandedName::new(local_name.as_ref(), Some(namespace.as_ref())).into_owned()
+                ExpandedName::new(
+                    local_name.as_ref(),
+                    Some(compiled_namespace.namespace.clone()),
+                )
+                .into_owned()
             })
             .map(|expanded_name| {
-                let (mut bound_type, i) = self.generate_group(&expanded_name)?;
+                let (mut bound_type, i) = self.generate_group(key, &expanded_name)?;
 
-                let bound_namespace = self.bound_namespaces.get(namespace).ok_or_else(|| {
-                    Error::MissingNamespace {
-                        namespace: namespace.clone().into_owned(),
-                    }
-                })?;
+                let bound_namespace =
+                    self.bound_namespaces
+                        .get(key)
+                        .ok_or_else(|| Error::MissingKey {
+                            key: key.clone(),
+                            name: todo!(),
+                        })?;
 
                 let path: syn::Path = parse_quote!(#bound_namespace::#groups_module_name);
 

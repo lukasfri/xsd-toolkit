@@ -7,36 +7,36 @@ use xmlity::XmlNamespace;
 fn main() {
     println!("Building the engine...");
 
-    let time = std::time::Instant::now();
+    // let time = std::time::Instant::now();
 
-    let engine = xmlity_build::BuildEngine::builder()
-        .allowed_files(vec!["schemas/**/*.xsd".to_string()])
-        .allow_network_access(true)
-        .bound_namespaces(vec![(XmlNamespace::XSI, parse_quote!(crate))])
-        .build();
+    // let engine = xmlity_build::BuildEngine::builder()
+    //     .allowed_files(vec!["schemas/**/*.xsd".to_string()])
+    //     .allow_network_access(true)
+    //     .bound_namespaces(vec![(XmlNamespace::XSI, parse_quote!(crate))])
+    //     .build();
 
-    let engine = engine.start().unwrap();
-    println!(
-        "Starting the engine took {:?}",
-        time.elapsed().as_secs_f32()
-    );
+    // let engine = engine.start().unwrap();
+    // println!(
+    //     "Starting the engine took {:?}",
+    //     time.elapsed().as_secs_f32()
+    // );
 
-    let time = std::time::Instant::now();
+    // let time = std::time::Instant::now();
 
-    engine
-        .generate_namespace(
-            xmlity_build::GenerateNamespaceConfig::builder()
-                .output_file("schemas/xmlity-ns-xsi/src/lib.rs".parse().unwrap())
-                .namespace(XmlNamespace::XSI)
-                .bon_builders(true)
-                .enum_from_impls(true)
-                .struct_from_impls(true)
-                .build(),
-        )
-        .unwrap();
+    // engine
+    //     .generate_namespace(
+    //         xmlity_build::GenerateNamespaceConfig::builder()
+    //             .output_file("schemas/xmlity-ns-xsi/src/lib.rs".parse().unwrap())
+    //             .namespace(XmlNamespace::XSI)
+    //             .bon_builders(true)
+    //             .enum_from_impls(true)
+    //             .struct_from_impls(true)
+    //             .build(),
+    //     )
+    //     .unwrap();
 
-    println!(
-        "Generating the xs namespace took {:?}",
-        time.elapsed().as_secs_f32()
-    );
+    // println!(
+    //     "Generating the xs namespace took {:?}",
+    //     time.elapsed().as_secs_f32()
+    // );
 }

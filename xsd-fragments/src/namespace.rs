@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd::xs;
+use xsd::xs::{self};
 
 use crate::{
     fragments::{
-        self, complex::ComplexFragmentEquivalent, simple::SimpleFragmentEquivalent, FragmentIdx,
-        NamespaceIdx,
+        self, complex::ComplexFragmentEquivalent, simple::SimpleFragmentEquivalent, Context,
+        FragmentIdx, LocalNamespaceIdx,
     },
     Error,
 };
@@ -14,8 +14,8 @@ use crate::{
 /// Represents a compiled namespace, which contains all the fragments for that namespace.
 #[derive(Debug)]
 pub struct CompiledNamespace {
-    /// The XML namespace associated with this compiled namespace.
     pub namespace: XmlNamespace<'static>,
+    pub namespace_references: BTreeMap<XmlNamespace<'static>, LocalNamespaceIdx>,
     /// The [`ComplexTypeFragmentCompiler`] for complex types, which also contains a [`SimpleTypeFragmentCompiler`].
     pub complex_type_compiler: fragments::complex::ComplexTypeFragmentCompiler,
     /// A map of top-level types, which can be either simple or complex.
@@ -32,24 +32,78 @@ pub struct CompiledNamespace {
 
 impl CompiledNamespace {
     /// Creates a new [`CompiledNamespace`] with the given namespace and namespace index.
-    pub fn new(namespace: XmlNamespace<'static>, namespace_idx: NamespaceIdx) -> Self {
+    pub fn new(namespace_idx: LocalNamespaceIdx, namespace: XmlNamespace<'static>) -> Self {
         let simple_type_compiler =
             fragments::simple::SimpleTypeFragmentCompiler::new(namespace.clone(), namespace_idx);
         let complex_type_compiler =
             fragments::complex::ComplexTypeFragmentCompiler::new_with_simple_compiler(
-                namespace.clone(),
                 namespace_idx,
                 simple_type_compiler,
             );
 
         Self {
             namespace,
+            namespace_references: BTreeMap::new(),
             complex_type_compiler,
             top_level_types: BTreeMap::new(),
             top_level_elements: BTreeMap::new(),
             top_level_attributes: BTreeMap::new(),
             top_level_groups: BTreeMap::new(),
             top_level_attribute_groups: BTreeMap::new(),
+        }
+    }
+
+    /// Creates a copy of the namespace with a new namespace index.
+    pub fn clone_with_namespace(ref_: &Self, namespace_idx: LocalNamespaceIdx) -> Self {
+        let mut complex_type_compiler = ref_.complex_type_compiler.clone();
+        complex_type_compiler.namespace_idx = namespace_idx;
+        complex_type_compiler.simple_type_compiler.namespace_idx = namespace_idx;
+
+        let mut top_level_types = ref_.top_level_types.clone();
+        top_level_types.iter_mut().for_each(|(_, v)| match v {
+            TopLevelType::Simple(top_level_simple_type) => {
+                top_level_simple_type.root_fragment = FragmentIdx::new(
+                    namespace_idx,
+                    top_level_simple_type.root_fragment.local_idx(),
+                )
+            }
+            TopLevelType::Complex(top_level_complex_type) => {
+                top_level_complex_type.root_fragment = FragmentIdx::new(
+                    namespace_idx,
+                    top_level_complex_type.root_fragment.local_idx(),
+                )
+            }
+        });
+
+        let mut top_level_elements = ref_.top_level_elements.clone();
+        top_level_elements.iter_mut().for_each(|(_, v)| {
+            v.root_fragment = FragmentIdx::new(namespace_idx, v.root_fragment.local_idx());
+        });
+
+        let mut top_level_attributes = ref_.top_level_attributes.clone();
+        top_level_attributes.iter_mut().for_each(|(_, v)| {
+            v.root_fragment = FragmentIdx::new(namespace_idx, v.root_fragment.local_idx());
+        });
+
+        let mut top_level_groups = ref_.top_level_groups.clone();
+        top_level_groups.iter_mut().for_each(|(_, v)| {
+            v.root_fragment = FragmentIdx::new(namespace_idx, v.root_fragment.local_idx());
+        });
+
+        let mut top_level_attribute_groups = ref_.top_level_attribute_groups.clone();
+        top_level_attribute_groups.iter_mut().for_each(|(_, v)| {
+            v.root_fragment = FragmentIdx::new(namespace_idx, v.root_fragment.local_idx());
+        });
+
+        Self {
+            namespace: ref_.namespace.clone(),
+            namespace_references: ref_.namespace_references.clone(),
+            complex_type_compiler,
+            top_level_types,
+            top_level_elements,
+            top_level_attributes,
+            top_level_groups,
+            top_level_attribute_groups,
         }
     }
 
@@ -98,6 +152,21 @@ impl CompiledNamespace {
         Ok(())
     }
 
+    /// Imports a schema into the namespace.
+    pub fn import_redefine(&mut self, schema: &xs::redefine_items::Redefine) -> Result<(), Error> {
+        use xs::redefine_items::RedefineContent;
+
+        schema
+            .redefine_content
+            .iter()
+            .try_for_each(|schema_top| match schema_top {
+                RedefineContent::Redefinable(redefineable) => {
+                    self.import_redefineable(redefineable)
+                }
+                _ => Ok(()),
+            })
+    }
+
     /// Imports a top-level simple type from the XSD namespace.
     pub fn import_top_level_simple_type(
         &mut self,
@@ -111,11 +180,12 @@ impl CompiledNamespace {
         let local_name = simple_type.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_types.contains_key(&local_name) {
-            return Ok(name);
-        }
-
-        let root_fragment = simple_type.to_simple_fragments(&mut self.complex_type_compiler)?;
+        let root_fragment = simple_type.to_simple_fragments(
+            self.complex_type_compiler.as_mut(),
+            &Context {
+                default_namespace: self.namespace.clone(),
+            },
+        )?;
 
         let value = TopLevelType::Simple(TopLevelSimpleType { root_fragment });
         self.top_level_types.insert(local_name, value);
@@ -135,7 +205,7 @@ impl CompiledNamespace {
         let fragment_id = &type_.root_fragment;
 
         let type_ = xs::types::TopLevelSimpleType::from_simple_fragments(
-            &self.complex_type_compiler,
+            self.complex_type_compiler.as_ref(),
             fragment_id,
         )?;
 
@@ -155,11 +225,12 @@ impl CompiledNamespace {
         let local_name = complex_type.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_types.contains_key(&local_name) {
-            return Ok(name);
-        }
-
-        let root_fragment = complex_type.to_complex_fragments(&mut self.complex_type_compiler)?;
+        let root_fragment = complex_type.to_complex_fragments(
+            &mut self.complex_type_compiler,
+            &Context {
+                default_namespace: self.namespace.clone(),
+            },
+        )?;
 
         let value = TopLevelType::Complex(TopLevelComplexType { root_fragment });
         self.top_level_types.insert(local_name, value);
@@ -199,11 +270,12 @@ impl CompiledNamespace {
         let local_name = element.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_elements.contains_key(&local_name) {
-            return Ok(name);
-        }
-
-        let root_fragment = element.to_complex_fragments(&mut self.complex_type_compiler)?;
+        let root_fragment = element.to_complex_fragments(
+            &mut self.complex_type_compiler,
+            &Context {
+                default_namespace: self.namespace.clone(),
+            },
+        )?;
 
         let value = TopLevelElement { root_fragment };
         self.top_level_elements.insert(local_name, value);
@@ -243,11 +315,12 @@ impl CompiledNamespace {
         let local_name = attribute.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_attributes.contains_key(&local_name) {
-            return Ok(name);
-        }
-
-        let root_fragment = attribute.to_complex_fragments(&mut self.complex_type_compiler)?;
+        let root_fragment = attribute.to_complex_fragments(
+            &mut self.complex_type_compiler,
+            &Context {
+                default_namespace: self.namespace.clone(),
+            },
+        )?;
 
         let value = TopLevelAttribute { root_fragment };
         self.top_level_attributes.insert(local_name, value);
@@ -286,11 +359,12 @@ impl CompiledNamespace {
         let local_name = group.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_groups.contains_key(&local_name) {
-            return Ok(name);
-        }
-
-        let root_fragment = group.to_complex_fragments(&mut self.complex_type_compiler)?;
+        let root_fragment = group.to_complex_fragments(
+            &mut self.complex_type_compiler,
+            &Context {
+                default_namespace: self.namespace.clone(),
+            },
+        )?;
 
         let value = TopLevelGroup { root_fragment };
         self.top_level_groups.insert(local_name.clone(), value);
@@ -335,12 +409,12 @@ impl CompiledNamespace {
         let local_name = attribute_group.name.clone();
         let name = ExpandedName::new(local_name.clone(), Some(self.namespace.as_ref()));
 
-        if self.top_level_groups.contains_key(&local_name) {
-            return Ok(name);
-        }
-
-        let root_fragment =
-            attribute_group.to_complex_fragments(&mut self.complex_type_compiler)?;
+        let root_fragment = attribute_group.to_complex_fragments(
+            &mut self.complex_type_compiler,
+            &Context {
+                default_namespace: self.namespace.clone(),
+            },
+        )?;
 
         let value = TopLevelAttributeGroup { root_fragment };
         self.top_level_attribute_groups.insert(local_name, value);
@@ -370,21 +444,21 @@ impl CompiledNamespace {
 }
 
 /// Represents a top-level simple type in the XSD namespace.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TopLevelSimpleType {
     /// The root fragment of the simple type.
     pub root_fragment: fragments::FragmentIdx<fragments::simple::SimpleTypeRootFragment>,
 }
 
 /// Represents a top-level complex type in the XSD namespace.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TopLevelComplexType {
     /// The root fragment of the complex type.
     pub root_fragment: FragmentIdx<fragments::complex::ComplexTypeRootFragment>,
 }
 
 /// Represents a top-level type in the XSD namespace, which can be either simple or complex.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TopLevelType {
     /// A simple type.
     Simple(TopLevelSimpleType),
@@ -393,28 +467,28 @@ pub enum TopLevelType {
 }
 
 /// Represents a top-level element in the XSD namespace.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TopLevelElement {
     /// The root fragment of the complex type.
     pub root_fragment: FragmentIdx<fragments::complex::TopLevelElementFragment>,
 }
 
 /// Represents a top-level attribute in the XSD namespace.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TopLevelAttribute {
     /// The root fragment of the complex type.
     pub root_fragment: FragmentIdx<fragments::complex::TopLevelAttributeFragment>,
 }
 
 /// Represents a top-level group in the XSD namespace.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TopLevelGroup {
     /// The root fragment of the complex type.
     pub root_fragment: FragmentIdx<fragments::complex::TopLevelGroupFragment>,
 }
 
 /// Represents a top-level attribute group in the XSD namespace.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TopLevelAttributeGroup {
     /// The root fragment of the complex type.
     pub root_fragment: FragmentIdx<fragments::complex::TopLevelAttributeGroupFragment>,

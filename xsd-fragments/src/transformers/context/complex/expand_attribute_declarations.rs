@@ -206,7 +206,10 @@ impl ExpandAttributeDeclarations {
                         .expect("Fragment not found in compiler.");
 
                     let group = context
-                        .get_named_attribute_group(&attribute_fragment.ref_)
+                        .get_named_attribute_group(
+                            &fragment_idx.namespace_idx(),
+                            &attribute_fragment.ref_,
+                        )
                         .ok_or_else(|| Error::NamedAttributeGroupNotFound {
                             name: attribute_fragment.ref_.clone(),
                         })?;
@@ -261,10 +264,13 @@ impl XmlnsContextTransformer for ExpandAttributeDeclarations {
 #[cfg(test)]
 mod tests {
 
+    use std::str::FromStr;
+
     use crate::XmlnsContext;
 
     use super::*;
     use pretty_assertions::assert_eq;
+    use url::Url;
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::{ns, xs, xsn};
 
@@ -272,6 +278,7 @@ mod tests {
     fn one_attribute_group() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com/test");
+        let test_namespace_location = Url::from_str("http://www.example.com/").unwrap();
 
         const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
             LocalName::new_dangerous("test-attr-group");
@@ -331,7 +338,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_namespace_location.clone(), TEST_NAMESPACE);
         ns.import_top_level_attribute_group(&attribute_group)
             .unwrap();
         ns.import_top_level_complex_type(&input).unwrap();
@@ -342,7 +349,7 @@ mod tests {
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace_direct(&test_namespace_location).unwrap();
 
         let actual = ns
             .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
@@ -387,6 +394,7 @@ mod tests {
     fn same_attribute_overwrites_values_1() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com/test");
+        let test_location = Url::from_str("http://www.example.com/").unwrap();
 
         const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
             LocalName::new_dangerous("test-attr-group");
@@ -456,7 +464,7 @@ mod tests {
                 .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
 
         ns.import_top_level_attribute_group(&attribute_group)
             .unwrap();
@@ -468,7 +476,7 @@ mod tests {
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace_direct(&test_location).unwrap();
 
         let actual = ns
             .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)
@@ -515,6 +523,7 @@ mod tests {
     fn same_attribute_overwrites_values_2() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com/test");
+        let test_location = Url::from_str("http://www.example.com/").unwrap();
 
         const TEST_ATTRIBUTE_GROUP_NAME: LocalName<'static> =
             LocalName::new_dangerous("test-attr-group");
@@ -584,7 +593,7 @@ mod tests {
                 .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
 
         ns.import_top_level_attribute_group(&attribute_group)
             .unwrap();
@@ -596,7 +605,7 @@ mod tests {
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace_direct(&test_location).unwrap();
 
         let actual = ns
             .export_top_level_complex_type(&TOP_LEVEL_COMPLEX_TYPE_NAME)

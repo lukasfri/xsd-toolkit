@@ -178,9 +178,12 @@ impl XmlnsLocalTransformer for FlattenNestedChoices {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
     use pretty_assertions::assert_eq;
 
+    use url::Url;
     use xmlity::{LocalName, XmlNamespace};
     use xsd::xs::{self};
     use xsd::{ns, xsn};
@@ -351,7 +354,10 @@ mod tests {
                 .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(
+            Url::from_str("http://www.example.com/").unwrap(),
+            TEST_NAMESPACE,
+        );
 
         ns.import_top_level_complex_type(&non_flattened_shirt_type)
             .unwrap();
@@ -481,7 +487,10 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(
+            Url::from_str("http://www.example.com/").unwrap(),
+            TEST_NAMESPACE,
+        );
 
         ns.import_top_level_complex_type(&non_flattened_shirt_type)
             .unwrap();

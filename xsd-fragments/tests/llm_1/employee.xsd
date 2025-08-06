@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://company.com/employee"
+  xmlns:tns="http://company.com/employee"
+  xmlns:common="http://company.com/common"
+  elementFormDefault="qualified">
+
+  <xs:import namespace="http://company.com/common"
+    schemaLocation="common.xsd" />
+
+  <xs:complexType name="EmployeeType">
+    <xs:sequence>
+      <xs:element name="id" type="common:PersonId" />
+      <xs:element name="name" type="xs:string" />
+      <xs:element name="department" type="xs:string" />
+      <xs:element name="address" type="common:AddressType" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:element name="employee" type="tns:EmployeeType" />
+
+</xs:schema>

@@ -8,7 +8,7 @@ pub mod simple;
 use xmlity::ExpandedName;
 
 use crate::{
-    fragments::{complex as cx, simple as sm, FragmentAccess, FragmentIdx, NamespaceIdx},
+    fragments::{complex as cx, simple as sm, FragmentAccess, FragmentIdx, LocalNamespaceIdx},
     transformers::TransformChange,
 };
 
@@ -32,13 +32,16 @@ pub struct XmlnsContextTransformerContext<'a> {
 }
 
 impl XmlnsContextTransformerContext<'_> {
-    fn get_namespace(&self, namespace_idx: &NamespaceIdx) -> Option<&crate::CompiledNamespace> {
+    fn get_namespace(
+        &self,
+        namespace_idx: &LocalNamespaceIdx,
+    ) -> Option<&crate::CompiledNamespace> {
         self.xmlns_context.namespaces.get(namespace_idx)
     }
 
     fn get_namespace_mut(
         &mut self,
-        namespace_idx: &NamespaceIdx,
+        namespace_idx: &LocalNamespaceIdx,
     ) -> Option<&mut crate::CompiledNamespace> {
         self.xmlns_context.namespaces.get_mut(namespace_idx)
     }
@@ -111,23 +114,35 @@ impl XmlnsContextTransformerContext<'_> {
     /// Gets a named type by its expanded name.
     pub fn get_named_type<'a>(
         &'a self,
+        namespace_idx: &LocalNamespaceIdx,
         name: &'a ExpandedName<'_>,
     ) -> Option<&'a crate::TopLevelType> {
-        self.xmlns_context
-            .get_namespace(name.namespace()?)?
-            .top_level_types
-            .get(name.local_name())
+        let compiled_namespace = self.get_namespace(namespace_idx)?;
+
+        let referenced_ns = compiled_namespace
+            .namespace_references
+            .get(name.namespace()?)?;
+
+        let ns = self.get_namespace(referenced_ns)?;
+
+        ns.top_level_types.get(name.local_name())
     }
 
     /// Gets a named attribute group by its expanded name.
     pub fn get_named_attribute_group<'a>(
         &'a self,
+        namespace_idx: &LocalNamespaceIdx,
         name: &'a ExpandedName<'_>,
     ) -> Option<&'a crate::TopLevelAttributeGroup> {
-        self.xmlns_context
-            .get_namespace(name.namespace()?)?
-            .top_level_attribute_groups
-            .get(name.local_name())
+        let compiled_namespace = self.get_namespace(namespace_idx)?;
+
+        let referenced_ns = compiled_namespace
+            .namespace_references
+            .get(name.namespace()?)?;
+
+        let ns = self.get_namespace(referenced_ns)?;
+
+        ns.top_level_attribute_groups.get(name.local_name())
     }
 }
 

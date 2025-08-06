@@ -1,14 +1,14 @@
 //! Simple type fragments for XSD processing.
 
-use std::{any::type_name, num::NonZeroUsize};
+use std::{any::type_name, marker::PhantomData, num::NonZeroUsize};
 use xsd::{ns, xs};
 
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
 use crate::{
     fragments::{
-        complex::XmlNamespaceExt, FragmentAccess, FragmentCollection, FragmentIdx,
-        HasFragmentCollection, NamespaceIdx,
+        complex::XmlNamespaceExt, Context, FragmentAccess, FragmentCollection, FragmentIdx,
+        HasFragmentCollection, LocalNamespaceIdx,
     },
     NamedOrAnonymous,
 };
@@ -220,6 +220,7 @@ pub enum FacetFragment {
 #[derive(Debug, Clone)]
 pub struct SimpleTypeFragmentCompiler {
     namespace: XmlNamespace<'static>,
+    pub namespace_idx: LocalNamespaceIdx,
     simple_types: FragmentCollection<SimpleTypeRootFragment>,
     restrictions: FragmentCollection<RestrictionFragment>,
     facets: FragmentCollection<FacetFragment>,
@@ -242,15 +243,16 @@ impl AsRef<SimpleTypeFragmentCompiler> for SimpleTypeFragmentCompiler {
 
 impl SimpleTypeFragmentCompiler {
     /// Creates a new [`SimpleTypeFragmentCompiler`] with the given namespace and namespace index.
-    pub fn new(namespace: XmlNamespace<'static>, namespace_idx: NamespaceIdx) -> Self {
+    pub fn new(namespace: XmlNamespace<'static>, namespace_idx: LocalNamespaceIdx) -> Self {
         Self {
             namespace,
-            simple_types: FragmentCollection::new(namespace_idx),
-            restrictions: FragmentCollection::new(namespace_idx),
-            facets: FragmentCollection::new(namespace_idx),
-            lists: FragmentCollection::new(namespace_idx),
-            unions: FragmentCollection::new(namespace_idx),
-            group_refs: FragmentCollection::new(namespace_idx),
+            namespace_idx,
+            simple_types: FragmentCollection::new(),
+            restrictions: FragmentCollection::new(),
+            facets: FragmentCollection::new(),
+            lists: FragmentCollection::new(),
+            unions: FragmentCollection::new(),
+            group_refs: FragmentCollection::new(),
         }
     }
 }
@@ -314,20 +316,31 @@ where
     SimpleTypeFragmentCompiler: HasFragmentCollection<T>,
 {
     fn get_fragment(&self, fragment_id: &FragmentIdx<T>) -> Option<&T> {
-        self.get_fragment_collection().get_fragment(fragment_id)
+        if fragment_id.namespace_idx() != self.namespace_idx {
+            return None;
+        }
+        self.get_fragment_collection().get_fragment(&fragment_id.1)
     }
 
     fn get_fragment_mut(&mut self, fragment_id: &FragmentIdx<T>) -> Option<&mut T> {
+        if fragment_id.namespace_idx() != self.namespace_idx {
+            return None;
+        }
         self.get_fragment_collection_mut()
-            .get_fragment_mut(fragment_id)
+            .get_fragment_mut(&fragment_id.1)
     }
 
     fn push_fragment(&mut self, fragment: T) -> FragmentIdx<T> {
-        self.get_fragment_collection_mut().push_fragment(fragment)
+        let idx = self.get_fragment_collection_mut().push_fragment(fragment);
+        FragmentIdx::new(self.namespace_idx, idx)
     }
 
     fn iter_fragment_ids(&self) -> Vec<FragmentIdx<T>> {
-        self.get_fragment_collection().iter_fragment_ids()
+        self.get_fragment_collection()
+            .iter_fragment_ids()
+            .into_iter()
+            .map(|id| FragmentIdx::new(self.namespace_idx, id))
+            .collect()
     }
 }
 
@@ -351,14 +364,15 @@ pub trait SimpleFragmentEquivalent: Sized {
     type FragmentId;
 
     /// Converts this type to simple fragments in the compiler.
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        compiler: T,
+        compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error>;
 
     /// Creates this type from simple fragments in the compiler.
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        _compiler: T,
+    fn from_simple_fragments(
+        _compiler: &SimpleTypeFragmentCompiler,
         _fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error>;
 }
@@ -366,13 +380,14 @@ pub trait SimpleFragmentEquivalent: Sized {
 impl SimpleFragmentEquivalent for xs::types::TopLevelSimpleType {
     type FragmentId = FragmentIdx<SimpleTypeRootFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
-        let mut compiler = compiler.as_mut();
-
-        let simple_derivation = self.simple_derivation.to_simple_fragments(&mut compiler)?;
+        let simple_derivation = self
+            .simple_derivation
+            .to_simple_fragments(&mut compiler, context)?;
 
         Ok(compiler.push_fragment(SimpleTypeRootFragment {
             name: Some(self.name.clone()),
@@ -380,12 +395,10 @@ impl SimpleFragmentEquivalent for xs::types::TopLevelSimpleType {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -411,13 +424,14 @@ impl SimpleFragmentEquivalent for xs::types::TopLevelSimpleType {
 impl SimpleFragmentEquivalent for xs::types::LocalSimpleType {
     type FragmentId = FragmentIdx<SimpleTypeRootFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
-        let mut compiler = compiler.as_mut();
-
-        let simple_derivation = self.simple_derivation.to_simple_fragments(&mut compiler)?;
+        let simple_derivation = self
+            .simple_derivation
+            .to_simple_fragments(&mut compiler, context)?;
 
         Ok(compiler.push_fragment(SimpleTypeRootFragment {
             name: None,
@@ -425,12 +439,10 @@ impl SimpleFragmentEquivalent for xs::types::LocalSimpleType {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -450,38 +462,37 @@ impl SimpleFragmentEquivalent for xs::types::LocalSimpleType {
 impl SimpleFragmentEquivalent for xs::Facet {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        compiler: T,
+        compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         use xs::Facet as F;
         match self {
-            F::MinExclusive(f) => f.to_simple_fragments(compiler),
-            F::MinInclusive(f) => f.to_simple_fragments(compiler),
-            F::MaxExclusive(f) => f.to_simple_fragments(compiler),
-            F::MaxInclusive(f) => f.to_simple_fragments(compiler),
-            F::Enumeration(f) => f.to_simple_fragments(compiler),
-            F::TotalDigits(f) => f.to_simple_fragments(compiler),
-            F::FractionDigits(f) => f.to_simple_fragments(compiler),
-            F::Length(f) => f.to_simple_fragments(compiler),
-            F::MinLength(f) => f.to_simple_fragments(compiler),
-            F::MaxLength(f) => f.to_simple_fragments(compiler),
-            F::WhiteSpace(f) => f.to_simple_fragments(compiler),
-            F::Pattern(f) => f.to_simple_fragments(compiler),
-            F::Assertion(f) => f.to_simple_fragments(compiler),
-            F::ExplicitTimezone(f) => f.to_simple_fragments(compiler),
+            F::MinExclusive(f) => f.to_simple_fragments(compiler, context),
+            F::MinInclusive(f) => f.to_simple_fragments(compiler, context),
+            F::MaxExclusive(f) => f.to_simple_fragments(compiler, context),
+            F::MaxInclusive(f) => f.to_simple_fragments(compiler, context),
+            F::Enumeration(f) => f.to_simple_fragments(compiler, context),
+            F::TotalDigits(f) => f.to_simple_fragments(compiler, context),
+            F::FractionDigits(f) => f.to_simple_fragments(compiler, context),
+            F::Length(f) => f.to_simple_fragments(compiler, context),
+            F::MinLength(f) => f.to_simple_fragments(compiler, context),
+            F::MaxLength(f) => f.to_simple_fragments(compiler, context),
+            F::WhiteSpace(f) => f.to_simple_fragments(compiler, context),
+            F::Pattern(f) => f.to_simple_fragments(compiler, context),
+            F::Assertion(f) => f.to_simple_fragments(compiler, context),
+            F::ExplicitTimezone(f) => f.to_simple_fragments(compiler, context),
             _ => Err(Error::SubstitutionGroupNotSupported {
                 fragment_type: type_name::<Self>(),
             }),
         }
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -536,9 +547,10 @@ impl SimpleFragmentEquivalent for xs::Facet {
 impl SimpleFragmentEquivalent for xs::MinExclusive {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -556,12 +568,10 @@ impl SimpleFragmentEquivalent for xs::MinExclusive {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -580,9 +590,10 @@ impl SimpleFragmentEquivalent for xs::MinExclusive {
 impl SimpleFragmentEquivalent for xs::MinInclusive {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -600,12 +611,10 @@ impl SimpleFragmentEquivalent for xs::MinInclusive {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -624,9 +633,10 @@ impl SimpleFragmentEquivalent for xs::MinInclusive {
 impl SimpleFragmentEquivalent for xs::MaxExclusive {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -644,12 +654,10 @@ impl SimpleFragmentEquivalent for xs::MaxExclusive {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -668,9 +676,10 @@ impl SimpleFragmentEquivalent for xs::MaxExclusive {
 impl SimpleFragmentEquivalent for xs::MaxInclusive {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -688,12 +697,10 @@ impl SimpleFragmentEquivalent for xs::MaxInclusive {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -712,9 +719,10 @@ impl SimpleFragmentEquivalent for xs::MaxInclusive {
 impl SimpleFragmentEquivalent for xs::Enumeration {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -732,12 +740,10 @@ impl SimpleFragmentEquivalent for xs::Enumeration {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -759,9 +765,10 @@ impl SimpleFragmentEquivalent for xs::Enumeration {
 impl SimpleFragmentEquivalent for xs::TotalDigits {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -777,12 +784,10 @@ impl SimpleFragmentEquivalent for xs::TotalDigits {
         Ok(compiler.push_fragment(FacetFragment::TotalDigits { value: facet.value }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -804,9 +809,10 @@ impl SimpleFragmentEquivalent for xs::TotalDigits {
 impl SimpleFragmentEquivalent for xs::FractionDigits {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -822,12 +828,10 @@ impl SimpleFragmentEquivalent for xs::FractionDigits {
         Ok(compiler.push_fragment(FacetFragment::FractionDigits { value: facet.value }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -849,9 +853,10 @@ impl SimpleFragmentEquivalent for xs::FractionDigits {
 impl SimpleFragmentEquivalent for xs::Length {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -867,12 +872,10 @@ impl SimpleFragmentEquivalent for xs::Length {
         Ok(compiler.push_fragment(FacetFragment::Length { value: facet.value }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -894,9 +897,10 @@ impl SimpleFragmentEquivalent for xs::Length {
 impl SimpleFragmentEquivalent for xs::MinLength {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -912,12 +916,10 @@ impl SimpleFragmentEquivalent for xs::MinLength {
         Ok(compiler.push_fragment(FacetFragment::MinLength { value: facet.value }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -939,9 +941,10 @@ impl SimpleFragmentEquivalent for xs::MinLength {
 impl SimpleFragmentEquivalent for xs::MaxLength {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -957,12 +960,10 @@ impl SimpleFragmentEquivalent for xs::MaxLength {
         Ok(compiler.push_fragment(FacetFragment::MaxLength { value: facet.value }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -984,9 +985,10 @@ impl SimpleFragmentEquivalent for xs::MaxLength {
 impl SimpleFragmentEquivalent for xs::WhiteSpace {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -1004,12 +1006,10 @@ impl SimpleFragmentEquivalent for xs::WhiteSpace {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -1031,9 +1031,10 @@ impl SimpleFragmentEquivalent for xs::WhiteSpace {
 impl SimpleFragmentEquivalent for xs::Pattern {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -1051,12 +1052,10 @@ impl SimpleFragmentEquivalent for xs::Pattern {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -1078,9 +1077,10 @@ impl SimpleFragmentEquivalent for xs::Pattern {
 impl SimpleFragmentEquivalent for xs::Assertion {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -1098,12 +1098,10 @@ impl SimpleFragmentEquivalent for xs::Assertion {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -1124,9 +1122,10 @@ impl SimpleFragmentEquivalent for xs::Assertion {
 impl SimpleFragmentEquivalent for xs::ExplicitTimezone {
     type FragmentId = FragmentIdx<FacetFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let compiler = compiler.as_mut();
 
@@ -1144,12 +1143,10 @@ impl SimpleFragmentEquivalent for xs::ExplicitTimezone {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -1171,12 +1168,11 @@ impl SimpleFragmentEquivalent for xs::ExplicitTimezone {
 impl SimpleFragmentEquivalent for xs::List {
     type FragmentId = FragmentIdx<ListFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
-        let mut compiler = compiler.as_mut();
-
         let list = match self {
             xs::List::List(list) => list,
             _ => {
@@ -1189,7 +1185,7 @@ impl SimpleFragmentEquivalent for xs::List {
         let item_type = if let Some(item_type) = list.item_type.as_ref() {
             NamedOrAnonymous::Named(item_type.0.clone())
         } else if let Some(simple_type) = list.simple_type.as_ref() {
-            NamedOrAnonymous::Anonymous(simple_type.to_simple_fragments(&mut compiler)?)
+            NamedOrAnonymous::Anonymous(simple_type.to_simple_fragments(&mut compiler, context)?)
         } else {
             //ERROR
             return Err(Error::ListMissingType);
@@ -1201,12 +1197,10 @@ impl SimpleFragmentEquivalent for xs::List {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -1234,19 +1228,18 @@ impl SimpleFragmentEquivalent for xs::List {
 impl SimpleFragmentEquivalent for xs::union_items::SimpleType {
     type FragmentId = FragmentIdx<SimpleTypeRootFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
-        self.0.to_simple_fragments(compiler)
+        self.0.to_simple_fragments(compiler, context)
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         xs::types::LocalSimpleType::from_simple_fragments(compiler, fragment_id).map(Into::into)
     }
 }
@@ -1254,12 +1247,11 @@ impl SimpleFragmentEquivalent for xs::union_items::SimpleType {
 impl SimpleFragmentEquivalent for xs::Union {
     type FragmentId = FragmentIdx<UnionFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
-        let mut compiler = compiler.as_mut();
-
         let union = match self {
             xs::Union::Union(union) => union,
             _ => {
@@ -1287,7 +1279,7 @@ impl SimpleFragmentEquivalent for xs::Union {
         let simple_types = union
             .simple_type
             .iter()
-            .map(|simple_type| simple_type.to_simple_fragments(&mut compiler))
+            .map(|simple_type| simple_type.to_simple_fragments(&mut compiler, context))
             .collect::<Result<VecDeque<_>, _>>()?;
 
         Ok(compiler.push_fragment(UnionFragment {
@@ -1297,12 +1289,10 @@ impl SimpleFragmentEquivalent for xs::Union {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -1337,12 +1327,11 @@ impl SimpleFragmentEquivalent for xs::Union {
 impl SimpleFragmentEquivalent for xs::Restriction {
     type FragmentId = FragmentIdx<RestrictionFragment>;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        mut compiler: T,
+        mut compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
-        let mut compiler = compiler.as_mut();
-
         let restriction = match self {
             xs::Restriction::Restriction(restriction) => restriction,
             _ => {
@@ -1358,7 +1347,7 @@ impl SimpleFragmentEquivalent for xs::Restriction {
             .simple_restriction_model
             .simple_type
             .as_ref()
-            .map(|simple_type| simple_type.to_simple_fragments(&mut compiler))
+            .map(|simple_type| simple_type.to_simple_fragments(&mut compiler, context))
             .transpose()?;
 
         let facets = restriction
@@ -1369,7 +1358,7 @@ impl SimpleFragmentEquivalent for xs::Restriction {
                 xs::groups::simple_restriction_model_items::Child1::Facet(facet) => Some(facet),
                 _ => None,
             })
-            .map(|facet| facet.to_simple_fragments(&mut compiler))
+            .map(|facet| facet.to_simple_fragments(&mut compiler, context))
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(compiler.push_fragment(RestrictionFragment {
@@ -1380,12 +1369,10 @@ impl SimpleFragmentEquivalent for xs::Restriction {
         }))
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        let compiler = compiler.as_ref();
-
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -1461,22 +1448,23 @@ impl From<FragmentIdx<UnionFragment>> for SimpleDerivation {
 impl SimpleFragmentEquivalent for xs::groups::SimpleDerivation {
     type FragmentId = SimpleDerivation;
 
-    fn to_simple_fragments<T: AsMut<SimpleTypeFragmentCompiler>>(
+    fn to_simple_fragments(
         &self,
-        compiler: T,
+        compiler: &mut SimpleTypeFragmentCompiler,
+        context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         use xs::groups::SimpleDerivation as S;
         match self {
-            S::Restriction(restriction) => {
-                restriction.to_simple_fragments(compiler).map(Into::into)
-            }
-            S::List(list) => list.to_simple_fragments(compiler).map(Into::into),
-            S::Union(union) => union.to_simple_fragments(compiler).map(Into::into),
+            S::Restriction(restriction) => restriction
+                .to_simple_fragments(compiler, context)
+                .map(Into::into),
+            S::List(list) => list.to_simple_fragments(compiler, context).map(Into::into),
+            S::Union(union) => union.to_simple_fragments(compiler, context).map(Into::into),
         }
     }
 
-    fn from_simple_fragments<T: AsRef<SimpleTypeFragmentCompiler>>(
-        compiler: T,
+    fn from_simple_fragments(
+        compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
         match fragment_id {

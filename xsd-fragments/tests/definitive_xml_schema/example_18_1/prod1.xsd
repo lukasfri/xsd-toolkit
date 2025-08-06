@@ -1,0 +1,7 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:simpleType name="DressSizeType">
+    <xs:restriction base="xs:integer" />
+  </xs:simpleType>
+  <xs:element name="size" type="DressSizeType" />
+  <xs:element name="color" type="xs:string" />
+</xs:schema>

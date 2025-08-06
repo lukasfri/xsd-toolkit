@@ -1,21 +1,51 @@
 //! This example is used to generate the `xmlity-ns-xs` crate.
 //!
 //! The `xmlity-ns-xs` crate can not use `xmlity-build` as a dependency, because it is itself a dependency of `xmlity-build`. Therefore, this example is used to generate the `xmlity-ns-xs` crate.
+use std::{env::current_dir, path::Path};
+
 use syn::parse_quote;
+use url::Url;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_codegen_xmlity::{misc::TypeReference, BoundType, TypeType};
+use xsd_fragments::CompileNamespaceName;
 
 fn main() {
     println!("Building the engine...");
 
     let time = std::time::Instant::now();
 
+    println!(
+        "Path: {}",
+        current_dir()
+            .unwrap()
+            .join("schemas/xmlity-ns-xs/src/xml.xsd")
+            .display()
+    );
+
+    let xml_path = CompileNamespaceName::Direct(
+        Url::from_file_path(
+            current_dir()
+                .unwrap()
+                .join("schemas/xmlity-ns-xs/src/xml.xsd"),
+        )
+        .unwrap(),
+    );
+
+    let xs_path = CompileNamespaceName::Direct(
+        Url::from_file_path(
+            current_dir()
+                .unwrap()
+                .join("schemas/xmlity-ns-xs/src/XMLSchema.xsd"),
+        )
+        .unwrap(),
+    );
+
     let engine = xmlity_build::BuildEngine::builder()
         .allowed_files(vec!["schemas/**/*.xsd".to_string()])
         .allow_network_access(true)
         .bound_namespaces(vec![
-            (XmlNamespace::XML, parse_quote!(xmlity_ns_xml)),
-            (XmlNamespace::XS, parse_quote!(crate)),
+            (xml_path, parse_quote!(xmlity_ns_xml)),
+            (xs_path.clone(), parse_quote!(crate)),
         ])
         .bound_types(vec![
             (
@@ -51,7 +81,7 @@ fn main() {
         .generate_namespace(
             xmlity_build::GenerateNamespaceConfig::builder()
                 .output_file("schemas/xmlity-ns-xs/src/xs_generated.rs".parse().unwrap())
-                .namespace(XmlNamespace::XS)
+                .namespace(xs_path)
                 .bon_builders(true)
                 .enum_from_impls(true)
                 .struct_from_impls(true)

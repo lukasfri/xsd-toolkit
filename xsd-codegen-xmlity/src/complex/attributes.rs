@@ -14,6 +14,7 @@ use quote::format_ident;
 use syn::parse_quote;
 use xmlity::ExpandedName;
 use xsd_fragments::fragments::complex::{self as cx, AttributeUse};
+use xsd_fragments::fragments::FragmentIdx;
 
 #[derive(Debug)]
 pub struct AnyAttributesHandler {
@@ -109,15 +110,17 @@ pub struct LocalAttributeHandler {
     pub value_type_naming: WrappingNamingStrategy,
 }
 
-impl ComplexToTypeTemplate<cx::LocalAttributeFragment> for LocalAttributeHandler {
+impl ComplexToTypeTemplate<FragmentIdx<cx::LocalAttributeFragment>> for LocalAttributeHandler {
     type TypeTemplate = ElementFieldAttribute;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         scope: &mut S,
-        item: &cx::LocalAttributeFragment,
+        fragment_idx: &FragmentIdx<cx::LocalAttributeFragment>,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let item = context.get_fragment(fragment_idx).unwrap();
+
         let optional = match item.use_.unwrap_or_default() {
             AttributeUse::Optional => true,
             AttributeUse::Required => false,
@@ -152,7 +155,8 @@ impl ComplexToTypeTemplate<cx::LocalAttributeFragment> for LocalAttributeHandler
             }
             cx::LocalAttributeFragmentTypeMode::Reference(reference) => {
                 let ident = reference.ref_.local_name().to_item_ident();
-                let ty = context.resolve_named_attribute(&reference.ref_)?;
+                let ty = context
+                    .resolve_named_attribute(&fragment_idx.namespace_idx(), &reference.ref_)?;
 
                 let ty = ty.wrap_if(optional, |a| parse_quote!(::core::option::Option<#a>));
 
@@ -189,7 +193,7 @@ impl ComplexToTypeTemplate<cx::AttributeDeclarationId> for AttributeDeclarationH
         match item {
             cx::AttributeDeclarationId::Attribute(fragment_idx) => self
                 .local_attribute_handler
-                .resolve_type_template(context, scope, fragment_idx),
+                .to_type_template(context, scope, fragment_idx),
             cx::AttributeDeclarationId::AttributeGroupRef(_fragment_idx) => {
                 Err(crate::Error::UnsupportedFragment {
                     fragment: "AttributeGroupRef".to_string(),
@@ -241,9 +245,12 @@ impl ComplexToTypeTemplate<cx::TopLevelAttributeFragment> for TopLevelAttributeH
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use pretty_assertions::assert_eq;
 
     use syn::{parse_quote, Item};
+    use url::Url;
     use xmlity::{LocalName, XmlNamespace};
     use xsd::{ns, xs, xsn};
     use xsd_fragments::XmlnsContext;
@@ -254,6 +261,7 @@ mod tests {
     fn simple_attribute() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
+        let test_location = Url::from_str("http://example.com/test.xsd").unwrap();
 
         let attribute = xs::types::TopLevelAttribute::builder()
             .name(LocalName::new_dangerous("SimpleAttribute"))
@@ -263,7 +271,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (ns_id, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
 
         let sequence = ns
             .import_top_level_attribute(&attribute)
@@ -274,7 +282,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_attribute(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_attribute(&ns_id, &sequence).unwrap();
 
         #[rustfmt::skip]
         let expected_items: Vec<Item> = vec![

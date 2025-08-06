@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://company.com/hr"
+  xmlns:tns="http://company.com/hr"
+  xmlns:emp="http://company.com/employee"
+  xmlns:pay="http://company.com/payroll"
+  elementFormDefault="qualified">
+
+  <xs:import namespace="http://company.com/employee"
+    schemaLocation="employee.xsd" />
+  <xs:import namespace="http://company.com/payroll"
+    schemaLocation="payroll.xsd" />
+
+  <xs:element name="hrSystem">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="emp:employee" maxOccurs="unbounded" />
+        <xs:element name="payrollRecords" type="pay:PayrollRecordType"
+          maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

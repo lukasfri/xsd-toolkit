@@ -1,18 +1,30 @@
 //! This example is used to generate the `xmlity-ns-xml` crate.
 //!
 //! The `xmlity-ns-xml` crate can not use `xmlity-build` as a dependency, because it is itself a dependency of `xmlity-build`. Therefore, this example is used to generate the `xmlity-ns-xml` crate.
+use std::env::current_dir;
+
 use syn::parse_quote;
-use xmlity::XmlNamespace;
+use url::Url;
+use xsd_fragments::CompileNamespaceName;
 
 fn main() {
     println!("Building the engine...");
 
     let time = std::time::Instant::now();
 
+    let xml_path = CompileNamespaceName::Direct(
+        Url::from_file_path(
+            current_dir()
+                .unwrap()
+                .join("schemas/xmlity-ns-xs/src/xml.xsd"),
+        )
+        .unwrap(),
+    );
+
     let engine = xmlity_build::BuildEngine::builder()
         .allowed_files(vec!["schemas/**/*.xsd".to_string()])
         .allow_network_access(true)
-        .bound_namespaces(vec![(XmlNamespace::XML, parse_quote!(crate))])
+        .bound_namespaces(vec![(xml_path.clone(), parse_quote!(crate))])
         .build();
 
     let engine = engine.start().expect("Failed to start the engine");
@@ -31,7 +43,7 @@ fn main() {
                         .parse()
                         .expect("Failed to parse output file path"),
                 )
-                .namespace(XmlNamespace::XML)
+                .namespace(xml_path)
                 .bon_builders(true)
                 .enum_from_impls(true)
                 .struct_from_impls(true)

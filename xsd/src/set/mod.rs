@@ -13,6 +13,7 @@ pub struct SchemaLocation {
 }
 
 /// A set of XML schemas indexed by their URLs.
+#[derive(Debug, Clone, PartialEq)]
 pub struct XmlSchemaSet {
     /// Map of URLs to their schema locations.
     pub locations: HashMap<Url, Option<SchemaLocation>>,
@@ -149,18 +150,29 @@ impl XmlSchemaSet {
                 self.inform_location(location);
             });
 
-        let includes = schema
-            .includes()
-            .map(|a| match a {
-                xs::Include::Include(a) => a,
-                _ => panic!("Expected an include, but found: {:?}", a),
+        schema
+            .compositions()
+            .filter_map(|a| match a {
+                xs::groups::Composition::Redefine(a) => match a.deref() {
+                    xs::Redefine::Redefine(a) => Some(a.schema_location.as_str()),
+                    _ => None,
+                },
+                xs::groups::Composition::Include(a) => match a.deref() {
+                    xs::Include::Include(a) => Some(a.schema_location.as_str()),
+                    _ => None,
+                },
+                xs::groups::Composition::Override(a) => match a.deref() {
+                    xs::Override::Override(a) => Some(a.schema_location.as_str()),
+                    _ => None,
+                },
+                _ => None,
             })
-            .map(|a| url.resolve_xml_url(&a.schema_location))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        includes.iter().for_each(|location| {
-            self.inform_location(location);
-        });
+            .map(|relative_xml_link| url.resolve_xml_url(&relative_xml_link))
+            .try_for_each(|location| {
+                location.map(|location| {
+                    self.inform_location(&location);
+                })
+            })?;
 
         let location = SchemaLocation { schema };
 

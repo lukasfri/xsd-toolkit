@@ -252,7 +252,7 @@ impl ExpandExtensionFragments {
         }
 
         let base_fragment = ctx
-            .get_named_type(&base)
+            .get_named_type(&child_fragment_idx.namespace_idx(), &base)
             .ok_or(Error::BaseNotFound { base: base.clone() })?;
 
         let base_fragment = match base_fragment {
@@ -410,8 +410,11 @@ impl XmlnsContextTransformer for ExpandExtensionFragments {
 #[cfg(test)]
 mod tests {
 
+    use std::str::FromStr;
+
     use super::*;
     use pretty_assertions::assert_eq;
+    use url::Url;
 
     use crate::XmlnsContext;
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
@@ -423,6 +426,7 @@ mod tests {
     fn basic_child_only_expand_extension() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://localhost");
+        let test_location = Url::from_str("http://www.example.com/").unwrap();
 
         let parent_seq = xs::Sequence::from(
             xs::types::ExplicitGroup::builder()
@@ -603,7 +607,7 @@ mod tests {
                 .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
 
         ns.import_top_level_complex_type(&product_type).unwrap();
         ns.import_top_level_complex_type(&derived_shirt_type)
@@ -621,7 +625,7 @@ mod tests {
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace_direct(&test_location).unwrap();
 
         let actual_flattened_shirt_type = ns
             .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
@@ -635,6 +639,7 @@ mod tests {
     fn basic_attribute_only_expand_extension() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://localhost");
+        let test_location = Url::from_str("http://www.example.com/").unwrap();
 
         // <xs:complexType name="ProductType">
         //   <xs:complexContent>
@@ -799,7 +804,7 @@ mod tests {
                 .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
 
         ns.import_top_level_complex_type(&product_type).unwrap();
         ns.import_top_level_complex_type(&derived_shirt_type)
@@ -817,7 +822,7 @@ mod tests {
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace_direct(&test_location).unwrap();
 
         let actual_flattened_shirt_type = ns
             .export_top_level_complex_type(&LocalName::new_dangerous("ShirtType"))
@@ -830,6 +835,7 @@ mod tests {
     #[test]
     fn expand_extension_type_element_no_fragment() {
         const TEST_NAMESPACE: XmlNamespace<'static> = XmlNamespace::XHTML;
+        let test_location = Url::from_str("http://www.example.com/").unwrap();
 
         // <xs:complexType name="Block">
         //     <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -1027,7 +1033,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
         ns.import_top_level_complex_type(&block).unwrap();
         ns.import_top_level_element(&noscript).unwrap();
 
@@ -1043,7 +1049,7 @@ mod tests {
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace_direct(&test_location).unwrap();
 
         let actual_flattened_noscript = ns
             .export_top_level_element(&LocalName::new_dangerous("noscript"))
@@ -1056,6 +1062,7 @@ mod tests {
     #[test]
     fn expand_xhtml_a() {
         const TEST_NAMESPACE: XmlNamespace<'static> = XmlNamespace::XHTML;
+        let test_location = Url::from_str("http://www.example.com/").unwrap();
 
         // <xs:complexType name="a.content" mixed="true">
         //     <xs:annotation>
@@ -1468,7 +1475,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
 
         ns.import_top_level_complex_type(&a_content).unwrap();
         ns.import_top_level_element(&a).unwrap();
@@ -1485,7 +1492,7 @@ mod tests {
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace_direct(&test_location).unwrap();
 
         let actual_flattened_a = ns
             .export_top_level_element(&LocalName::new_dangerous("a"))
@@ -1498,6 +1505,7 @@ mod tests {
     #[test]
     fn expand_ref_attribute() {
         const TEST_NAMESPACE: XmlNamespace<'static> = XmlNamespace::XHTML;
+        let test_location = Url::from_str("http://www.example.com/").unwrap();
 
         // <xs:complexType name="parent">
         //     <xs:complexContent>
@@ -1651,7 +1659,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
 
         ns.import_top_level_complex_type(&parent).unwrap();
         let child = ns
@@ -1673,7 +1681,7 @@ mod tests {
 
         assert_eq!(transform_changed, TransformChange::Unchanged);
 
-        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace_direct(&test_location).unwrap();
 
         let actual = ns.export_top_level_complex_type(&child).unwrap().unwrap();
 

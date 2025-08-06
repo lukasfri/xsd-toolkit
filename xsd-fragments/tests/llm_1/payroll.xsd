@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://company.com/payroll"
+  xmlns:tns="http://company.com/payroll"
+  xmlns:common="http://company.com/common"
+  elementFormDefault="qualified">
+
+  <xs:import namespace="http://company.com/common"
+    schemaLocation="common.xsd" />
+
+  <xs:redefine schemaLocation="common.xsd">
+    <xs:complexType name="AddressType">
+      <xs:complexContent>
+        <xs:extension base="tns:AddressType">
+          <xs:sequence>
+            <xs:element name="country" type="xs:string" />
+            <xs:element name="taxRegion" type="xs:string" />
+          </xs:sequence>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:redefine>
+
+  <xs:complexType name="PayrollRecordType">
+    <xs:sequence>
+      <xs:element name="employeeId" type="common:PersonId" />
+      <xs:element name="salary" type="xs:decimal" />
+      <xs:element name="taxAddress" type="tns:AddressType" />
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

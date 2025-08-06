@@ -25,7 +25,7 @@ use xsd_codegen_xmlity::{
     misc::TypeReference,
     BoundType,
 };
-use xsd_fragments::XmlnsContext;
+use xsd_fragments::{CompileNamespaceName, XmlnsContext};
 
 /// The [`BuildEngine`] struct is used to configure the build process, including allowed files, URLs, and bound namespaces.
 #[derive(Debug, Builder)]
@@ -41,7 +41,7 @@ pub struct BuildEngine {
     pub allow_network_access: bool,
     /// A list of namespaces to bind to specific paths.
     #[builder(default)]
-    pub bound_namespaces: Vec<(XmlNamespace<'static>, syn::Path)>,
+    pub bound_namespaces: Vec<(CompileNamespaceName, syn::Path)>,
     /// A list of types to bind to specific types.
     #[builder(default)]
     pub bound_types: Vec<(ExpandedName<'static>, BoundType)>,
@@ -60,7 +60,7 @@ pub struct BuildEngine {
 #[derive(Debug, Builder)]
 pub struct GenerateNamespaceConfig {
     /// The XML namespace to generate code for.
-    pub namespace: XmlNamespace<'static>,
+    pub namespace: CompileNamespaceName,
     /// The output file where the generated code will be written.
     pub output_file: PathBuf,
     /// Derive `bon::builders::Builder` for structs.
@@ -202,10 +202,9 @@ impl BuildEngine {
 
         let mut context = XmlnsContext::new();
 
-        let mut imported_uris = Vec::new();
-        root_uris.iter().try_for_each(|uri| {
-            context.import_namespace_map(&map, uri, None, &mut imported_uris)
-        })?;
+        root_uris
+            .iter()
+            .try_for_each(|uri| context.import_namespace_map(&map, uri, None).map(|_| ()))?;
 
         let allowed_simple_bases: HashSet<ExpandedName<'static>> = [
             &xsn::DECIMAL,
@@ -314,7 +313,13 @@ impl StartedBuildEngine {
 
         generator.bind_groups(self.engine.bound_groups.clone());
 
-        let items = generator.generate_namespace(&generate_namespace.namespace)?;
+        let namespace_idx = self
+            .context
+            .namespace_idxs
+            .get(&generate_namespace.namespace)
+            .expect("Namespace should exist");
+
+        let items = generator.generate_namespace(namespace_idx)?;
 
         let file = syn::File {
             attrs: Vec::new(),

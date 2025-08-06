@@ -2444,6 +2444,7 @@ dependencies = [
  "static_assertions",
  "syn 2.0.101",
  "thiserror",
+ "url",
  "xmlity",
  "xmlity-quick-xml",
  "xsd",

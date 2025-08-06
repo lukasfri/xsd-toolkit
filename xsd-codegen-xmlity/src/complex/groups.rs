@@ -21,7 +21,10 @@ use crate::{
 
 use quote::format_ident;
 use syn::{parse_quote, Item, Path};
-use xsd_fragments::fragments::complex::{self as cx, AllNNI};
+use xsd_fragments::fragments::{
+    complex::{self as cx, AllNNI},
+    FragmentIdx,
+};
 
 use super::{
     elements::LocalElementFragmentTemplate, ComplexContext, ComplexToTypeTemplate, Scope,
@@ -383,19 +386,21 @@ impl ComplexToTypeTemplate<cx::AnyFragment> for AnyFragmentHandler {
 #[derive(Debug)]
 pub struct GroupRefFragmentHandler;
 
-impl ComplexToTypeTemplate<cx::GroupRefFragment> for GroupRefFragmentHandler {
+impl ComplexToTypeTemplate<FragmentIdx<cx::GroupRefFragment>> for GroupRefFragmentHandler {
     type TypeTemplate = ItemFieldItem;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
         &self,
         context: &C,
         _scope: &mut S,
-        item: &cx::GroupRefFragment,
+        fragment_idx: &FragmentIdx<cx::GroupRefFragment>,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
+        let item = context.get_fragment(fragment_idx)?;
+
         let min_occurs = item.min_occurs.unwrap_or(1);
         let max_occurs = item.max_occurs.unwrap_or_default();
 
-        let ty = context.resolve_named_group(&item.ref_)?;
+        let ty = context.resolve_named_group(&fragment_idx.namespace_idx(), &item.ref_)?;
 
         let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
 
@@ -565,14 +570,14 @@ impl ComplexToTypeTemplate<cx::NestedParticleId> for NestedParticleIdHandler {
         let template = match item {
             cx::NestedParticleId::Element(fragment_idx) => self
                 .local_element_handler
-                .resolve_type_template(context, scope, fragment_idx)
+                .to_type_template(context, scope, fragment_idx)
                 .map(|res| ToTypeTemplateData {
                     ident: res.ident,
                     template: res.template.into(),
                 })?,
             cx::NestedParticleId::Group(fragment_idx) => self
                 .group_ref_handler
-                .resolve_type_template(context, scope, fragment_idx)
+                .to_type_template(context, scope, fragment_idx)
                 .map(|res| ToTypeTemplateData {
                     ident: res.ident,
                     template: GroupTypeContentTemplate::Item(res.template),
@@ -723,7 +728,7 @@ impl ComplexToTypeTemplate<cx::TypeDefParticleId> for TypeDefParticleIdHandler {
             cx::TypeDefParticleId::Group(group) => {
                 let group = self
                     .group_ref_handler
-                    .resolve_type_template(context, scope, group)?;
+                    .to_type_template(context, scope, group)?;
 
                 let template = TypeDefParticleTemplate::Item(group.template);
 
@@ -924,6 +929,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use syn::parse_quote;
+    use url::Url;
     use xmlity::{LocalName, XmlNamespace};
     use xsd::ns;
     use xsd::xs;
@@ -936,6 +942,7 @@ mod tests {
     fn three_choice_sequence_deep_top_level_type() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
+        let test_location = Url::parse("http://example.com/test.xsd").unwrap();
 
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
@@ -1004,7 +1011,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (ns_id, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
 
         let sequence = ns
             .import_top_level_complex_type(&sequence)
@@ -1015,7 +1022,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&ns_id, &sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -1070,6 +1077,7 @@ mod tests {
     fn two_sequence_deep_top_level_type() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
+        let test_location = Url::parse("http://example.com/test.xsd").unwrap();
 
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
@@ -1142,7 +1150,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (ns_id, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
 
         let sequence = ns
             .import_top_level_complex_type(&sequence)
@@ -1153,7 +1161,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&ns_id, &sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,

@@ -67,7 +67,7 @@ impl<'a> ExpandSimpleRestriction<'a> {
         }
 
         let crate::TopLevelType::Simple(base_simple_type) = ctx
-            .get_named_type(base)
+            .get_named_type(&fragment_idx.namespace_idx(), base)
             .ok_or(Error::BaseNotFound { base: base.clone() })?
         else {
             return Err(Error::BaseNotSimpleType { base: base.clone() });
@@ -136,7 +136,8 @@ mod tests {
 
     use super::*;
     use pretty_assertions::assert_eq;
-    use std::collections::HashSet;
+    use std::{collections::HashSet, str::FromStr};
+    use url::Url;
 
     use xmlity::{ExpandedName, LocalName, XmlNamespace};
     use xsd::{xs, xsn};
@@ -174,10 +175,11 @@ mod tests {
                 .collect();
 
         const TEST_NAMESPACE: XmlNamespace<'static> = XmlNamespace::XS;
+        let test_namespace_location = Url::from_str("http://www.w3.org/2001/XMLSchema").unwrap();
 
         let mut ctx = XmlnsContext::new();
 
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_namespace_location.clone(), TEST_NAMESPACE);
 
         ns.import_top_level_simple_type(&parent_type).unwrap();
         ns.import_top_level_simple_type(&child_type).unwrap();
@@ -188,7 +190,7 @@ mod tests {
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace_direct(&test_namespace_location).unwrap();
 
         let actual = ns
             .export_top_level_simple_type(&LocalName::new_dangerous("allNNIRestriction"))
@@ -243,10 +245,11 @@ mod tests {
                 .collect();
 
         const TEST_NAMESPACE: XmlNamespace<'static> = XmlNamespace::XS;
+        let test_namespace_location = Url::from_str("http://www.w3.org/2001/XMLSchema").unwrap();
 
         let mut ctx = XmlnsContext::new();
 
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_namespace_location.clone(), TEST_NAMESPACE);
 
         ns.import_top_level_simple_type(&parent_type).unwrap();
         ns.import_top_level_simple_type(&child_type).unwrap();
@@ -257,7 +260,7 @@ mod tests {
 
         assert_eq!(transform_changed, TransformChange::Changed);
 
-        let ns = ctx.get_namespace(&TEST_NAMESPACE).unwrap();
+        let ns = ctx.get_namespace_direct(&test_namespace_location).unwrap();
 
         let actual = ns
             .export_top_level_simple_type(&LocalName::new_dangerous("allNNIRestriction"))

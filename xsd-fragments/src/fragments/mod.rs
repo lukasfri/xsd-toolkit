@@ -9,11 +9,13 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::marker::PhantomData;
 
+use xmlity::XmlNamespace;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// Index identifying a specific namespace within the fragment system.
-pub struct NamespaceIdx(usize);
+pub struct LocalNamespaceIdx(usize);
 
-impl NamespaceIdx {
+impl LocalNamespaceIdx {
     /// Creates a new [`NamespaceIdx`] with the given numeric value.
     pub fn new(index: usize) -> Self {
         Self(index)
@@ -22,7 +24,7 @@ impl NamespaceIdx {
 
 #[derive(Debug)]
 /// Index identifying a specific fragment within a namespace.
-pub struct FragmentIdx<T>(NamespaceIdx, usize, PhantomData<T>);
+pub struct FragmentIdx<T>(LocalNamespaceIdx, usize, PhantomData<T>);
 
 impl<T> fmt::Display for FragmentIdx<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -38,13 +40,17 @@ impl<T> fmt::Display for FragmentIdx<T> {
 
 impl<T> FragmentIdx<T> {
     /// Creates a new [`FragmentIdx`] for the given namespace and index.
-    pub fn new(namespace: NamespaceIdx, index: usize) -> Self {
+    pub fn new(namespace: LocalNamespaceIdx, index: usize) -> Self {
         Self(namespace, index, PhantomData)
     }
 
     /// Returns the namespace index of this fragment.
-    pub fn namespace_idx(&self) -> NamespaceIdx {
+    pub fn namespace_idx(&self) -> LocalNamespaceIdx {
         self.0
+    }
+
+    pub fn local_idx(&self) -> usize {
+        self.1
     }
 }
 
@@ -85,22 +91,20 @@ impl<T> std::hash::Hash for FragmentIdx<T> {
 pub struct FragmentCollection<T> {
     fragment_id_count: usize,
     /// Map of fragment IDs to their corresponding fragments.
-    pub fragments: BTreeMap<FragmentIdx<T>, T>,
-    namespace_idx: NamespaceIdx,
+    pub fragments: BTreeMap<usize, T>,
 }
 
 impl<T> FragmentCollection<T> {
     /// Creates a new [`FragmentCollection`] for the given namespace.
-    pub fn new(namespace_idx: NamespaceIdx) -> Self {
+    pub fn new() -> Self {
         Self {
             fragment_id_count: 0,
             fragments: BTreeMap::new(),
-            namespace_idx,
         }
     }
 
-    fn generate_fragment_id(&mut self) -> FragmentIdx<T> {
-        let fragment_id = FragmentIdx::new(self.namespace_idx, self.fragment_id_count);
+    fn generate_fragment_id(&mut self) -> usize {
+        let fragment_id = self.fragment_id_count;
         self.fragment_id_count += 1;
         fragment_id
     }
@@ -117,22 +121,22 @@ impl<T> FragmentCollection<T> {
 }
 
 impl<T> FragmentCollection<T> {
-    fn get_fragment(&self, fragment_id: &FragmentIdx<T>) -> Option<&T> {
+    fn get_fragment(&self, fragment_id: &usize) -> Option<&T> {
         self.fragments.get(fragment_id)
     }
 
-    fn get_fragment_mut(&mut self, fragment_id: &FragmentIdx<T>) -> Option<&mut T> {
+    fn get_fragment_mut(&mut self, fragment_id: &usize) -> Option<&mut T> {
         self.fragments.get_mut(fragment_id)
     }
 
-    fn push_fragment(&mut self, fragment: T) -> FragmentIdx<T> {
+    fn push_fragment(&mut self, fragment: T) -> usize {
         let fragment_id = self.generate_fragment_id();
         self.fragments.insert(fragment_id, fragment);
         fragment_id
     }
 
     /// Returns a vector of all fragment IDs in the collection.
-    pub fn iter_fragment_ids(&self) -> Vec<FragmentIdx<T>> {
+    pub fn iter_fragment_ids(&self) -> Vec<usize> {
         self.fragments.keys().copied().collect::<Vec<_>>()
     }
 }
@@ -154,4 +158,8 @@ pub trait FragmentAccess<F>: Sized {
 trait HasFragmentCollection<F> {
     fn get_fragment_collection(&self) -> &FragmentCollection<F>;
     fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<F>;
+}
+
+pub struct Context {
+    pub default_namespace: XmlNamespace<'static>,
 }

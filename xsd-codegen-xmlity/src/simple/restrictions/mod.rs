@@ -35,7 +35,7 @@ impl SimpleToTypeTemplate<sm::RestrictionFragment> for RestrictionHandler {
         let facets = item
             .facets
             .iter()
-            .map(|facet| context.get_fragment(facet, scope))
+            .map(|facet| context.get_fragment(facet))
             .collect::<crate::Result<Vec<_>>>()?;
 
         //TODO: Move this to context

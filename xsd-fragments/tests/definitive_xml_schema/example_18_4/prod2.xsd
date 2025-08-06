@@ -1,0 +1,9 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:redefine schemaLocation="prod1.xsd">
+    <xs:group name="DescriptionGroup">
+      <xs:sequence>
+        <xs:element name="description" type="xs:string"/>
+      </xs:sequence>
+    </xs:group>
+  </xs:redefine>
+</xs:schema>

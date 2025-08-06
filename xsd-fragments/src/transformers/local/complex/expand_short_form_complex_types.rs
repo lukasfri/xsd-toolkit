@@ -121,8 +121,11 @@ impl XmlnsLocalTransformer for ExpandShortFormComplexTypes {
 #[cfg(test)]
 mod tests {
 
+    use std::str::FromStr;
+
     use super::*;
     use pretty_assertions::assert_eq;
+    use url::Url;
 
     use crate::XmlnsContext;
     use xmlity::{LocalName, XmlNamespace};
@@ -135,7 +138,10 @@ mod tests {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://localhost");
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(
+            Url::from_str("http://www.example.com/").unwrap(),
+            TEST_NAMESPACE,
+        );
 
         // Common for both
         let sequence = xs::Sequence::from(

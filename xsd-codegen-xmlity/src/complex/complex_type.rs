@@ -11,7 +11,7 @@ use crate::{
 
 use quote::format_ident;
 use syn::parse_quote;
-use xsd_fragments::fragments::complex::{self as cx};
+use xsd_fragments::fragments::{complex::{self as cx}, FragmentIdx};
 
 use super::{groups::TypeDefParticleTemplate, ComplexContext, Scope, ComplexToTypeTemplate, ToTypeTemplateData};
 
@@ -130,7 +130,7 @@ pub struct SimpleExtensionFragmentHandler {
    pub attribute_suffix_naming: WrappingNamingStrategy,
 }
 
-impl ComplexToTypeTemplate<cx::SimpleExtensionFragment> for SimpleExtensionFragmentHandler {
+impl ComplexToTypeTemplate<FragmentIdx<cx::SimpleExtensionFragment>> for SimpleExtensionFragmentHandler {
     type TypeTemplate = templates::group_record::GroupRecord;
 
     fn to_type_template<C: ComplexContext, S: Scope>(
@@ -138,9 +138,10 @@ impl ComplexToTypeTemplate<cx::SimpleExtensionFragment> for SimpleExtensionFragm
         context: &C,
         scope: &mut S,
 
-        item: &cx::SimpleExtensionFragment,
+        fragment_idx: &FragmentIdx<cx::SimpleExtensionFragment>,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let simple_type = context.resolve_named_type(&item.base)?;
+        let item = context.get_fragment(fragment_idx)?;
+        let simple_type = context.resolve_named_type(&fragment_idx.namespace_idx(),&item.base)?;
 
         if simple_type.ty_type != crate::TypeType::Simple {
             return Err(crate::Error::UnsupportedFragment {
@@ -201,7 +202,7 @@ impl ComplexToTypeTemplate<cx::SimpleContentFragment> for SimpleContentFragmentH
         match item.content_fragment {
             cx::SimpleContentChildId::Extension(fragment_idx) => {
                 self.simple_extension_handler
-                    .resolve_type_template(context, scope, &fragment_idx)
+                    .to_type_template(context, scope, &fragment_idx)
             },
             cx::SimpleContentChildId::Restriction(_) => {
                 Err(crate::Error::simple_content_restriction())
@@ -347,6 +348,7 @@ mod tests {
     fn empty_sequence_complex_type() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
+        let test_location = url::Url::parse("http://example.com/test.xsd").unwrap();
             
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
@@ -380,7 +382,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (ns_id, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
         
         let sequence = ns
             .import_top_level_complex_type(&sequence)
@@ -389,7 +391,7 @@ mod tests {
 
         let generator = Generator::new(&ctx);
 
-        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&ns_id, &sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -418,6 +420,7 @@ mod tests {
     fn two_child_sequence_complex_type() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
+        let test_location = url::Url::parse("http://example.com/test.xsd").unwrap();
 
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
@@ -473,7 +476,7 @@ mod tests {
 
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (ns_id, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
 
         let sequence = ns
             .import_top_level_complex_type(&sequence)
@@ -484,7 +487,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&ns_id, &sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -518,6 +521,7 @@ mod tests {
     fn two_attribute_sequence_complex_type() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
+        let test_location = url::Url::parse("http://example.com/test.xsd").unwrap();
 
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
@@ -573,7 +577,7 @@ mod tests {
 
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (ns_id, ns) = ctx.init_namespace(test_location.clone(),TEST_NAMESPACE);
 
         let sequence = ns
             .import_top_level_complex_type(&sequence)
@@ -585,7 +589,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&ns_id, &sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -619,6 +623,7 @@ mod tests {
     fn two_sequence_deep_element() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
+        let test_location = url::Url::parse("http://example.com/test.xsd").unwrap();
 
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
@@ -687,7 +692,7 @@ mod tests {
 
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (ns_id, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
 
         let sequence = ns
             .import_top_level_complex_type(&sequence)
@@ -698,7 +703,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&ns_id, &sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,
@@ -743,6 +748,7 @@ mod tests {
     fn three_sequence_deep_element() {
         const TEST_NAMESPACE: XmlNamespace<'static> =
             XmlNamespace::new_dangerous("http://example.com");
+        let test_location = url::Url::parse("http://example.com/test.xsd").unwrap();
 
         let sequence = xs::types::TopLevelComplexType::builder()
             .name(LocalName::new_dangerous("SimpleSequence"))
@@ -810,7 +816,7 @@ mod tests {
 
 
         let mut ctx = XmlnsContext::new();
-        let ns = ctx.init_namespace(TEST_NAMESPACE);
+        let (ns_id, ns) = ctx.init_namespace(test_location.clone(),TEST_NAMESPACE);
 
         let sequence = ns
             .import_top_level_complex_type(&sequence)
@@ -821,7 +827,7 @@ mod tests {
 
         generator.bind_types(crate::binds::StdXsdTypes);
 
-        let (type_, actual_items) = generator.generate_type(&sequence).unwrap();
+        let (type_, actual_items) = generator.generate_type(&ns_id, &sequence).unwrap();
 
         let actual = prettyplease::unparse(&syn::File {
             shebang: None,

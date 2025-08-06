@@ -9,9 +9,9 @@ use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_fragments::{
     fragments::{
         complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
-        FragmentIdx,
+        FragmentIdx, LocalNamespaceIdx,
     },
-    CompiledNamespace,
+    CompileNamespaceName, CompiledNamespace,
 };
 
 use crate::simple::SimpleToTypeTemplate;
@@ -21,6 +21,7 @@ use crate::Result;
 pub struct GeneratorContext<'a> {
     generator: &'a Generator<'a>,
     namespace: &'a XmlNamespace<'a>,
+    key: &'a LocalNamespaceIdx,
     suggested_ident: Ident,
 }
 
@@ -28,11 +29,13 @@ impl<'a> GeneratorContext<'a> {
     pub fn new(
         generator: &'a Generator<'a>,
         namespace: &'a XmlNamespace<'a>,
+        key: &'a LocalNamespaceIdx,
         suggested_ident: Ident,
     ) -> Self {
         Self {
             generator,
             namespace,
+            key,
             suggested_ident,
         }
     }
@@ -40,9 +43,11 @@ impl<'a> GeneratorContext<'a> {
     pub fn current_namespace(&self) -> Result<&CompiledNamespace> {
         self.generator
             .context
-            .get_namespace(self.namespace)
-            .ok_or_else(|| Error::MissingNamespace {
-                namespace: self.namespace.clone().into_owned(),
+            .namespaces
+            .get(self.key)
+            .ok_or_else(|| Error::MissingKey {
+                key: self.key.clone(),
+                name: todo!(),
             })
     }
 }
@@ -59,18 +64,14 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
     }
 
     fn sub_context(&self, suggested_ident: Ident) -> Self::SubContext {
-        Self::new(self.generator, self.namespace, suggested_ident)
+        Self::new(self.generator, self.namespace, self.key, suggested_ident)
     }
 
     fn suggested_ident(&self) -> &Ident {
         &self.suggested_ident
     }
 
-    fn get_fragment<F, S: Scope>(
-        &self,
-        fragment_id: &xsd_fragments::fragments::FragmentIdx<F>,
-        _: &mut S,
-    ) -> Result<&F>
+    fn get_fragment<F>(&self, fragment_id: &xsd_fragments::fragments::FragmentIdx<F>) -> Result<&F>
     where
         SimpleTypeFragmentCompiler: FragmentAccess<F>,
     {
@@ -93,12 +94,16 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
     where
         SimpleTypeFragmentCompiler: FragmentAccess<I>,
     {
-        let fragment = self.get_fragment(fragment_id, scope)?;
+        let fragment = self.get_fragment(fragment_id)?;
 
         handler.to_type_template(self, scope, fragment)
     }
 
-    fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<BoundType> {
+    fn resolve_named_type(
+        &self,
+        key: &LocalNamespaceIdx,
+        name: &ExpandedName<'_>,
+    ) -> Result<BoundType> {
         if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
             return Ok(bound_type.clone());
         }
@@ -106,14 +111,14 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
         let type_mod_ident = format_ident!("types");
 
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-        let namespace_crate = self
-            .generator
-            .bound_namespaces
-            .get(namespace)
-            .ok_or_else(|| Error::UnboundNamespace {
-                namespace: Some(namespace.clone().into_owned()),
-                item_name: Some(name.local_name().to_string()),
-            })?;
+        let namespace_crate =
+            self.generator
+                .bound_namespaces
+                .get(key)
+                .ok_or_else(|| Error::UnboundNamespace {
+                    namespace: Some(namespace.clone().into_owned()),
+                    item_name: Some(name.local_name().to_string()),
+                })?;
 
         let name = name.local_name().to_item_ident();
         let ty: syn::Type = parse_quote!(#namespace_crate::#type_mod_ident::#name);
@@ -127,6 +132,10 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
             deserialize_with: None,
         })
     }
+
+    fn namespace_idx(&self) -> &LocalNamespaceIdx {
+        &self.key
+    }
 }
 
 impl<'c> complex::ComplexContext for GeneratorContext<'c> {
@@ -138,7 +147,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
     }
 
     fn sub_context(&self, suggested_ident: Ident) -> Self::SubContext {
-        Self::new(self.generator, self.namespace, suggested_ident)
+        Self::new(self.generator, self.namespace, self.key, suggested_ident)
     }
 
     fn suggested_ident(&self) -> &Ident {
@@ -153,14 +162,9 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         <Self as simple::SimpleContext>::to_expanded_name(self, name)
     }
 
-    fn resolve_type_template<I, H: ComplexToTypeTemplate<I>, S: Scope>(
-        &self,
-        fragment_id: &xsd_fragments::fragments::FragmentIdx<I>,
-        scope: &mut S,
-        handler: &H,
-    ) -> Result<ToTypeTemplateData<H::TypeTemplate>>
+    fn get_fragment<F>(&self, fragment_id: &FragmentIdx<F>) -> Result<&F>
     where
-        ComplexTypeFragmentCompiler: FragmentAccess<I>,
+        ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         let namespace = self
             .generator
@@ -171,17 +175,31 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
                 fragment_type: "namespace for complex type fragment".to_string(),
             })?;
 
-        let fragment = namespace
+        namespace
             .complex_type_compiler
             .get_fragment(fragment_id)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "complex type fragment".to_string(),
-            })?;
-
-        handler.to_type_template(self, scope, fragment)
+            })
     }
 
-    fn resolve_named_type(&self, name: &ExpandedName<'_>) -> Result<BoundType> {
+    fn resolve_type_template<I, H: ComplexToTypeTemplate<I>, S: Scope>(
+        &self,
+        fragment_id: &xsd_fragments::fragments::FragmentIdx<I>,
+        scope: &mut S,
+        handler: &H,
+    ) -> Result<ToTypeTemplateData<H::TypeTemplate>>
+    where
+        ComplexTypeFragmentCompiler: FragmentAccess<I>,
+    {
+        handler.to_type_template(self, scope, self.get_fragment(fragment_id)?)
+    }
+
+    fn resolve_named_type(
+        &self,
+        namespace_idx: &LocalNamespaceIdx,
+        name: &ExpandedName<'_>,
+    ) -> Result<BoundType> {
         if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
             return Ok(bound_type.clone());
         }
@@ -192,7 +210,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         let namespace_crate = self
             .generator
             .bound_namespaces
-            .get(namespace)
+            .get(namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
                 namespace: Some(namespace.clone().into_owned()),
                 item_name: Some(name.local_name().to_string()),
@@ -211,7 +229,11 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         })
     }
 
-    fn resolve_named_element(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
+    fn resolve_named_element(
+        &self,
+        namespace_idx: &LocalNamespaceIdx,
+        name: &ExpandedName<'_>,
+    ) -> Result<TypeReference<'static>> {
         if let Some(ty) = self.generator.bound_elements.get(&name.as_ref()).cloned() {
             return Ok(ty);
         }
@@ -220,7 +242,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         let namespace_crate = self
             .generator
             .bound_namespaces
-            .get(namespace)
+            .get(namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
                 namespace: Some(namespace.clone().into_owned()),
                 item_name: Some(name.local_name().to_string()),
@@ -234,7 +256,11 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         Ok(ty)
     }
 
-    fn resolve_named_attribute(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
+    fn resolve_named_attribute(
+        &self,
+        namespace_idx: &LocalNamespaceIdx,
+        name: &ExpandedName<'_>,
+    ) -> Result<TypeReference<'static>> {
         if let Some(ty) = self.generator.bound_attributes.get(&name.as_ref()).cloned() {
             return Ok(ty);
         }
@@ -245,7 +271,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         let namespace_crate = self
             .generator
             .bound_namespaces
-            .get(namespace)
+            .get(namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
                 namespace: Some(namespace.clone().into_owned()),
                 item_name: Some(format!("attribute {}", name.local_name())),
@@ -259,7 +285,11 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         Ok(ty)
     }
 
-    fn resolve_named_group(&self, name: &ExpandedName<'_>) -> Result<TypeReference<'static>> {
+    fn resolve_named_group(
+        &self,
+        namespace_idx: &LocalNamespaceIdx,
+        name: &ExpandedName<'_>,
+    ) -> Result<TypeReference<'static>> {
         if let Some(ty) = self.generator.bound_groups.get(&name.as_ref()).cloned() {
             return Ok(ty);
         }
@@ -270,7 +300,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         let namespace_crate = self
             .generator
             .bound_namespaces
-            .get(namespace)
+            .get(namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
                 namespace: Some(namespace.clone().into_owned()),
                 item_name: Some(format!("group {}", name.local_name())),

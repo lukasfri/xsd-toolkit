@@ -19,7 +19,7 @@ pub mod fragments;
 mod context;
 mod namespace;
 pub mod transformers;
-pub use context::XmlnsContext;
+pub use context::{CompileNamespaceName, XmlnsContext};
 pub use namespace::{
     CompiledNamespace, TopLevelAttribute, TopLevelAttributeGroup, TopLevelComplexType,
     TopLevelElement, TopLevelGroup, TopLevelSimpleType, TopLevelType,

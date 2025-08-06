@@ -5,10 +5,11 @@ pub mod complex;
 /// Simple type local transformers.
 pub mod simple;
 
+use url::Url;
 use xmlity::{LocalName, XmlNamespace};
 
 use crate::{
-    fragments::{complex as cx, simple as sm, FragmentAccess, FragmentIdx, NamespaceIdx},
+    fragments::{complex as cx, simple as sm, FragmentAccess, FragmentIdx, LocalNamespaceIdx},
     transformers::TransformChange,
     CompiledNamespace,
 };
@@ -132,22 +133,20 @@ impl crate::XmlnsContext {
     /// Applies a local transformer to a specific namespace.
     pub fn local_transform<T: XmlnsLocalTransformer>(
         &mut self,
-        namespace: &XmlNamespace<'_>,
+        namespace: &Url,
         transformer: T,
     ) -> Result<TransformChange, T::Error> {
-        let Some(namespace) = self.namespace_idxs.get(namespace) else {
+        let Some(namespace) = self.get_namespace_direct_mut(namespace) else {
             return Ok(TransformChange::Unchanged);
         };
 
-        let namespace = *namespace;
-
-        self.local_transform_id(&namespace, transformer)
+        namespace.transform(transformer).map_err(|e| e.into())
     }
 
     /// Applies a local transformer to a namespace by its ID.
     pub fn local_transform_id<T: XmlnsLocalTransformer>(
         &mut self,
-        namespace: &NamespaceIdx,
+        namespace: &LocalNamespaceIdx,
         transformer: T,
     ) -> Result<TransformChange, T::Error> {
         self.namespaces

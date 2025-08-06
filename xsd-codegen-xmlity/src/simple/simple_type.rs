@@ -96,7 +96,7 @@ impl SimpleToTypeTemplate<sm::UnionFragment> for UnionHandler {
             .member_types
             .iter()
             .map(|name| {
-                let res = context.resolve_named_type(name)?;
+                let res = context.resolve_named_type(context.namespace_idx(), name)?;
 
                 assert_eq!(
                     res.ty_type,
@@ -257,7 +257,7 @@ impl SimpleToTypeTemplate<NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragmen
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
         match item {
             NamedOrAnonymous::Named(name) => {
-                let bound_type = context.resolve_named_type(name)?;
+                let bound_type = context.resolve_named_type(context.namespace_idx(), name)?;
 
                 assert_eq!(
                     bound_type.ty_type,

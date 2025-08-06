@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://company.com/common"
+  xmlns:tns="http://company.com/common"
+  elementFormDefault="qualified">
+
+  <xs:complexType name="AddressType">
+    <xs:sequence>
+      <xs:element name="street" type="xs:string" />
+      <xs:element name="city" type="xs:string" />
+      <xs:element name="zipCode" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:simpleType name="PersonId">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Z]{2}[0-9]{6}" />
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>
