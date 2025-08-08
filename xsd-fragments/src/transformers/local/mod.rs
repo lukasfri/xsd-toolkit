@@ -9,9 +9,11 @@ use url::Url;
 use xmlity::{LocalName, XmlNamespace};
 
 use crate::{
-    fragments::{complex as cx, simple as sm, FragmentAccess, FragmentIdx, LocalNamespaceIdx},
+    fragments::{
+        complex as cx, simple as sm, FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
+    },
     transformers::TransformChange,
-    CompiledNamespace,
+    FragmentedXsdDocument,
 };
 
 /// This transformer type is only capable of doing local transformations within a namespace, and cannot access other namespaces.
@@ -32,17 +34,17 @@ pub trait XmlnsLocalTransformer {
 #[derive(Debug)]
 pub struct XmlnsLocalTransformerContext<'a> {
     /// The namespace being transformed.
-    pub namespace: &'a mut CompiledNamespace,
+    pub namespace: &'a mut FragmentedXsdDocument,
 }
 
 impl XmlnsLocalTransformerContext<'_> {
     /// Gets the current namespace.
-    pub fn current_namespace(&self) -> &crate::CompiledNamespace {
+    pub fn current_namespace(&self) -> &crate::FragmentedXsdDocument {
         self.namespace
     }
 
     /// Gets the current namespace mutably.
-    pub fn current_namespace_mut(&mut self) -> &mut crate::CompiledNamespace {
+    pub fn current_namespace_mut(&mut self) -> &mut crate::FragmentedXsdDocument {
         self.namespace
     }
 
@@ -146,7 +148,7 @@ impl crate::XmlnsContext {
     /// Applies a local transformer to a namespace by its ID.
     pub fn local_transform_id<T: XmlnsLocalTransformer>(
         &mut self,
-        namespace: &LocalNamespaceIdx,
+        namespace: &FragmentedXsdDocumentIdx,
         transformer: T,
     ) -> Result<TransformChange, T::Error> {
         self.namespaces
@@ -170,7 +172,7 @@ impl crate::XmlnsContext {
     }
 }
 
-impl crate::CompiledNamespace {
+impl crate::FragmentedXsdDocument {
     /// Applies a local transformer to this namespace.
     pub fn transform<T: XmlnsLocalTransformer>(
         &mut self,

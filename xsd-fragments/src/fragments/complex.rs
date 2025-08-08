@@ -7,8 +7,8 @@ use std::{any::type_name, collections::VecDeque, ops::Deref};
 use crate::{
     fragments::{
         simple::{self, SimpleFragmentEquivalent, SimpleTypeFragmentCompiler},
-        Context, FragmentAccess, FragmentCollection, FragmentIdx, HasFragmentCollection,
-        LocalNamespaceIdx,
+        Context, FragmentAccess, FragmentCollection, FragmentIdx, FragmentedXsdDocumentIdx,
+        HasFragmentCollection,
     },
     NamedOrAnonymous,
 };
@@ -567,7 +567,7 @@ pub struct AssertionsFragment {
 /// Complex type fragment compiler responsible for converting XSD complex types to fragment representations.
 #[derive(Debug, Clone)]
 pub struct ComplexTypeFragmentCompiler {
-    pub namespace_idx: LocalNamespaceIdx,
+    pub namespace_idx: FragmentedXsdDocumentIdx,
     /// The [`SimpleTypeFragmentCompiler`] for this complex type compiler.
     pub simple_type_compiler: SimpleTypeFragmentCompiler,
     complex_types: FragmentCollection<ComplexTypeRootFragment>,
@@ -848,7 +848,7 @@ where
 
 impl ComplexTypeFragmentCompiler {
     /// Creates a new [`ComplexTypeFragmentCompiler`] with the given namespace and namespace index.
-    pub fn new(namespace: XmlNamespace<'static>, namespace_idx: LocalNamespaceIdx) -> Self {
+    pub fn new(namespace: XmlNamespace<'static>, namespace_idx: FragmentedXsdDocumentIdx) -> Self {
         Self::new_with_simple_compiler(
             namespace_idx,
             SimpleTypeFragmentCompiler::new(namespace, namespace_idx),
@@ -857,7 +857,7 @@ impl ComplexTypeFragmentCompiler {
 
     /// Creates a new [`ComplexTypeFragmentCompiler`] with a given [`SimpleTypeFragmentCompiler`].
     pub fn new_with_simple_compiler(
-        namespace_idx: LocalNamespaceIdx,
+        namespace_idx: FragmentedXsdDocumentIdx,
         simple_type_compiler: SimpleTypeFragmentCompiler,
     ) -> Self {
         Self {
@@ -1239,7 +1239,7 @@ impl ComplexFragmentEquivalent for xs::types::GroupRef {
 
     fn to_complex_fragments(
         &self,
-        mut compiler: &mut ComplexTypeFragmentCompiler,
+        compiler: &mut ComplexTypeFragmentCompiler,
         context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let ref_ = self
@@ -1279,8 +1279,8 @@ impl ComplexFragmentEquivalent for xs::Any {
 
     fn to_complex_fragments(
         &self,
-        mut compiler: &mut ComplexTypeFragmentCompiler,
-        context: &Context,
+        compiler: &mut ComplexTypeFragmentCompiler,
+        _context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let xs::Any::Any(any) = self else {
             return Err(Error::SubstitutionGroupNotSupported {

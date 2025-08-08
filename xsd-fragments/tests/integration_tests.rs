@@ -1,3 +1,4 @@
+//! Integration tests for xsd-fragments library
 use std::env::current_dir;
 
 use rstest::rstest;

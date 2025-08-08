@@ -13,8 +13,8 @@ pub use handler_container::handler_container;
 use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::ExpandedName;
 use xsd_fragments::{
-    fragments::{FragmentAccess, LocalNamespaceIdx},
-    CompileNamespaceName, TopLevelComplexType, TopLevelSimpleType, TopLevelType,
+    fragments::{FragmentAccess, FragmentedXsdDocumentIdx},
+    FragmentedXsdDocumentKey, TopLevelComplexType, TopLevelSimpleType, TopLevelType,
 };
 
 use crate::{
@@ -29,7 +29,7 @@ use crate::{
 #[derive(Debug)]
 pub struct Generator<'a> {
     pub context: &'a xsd_fragments::XmlnsContext,
-    pub bound_namespaces: BTreeMap<LocalNamespaceIdx, syn::Path>,
+    pub bound_namespaces: BTreeMap<FragmentedXsdDocumentIdx, syn::Path>,
     pub bound_types: BTreeMap<ExpandedName<'static>, BoundType>,
     pub bound_elements: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
     pub bound_attributes: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
@@ -59,7 +59,7 @@ impl<'a> Generator<'a> {
         Self::new_with_augmenter(context, augments::NoopAugmentation::new())
     }
 
-    pub fn bind_namespace(&mut self, namespace: CompileNamespaceName, path: syn::Path) {
+    pub fn bind_namespace(&mut self, namespace: FragmentedXsdDocumentKey, path: syn::Path) {
         let namespace_idx = self
             .context
             .namespace_idxs
@@ -69,7 +69,7 @@ impl<'a> Generator<'a> {
         self.bound_namespaces.insert(*namespace_idx, path);
     }
 
-    pub fn bind_namespace_idx(&mut self, namespace_idx: LocalNamespaceIdx, path: syn::Path) {
+    pub fn bind_namespace_idx(&mut self, namespace_idx: FragmentedXsdDocumentIdx, path: syn::Path) {
         self.bound_namespaces.insert(namespace_idx, path);
     }
 
@@ -133,7 +133,7 @@ impl<'a> Generator<'a> {
             .for_each(|(name, bound_type)| self.bind_group(name, bound_type));
     }
 
-    pub fn generate_namespace(&mut self, key: &LocalNamespaceIdx) -> Result<Vec<Item>> {
+    pub fn generate_namespace(&mut self, key: &FragmentedXsdDocumentIdx) -> Result<Vec<Item>> {
         let mut items = Vec::new();
 
         let compiled_namespace =
@@ -203,7 +203,7 @@ impl<'a> Generator<'a> {
 
     pub fn generate_simple_type(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &xmlity::ExpandedName<'_>,
         simple_type: &TopLevelSimpleType,
     ) -> Result<(BoundType, Vec<Item>)> {
@@ -264,7 +264,7 @@ impl<'a> Generator<'a> {
 
     pub fn generate_complex_type(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &xmlity::ExpandedName<'_>,
         complex_type: &TopLevelComplexType,
     ) -> Result<(BoundType, Vec<Item>)> {
@@ -326,7 +326,7 @@ impl<'a> Generator<'a> {
 
     pub fn generate_type(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<(BoundType, Vec<Item>)> {
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
@@ -359,7 +359,7 @@ impl<'a> Generator<'a> {
 
     pub fn generate_types_module(
         &mut self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         module_name: &Ident,
     ) -> Result<Option<ItemMod>> {
         let compiled_namespace =
@@ -481,7 +481,7 @@ impl<'a> Generator<'a> {
 
     pub fn generate_attribute(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
@@ -541,7 +541,7 @@ impl<'a> Generator<'a> {
 
     pub fn generate_attributes_module(
         &mut self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         module_name: &syn::Ident,
     ) -> Result<Option<ItemMod>> {
         let compiled_namespace =
@@ -602,7 +602,7 @@ impl<'a> Generator<'a> {
 
     pub fn generate_element(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
         let compiled_namespace =
@@ -654,7 +654,7 @@ impl<'a> Generator<'a> {
 
     pub fn generate_group(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
         let namespace = name.namespace().ok_or(Error::NoNamespace)?;
@@ -714,7 +714,7 @@ impl<'a> Generator<'a> {
 
     pub fn generate_groups_module(
         &mut self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         groups_module_name: &syn::Ident,
     ) -> Result<Option<ItemMod>> {
         let compiled_namespace =

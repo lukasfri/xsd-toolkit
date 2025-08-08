@@ -5,10 +5,10 @@ pub mod complex;
 /// Simple type transformation implementations.
 pub mod simple;
 
-use xmlity::ExpandedName;
+use xmlity::{ExpandedName, XmlNamespace};
 
 use crate::{
-    fragments::{complex as cx, simple as sm, FragmentAccess, FragmentIdx, LocalNamespaceIdx},
+    fragments::{complex as cx, simple as sm, FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx},
     transformers::TransformChange,
 };
 
@@ -34,16 +34,34 @@ pub struct XmlnsContextTransformerContext<'a> {
 impl XmlnsContextTransformerContext<'_> {
     fn get_namespace(
         &self,
-        namespace_idx: &LocalNamespaceIdx,
-    ) -> Option<&crate::CompiledNamespace> {
+        namespace_idx: &FragmentedXsdDocumentIdx,
+    ) -> Option<&crate::FragmentedXsdDocument> {
         self.xmlns_context.namespaces.get(namespace_idx)
     }
 
     fn get_namespace_mut(
         &mut self,
-        namespace_idx: &LocalNamespaceIdx,
-    ) -> Option<&mut crate::CompiledNamespace> {
+        namespace_idx: &FragmentedXsdDocumentIdx,
+    ) -> Option<&mut crate::FragmentedXsdDocument> {
         self.xmlns_context.namespaces.get_mut(namespace_idx)
+    }
+
+    fn get_referenced_namespace(
+        &self,
+        namespace_idx: &FragmentedXsdDocumentIdx,
+        reference_namespace: Option<&XmlNamespace<'_>>,
+    ) -> Option<&crate::FragmentedXsdDocument> {
+        let compiled_namespace = self.get_namespace(namespace_idx)?;
+
+        if reference_namespace.is_some_and(|a| *a == compiled_namespace.namespace) {
+            Some(compiled_namespace)
+        } else {
+            let referenced_ns = compiled_namespace
+                .namespace_references
+                .get(reference_namespace?)?;
+
+            Some(self.get_namespace(referenced_ns)?)
+        }
     }
 
     /// Returns an iterator over all complex fragment IDs of a specific type.
@@ -114,16 +132,10 @@ impl XmlnsContextTransformerContext<'_> {
     /// Gets a named type by its expanded name.
     pub fn get_named_type<'a>(
         &'a self,
-        namespace_idx: &LocalNamespaceIdx,
+        namespace_idx: &FragmentedXsdDocumentIdx,
         name: &'a ExpandedName<'_>,
     ) -> Option<&'a crate::TopLevelType> {
-        let compiled_namespace = self.get_namespace(namespace_idx)?;
-
-        let referenced_ns = compiled_namespace
-            .namespace_references
-            .get(name.namespace()?)?;
-
-        let ns = self.get_namespace(referenced_ns)?;
+        let ns = self.get_referenced_namespace(namespace_idx, name.namespace())?;
 
         ns.top_level_types.get(name.local_name())
     }
@@ -131,16 +143,10 @@ impl XmlnsContextTransformerContext<'_> {
     /// Gets a named attribute group by its expanded name.
     pub fn get_named_attribute_group<'a>(
         &'a self,
-        namespace_idx: &LocalNamespaceIdx,
+        namespace_idx: &FragmentedXsdDocumentIdx,
         name: &'a ExpandedName<'_>,
     ) -> Option<&'a crate::TopLevelAttributeGroup> {
-        let compiled_namespace = self.get_namespace(namespace_idx)?;
-
-        let referenced_ns = compiled_namespace
-            .namespace_references
-            .get(name.namespace()?)?;
-
-        let ns = self.get_namespace(referenced_ns)?;
+        let ns = self.get_referenced_namespace(namespace_idx, name.namespace())?;
 
         ns.top_level_attribute_groups.get(name.local_name())
     }

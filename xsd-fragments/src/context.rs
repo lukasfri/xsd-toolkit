@@ -4,24 +4,30 @@ use url::Url;
 use xmlity::XmlNamespace;
 use xsd::{xs, UrlExt};
 
-use crate::{fragments::LocalNamespaceIdx, CompiledNamespace, Error};
+use crate::{fragments::FragmentedXsdDocumentIdx, Error, FragmentedXsdDocument};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum CompileNamespaceName {
-    Direct(Url),
-    Redefine {
-        redefined_from: Url,
-        redefined_to: Url,
+pub enum FragmentedXsdDocumentKey {
+    /// Represents a namespace that is defined by its original URL.
+    /// This is used for namespaces that are not redefined.
+    Original(Url),
+    /// Represents a namespace that is redefined by another URL.
+    /// This is used for namespaces that have been redefined in a different context.
+    Redefined {
+        /// The original URL of the namespace.
+        original: Url,
+        /// The URL of the redefining context.
+        redefiner: Url,
     },
 }
 
-impl std::fmt::Display for CompileNamespaceName {
+impl std::fmt::Display for FragmentedXsdDocumentKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CompileNamespaceName::Direct(url) => write!(f, "{}", url),
-            CompileNamespaceName::Redefine {
-                redefined_from,
-                redefined_to,
+            FragmentedXsdDocumentKey::Original(url) => write!(f, "{}", url),
+            FragmentedXsdDocumentKey::Redefined {
+                original: redefined_from,
+                redefiner: redefined_to,
             } => write!(f, "{} -> {}", redefined_from, redefined_to),
         }
     }
@@ -31,9 +37,9 @@ impl std::fmt::Display for CompileNamespaceName {
 /// Context for managing XML Schema namespaces and their compiled representations.
 pub struct XmlnsContext {
     /// Map of namespace indices to their compiled representations.
-    pub namespaces: BTreeMap<LocalNamespaceIdx, CompiledNamespace>,
+    pub namespaces: BTreeMap<FragmentedXsdDocumentIdx, FragmentedXsdDocument>,
     /// Map of namespace URIs to their indices.
-    pub namespace_idxs: BTreeMap<CompileNamespaceName, LocalNamespaceIdx>,
+    pub namespace_idxs: BTreeMap<FragmentedXsdDocumentKey, FragmentedXsdDocumentIdx>,
     namespace_id_count: usize,
 }
 
@@ -47,8 +53,8 @@ impl XmlnsContext {
         }
     }
 
-    fn generate_fragment_id(&mut self) -> LocalNamespaceIdx {
-        let fragment_id = LocalNamespaceIdx::new(self.namespace_id_count);
+    fn generate_fragment_id(&mut self) -> FragmentedXsdDocumentIdx {
+        let fragment_id = FragmentedXsdDocumentIdx::new(self.namespace_id_count);
         self.namespace_id_count += 1;
         fragment_id
     }
@@ -56,13 +62,13 @@ impl XmlnsContext {
     /// Initializes a new namespace in the context and returns a mutable reference to it.
     fn init_compiled_namespace(
         &mut self,
-        key: CompileNamespaceName,
+        key: FragmentedXsdDocumentKey,
         namespace: XmlNamespace<'static>,
-    ) -> (LocalNamespaceIdx, &mut CompiledNamespace) {
+    ) -> (FragmentedXsdDocumentIdx, &mut FragmentedXsdDocument) {
         let namespace_idx = self.generate_fragment_id();
         self.namespace_idxs.insert(key, namespace_idx);
 
-        let namespace = CompiledNamespace::new(namespace_idx, namespace);
+        let namespace = FragmentedXsdDocument::new(namespace_idx, namespace);
 
         self.namespaces.insert(namespace_idx, namespace);
 
@@ -76,9 +82,9 @@ impl XmlnsContext {
 
     fn init_copy_namespace(
         &mut self,
-        key: CompileNamespaceName,
-        copy_key: &CompileNamespaceName,
-    ) -> (LocalNamespaceIdx, &mut CompiledNamespace) {
+        key: FragmentedXsdDocumentKey,
+        copy_key: &FragmentedXsdDocumentKey,
+    ) -> (FragmentedXsdDocumentIdx, &mut FragmentedXsdDocument) {
         let namespace_idx = self.generate_fragment_id();
         self.namespace_idxs.insert(key, namespace_idx);
 
@@ -86,7 +92,7 @@ impl XmlnsContext {
             .get_namespace(copy_key)
             .expect("Expected a namespace to copy from");
 
-        let namespace = CompiledNamespace::clone_with_namespace(copy_namespace, namespace_idx);
+        let namespace = FragmentedXsdDocument::clone_with_namespace(copy_namespace, namespace_idx);
 
         self.namespaces.insert(namespace_idx, namespace);
 
@@ -102,12 +108,15 @@ impl XmlnsContext {
         &mut self,
         location: Url,
         namespace: XmlNamespace<'static>,
-    ) -> (LocalNamespaceIdx, &mut CompiledNamespace) {
-        let key = CompileNamespaceName::Direct(location);
+    ) -> (FragmentedXsdDocumentIdx, &mut FragmentedXsdDocument) {
+        let key = FragmentedXsdDocumentKey::Original(location);
         self.init_compiled_namespace(key, namespace)
     }
 
-    pub fn get_namespace(&self, namespace: &CompileNamespaceName) -> Option<&CompiledNamespace> {
+    pub fn get_namespace(
+        &self,
+        namespace: &FragmentedXsdDocumentKey,
+    ) -> Option<&FragmentedXsdDocument> {
         let namespace_idx = self.namespace_idxs.get(namespace)?;
 
         self.namespaces.get(namespace_idx)
@@ -115,27 +124,30 @@ impl XmlnsContext {
 
     pub fn get_namespace_mut(
         &mut self,
-        namespace: &CompileNamespaceName,
-    ) -> Option<&mut CompiledNamespace> {
+        namespace: &FragmentedXsdDocumentKey,
+    ) -> Option<&mut FragmentedXsdDocument> {
         let namespace_idx = self.namespace_idxs.get(namespace)?;
 
         self.namespaces.get_mut(namespace_idx)
     }
 
     /// Gets a reference to a compiled namespace by its URI.
-    pub fn get_namespace_direct(&self, namespace: &Url) -> Option<&CompiledNamespace> {
-        self.get_namespace(&CompileNamespaceName::Direct(namespace.clone()))
+    pub fn get_namespace_direct(&self, namespace: &Url) -> Option<&FragmentedXsdDocument> {
+        self.get_namespace(&FragmentedXsdDocumentKey::Original(namespace.clone()))
     }
 
     /// Gets a mutable reference to a compiled namespace by its URI.
-    pub fn get_namespace_direct_mut(&mut self, namespace: &Url) -> Option<&mut CompiledNamespace> {
-        self.get_namespace_mut(&CompileNamespaceName::Direct(namespace.clone()))
+    pub fn get_namespace_direct_mut(
+        &mut self,
+        namespace: &Url,
+    ) -> Option<&mut FragmentedXsdDocument> {
+        self.get_namespace_mut(&FragmentedXsdDocumentKey::Original(namespace.clone()))
     }
 
     pub fn import_to_compiled_namespace(
         &mut self,
         map: &xsd::set::XmlSchemaSet,
-        root_key: &CompileNamespaceName,
+        root_key: &FragmentedXsdDocumentKey,
         current_fragment_location: &Url,
     ) -> Result<(), Error> {
         let location = map
@@ -216,11 +228,11 @@ impl XmlnsContext {
                     self.import_namespace_map(map, &location_url, Some(&namespace))?;
 
                     let (ns_id, redefineable_namespace) = self.init_copy_namespace(
-                        CompileNamespaceName::Redefine {
-                            redefined_from: location_url.clone(),
-                            redefined_to: current_fragment_location.clone(),
+                        FragmentedXsdDocumentKey::Redefined {
+                            original: location_url.clone(),
+                            redefiner: current_fragment_location.clone(),
                         },
-                        &CompileNamespaceName::Direct(location_url.clone()),
+                        &FragmentedXsdDocumentKey::Original(location_url.clone()),
                     );
 
                     redefineable_namespace.import_redefine(redefine)?;
@@ -255,10 +267,10 @@ impl XmlnsContext {
         map: &xsd::set::XmlSchemaSet,
         location_url: &url::Url,
         with_namespace: Option<&XmlNamespace<'static>>,
-    ) -> Result<(LocalNamespaceIdx, &mut CompiledNamespace), Error> {
+    ) -> Result<(FragmentedXsdDocumentIdx, &mut FragmentedXsdDocument), Error> {
         if let Some(compiled_namespace) = self
             .namespace_idxs
-            .get(&CompileNamespaceName::Direct(location_url.clone()))
+            .get(&FragmentedXsdDocumentKey::Original(location_url.clone()))
         {
             let compiled_namespace = *compiled_namespace;
             let namespace = self.namespaces.get_mut(&compiled_namespace).unwrap();
@@ -281,7 +293,7 @@ impl XmlnsContext {
             .or_else(|| with_namespace.map(|ns| ns.clone()))
             .expect("Namespace must be defined for the location");
 
-        let location_key = CompileNamespaceName::Direct(location_url.clone());
+        let location_key = FragmentedXsdDocumentKey::Original(location_url.clone());
 
         let (ns_id, _) =
             self.init_compiled_namespace(location_key.clone(), current_namespace.clone());

@@ -15,15 +15,15 @@ use misc::TypeReference;
 use quote::format_ident;
 use syn::Ident;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd_fragments::{fragments::LocalNamespaceIdx, CompileNamespaceName};
+use xsd_fragments::{fragments::FragmentedXsdDocumentIdx, FragmentedXsdDocumentKey};
 
 use crate::augments::ItemAugmentation;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
     MissingKey {
-        key: LocalNamespaceIdx,
-        name: CompileNamespaceName,
+        key: FragmentedXsdDocumentIdx,
+        name: FragmentedXsdDocumentKey,
     },
     NoNamespace,
     MissingElement {

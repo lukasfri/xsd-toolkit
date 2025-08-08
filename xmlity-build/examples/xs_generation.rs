@@ -7,7 +7,7 @@ use syn::parse_quote;
 use url::Url;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_codegen_xmlity::{misc::TypeReference, BoundType, TypeType};
-use xsd_fragments::CompileNamespaceName;
+use xsd_fragments::FragmentedXsdDocumentKey;
 
 fn main() {
     println!("Building the engine...");
@@ -22,7 +22,7 @@ fn main() {
             .display()
     );
 
-    let xml_path = CompileNamespaceName::Direct(
+    let xml_path = FragmentedXsdDocumentKey::Original(
         Url::from_file_path(
             current_dir()
                 .unwrap()
@@ -31,7 +31,7 @@ fn main() {
         .unwrap(),
     );
 
-    let xs_path = CompileNamespaceName::Direct(
+    let xs_path = FragmentedXsdDocumentKey::Original(
         Url::from_file_path(
             current_dir()
                 .unwrap()

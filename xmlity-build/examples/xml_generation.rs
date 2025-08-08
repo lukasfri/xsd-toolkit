@@ -5,14 +5,14 @@ use std::env::current_dir;
 
 use syn::parse_quote;
 use url::Url;
-use xsd_fragments::CompileNamespaceName;
+use xsd_fragments::FragmentedXsdDocumentKey;
 
 fn main() {
     println!("Building the engine...");
 
     let time = std::time::Instant::now();
 
-    let xml_path = CompileNamespaceName::Direct(
+    let xml_path = FragmentedXsdDocumentKey::Original(
         Url::from_file_path(
             current_dir()
                 .unwrap()

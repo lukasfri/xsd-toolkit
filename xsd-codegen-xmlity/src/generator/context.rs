@@ -9,9 +9,9 @@ use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_fragments::{
     fragments::{
         complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
-        FragmentIdx, LocalNamespaceIdx,
+        FragmentIdx, FragmentedXsdDocumentIdx,
     },
-    CompileNamespaceName, CompiledNamespace,
+    FragmentedXsdDocument, FragmentedXsdDocumentKey,
 };
 
 use crate::simple::SimpleToTypeTemplate;
@@ -21,7 +21,7 @@ use crate::Result;
 pub struct GeneratorContext<'a> {
     generator: &'a Generator<'a>,
     namespace: &'a XmlNamespace<'a>,
-    key: &'a LocalNamespaceIdx,
+    key: &'a FragmentedXsdDocumentIdx,
     suggested_ident: Ident,
 }
 
@@ -29,7 +29,7 @@ impl<'a> GeneratorContext<'a> {
     pub fn new(
         generator: &'a Generator<'a>,
         namespace: &'a XmlNamespace<'a>,
-        key: &'a LocalNamespaceIdx,
+        key: &'a FragmentedXsdDocumentIdx,
         suggested_ident: Ident,
     ) -> Self {
         Self {
@@ -40,7 +40,7 @@ impl<'a> GeneratorContext<'a> {
         }
     }
 
-    pub fn current_namespace(&self) -> Result<&CompiledNamespace> {
+    pub fn current_namespace(&self) -> Result<&FragmentedXsdDocument> {
         self.generator
             .context
             .namespaces
@@ -101,7 +101,7 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
 
     fn resolve_named_type(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<BoundType> {
         if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
@@ -133,7 +133,7 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
         })
     }
 
-    fn namespace_idx(&self) -> &LocalNamespaceIdx {
+    fn namespace_idx(&self) -> &FragmentedXsdDocumentIdx {
         &self.key
     }
 }
@@ -197,7 +197,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
 
     fn resolve_named_type(
         &self,
-        namespace_idx: &LocalNamespaceIdx,
+        namespace_idx: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<BoundType> {
         if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
@@ -231,7 +231,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
 
     fn resolve_named_element(
         &self,
-        namespace_idx: &LocalNamespaceIdx,
+        namespace_idx: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<TypeReference<'static>> {
         if let Some(ty) = self.generator.bound_elements.get(&name.as_ref()).cloned() {
@@ -258,7 +258,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
 
     fn resolve_named_attribute(
         &self,
-        namespace_idx: &LocalNamespaceIdx,
+        namespace_idx: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<TypeReference<'static>> {
         if let Some(ty) = self.generator.bound_attributes.get(&name.as_ref()).cloned() {
@@ -287,7 +287,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
 
     fn resolve_named_group(
         &self,
-        namespace_idx: &LocalNamespaceIdx,
+        namespace_idx: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<TypeReference<'static>> {
         if let Some(ty) = self.generator.bound_groups.get(&name.as_ref()).cloned() {

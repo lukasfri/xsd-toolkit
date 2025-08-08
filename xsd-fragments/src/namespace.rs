@@ -6,16 +6,16 @@ use xsd::xs::{self};
 use crate::{
     fragments::{
         self, complex::ComplexFragmentEquivalent, simple::SimpleFragmentEquivalent, Context,
-        FragmentIdx, LocalNamespaceIdx,
+        FragmentIdx, FragmentedXsdDocumentIdx,
     },
     Error,
 };
 
 /// Represents a compiled namespace, which contains all the fragments for that namespace.
 #[derive(Debug)]
-pub struct CompiledNamespace {
+pub struct FragmentedXsdDocument {
     pub namespace: XmlNamespace<'static>,
-    pub namespace_references: BTreeMap<XmlNamespace<'static>, LocalNamespaceIdx>,
+    pub namespace_references: BTreeMap<XmlNamespace<'static>, FragmentedXsdDocumentIdx>,
     /// The [`ComplexTypeFragmentCompiler`] for complex types, which also contains a [`SimpleTypeFragmentCompiler`].
     pub complex_type_compiler: fragments::complex::ComplexTypeFragmentCompiler,
     /// A map of top-level types, which can be either simple or complex.
@@ -30,9 +30,9 @@ pub struct CompiledNamespace {
     pub top_level_attribute_groups: BTreeMap<LocalName<'static>, TopLevelAttributeGroup>,
 }
 
-impl CompiledNamespace {
+impl FragmentedXsdDocument {
     /// Creates a new [`CompiledNamespace`] with the given namespace and namespace index.
-    pub fn new(namespace_idx: LocalNamespaceIdx, namespace: XmlNamespace<'static>) -> Self {
+    pub fn new(namespace_idx: FragmentedXsdDocumentIdx, namespace: XmlNamespace<'static>) -> Self {
         let simple_type_compiler =
             fragments::simple::SimpleTypeFragmentCompiler::new(namespace.clone(), namespace_idx);
         let complex_type_compiler =
@@ -54,7 +54,7 @@ impl CompiledNamespace {
     }
 
     /// Creates a copy of the namespace with a new namespace index.
-    pub fn clone_with_namespace(ref_: &Self, namespace_idx: LocalNamespaceIdx) -> Self {
+    pub fn clone_with_namespace(ref_: &Self, namespace_idx: FragmentedXsdDocumentIdx) -> Self {
         let mut complex_type_compiler = ref_.complex_type_compiler.clone();
         complex_type_compiler.namespace_idx = namespace_idx;
         complex_type_compiler.simple_type_compiler.namespace_idx = namespace_idx;

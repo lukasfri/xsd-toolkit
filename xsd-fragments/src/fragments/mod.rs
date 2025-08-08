@@ -12,10 +12,10 @@ use std::marker::PhantomData;
 use xmlity::XmlNamespace;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-/// Index identifying a specific namespace within the fragment system.
-pub struct LocalNamespaceIdx(usize);
+/// Index identifying a specific document within the fragment system. This exists as a lightweight counterpart to the [`FragmentedXsdDocumentKey`].
+pub struct FragmentedXsdDocumentIdx(usize);
 
-impl LocalNamespaceIdx {
+impl FragmentedXsdDocumentIdx {
     /// Creates a new [`NamespaceIdx`] with the given numeric value.
     pub fn new(index: usize) -> Self {
         Self(index)
@@ -24,7 +24,7 @@ impl LocalNamespaceIdx {
 
 #[derive(Debug)]
 /// Index identifying a specific fragment within a namespace.
-pub struct FragmentIdx<T>(LocalNamespaceIdx, usize, PhantomData<T>);
+pub struct FragmentIdx<T>(FragmentedXsdDocumentIdx, usize, PhantomData<T>);
 
 impl<T> fmt::Display for FragmentIdx<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -40,12 +40,12 @@ impl<T> fmt::Display for FragmentIdx<T> {
 
 impl<T> FragmentIdx<T> {
     /// Creates a new [`FragmentIdx`] for the given namespace and index.
-    pub fn new(namespace: LocalNamespaceIdx, index: usize) -> Self {
+    pub fn new(namespace: FragmentedXsdDocumentIdx, index: usize) -> Self {
         Self(namespace, index, PhantomData)
     }
 
     /// Returns the namespace index of this fragment.
-    pub fn namespace_idx(&self) -> LocalNamespaceIdx {
+    pub fn namespace_idx(&self) -> FragmentedXsdDocumentIdx {
         self.0
     }
 

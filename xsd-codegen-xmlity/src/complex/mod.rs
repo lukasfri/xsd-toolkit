@@ -11,7 +11,7 @@ use syn::Ident;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_fragments::fragments::{
     complex::{AllNNI, ComplexTypeFragmentCompiler},
-    FragmentAccess, FragmentIdx, LocalNamespaceIdx,
+    FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
 };
 
 pub trait ComplexContext {
@@ -43,25 +43,25 @@ pub trait ComplexContext {
 
     fn resolve_named_type(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<BoundType>;
 
     fn resolve_named_element(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<TypeReference<'static>>;
 
     fn resolve_named_attribute(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<TypeReference<'static>>;
 
     fn resolve_named_group(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<TypeReference<'static>>;
 

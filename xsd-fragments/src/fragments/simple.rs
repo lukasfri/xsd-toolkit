@@ -8,7 +8,7 @@ use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use crate::{
     fragments::{
         complex::XmlNamespaceExt, Context, FragmentAccess, FragmentCollection, FragmentIdx,
-        HasFragmentCollection, LocalNamespaceIdx,
+        HasFragmentCollection, FragmentedXsdDocumentIdx,
     },
     NamedOrAnonymous,
 };
@@ -220,7 +220,7 @@ pub enum FacetFragment {
 #[derive(Debug, Clone)]
 pub struct SimpleTypeFragmentCompiler {
     namespace: XmlNamespace<'static>,
-    pub namespace_idx: LocalNamespaceIdx,
+    pub namespace_idx: FragmentedXsdDocumentIdx,
     simple_types: FragmentCollection<SimpleTypeRootFragment>,
     restrictions: FragmentCollection<RestrictionFragment>,
     facets: FragmentCollection<FacetFragment>,
@@ -243,7 +243,7 @@ impl AsRef<SimpleTypeFragmentCompiler> for SimpleTypeFragmentCompiler {
 
 impl SimpleTypeFragmentCompiler {
     /// Creates a new [`SimpleTypeFragmentCompiler`] with the given namespace and namespace index.
-    pub fn new(namespace: XmlNamespace<'static>, namespace_idx: LocalNamespaceIdx) -> Self {
+    pub fn new(namespace: XmlNamespace<'static>, namespace_idx: FragmentedXsdDocumentIdx) -> Self {
         Self {
             namespace,
             namespace_idx,

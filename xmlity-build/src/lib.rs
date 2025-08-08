@@ -25,7 +25,7 @@ use xsd_codegen_xmlity::{
     misc::TypeReference,
     BoundType,
 };
-use xsd_fragments::{CompileNamespaceName, XmlnsContext};
+use xsd_fragments::{FragmentedXsdDocumentKey, XmlnsContext};
 
 /// The [`BuildEngine`] struct is used to configure the build process, including allowed files, URLs, and bound namespaces.
 #[derive(Debug, Builder)]
@@ -41,7 +41,7 @@ pub struct BuildEngine {
     pub allow_network_access: bool,
     /// A list of namespaces to bind to specific paths.
     #[builder(default)]
-    pub bound_namespaces: Vec<(CompileNamespaceName, syn::Path)>,
+    pub bound_namespaces: Vec<(FragmentedXsdDocumentKey, syn::Path)>,
     /// A list of types to bind to specific types.
     #[builder(default)]
     pub bound_types: Vec<(ExpandedName<'static>, BoundType)>,
@@ -60,7 +60,7 @@ pub struct BuildEngine {
 #[derive(Debug, Builder)]
 pub struct GenerateNamespaceConfig {
     /// The XML namespace to generate code for.
-    pub namespace: CompileNamespaceName,
+    pub namespace: FragmentedXsdDocumentKey,
     /// The output file where the generated code will be written.
     pub output_file: PathBuf,
     /// Derive `bon::builders::Builder` for structs.

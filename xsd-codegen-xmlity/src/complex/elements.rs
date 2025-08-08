@@ -18,7 +18,7 @@ use crate::{
 
 use quote::format_ident;
 use syn::Type;
-use xsd_fragments::fragments::{complex as cx, FragmentIdx, LocalNamespaceIdx};
+use xsd_fragments::fragments::{complex as cx, FragmentIdx, FragmentedXsdDocumentIdx};
 
 use super::{ComplexContext, ComplexToTypeTemplate, Scope, ToTypeTemplateData};
 
@@ -80,7 +80,7 @@ pub struct DeclaredElementHandler {
     pub element_type_content_handler: Arc<ElementTypeContentIdHandler>,
 }
 
-impl ComplexToTypeTemplate<(LocalNamespaceIdx, &cx::DeclaredElementFragment)>
+impl ComplexToTypeTemplate<(FragmentedXsdDocumentIdx, &cx::DeclaredElementFragment)>
     for DeclaredElementHandler
 {
     type TypeTemplate = ElementRecord;
@@ -89,7 +89,7 @@ impl ComplexToTypeTemplate<(LocalNamespaceIdx, &cx::DeclaredElementFragment)>
         &self,
         context: &C,
         scope: &mut S,
-        (namespace_idx, item): &(LocalNamespaceIdx, &cx::DeclaredElementFragment),
+        (namespace_idx, item): &(FragmentedXsdDocumentIdx, &cx::DeclaredElementFragment),
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let name = context.to_expanded_name(item.name.clone());
         let ident = item.name.to_item_ident();
@@ -126,7 +126,7 @@ impl ComplexToTypeTemplate<(LocalNamespaceIdx, &cx::DeclaredElementFragment)>
 #[derive(Debug)]
 pub struct ReferenceElementHandler;
 
-impl ComplexToTypeTemplate<(LocalNamespaceIdx, &cx::ReferenceElementFragment)>
+impl ComplexToTypeTemplate<(FragmentedXsdDocumentIdx, &cx::ReferenceElementFragment)>
     for ReferenceElementHandler
 {
     type TypeTemplate = ItemFieldItem;
@@ -135,7 +135,7 @@ impl ComplexToTypeTemplate<(LocalNamespaceIdx, &cx::ReferenceElementFragment)>
         &self,
         context: &C,
         _scope: &mut S,
-        (namespace_idx, item): &(LocalNamespaceIdx, &cx::ReferenceElementFragment),
+        (namespace_idx, item): &(FragmentedXsdDocumentIdx, &cx::ReferenceElementFragment),
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let ty = context.resolve_named_element(namespace_idx, &item.ref_)?;
 

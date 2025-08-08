@@ -3,7 +3,7 @@ use crate::{BoundType, Result, Scope, ToTypeTemplateData};
 use syn::Ident;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd_fragments::fragments::{
-    simple::SimpleTypeFragmentCompiler, FragmentAccess, FragmentIdx, LocalNamespaceIdx,
+    simple::SimpleTypeFragmentCompiler, FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
 };
 
 pub mod restrictions;
@@ -18,7 +18,7 @@ pub trait SimpleContext {
 
     fn namespace(&self) -> &XmlNamespace<'_>;
 
-    fn namespace_idx(&self) -> &LocalNamespaceIdx;
+    fn namespace_idx(&self) -> &FragmentedXsdDocumentIdx;
 
     fn to_expanded_name(&self, name: LocalName<'static>) -> ExpandedName<'static>;
 
@@ -37,7 +37,7 @@ pub trait SimpleContext {
 
     fn resolve_named_type(
         &self,
-        key: &LocalNamespaceIdx,
+        key: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<BoundType>;
 }

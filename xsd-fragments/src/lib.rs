@@ -19,9 +19,9 @@ pub mod fragments;
 mod context;
 mod namespace;
 pub mod transformers;
-pub use context::{CompileNamespaceName, XmlnsContext};
+pub use context::{FragmentedXsdDocumentKey, XmlnsContext};
 pub use namespace::{
-    CompiledNamespace, TopLevelAttribute, TopLevelAttributeGroup, TopLevelComplexType,
+    FragmentedXsdDocument, TopLevelAttribute, TopLevelAttributeGroup, TopLevelComplexType,
     TopLevelElement, TopLevelGroup, TopLevelSimpleType, TopLevelType,
 };
 
