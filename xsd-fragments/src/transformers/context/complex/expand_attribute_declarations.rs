@@ -338,7 +338,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let (_, ns) = ctx.init_namespace(test_namespace_location.clone(), TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_namespace_location.clone(), TEST_NAMESPACE.into());
         ns.import_top_level_attribute_group(&attribute_group)
             .unwrap();
         ns.import_top_level_complex_type(&input).unwrap();
@@ -464,7 +464,7 @@ mod tests {
                 .into();
 
         let mut ctx = XmlnsContext::new();
-        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE.into());
 
         ns.import_top_level_attribute_group(&attribute_group)
             .unwrap();
@@ -593,7 +593,7 @@ mod tests {
                 .into();
 
         let mut ctx = XmlnsContext::new();
-        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE.into());
 
         ns.import_top_level_attribute_group(&attribute_group)
             .unwrap();

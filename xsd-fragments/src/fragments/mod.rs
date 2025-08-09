@@ -161,5 +161,5 @@ trait HasFragmentCollection<F> {
 }
 
 pub struct Context {
-    pub default_namespace: XmlNamespace<'static>,
+    pub default_namespace: Option<XmlNamespace<'static>>,
 }

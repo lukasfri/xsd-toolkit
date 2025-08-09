@@ -271,7 +271,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let (ns_id, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
+        let (ns_id, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE.into());
 
         let sequence = ns
             .import_top_level_attribute(&attribute)

@@ -140,7 +140,7 @@ mod tests {
         let mut ctx = XmlnsContext::new();
         let (_, ns) = ctx.init_namespace(
             Url::from_str("http://www.example.com/").unwrap(),
-            TEST_NAMESPACE,
+            TEST_NAMESPACE.into(),
         );
 
         // Common for both

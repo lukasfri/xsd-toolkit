@@ -63,7 +63,7 @@ impl XmlnsContext {
     fn init_compiled_namespace(
         &mut self,
         key: FragmentedXsdDocumentKey,
-        namespace: XmlNamespace<'static>,
+        namespace: Option<XmlNamespace<'static>>,
     ) -> (FragmentedXsdDocumentIdx, &mut FragmentedXsdDocument) {
         let namespace_idx = self.generate_fragment_id();
         self.namespace_idxs.insert(key, namespace_idx);
@@ -82,32 +82,54 @@ impl XmlnsContext {
 
     fn init_copy_namespace(
         &mut self,
-        key: FragmentedXsdDocumentKey,
-        copy_key: &FragmentedXsdDocumentKey,
+        new_key: FragmentedXsdDocumentKey,
+        target: &FragmentedXsdDocumentIdx,
     ) -> (FragmentedXsdDocumentIdx, &mut FragmentedXsdDocument) {
         let namespace_idx = self.generate_fragment_id();
-        self.namespace_idxs.insert(key, namespace_idx);
+        self.namespace_idxs.insert(new_key, namespace_idx);
 
         let copy_namespace = self
-            .get_namespace(copy_key)
+            .namespaces
+            .get(target)
             .expect("Expected a namespace to copy from");
 
         let namespace = FragmentedXsdDocument::clone_with_namespace(copy_namespace, namespace_idx);
 
-        self.namespaces.insert(namespace_idx, namespace);
+        let document = self.namespaces.entry(namespace_idx).or_insert(namespace);
 
-        (
-            namespace_idx,
-            self.namespaces
-                .get_mut(&namespace_idx)
-                .expect("Just inserted namespace"),
-        )
+        (namespace_idx, document)
+    }
+
+    fn merge_with(
+        &mut self,
+        source: &FragmentedXsdDocumentIdx,
+        target: &FragmentedXsdDocumentIdx,
+    ) -> Result<(FragmentedXsdDocumentIdx, &mut FragmentedXsdDocument), Error> {
+        let (source_namespace, target_namespace) = self.namespaces.iter_mut().fold(
+            (None, None),
+            |(source_namespace, target_namespace), (key, val)| {
+                if key == source {
+                    (Some(val), target_namespace)
+                } else if key == target {
+                    (source_namespace, Some(val))
+                } else {
+                    (source_namespace, target_namespace)
+                }
+            },
+        );
+
+        let source_namespace = source_namespace.ok_or_else(|| Error::UndefinedNamespace)?;
+        let target_namespace = target_namespace.ok_or_else(|| Error::UndefinedNamespace)?;
+
+        target_namespace.merge_with(&source_namespace)?;
+
+        Ok((*target, target_namespace))
     }
 
     pub fn init_namespace(
         &mut self,
         location: Url,
-        namespace: XmlNamespace<'static>,
+        namespace: Option<XmlNamespace<'static>>,
     ) -> (FragmentedXsdDocumentIdx, &mut FragmentedXsdDocument) {
         let key = FragmentedXsdDocumentKey::Original(location);
         self.init_compiled_namespace(key, namespace)
@@ -143,7 +165,7 @@ impl XmlnsContext {
     ) -> Option<&'a FragmentedXsdDocumentIdx> {
         let compiled_namespace = self.namespaces.get(resolve_from)?;
 
-        if referenced_namespace.is_some_and(|a| *a == compiled_namespace.namespace) {
+        if referenced_namespace == compiled_namespace.namespace.as_ref() {
             Some(resolve_from)
         } else {
             let referenced_ns = compiled_namespace
@@ -175,10 +197,237 @@ impl XmlnsContext {
         self.get_namespace_mut(&FragmentedXsdDocumentKey::Original(namespace.clone()))
     }
 
+    fn import_import_to_compiled_namespace(
+        &mut self,
+        map: &xsd::set::XmlSchemaSet,
+        root_idx: &FragmentedXsdDocumentIdx,
+        current_fragment_location: &Url,
+        namespace: &Option<XmlNamespace<'static>>,
+        import: &xs::import_items::Import,
+    ) -> Result<(), Error> {
+        let Some(schema_location) = import.schema_location.as_ref() else {
+            return Ok(());
+        };
+
+        let import_namespace = import
+            .namespace
+            .clone()
+            .map(XmlNamespace::new)
+            .transpose()
+            .expect("Expected a valid namespace")
+            .or_else(|| namespace.clone());
+
+        let location_url = current_fragment_location
+            .resolve_xml_url(schema_location)
+            .expect("Expected a valid URL");
+
+        let (ns_id, _) =
+            self.import_namespace_map(map, &location_url, import_namespace.as_ref())?;
+
+        let namespace = self
+            .namespaces
+            .get_mut(root_idx)
+            .expect("Expected a namespace for the root key");
+
+        namespace
+            .namespace_references
+            .insert(import_namespace.expect("Expected a namespace"), ns_id);
+
+        Ok(())
+    }
+
+    fn import_include_to_compiled_namespace(
+        &mut self,
+        map: &xsd::set::XmlSchemaSet,
+        root_idx: &FragmentedXsdDocumentIdx,
+        current_fragment_location: &Url,
+        namespace: &Option<XmlNamespace<'static>>,
+        include: &xs::include_items::Include,
+    ) -> Result<(), Error> {
+        let location_url = current_fragment_location
+            .resolve_xml_url(&include.schema_location)
+            .expect("Expected a valid URL");
+
+        self.import_to_compiled_namespace(map, root_idx, &location_url)?;
+
+        Ok(())
+    }
+
+    fn import_redefine_to_compiled_namespace(
+        &mut self,
+        map: &xsd::set::XmlSchemaSet,
+        root_idx: &FragmentedXsdDocumentIdx,
+        current_fragment_location: &Url,
+        namespace: &Option<XmlNamespace<'static>>,
+        redefine: &xs::redefine_items::Redefine,
+    ) -> Result<(), Error> {
+        let location_url = current_fragment_location
+            .resolve_xml_url(&redefine.schema_location)
+            .expect("Expected a valid URL");
+
+        let redefine_namespace = map
+            .locations
+            .get(&location_url)
+            .and_then(|a| {
+                a.as_ref()
+                    .and_then(|a| a.schema.namespace().map(|ns| ns.into_owned()))
+            })
+            .or_else(|| namespace.clone());
+
+        if redefine_namespace != *namespace {
+            // According to the specification, a redefine can only be applied to the same namespace.
+            todo!("Handle error for redefine in different namespace");
+        }
+
+        let (redefine_key, _) =
+            self.import_namespace_map(map, &location_url, namespace.as_ref())?;
+
+        // If the redefine namespace is the same as the current namespace, merge into the current namespace.
+        let (_ns_id, redefineable_namespace) = self.merge_with(root_idx, &redefine_key)?;
+
+        redefineable_namespace.import_redefine(redefine)?;
+
+        Ok(())
+    }
+
+    fn import_override_to_compiled_namespace(
+        &mut self,
+        map: &xsd::set::XmlSchemaSet,
+        root_idx: &FragmentedXsdDocumentIdx,
+        current_fragment_location: &Url,
+        namespace: &Option<XmlNamespace<'static>>,
+        override_: &xs::override_items::Override,
+    ) -> Result<(), Error> {
+        let location_url = current_fragment_location
+            .resolve_xml_url(&override_.schema_location)
+            .expect("Expected a valid URL");
+
+        let redefine_namespace = map
+            .locations
+            .get(&location_url)
+            .and_then(|a| {
+                a.as_ref()
+                    .and_then(|a| a.schema.namespace().map(|ns| ns.into_owned()))
+            })
+            .or_else(|| namespace.clone());
+
+        if redefine_namespace != *namespace {
+            // According to the specification, a redefine can only be applied to the same namespace.
+            todo!("Handle error for redefine in different namespace");
+        }
+
+        let (redefine_key, _) =
+            self.import_namespace_map(map, &location_url, namespace.as_ref())?;
+
+        // If the redefine namespace is the same as the current namespace, merge into the current namespace.
+        let (_ns_id, redefineable_namespace) = self.merge_with(root_idx, &redefine_key)?;
+
+        redefineable_namespace.import_override(override_)?;
+
+        Ok(())
+    }
+
+    fn import_composition_to_compiled_namespace(
+        &mut self,
+        map: &xsd::set::XmlSchemaSet,
+        root_idx: &FragmentedXsdDocumentIdx,
+        current_fragment_location: &Url,
+        namespace: &Option<XmlNamespace<'static>>,
+        a: &xs::groups::Composition,
+    ) -> Result<(), Error> {
+        match a {
+            xs::groups::Composition::Import(import) => {
+                let xs::Import::Import(import) = import.deref() else {
+                    return Ok(());
+                };
+
+                self.import_import_to_compiled_namespace(
+                    map,
+                    root_idx,
+                    current_fragment_location,
+                    namespace,
+                    import,
+                )
+            }
+            xs::groups::Composition::Include(include) => {
+                let xs::Include::Include(include) = include.deref() else {
+                    return Ok(());
+                };
+
+                self.import_include_to_compiled_namespace(
+                    map,
+                    root_idx,
+                    current_fragment_location,
+                    namespace,
+                    include,
+                )
+            }
+            xs::groups::Composition::Redefine(redefine) => {
+                let xs::Redefine::Redefine(redefine) = redefine.deref() else {
+                    return Ok(());
+                };
+
+                self.import_redefine_to_compiled_namespace(
+                    map,
+                    root_idx,
+                    current_fragment_location,
+                    namespace,
+                    redefine,
+                )
+            }
+            xs::groups::Composition::Override(override_) => {
+                let xs::Override::Override(override_) = override_.deref() else {
+                    return Ok(());
+                };
+
+                self.import_override_to_compiled_namespace(
+                    map,
+                    root_idx,
+                    current_fragment_location,
+                    namespace,
+                    override_,
+                )
+            }
+            _ => Ok(()),
+        }
+    }
+
+    fn import_schema_to_compiled_namespace(
+        &mut self,
+        map: &xsd::set::XmlSchemaSet,
+        root_idx: &FragmentedXsdDocumentIdx,
+        current_fragment_location: &Url,
+        schema: &xsd::XmlSchema,
+    ) -> Result<(), Error> {
+        let namespace = self
+            .namespaces
+            .get_mut(root_idx)
+            .expect("Expected a namespace for the root key");
+
+        namespace.import_schema(&schema).unwrap();
+
+        let namespace = namespace.namespace.clone();
+
+        schema
+            .compositions()
+            .try_for_each::<_, Result<(), Error>>(|a| {
+                self.import_composition_to_compiled_namespace(
+                    map,
+                    root_idx,
+                    current_fragment_location,
+                    &namespace,
+                    a,
+                )
+            })?;
+
+        Ok(())
+    }
+
+    /// Imports a schema into the compiled namespace, resolving the current fragment location.
     pub fn import_to_compiled_namespace(
         &mut self,
         map: &xsd::set::XmlSchemaSet,
-        root_key: &FragmentedXsdDocumentKey,
+        root_idx: &FragmentedXsdDocumentIdx,
         current_fragment_location: &Url,
     ) -> Result<(), Error> {
         let location = map
@@ -188,111 +437,15 @@ impl XmlnsContext {
             .as_ref()
             .unwrap();
 
-        let namespace = self
-            .get_namespace_mut(root_key)
-            .expect("Expected a namespace for the root key");
-
-        namespace.import_schema(&location.schema).unwrap();
-
-        let namespace = namespace.namespace.clone();
-
-        location
-            .schema
-            .compositions()
-            .try_for_each::<_, Result<(), Error>>(|a| match a {
-                xs::groups::Composition::Import(import) => {
-                    let xs::Import::Import(import) = import.deref() else {
-                        return Ok(());
-                    };
-
-                    let Some(schema_location) = import.schema_location.as_ref() else {
-                        return Ok(());
-                    };
-
-                    let import_namespace = import
-                        .namespace
-                        .clone()
-                        .map(XmlNamespace::new)
-                        .transpose()
-                        .expect("Expected a valid namespace")
-                        .unwrap_or_else(|| namespace.clone());
-
-                    let location_url = current_fragment_location
-                        .resolve_xml_url(schema_location)
-                        .expect("Expected a valid URL");
-
-                    let (ns_id, _) =
-                        self.import_namespace_map(map, &location_url, Some(&import_namespace))?;
-
-                    let namespace = self
-                        .get_namespace_mut(root_key)
-                        .expect("Expected a namespace for the root key");
-
-                    namespace
-                        .namespace_references
-                        .insert(import_namespace, ns_id);
-
-                    Ok(())
-                }
-                xs::groups::Composition::Include(include) => {
-                    let xs::Include::Include(include) = include.deref() else {
-                        return Ok(());
-                    };
-
-                    let location_url = current_fragment_location
-                        .resolve_xml_url(&include.schema_location)
-                        .expect("Expected a valid URL");
-
-                    self.import_to_compiled_namespace(map, root_key, &location_url)?;
-
-                    Ok(())
-                }
-                xs::groups::Composition::Redefine(redefine) => {
-                    let xs::Redefine::Redefine(redefine) = redefine.deref() else {
-                        return Ok(());
-                    };
-
-                    let location_url = current_fragment_location
-                        .resolve_xml_url(&redefine.schema_location)
-                        .expect("Expected a valid URL");
-
-                    self.import_namespace_map(map, &location_url, Some(&namespace))?;
-
-                    let (ns_id, redefineable_namespace) = self.init_copy_namespace(
-                        FragmentedXsdDocumentKey::Redefined {
-                            original: location_url.clone(),
-                            redefiner: current_fragment_location.clone(),
-                        },
-                        &FragmentedXsdDocumentKey::Original(location_url.clone()),
-                    );
-
-                    redefineable_namespace.import_redefine(redefine)?;
-
-                    let redefineable_namespace = redefineable_namespace.namespace.clone();
-
-                    let namespace = self
-                        .get_namespace_mut(root_key)
-                        .expect("Expected a namespace for the root key");
-
-                    namespace
-                        .namespace_references
-                        .insert(redefineable_namespace, ns_id);
-
-                    Ok(())
-                }
-                xs::groups::Composition::Override(override_) => {
-                    let xs::Override::Override(override_) = override_.deref() else {
-                        return Ok(());
-                    };
-
-                    todo!()
-                }
-                _ => Ok(()),
-            })?;
-
-        Ok(())
+        self.import_schema_to_compiled_namespace(
+            map,
+            root_idx,
+            current_fragment_location,
+            &location.schema,
+        )
     }
 
+    /// Imports a namespace map into the compiled namespace, resolving the current fragment location.
     pub fn import_namespace_map(
         &mut self,
         map: &xsd::set::XmlSchemaSet,
@@ -321,125 +474,25 @@ impl XmlnsContext {
             .schema
             .namespace()
             .map(|ns| ns.into_owned())
-            .or_else(|| with_namespace.map(|ns| ns.clone()))
-            .expect("Namespace must be defined for the location");
+            .or_else(|| with_namespace.map(|ns| ns.clone()));
 
         let location_key = FragmentedXsdDocumentKey::Original(location_url.clone());
 
         let (ns_id, _) =
             self.init_compiled_namespace(location_key.clone(), current_namespace.clone());
 
-        self.import_to_compiled_namespace(map, &location_key, location_url)?;
+        let location_idx = self
+            .namespace_idxs
+            .get(&location_key)
+            .expect("Expected a namespace index for the location key")
+            .clone();
+
+        self.import_to_compiled_namespace(map, &location_idx, location_url)?;
 
         let current_namespace = self.namespaces.get_mut(&ns_id).unwrap();
 
         Ok((ns_id, current_namespace))
     }
-
-    // /// Imports a namespace map with all its dependencies from the schema set.
-    // fn import_namespace_map_inner(
-    //     &mut self,
-    //     map: &xsd::set::XmlSchemaSet,
-    //     location_url: &url::Url,
-    //     known_namespace: Option<XmlNamespace<'_>>,
-    //     imported_urls: &mut Vec<Url>,
-    // ) -> Result<(), Error> {
-    //     if imported_urls.contains(location_url) {
-    //         return Ok(());
-    //     }
-    //     imported_urls.push(location_url.clone());
-
-    //     let location = map
-    //         .locations
-    //         .get(location_url)
-    //         .expect("Expected a location for the origin URL");
-
-    //     let location = location
-    //         .as_ref()
-    //         .expect("Expected the origin location to be loaded");
-
-    //     let current_namespace = location
-    //         .schema
-    //         .namespace()
-    //         .or_else(|| known_namespace.as_ref().map(|a| a.as_ref()));
-
-    //     self.import_schema(
-    //         current_namespace.as_ref().map(|a| a.as_ref()),
-    //         &location.schema,
-    //     )
-    //     .inspect_err(|e| println!("Failed to import schema: {} ({})", e, location_url))?;
-
-    //     location
-    //         .schema
-    //         .imports()
-    //         .filter_map(|a| match a {
-    //             xs::Import::Import(include) => Some(include),
-    //             _ => None,
-    //         })
-    //         .try_for_each(|a| {
-    //             let Some(schema_location) = a.schema_location.as_ref() else {
-    //                 return Ok(());
-    //             };
-
-    //             let location_url = location_url
-    //                 .resolve_xml_url(schema_location)
-    //                 .expect("Expected a valid URL");
-
-    //             let namespace = a
-    //                 .namespace
-    //                 .as_ref()
-    //                 .map(XmlNamespace::new)
-    //                 .transpose()
-    //                 .expect("Expected a valid namespace");
-
-    //             self.import_namespace_map_inner(map, &location_url, namespace, imported_urls)
-    //         })?;
-
-    //     location
-    //         .schema
-    //         .includes()
-    //         .filter_map(|a| match a {
-    //             xs::Include::Include(include) => Some(include),
-    //             _ => None,
-    //         })
-    //         .try_for_each(|a| {
-    //             let location_url = location_url
-    //                 .resolve_xml_url(&a.schema_location)
-    //                 .expect("Expected a valid URL");
-
-    //             self.import_namespace_map_inner(
-    //                 map,
-    //                 &location_url,
-    //                 current_namespace.as_ref().map(|a| a.as_ref()),
-    //                 imported_urls,
-    //             )
-    //         })?;
-
-    //     //TODO: Import redefines and overrides
-
-    //     Ok(())
-    // }
-
-    // /// Imports an XML Schema into the context, creating or updating the relevant namespace.
-    // pub fn import_schema(
-    //     &mut self,
-    //     known_namespace: Option<XmlNamespace<'_>>,
-    //     schema: &xsd::XmlSchema,
-    // ) -> Result<(), Error> {
-    //     let namespace = schema
-    //         .namespace()
-    //         .or(known_namespace)
-    //         .ok_or(Error::UndefinedNamespace)?;
-
-    //     let compiled_namespace =
-    //         if let Some(compiled_namespace) = self.get_namespace_mut(&namespace) {
-    //             compiled_namespace
-    //         } else {
-    //             self.init_namespace(namespace.into_owned())
-    //         };
-
-    //     compiled_namespace.import_schema(schema)
-    // }
 }
 
 impl Default for XmlnsContext {

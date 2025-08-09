@@ -359,7 +359,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
                         if fragment.substitution_groups.contains(name) {
                             Some(ExpandedName::new(
                                 key.as_ref(),
-                                Some(namespace.namespace.as_ref()),
+                                namespace.namespace.as_ref().map(|a| a.as_ref()),
                             ))
                         } else {
                             None

@@ -167,11 +167,8 @@ impl<'a> Generator<'a> {
             .top_level_elements
             .keys()
             .map(|local_name| {
-                ExpandedName::new(
-                    local_name.as_ref(),
-                    Some(compiled_namespace.namespace.clone()),
-                )
-                .into_owned()
+                ExpandedName::new(local_name.as_ref(), compiled_namespace.namespace.clone())
+                    .into_owned()
             })
         {
             if self.bound_elements.contains_key(&expanded_name) {
@@ -352,7 +349,7 @@ impl<'a> Generator<'a> {
             .iter()
             .filter_map(|(key, type_)| match type_ {
                 TopLevelType::Simple(simple_type) => Some((
-                    ExpandedName::new(key.as_ref(), Some(compiled_namespace.namespace.clone()))
+                    ExpandedName::new(key.as_ref(), compiled_namespace.namespace.clone())
                         .into_owned(),
                     simple_type,
                 )),
@@ -395,7 +392,7 @@ impl<'a> Generator<'a> {
             .iter()
             .filter_map(|(key, type_)| match type_ {
                 TopLevelType::Complex(complex_type) => Some((
-                    ExpandedName::new(key.as_ref(), Some(compiled_namespace.namespace.clone()))
+                    ExpandedName::new(key.as_ref(), compiled_namespace.namespace.clone())
                         .into_owned(),
                     complex_type,
                 )),
@@ -519,11 +516,8 @@ impl<'a> Generator<'a> {
             .top_level_attributes
             .keys()
             .map(|local_name| {
-                ExpandedName::new(
-                    local_name.as_ref(),
-                    Some(compiled_namespace.namespace.clone()),
-                )
-                .into_owned()
+                ExpandedName::new(local_name.as_ref(), compiled_namespace.namespace.clone())
+                    .into_owned()
             })
             .map(|expanded_name| {
                 let (mut bound_type, i) = self.generate_attribute(key, &expanded_name)?;
@@ -678,11 +672,8 @@ impl<'a> Generator<'a> {
             .top_level_groups
             .keys()
             .map(|local_name| {
-                ExpandedName::new(
-                    local_name.as_ref(),
-                    Some(compiled_namespace.namespace.clone()),
-                )
-                .into_owned()
+                ExpandedName::new(local_name.as_ref(), compiled_namespace.namespace.clone())
+                    .into_owned()
             })
             .map(|expanded_name| {
                 let (mut bound_type, i) = self.generate_group(key, &expanded_name)?;

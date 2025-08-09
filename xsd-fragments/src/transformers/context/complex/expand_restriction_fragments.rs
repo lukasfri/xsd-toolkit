@@ -528,7 +528,7 @@ mod tests {
                 .into();
 
         let mut ctx = XmlnsContext::new();
-        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE.into());
         ns.import_top_level_complex_type(&product_type).unwrap();
         ns.import_top_level_complex_type(&derived_shirt_type)
             .unwrap();
@@ -712,7 +712,7 @@ mod tests {
                 .into();
 
         let mut ctx = XmlnsContext::new();
-        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE.into());
 
         ns.import_top_level_complex_type(&product_type).unwrap();
         ns.import_top_level_complex_type(&derived_shirt_type)

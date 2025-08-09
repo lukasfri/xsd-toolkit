@@ -607,7 +607,7 @@ mod tests {
                 .into();
 
         let mut ctx = XmlnsContext::new();
-        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE.into());
 
         ns.import_top_level_complex_type(&product_type).unwrap();
         ns.import_top_level_complex_type(&derived_shirt_type)
@@ -804,7 +804,7 @@ mod tests {
                 .into();
 
         let mut ctx = XmlnsContext::new();
-        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE.into());
 
         ns.import_top_level_complex_type(&product_type).unwrap();
         ns.import_top_level_complex_type(&derived_shirt_type)
@@ -1033,7 +1033,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE.into());
         ns.import_top_level_complex_type(&block).unwrap();
         ns.import_top_level_element(&noscript).unwrap();
 
@@ -1475,7 +1475,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE.into());
 
         ns.import_top_level_complex_type(&a_content).unwrap();
         ns.import_top_level_element(&a).unwrap();
@@ -1659,7 +1659,7 @@ mod tests {
             .into();
 
         let mut ctx = XmlnsContext::new();
-        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE);
+        let (_, ns) = ctx.init_namespace(test_location.clone(), TEST_NAMESPACE.into());
 
         ns.import_top_level_complex_type(&parent).unwrap();
         let child = ns

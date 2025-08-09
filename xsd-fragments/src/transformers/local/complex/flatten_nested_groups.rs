@@ -356,7 +356,7 @@ mod tests {
         let mut ctx = XmlnsContext::new();
         let (_, ns) = ctx.init_namespace(
             Url::from_str("http://www.example.com/").unwrap(),
-            TEST_NAMESPACE,
+            TEST_NAMESPACE.into(),
         );
 
         ns.import_top_level_complex_type(&non_flattened_shirt_type)
@@ -489,7 +489,7 @@ mod tests {
         let mut ctx = XmlnsContext::new();
         let (_, ns) = ctx.init_namespace(
             Url::from_str("http://www.example.com/").unwrap(),
-            TEST_NAMESPACE,
+            TEST_NAMESPACE.into(),
         );
 
         ns.import_top_level_complex_type(&non_flattened_shirt_type)
