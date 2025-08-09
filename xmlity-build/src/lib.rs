@@ -13,7 +13,7 @@ pub mod reexports {
 use url::Url;
 
 use xmlity::types::utils::XmlRoot;
-use xmlity::{ExpandedName, XmlNamespace};
+use xmlity::ExpandedName;
 use xsd::set::XmlSchemaSet;
 use xsd::{xs, xsn};
 use xsd_codegen_xmlity::CodegenTransformer;

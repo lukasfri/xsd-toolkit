@@ -6,7 +6,7 @@ pub mod complex;
 pub mod simple;
 
 use url::Url;
-use xmlity::{LocalName, XmlNamespace};
+use xmlity::LocalName;
 
 use crate::{
     fragments::{

@@ -136,14 +136,11 @@ impl<'a> Generator<'a> {
     pub fn generate_namespace(&mut self, key: &FragmentedXsdDocumentIdx) -> Result<Vec<Item>> {
         let mut items = Vec::new();
 
-        let compiled_namespace =
-            self.context
-                .namespaces
-                .get(key)
-                .ok_or_else(|| Error::MissingKey {
-                    key: key.clone(),
-                    name: todo!(),
-                })?;
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(key)
+            .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let types_module_name = format_ident!("types");
 
@@ -182,13 +179,10 @@ impl<'a> Generator<'a> {
             }
             let (mut ty, i) = self.generate_element(key, &expanded_name)?;
 
-            let bound_namespace =
-                self.bound_namespaces
-                    .get(key)
-                    .ok_or_else(|| Error::MissingKey {
-                        key: key.clone(),
-                        name: todo!(),
-                    })?;
+            let bound_namespace = self
+                .bound_namespaces
+                .get(key)
+                .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
             let path: syn::Path = parse_quote!(#bound_namespace);
 
@@ -207,16 +201,11 @@ impl<'a> Generator<'a> {
         name: &xmlity::ExpandedName<'_>,
         simple_type: &TopLevelSimpleType,
     ) -> Result<(BoundType, Vec<Item>)> {
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-
-        let compiled_namespace =
-            self.context
-                .namespaces
-                .get(key)
-                .ok_or_else(|| Error::MissingKey {
-                    key: key.clone(),
-                    name: todo!(),
-                })?;
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(key)
+            .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let fragment = compiled_namespace
             .complex_type_compiler
@@ -268,16 +257,11 @@ impl<'a> Generator<'a> {
         name: &xmlity::ExpandedName<'_>,
         complex_type: &TopLevelComplexType,
     ) -> Result<(BoundType, Vec<Item>)> {
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-
-        let compiled_namespace =
-            self.context
-                .namespaces
-                .get(key)
-                .ok_or_else(|| Error::MissingKey {
-                    key: key.clone(),
-                    name: todo!(),
-                })?;
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(key)
+            .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let fragment = compiled_namespace
             .complex_type_compiler
@@ -329,16 +313,11 @@ impl<'a> Generator<'a> {
         key: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<(BoundType, Vec<Item>)> {
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-
-        let compiled_namespace =
-            self.context
-                .namespaces
-                .get(key)
-                .ok_or_else(|| Error::MissingKey {
-                    key: key.clone(),
-                    name: todo!(),
-                })?;
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(key)
+            .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let type_ = compiled_namespace
             .top_level_types
@@ -362,14 +341,11 @@ impl<'a> Generator<'a> {
         key: &FragmentedXsdDocumentIdx,
         module_name: &Ident,
     ) -> Result<Option<ItemMod>> {
-        let compiled_namespace =
-            self.context
-                .namespaces
-                .get(key)
-                .ok_or_else(|| Error::MissingKey {
-                    key: key.clone(),
-                    name: todo!(),
-                })?;
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(key)
+            .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let simple_types = compiled_namespace
             .top_level_types
@@ -394,13 +370,10 @@ impl<'a> Generator<'a> {
                         Err(err) => return Some(Err(err)),
                     };
 
-                let bound_namespace =
-                    self.bound_namespaces
-                        .get(key)
-                        .ok_or_else(|| Error::MissingKey {
-                            key: key.clone(),
-                            name: todo!(),
-                        });
+                let bound_namespace = self
+                    .bound_namespaces
+                    .get(key)
+                    .ok_or_else(|| Error::MissingKey { key: key.clone() });
 
                 let bound_namespace = match bound_namespace {
                     Ok(bound_namespace) => bound_namespace,
@@ -441,13 +414,10 @@ impl<'a> Generator<'a> {
                 let (mut bound_type, i) =
                     self.generate_complex_type(key, &expanded_name, complex_type)?;
 
-                let bound_namespace =
-                    self.bound_namespaces
-                        .get(key)
-                        .ok_or_else(|| Error::MissingKey {
-                            key: key.clone(),
-                            name: todo!(),
-                        })?;
+                let bound_namespace = self
+                    .bound_namespaces
+                    .get(key)
+                    .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
                 let path: syn::Path = parse_quote!(#bound_namespace::#module_name);
 
@@ -484,16 +454,11 @@ impl<'a> Generator<'a> {
         key: &FragmentedXsdDocumentIdx,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-
-        let compiled_namespace =
-            self.context
-                .namespaces
-                .get(key)
-                .ok_or_else(|| Error::MissingKey {
-                    key: key.clone(),
-                    name: todo!(),
-                })?;
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(key)
+            .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let attribute = compiled_namespace
             .top_level_attributes
@@ -544,14 +509,11 @@ impl<'a> Generator<'a> {
         key: &FragmentedXsdDocumentIdx,
         module_name: &syn::Ident,
     ) -> Result<Option<ItemMod>> {
-        let compiled_namespace =
-            self.context
-                .namespaces
-                .get(key)
-                .ok_or_else(|| Error::MissingKey {
-                    key: key.clone(),
-                    name: todo!(),
-                })?;
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(key)
+            .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let attributes_items = compiled_namespace
             .top_level_attributes
@@ -566,13 +528,10 @@ impl<'a> Generator<'a> {
             .map(|expanded_name| {
                 let (mut bound_type, i) = self.generate_attribute(key, &expanded_name)?;
 
-                let bound_namespace =
-                    self.bound_namespaces
-                        .get(key)
-                        .ok_or_else(|| Error::MissingKey {
-                            key: key.clone(),
-                            name: todo!(),
-                        })?;
+                let bound_namespace = self
+                    .bound_namespaces
+                    .get(key)
+                    .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
                 let path: syn::Path = parse_quote!(#bound_namespace::#module_name);
 
@@ -605,14 +564,11 @@ impl<'a> Generator<'a> {
         key: &FragmentedXsdDocumentIdx,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
-        let compiled_namespace =
-            self.context
-                .namespaces
-                .get(key)
-                .ok_or_else(|| Error::MissingKey {
-                    key: key.clone(),
-                    name: todo!(),
-                })?;
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(key)
+            .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let element = compiled_namespace
             .top_level_elements
@@ -657,16 +613,11 @@ impl<'a> Generator<'a> {
         key: &FragmentedXsdDocumentIdx,
         name: &xmlity::ExpandedName<'_>,
     ) -> Result<(TypeReference<'static>, Vec<Item>)> {
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-
-        let compiled_namespace =
-            self.context
-                .namespaces
-                .get(key)
-                .ok_or_else(|| Error::MissingKey {
-                    key: key.clone(),
-                    name: todo!(),
-                })?;
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(key)
+            .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let group = compiled_namespace
             .top_level_groups
@@ -717,14 +668,11 @@ impl<'a> Generator<'a> {
         key: &FragmentedXsdDocumentIdx,
         groups_module_name: &syn::Ident,
     ) -> Result<Option<ItemMod>> {
-        let compiled_namespace =
-            self.context
-                .namespaces
-                .get(key)
-                .ok_or_else(|| Error::MissingKey {
-                    key: key.clone(),
-                    name: todo!(),
-                })?;
+        let compiled_namespace = self
+            .context
+            .namespaces
+            .get(key)
+            .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let group_items = compiled_namespace
             .top_level_groups
@@ -739,13 +687,10 @@ impl<'a> Generator<'a> {
             .map(|expanded_name| {
                 let (mut bound_type, i) = self.generate_group(key, &expanded_name)?;
 
-                let bound_namespace =
-                    self.bound_namespaces
-                        .get(key)
-                        .ok_or_else(|| Error::MissingKey {
-                            key: key.clone(),
-                            name: todo!(),
-                        })?;
+                let bound_namespace = self
+                    .bound_namespaces
+                    .get(key)
+                    .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
                 let path: syn::Path = parse_quote!(#bound_namespace::#groups_module_name);
 

@@ -1,7 +1,7 @@
 //! This example is used to generate the `xmlity-ns-xs` crate.
 //!
 //! The `xmlity-ns-xs` crate can not use `xmlity-build` as a dependency, because it is itself a dependency of `xmlity-build`. Therefore, this example is used to generate the `xmlity-ns-xs` crate.
-use std::{env::current_dir, path::Path};
+use std::env::current_dir;
 
 use syn::parse_quote;
 use url::Url;

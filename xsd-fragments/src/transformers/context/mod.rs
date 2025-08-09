@@ -5,10 +5,12 @@ pub mod complex;
 /// Simple type transformation implementations.
 pub mod simple;
 
-use xmlity::{ExpandedName, XmlNamespace};
+use xmlity::ExpandedName;
 
 use crate::{
-    fragments::{complex as cx, simple as sm, FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx},
+    fragments::{
+        complex as cx, simple as sm, FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
+    },
     transformers::TransformChange,
 };
 
@@ -44,24 +46,6 @@ impl XmlnsContextTransformerContext<'_> {
         namespace_idx: &FragmentedXsdDocumentIdx,
     ) -> Option<&mut crate::FragmentedXsdDocument> {
         self.xmlns_context.namespaces.get_mut(namespace_idx)
-    }
-
-    fn get_referenced_namespace(
-        &self,
-        namespace_idx: &FragmentedXsdDocumentIdx,
-        reference_namespace: Option<&XmlNamespace<'_>>,
-    ) -> Option<&crate::FragmentedXsdDocument> {
-        let compiled_namespace = self.get_namespace(namespace_idx)?;
-
-        if reference_namespace.is_some_and(|a| *a == compiled_namespace.namespace) {
-            Some(compiled_namespace)
-        } else {
-            let referenced_ns = compiled_namespace
-                .namespace_references
-                .get(reference_namespace?)?;
-
-            Some(self.get_namespace(referenced_ns)?)
-        }
     }
 
     /// Returns an iterator over all complex fragment IDs of a specific type.
@@ -135,7 +119,10 @@ impl XmlnsContextTransformerContext<'_> {
         namespace_idx: &FragmentedXsdDocumentIdx,
         name: &'a ExpandedName<'_>,
     ) -> Option<&'a crate::TopLevelType> {
-        let ns = self.get_referenced_namespace(namespace_idx, name.namespace())?;
+        let ns_id = self
+            .xmlns_context
+            .resolve_ref_namespace(namespace_idx, name.namespace())?;
+        let ns = self.xmlns_context.namespaces.get(ns_id)?;
 
         ns.top_level_types.get(name.local_name())
     }
@@ -146,7 +133,10 @@ impl XmlnsContextTransformerContext<'_> {
         namespace_idx: &FragmentedXsdDocumentIdx,
         name: &'a ExpandedName<'_>,
     ) -> Option<&'a crate::TopLevelAttributeGroup> {
-        let ns = self.get_referenced_namespace(namespace_idx, name.namespace())?;
+        let ns_id = self
+            .xmlns_context
+            .resolve_ref_namespace(namespace_idx, name.namespace())?;
+        let ns = self.xmlns_context.namespaces.get(ns_id)?;
 
         ns.top_level_attribute_groups.get(name.local_name())
     }

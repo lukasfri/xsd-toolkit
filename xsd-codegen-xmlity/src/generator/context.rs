@@ -11,7 +11,7 @@ use xsd_fragments::{
         complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
         FragmentIdx, FragmentedXsdDocumentIdx,
     },
-    FragmentedXsdDocument, FragmentedXsdDocumentKey,
+    FragmentedXsdDocument,
 };
 
 use crate::simple::SimpleToTypeTemplate;
@@ -47,7 +47,6 @@ impl<'a> GeneratorContext<'a> {
             .get(self.key)
             .ok_or_else(|| Error::MissingKey {
                 key: self.key.clone(),
-                name: todo!(),
             })
     }
 }
@@ -110,15 +109,20 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
 
         let type_mod_ident = format_ident!("types");
 
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
-        let namespace_crate =
-            self.generator
-                .bound_namespaces
-                .get(key)
-                .ok_or_else(|| Error::UnboundNamespace {
-                    namespace: Some(namespace.clone().into_owned()),
-                    item_name: Some(name.local_name().to_string()),
-                })?;
+        let referenced_namespace_idx = self
+            .generator
+            .context
+            .resolve_ref_namespace(key, name.namespace())
+            .expect("Namespace should exist");
+
+        let namespace_crate = self
+            .generator
+            .bound_namespaces
+            .get(referenced_namespace_idx)
+            .ok_or_else(|| Error::UnboundNamespace {
+                namespace: *referenced_namespace_idx,
+                item_name: Some(name.local_name().to_string()),
+            })?;
 
         let name = name.local_name().to_item_ident();
         let ty: syn::Type = parse_quote!(#namespace_crate::#type_mod_ident::#name);
@@ -206,13 +210,18 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
 
         let type_mod_ident = format_ident!("types");
 
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
+        let referenced_namespace_idx = self
+            .generator
+            .context
+            .resolve_ref_namespace(namespace_idx, name.namespace())
+            .expect("Namespace should exist");
+
         let namespace_crate = self
             .generator
             .bound_namespaces
-            .get(namespace_idx)
+            .get(referenced_namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
-                namespace: Some(namespace.clone().into_owned()),
+                namespace: *referenced_namespace_idx,
                 item_name: Some(name.local_name().to_string()),
             })?;
 
@@ -238,13 +247,18 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
             return Ok(ty);
         }
 
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
+        let referenced_namespace_idx = self
+            .generator
+            .context
+            .resolve_ref_namespace(namespace_idx, name.namespace())
+            .expect("Namespace should exist");
+
         let namespace_crate = self
             .generator
             .bound_namespaces
-            .get(namespace_idx)
+            .get(referenced_namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
-                namespace: Some(namespace.clone().into_owned()),
+                namespace: *referenced_namespace_idx,
                 item_name: Some(name.local_name().to_string()),
             })?;
 
@@ -267,13 +281,18 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
 
         let attribute_mod_ident = format_ident!("attributes");
 
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
+        let referenced_namespace_idx = self
+            .generator
+            .context
+            .resolve_ref_namespace(namespace_idx, name.namespace())
+            .expect("Namespace should exist");
+
         let namespace_crate = self
             .generator
             .bound_namespaces
-            .get(namespace_idx)
+            .get(referenced_namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
-                namespace: Some(namespace.clone().into_owned()),
+                namespace: *referenced_namespace_idx,
                 item_name: Some(format!("attribute {}", name.local_name())),
             })?;
 
@@ -296,13 +315,18 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
 
         let group_mod_ident = format_ident!("groups");
 
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
+        let referenced_namespace_idx = self
+            .generator
+            .context
+            .resolve_ref_namespace(namespace_idx, name.namespace())
+            .expect("Namespace should exist");
+
         let namespace_crate = self
             .generator
             .bound_namespaces
             .get(namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
-                namespace: Some(namespace.clone().into_owned()),
+                namespace: *referenced_namespace_idx,
                 item_name: Some(format!("group {}", name.local_name())),
             })?;
 

@@ -14,8 +14,8 @@ use inflector::Inflector;
 use misc::TypeReference;
 use quote::format_ident;
 use syn::Ident;
-use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd_fragments::{fragments::FragmentedXsdDocumentIdx, FragmentedXsdDocumentKey};
+use xmlity::{ExpandedName, LocalName};
+use xsd_fragments::fragments::FragmentedXsdDocumentIdx;
 
 use crate::augments::ItemAugmentation;
 
@@ -23,7 +23,6 @@ use crate::augments::ItemAugmentation;
 pub enum Error {
     MissingKey {
         key: FragmentedXsdDocumentIdx,
-        name: FragmentedXsdDocumentKey,
     },
     NoNamespace,
     MissingElement {
@@ -52,7 +51,7 @@ pub enum Error {
         fragment_type: String,
     },
     UnboundNamespace {
-        namespace: Option<XmlNamespace<'static>>,
+        namespace: FragmentedXsdDocumentIdx,
         item_name: Option<String>,
     },
     UnsupportedItemType {
@@ -116,8 +115,8 @@ impl std::fmt::Display for UnsupportedSchemaFeature {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::MissingKey { key, name } => {
-                write!(f, "Missing namespace key: {} ({:?})", name, key)
+            Error::MissingKey { key } => {
+                write!(f, "Missing namespace key: {:?}", key)
             }
             Error::NoNamespace => write!(f, "No namespace specified"),
             Error::MissingElement { name } => write!(f, "Missing element: {}", name),

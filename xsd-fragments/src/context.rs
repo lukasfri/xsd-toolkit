@@ -136,6 +136,37 @@ impl XmlnsContext {
         self.get_namespace(&FragmentedXsdDocumentKey::Original(namespace.clone()))
     }
 
+    pub fn resolve_ref_namespace<'a>(
+        &'a self,
+        resolve_from: &'a FragmentedXsdDocumentIdx,
+        referenced_namespace: Option<&XmlNamespace<'a>>,
+    ) -> Option<&'a FragmentedXsdDocumentIdx> {
+        let compiled_namespace = self.namespaces.get(resolve_from)?;
+
+        if referenced_namespace.is_some_and(|a| *a == compiled_namespace.namespace) {
+            Some(resolve_from)
+        } else {
+            let referenced_ns = compiled_namespace
+                .namespace_references
+                .get(referenced_namespace?)?;
+
+            Some(referenced_ns)
+        }
+    }
+
+    pub fn get_name(
+        &self,
+        namespace_idx: &FragmentedXsdDocumentIdx,
+    ) -> Option<&FragmentedXsdDocumentKey> {
+        self.namespace_idxs.iter().find_map(|(key, idx)| {
+            if idx == namespace_idx {
+                Some(key)
+            } else {
+                None
+            }
+        })
+    }
+
     /// Gets a mutable reference to a compiled namespace by its URI.
     pub fn get_namespace_direct_mut(
         &mut self,
