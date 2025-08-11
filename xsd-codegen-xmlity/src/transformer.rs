@@ -5,9 +5,10 @@ use xsd_fragments::transformers::{
     context::{
         complex::{
             ExpandAttributeDeclarations, ExpandAttributeDeclarationsError,
-            ExpandExtensionFragments, ExpandExtensionFragmentsError, ExpandRestrictionFragments,
-            ExpandRestrictionFragmentsError, RemoveProhibitedAttributes,
-            RemoveProhibitedAttributesError,
+            ExpandExtensionFragments, ExpandExtensionFragmentsError, ExpandIncludeFragments,
+            ExpandIncludeFragmentsError, ExpandRedefineFragments, ExpandRedefineFragmentsError,
+            ExpandRestrictionFragments, ExpandRestrictionFragmentsError,
+            RemoveProhibitedAttributes, RemoveProhibitedAttributesError,
         },
         simple::{ExpandSimpleRestriction, ExpandSimpleRestrictionError},
     },
@@ -21,6 +22,10 @@ use xsd_fragments::transformers::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("Error when expanding include fragments: {0}")]
+    ExpandIncludeFragmentsError(ExpandIncludeFragmentsError),
+    #[error("Error when expanding redefine fragments: {0}")]
+    ExpandRedefineFragmentsError(ExpandRedefineFragmentsError),
     #[error("Error when flattening nested sequences: {0}")]
     FlattenNestedSequencesError(FlattenNestedSequencesError),
     #[error("Error when flattening nested choices: {0}")]
@@ -47,6 +52,7 @@ pub enum Error {
 #[derive(Debug)]
 /// This transformer is used to transform the XSD into a form that is required for the codegen to work.
 pub struct CodegenTransformer {
+    max_iterations: usize,
     allowed_simple_bases: HashSet<ExpandedName<'static>>,
 }
 
@@ -54,6 +60,7 @@ impl CodegenTransformer {
     #[allow(clippy::new_without_default)]
     pub fn new(allowed_simple_bases: HashSet<ExpandedName<'static>>) -> Self {
         Self {
+            max_iterations: 100,
             allowed_simple_bases,
         }
     }
@@ -65,59 +72,92 @@ impl XmlnsContextTransformer for CodegenTransformer {
         self,
         context: xsd_fragments::transformers::XmlnsContextTransformerContext<'_>,
     ) -> std::result::Result<TransformChange, Self::Error> {
-        for i in 0..100 {
-            let mut total_change = TransformChange::Unchanged;
+        let mut total_change = TransformChange::Changed;
 
-            total_change |= context
+        // Expand inclusions and redefines first
+        for i in 0..self.max_iterations {
+            if i >= self.max_iterations - 1 {
+                return Err(Error::MaxTransformationLoopsReached);
+            }
+
+            let mut i_change = TransformChange::Unchanged;
+
+            i_change |= context
+                .xmlns_context
+                .context_transform(ExpandIncludeFragments::new())
+                .map_err(Error::ExpandIncludeFragmentsError)?;
+
+            i_change |= context
+                .xmlns_context
+                .context_transform(ExpandRedefineFragments::new())
+                .map_err(Error::ExpandRedefineFragmentsError)?;
+
+            total_change |= i_change;
+
+            if i_change == TransformChange::Unchanged {
+                break;
+            }
+        }
+
+        for i in 0..self.max_iterations {
+            if i >= self.max_iterations - 1 {
+                return Err(Error::MaxTransformationLoopsReached);
+            }
+
+            let mut i_change = TransformChange::Unchanged;
+
+            i_change |= context
                 .xmlns_context
                 .context_transform(ExpandSimpleRestriction::new(&self.allowed_simple_bases))
                 .map_err(Error::ExpandSimpleRestrictionError)?;
 
-            total_change |= context
+            i_change |= context
                 .xmlns_context
                 .local_transform_all(&ExpandShortFormComplexTypes::new())
                 .map_err(Error::ExpandShortFormComplexTypesError)?;
 
-            total_change |= context
+            i_change |= context
                 .xmlns_context
                 .local_transform_all(&SingleChoiceToSequence::new())
                 .map_err(Error::SingleChoiceToSequenceError)?;
 
-            total_change |= context
+            i_change |= context
                 .xmlns_context
                 .local_transform_all(&FlattenNestedSequences::new())
                 .map_err(Error::FlattenNestedSequencesError)?;
 
-            total_change |= context
+            i_change |= context
                 .xmlns_context
                 .local_transform_all(&FlattenNestedChoices::new())
                 .map_err(Error::FlattenNestedChoicesError)?;
 
-            total_change |= context
+            i_change |= context
                 .xmlns_context
                 .context_transform(ExpandAttributeDeclarations::new())
                 .map_err(Error::ExpandAttributeDeclarationsError)?;
 
-            total_change |= context
+            i_change |= context
                 .xmlns_context
                 .context_transform(ExpandExtensionFragments::new())
                 .map_err(Error::ExpandExtensionFragmentsError)?;
 
-            total_change |= context
+            i_change |= context
                 .xmlns_context
                 .context_transform(ExpandRestrictionFragments::new())
                 .map_err(Error::ExpandRestrictionFragmentsError)?;
 
-            total_change |= context
+            i_change |= context
                 .xmlns_context
                 .context_transform(&RemoveProhibitedAttributes::new())
                 .map_err(Error::RemoveProhibitedAttributesError)?;
 
-            if total_change == TransformChange::Unchanged {
-                return Ok(TransformChange::from(i > 0));
+            total_change |= i_change;
+
+            if i_change == TransformChange::Unchanged {
+                break;
             }
         }
 
-        Err(Error::MaxTransformationLoopsReached)
+        Ok(total_change)
     }
 }

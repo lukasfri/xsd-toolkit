@@ -22,7 +22,7 @@ fn main() {
             .display()
     );
 
-    let xml_path = FragmentedXsdDocumentKey::Original(
+    let xml_path = FragmentedXsdDocumentKey(
         Url::from_file_path(
             current_dir()
                 .unwrap()
@@ -31,7 +31,7 @@ fn main() {
         .unwrap(),
     );
 
-    let xs_path = FragmentedXsdDocumentKey::Original(
+    let xs_path = FragmentedXsdDocumentKey(
         Url::from_file_path(
             current_dir()
                 .unwrap()

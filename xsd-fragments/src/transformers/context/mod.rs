@@ -9,7 +9,8 @@ use xmlity::ExpandedName;
 
 use crate::{
     fragments::{
-        complex as cx, simple as sm, FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
+        complex::{self as cx, SchemaFragment, TopLevelAttributeGroupFragment, TopLevelTypeId},
+        simple as sm, FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
     },
     transformers::TransformChange,
 };
@@ -34,17 +35,14 @@ pub struct XmlnsContextTransformerContext<'a> {
 }
 
 impl XmlnsContextTransformerContext<'_> {
-    fn get_namespace(
-        &self,
-        namespace_idx: &FragmentedXsdDocumentIdx,
-    ) -> Option<&crate::FragmentedXsdDocument> {
+    fn get_namespace(&self, namespace_idx: &FragmentedXsdDocumentIdx) -> Option<&SchemaFragment> {
         self.xmlns_context.namespaces.get(namespace_idx)
     }
 
     fn get_namespace_mut(
         &mut self,
         namespace_idx: &FragmentedXsdDocumentIdx,
-    ) -> Option<&mut crate::FragmentedXsdDocument> {
+    ) -> Option<&mut SchemaFragment> {
         self.xmlns_context.namespaces.get_mut(namespace_idx)
     }
 
@@ -56,7 +54,7 @@ impl XmlnsContextTransformerContext<'_> {
         self.xmlns_context
             .namespaces
             .iter()
-            .flat_map(|(_, ns)| ns.complex_type_compiler.iter_fragment_ids())
+            .flat_map(|(_, ns)| ns.compiler.iter_fragment_ids())
     }
 
     /// Gets a complex fragment by its ID.
@@ -65,7 +63,7 @@ impl XmlnsContextTransformerContext<'_> {
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.get_namespace(&fragment_idx.namespace_idx())?
-            .complex_type_compiler
+            .compiler
             .get_fragment(fragment_idx)
     }
 
@@ -75,7 +73,7 @@ impl XmlnsContextTransformerContext<'_> {
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.get_namespace_mut(&fragment_idx.namespace_idx())?
-            .complex_type_compiler
+            .compiler
             .get_fragment_mut(fragment_idx)
     }
 
@@ -84,11 +82,10 @@ impl XmlnsContextTransformerContext<'_> {
     where
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
     {
-        self.xmlns_context.namespaces.iter().flat_map(|(_, ns)| {
-            ns.complex_type_compiler
-                .simple_type_compiler
-                .iter_fragment_ids()
-        })
+        self.xmlns_context
+            .namespaces
+            .iter()
+            .flat_map(|(_, ns)| ns.compiler.simple_type_compiler.iter_fragment_ids())
     }
 
     /// Gets a simple fragment by its ID.
@@ -97,7 +94,7 @@ impl XmlnsContextTransformerContext<'_> {
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.get_namespace(&fragment_idx.namespace_idx())?
-            .complex_type_compiler
+            .compiler
             .simple_type_compiler
             .get_fragment(fragment_idx)
     }
@@ -108,7 +105,7 @@ impl XmlnsContextTransformerContext<'_> {
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.get_namespace_mut(&fragment_idx.namespace_idx())?
-            .complex_type_compiler
+            .compiler
             .simple_type_compiler
             .get_fragment_mut(fragment_idx)
     }
@@ -118,7 +115,7 @@ impl XmlnsContextTransformerContext<'_> {
         &'a self,
         namespace_idx: &FragmentedXsdDocumentIdx,
         name: &'a ExpandedName<'_>,
-    ) -> Option<&'a crate::TopLevelType> {
+    ) -> Option<&'a TopLevelTypeId> {
         let ns_id = self
             .xmlns_context
             .resolve_ref_namespace(namespace_idx, name.namespace())?;
@@ -132,7 +129,7 @@ impl XmlnsContextTransformerContext<'_> {
         &'a self,
         namespace_idx: &FragmentedXsdDocumentIdx,
         name: &'a ExpandedName<'_>,
-    ) -> Option<&'a crate::TopLevelAttributeGroup> {
+    ) -> Option<&'a FragmentIdx<TopLevelAttributeGroupFragment>> {
         let ns_id = self
             .xmlns_context
             .resolve_ref_namespace(namespace_idx, name.namespace())?;

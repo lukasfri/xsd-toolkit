@@ -1,0 +1,10 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="size" type="DressSizeType" />
+  <xs:simpleType name="DressSizeType">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="2" />
+      <xs:maxInclusive value="18" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="newSize" type="DressSizeType" />
+</xs:schema>

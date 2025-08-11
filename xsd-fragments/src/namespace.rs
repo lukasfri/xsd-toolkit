@@ -1,12 +1,17 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 use xsd::xs::{self};
 
 use crate::{
     fragments::{
-        self, complex::ComplexFragmentEquivalent, simple::SimpleFragmentEquivalent, Context,
-        FragmentIdx, FragmentedXsdDocumentIdx,
+        self,
+        complex::{
+            ComplexFragmentEquivalent, ComplexTypeRootFragment, RedefinableId,
+            TopLevelAttributeGroupFragment, TopLevelGroupFragment,
+        },
+        simple::{SimpleFragmentEquivalent, SimpleTypeRootFragment},
+        Context, FragmentIdx, FragmentedXsdDocumentIdx,
     },
     Error,
 };
@@ -15,7 +20,9 @@ use crate::{
 #[derive(Debug)]
 pub struct FragmentedXsdDocument {
     pub namespace: Option<XmlNamespace<'static>>,
-    pub namespace_references: BTreeMap<XmlNamespace<'static>, FragmentedXsdDocumentIdx>,
+    pub imports: BTreeMap<XmlNamespace<'static>, FragmentedXsdDocumentIdx>,
+    pub redefines: VecDeque<Redefine>,
+    pub includes: VecDeque<Include>,
     /// The [`ComplexTypeFragmentCompiler`] for complex types, which also contains a [`SimpleTypeFragmentCompiler`].
     pub complex_type_compiler: fragments::complex::ComplexTypeFragmentCompiler,
     /// A map of top-level types, which can be either simple or complex.
@@ -37,7 +44,7 @@ impl FragmentedXsdDocument {
         namespace: Option<XmlNamespace<'static>>,
     ) -> Self {
         let simple_type_compiler =
-            fragments::simple::SimpleTypeFragmentCompiler::new(namespace.clone(), namespace_idx);
+            fragments::simple::SimpleTypeFragmentCompiler::new(namespace_idx);
         let complex_type_compiler =
             fragments::complex::ComplexTypeFragmentCompiler::new_with_simple_compiler(
                 namespace_idx,
@@ -46,7 +53,9 @@ impl FragmentedXsdDocument {
 
         Self {
             namespace,
-            namespace_references: BTreeMap::new(),
+            imports: BTreeMap::new(),
+            redefines: VecDeque::new(),
+            includes: VecDeque::new(),
             complex_type_compiler,
             top_level_types: BTreeMap::new(),
             top_level_elements: BTreeMap::new(),
@@ -98,51 +107,75 @@ impl FragmentedXsdDocument {
             v.root_fragment = FragmentIdx::new(namespace_idx, v.root_fragment.local_idx());
         });
 
+        let mut redefines = ref_.redefines.clone();
+        redefines.iter_mut().for_each(|v| {
+            v.root_fragment = FragmentIdx::new(namespace_idx, v.root_fragment.local_idx());
+        });
+
+        let mut includes = ref_.includes.clone();
+        includes.iter_mut().for_each(|v| {
+            v.root_fragment = FragmentIdx::new(namespace_idx, v.root_fragment.local_idx());
+        });
+
         Self {
             namespace: ref_.namespace.clone(),
-            namespace_references: ref_.namespace_references.clone(),
+            imports: ref_.imports.clone(),
             complex_type_compiler,
             top_level_types,
             top_level_elements,
             top_level_attributes,
             top_level_groups,
             top_level_attribute_groups,
+            redefines,
+            includes,
         }
     }
 
     pub fn merge_with(&mut self, other: &FragmentedXsdDocument) -> Result<(), Error> {
-        if self.namespace != other.namespace {
-            todo!("Handle error for merging namespaces with different namespaces");
+        if other
+            .namespace
+            .as_ref()
+            .is_some_and(|ns| Some(ns) != self.namespace.as_ref())
+        {
+            todo!(
+                "Handle error for merging namespaces with different namespaces: {:?} and {:?}",
+                self.namespace,
+                other.namespace
+            );
         }
 
-        self.namespace_references
-            .extend(other.namespace_references.clone());
+        self.imports.extend(other.imports.clone());
         self.complex_type_compiler
             .merge_with(&other.complex_type_compiler)?;
 
         for (name, top_level_type) in &other.top_level_types {
             self.top_level_types
-                .insert(name.clone(), top_level_type.clone());
+                .entry(name.clone())
+                .or_insert_with(|| top_level_type.clone());
         }
 
         for (name, top_level_element) in &other.top_level_elements {
             self.top_level_elements
-                .insert(name.clone(), top_level_element.clone());
+                .entry(name.clone())
+                .or_insert_with(|| top_level_element.clone());
         }
 
         for (name, top_level_attribute) in &other.top_level_attributes {
             self.top_level_attributes
-                .insert(name.clone(), top_level_attribute.clone());
+                .entry(name.clone())
+                .or_insert_with(|| top_level_attribute.clone());
         }
 
         for (name, top_level_group) in &other.top_level_groups {
             self.top_level_groups
-                .insert(name.clone(), top_level_group.clone());
+                .entry(name.clone())
+                .or_insert_with(|| top_level_group.clone());
         }
 
         for (name, top_level_attribute_group) in &other.top_level_attribute_groups {
             self.top_level_attribute_groups
-                .insert(name.clone(), top_level_attribute_group.clone());
+                .entry(name.clone())
+                .or_insert_with(|| top_level_attribute_group.clone());
         }
 
         Ok(())
@@ -152,32 +185,58 @@ impl FragmentedXsdDocument {
     pub fn import_redefineable(
         &mut self,
         redefineable: &xs::groups::Redefinable,
+    ) -> Result<RedefinableId, Error> {
+        use xs::groups::Redefinable;
+
+        match redefineable {
+            Redefinable::SimpleType(simple_type) => self
+                .import_simple_type(simple_type)
+                .map(RedefinableId::SimpleType),
+            Redefinable::ComplexType(complex_type) => self
+                .import_complex_type(complex_type)
+                .map(RedefinableId::ComplexType),
+            Redefinable::Group(group) => self.import_group(group).map(RedefinableId::Group),
+            Redefinable::AttributeGroup(attribute_group) => self
+                .import_attribute_group(attribute_group)
+                .map(RedefinableId::AttributeGroup),
+        }
+    }
+
+    pub fn import_top_level_redefineable(
+        &mut self,
+        redefineable: &xs::groups::Redefinable,
     ) -> Result<(), Error> {
         use xs::groups::Redefinable;
 
         match redefineable {
             Redefinable::SimpleType(simple_type) => {
-                self.import_top_level_simple_type(simple_type)?;
+                self.import_top_level_simple_type(simple_type).map(|_| ())
             }
             Redefinable::ComplexType(complex_type) => {
-                self.import_top_level_complex_type(complex_type)?;
+                self.import_top_level_complex_type(complex_type).map(|_| ())
             }
-            Redefinable::Group(group) => {
-                self.import_top_level_group(group)?;
-            }
-            Redefinable::AttributeGroup(attribute_group) => {
-                self.import_top_level_attribute_group(attribute_group)?;
-            }
+            Redefinable::Group(group) => self.import_top_level_group(group).map(|_| ()),
+            Redefinable::AttributeGroup(attribute_group) => self
+                .import_top_level_attribute_group(attribute_group)
+                .map(|_| ()),
         }
-
-        Ok(())
     }
 
     /// Imports a schema into the namespace.
-    pub fn import_schema(&mut self, schema: &xsd::XmlSchema) -> Result<(), Error> {
+    pub fn import_schema(&mut self, schema: &xs::Schema) -> Result<(), Error> {
+        let xs::Schema::Schema(schema) = schema else {
+            panic!("Expected a schema, but found: {:?}", schema);
+        };
+
         schema
-            .schema_tops()
+            .child_2
+            .iter()
+            .map(|a| &a.schema_top)
             .try_for_each(|schema_top| self.import_schema_top(schema_top))
+    }
+
+    pub fn export_schema(&self) -> Result<xs::schema_items::Schema, Error> {
+        todo!()
     }
 
     /// Imports a schema top into the namespace.
@@ -185,7 +244,9 @@ impl FragmentedXsdDocument {
         use xs::groups::SchemaTop;
 
         match schema_top {
-            SchemaTop::Redefinable(redefineable) => self.import_redefineable(redefineable),
+            SchemaTop::Redefinable(redefineable) => {
+                self.import_top_level_redefineable(redefineable)
+            }
             SchemaTop::Element(element) => self.import_top_level_element(element).map(|_| ()),
             SchemaTop::Attribute(attribute) => {
                 self.import_top_level_attribute(attribute).map(|_| ())
@@ -194,18 +255,18 @@ impl FragmentedXsdDocument {
         }
     }
 
-    /// Imports a redefine into the namespace.
-    pub fn import_redefine(&mut self, schema: &xs::redefine_items::Redefine) -> Result<(), Error> {
-        schema
-            .redefine_content
-            .iter()
-            .try_for_each(|schema_top| match schema_top {
-                xs::redefine_items::RedefineContent::Redefinable(redefineable) => {
-                    self.import_redefineable(redefineable)
-                }
-                _ => Ok(()),
-            })
-    }
+    // /// Imports a redefine into the namespace.
+    // pub fn import_redefine(&mut self, schema: &xs::redefine_items::Redefine) -> Result<(), Error> {
+    //     schema
+    //         .redefine_content
+    //         .iter()
+    //         .try_for_each(|schema_top| match schema_top {
+    //             xs::redefine_items::RedefineContent::Redefinable(redefineable) => {
+    //                 self.import_redefineable(redefineable).map(|_| ())
+    //             }
+    //             _ => Ok(()),
+    //         })
+    // }
 
     /// Imports a schema into the namespace.
     pub fn import_override(&mut self, schema: &xs::override_items::Override) -> Result<(), Error> {
@@ -215,11 +276,32 @@ impl FragmentedXsdDocument {
             .try_for_each(|schema_top| self.import_schema_top(schema_top))
     }
 
+    pub fn import_simple_type(
+        &mut self,
+        simple_type: &xs::SimpleType,
+    ) -> Result<FragmentIdx<SimpleTypeRootFragment>, Error> {
+        let simple_type = match simple_type {
+            xs::SimpleType::SimpleType(simple_type) => simple_type,
+            _ => panic!("Expected a simple type, but found: {:?}", simple_type),
+        };
+
+        simple_type
+            .to_simple_fragments(
+                self.complex_type_compiler.as_mut(),
+                &Context {
+                    default_namespace: self.namespace.as_ref(),
+                },
+            )
+            .map_err(Error::SimpleFragmentError)
+    }
+
     /// Imports a top-level simple type from the XSD namespace.
     pub fn import_top_level_simple_type(
         &mut self,
         simple_type: &xs::SimpleType,
     ) -> Result<ExpandedName<'_>, Error> {
+        let root_fragment = self.import_simple_type(simple_type)?;
+
         let simple_type = match simple_type {
             xs::SimpleType::SimpleType(simple_type) => simple_type,
             _ => panic!("Expected a simple type, but found: {:?}", simple_type),
@@ -227,13 +309,6 @@ impl FragmentedXsdDocument {
 
         let local_name = simple_type.name.clone();
         let name = ExpandedName::new(local_name.clone(), self.namespace.clone());
-
-        let root_fragment = simple_type.to_simple_fragments(
-            self.complex_type_compiler.as_mut(),
-            &Context {
-                default_namespace: self.namespace.clone(),
-            },
-        )?;
 
         let value = TopLevelType::Simple(TopLevelSimpleType { root_fragment });
         self.top_level_types.insert(local_name, value);
@@ -260,11 +335,32 @@ impl FragmentedXsdDocument {
         Ok(Some(xs::SimpleType::from(type_)))
     }
 
+    pub fn import_complex_type(
+        &mut self,
+        complex_type: &xs::ComplexType,
+    ) -> Result<FragmentIdx<ComplexTypeRootFragment>, Error> {
+        let complex_type = match complex_type {
+            xs::ComplexType::ComplexType(complex_type) => complex_type,
+            _ => panic!("Expected a complex type, but found: {:?}", complex_type),
+        };
+
+        complex_type
+            .to_complex_fragments(
+                &mut self.complex_type_compiler,
+                &Context {
+                    default_namespace: self.namespace.as_ref(),
+                },
+            )
+            .map_err(Error::ComplexFragmentError)
+    }
+
     /// Imports a top-level complex type from the XSD namespace.
     pub fn import_top_level_complex_type(
         &mut self,
         complex_type: &xs::ComplexType,
     ) -> Result<ExpandedName<'_>, Error> {
+        let root_fragment = self.import_complex_type(complex_type)?;
+
         let complex_type = match complex_type {
             xs::ComplexType::ComplexType(complex_type) => complex_type,
             _ => panic!("Expected a complex type, but found: {:?}", complex_type),
@@ -272,13 +368,6 @@ impl FragmentedXsdDocument {
 
         let local_name = complex_type.name.clone();
         let name = ExpandedName::new(local_name.clone(), self.namespace.clone());
-
-        let root_fragment = complex_type.to_complex_fragments(
-            &mut self.complex_type_compiler,
-            &Context {
-                default_namespace: self.namespace.clone(),
-            },
-        )?;
 
         let value = TopLevelType::Complex(TopLevelComplexType { root_fragment });
         self.top_level_types.insert(local_name, value);
@@ -321,7 +410,7 @@ impl FragmentedXsdDocument {
         let root_fragment = element.to_complex_fragments(
             &mut self.complex_type_compiler,
             &Context {
-                default_namespace: self.namespace.clone(),
+                default_namespace: self.namespace.as_ref(),
             },
         )?;
 
@@ -366,7 +455,7 @@ impl FragmentedXsdDocument {
         let root_fragment = attribute.to_complex_fragments(
             &mut self.complex_type_compiler,
             &Context {
-                default_namespace: self.namespace.clone(),
+                default_namespace: self.namespace.as_ref(),
             },
         )?;
 
@@ -395,8 +484,31 @@ impl FragmentedXsdDocument {
         Ok(Some(xs::Attribute::from(attribute)))
     }
 
+    fn import_group(
+        &mut self,
+        group: &xs::Group,
+    ) -> Result<FragmentIdx<TopLevelGroupFragment>, Error> {
+        let group = match group {
+            xs::Group::Group(group) => group,
+            _ => {
+                panic!("Expected a group, but found: {:?}", group);
+            }
+        };
+
+        let root_fragment = group.to_complex_fragments(
+            &mut self.complex_type_compiler,
+            &Context {
+                default_namespace: self.namespace.as_ref(),
+            },
+        )?;
+
+        Ok(root_fragment)
+    }
+
     /// Imports a top-level group from the XSD namespace.
     pub fn import_top_level_group(&mut self, group: &xs::Group) -> Result<ExpandedName<'_>, Error> {
+        let root_fragment = self.import_group(group)?;
+
         let group = match group {
             xs::Group::Group(group) => group,
             _ => {
@@ -406,13 +518,6 @@ impl FragmentedXsdDocument {
 
         let local_name = group.name.clone();
         let name = ExpandedName::new(local_name.clone(), self.namespace.clone());
-
-        let root_fragment = group.to_complex_fragments(
-            &mut self.complex_type_compiler,
-            &Context {
-                default_namespace: self.namespace.clone(),
-            },
-        )?;
 
         let value = TopLevelGroup { root_fragment };
         self.top_level_groups.insert(local_name.clone(), value);
@@ -439,11 +544,37 @@ impl FragmentedXsdDocument {
         Ok(Some(xs::Group::from(group)))
     }
 
+    fn import_attribute_group(
+        &mut self,
+        attribute_group: &xs::AttributeGroup,
+    ) -> Result<FragmentIdx<TopLevelAttributeGroupFragment>, Error> {
+        let attribute_group = match attribute_group {
+            xs::AttributeGroup::AttributeGroup(attribute_group) => attribute_group,
+            _ => {
+                panic!(
+                    "Expected an attribute group, but found: {:?}",
+                    attribute_group
+                );
+            }
+        };
+
+        let root_fragment = attribute_group.to_complex_fragments(
+            &mut self.complex_type_compiler,
+            &Context {
+                default_namespace: self.namespace.as_ref(),
+            },
+        )?;
+
+        Ok(root_fragment)
+    }
+
     /// Imports a top-level attribute group from the XSD namespace.
     pub fn import_top_level_attribute_group(
         &mut self,
         attribute_group: &xs::AttributeGroup,
     ) -> Result<ExpandedName<'_>, Error> {
+        let root_fragment = self.import_attribute_group(attribute_group)?;
+
         let attribute_group = match attribute_group {
             xs::AttributeGroup::AttributeGroup(attribute_group) => attribute_group,
             _ => {
@@ -456,13 +587,6 @@ impl FragmentedXsdDocument {
 
         let local_name = attribute_group.name.clone();
         let name = ExpandedName::new(local_name.clone(), self.namespace.clone());
-
-        let root_fragment = attribute_group.to_complex_fragments(
-            &mut self.complex_type_compiler,
-            &Context {
-                default_namespace: self.namespace.clone(),
-            },
-        )?;
 
         let value = TopLevelAttributeGroup { root_fragment };
         self.top_level_attribute_groups.insert(local_name, value);
@@ -489,55 +613,4 @@ impl FragmentedXsdDocument {
 
         Ok(Some(xs::AttributeGroup::from(attribute_group)))
     }
-}
-
-/// Represents a top-level simple type in the XSD namespace.
-#[derive(Debug, Clone)]
-pub struct TopLevelSimpleType {
-    /// The root fragment of the simple type.
-    pub root_fragment: fragments::FragmentIdx<fragments::simple::SimpleTypeRootFragment>,
-}
-
-/// Represents a top-level complex type in the XSD namespace.
-#[derive(Debug, Clone)]
-pub struct TopLevelComplexType {
-    /// The root fragment of the complex type.
-    pub root_fragment: FragmentIdx<fragments::complex::ComplexTypeRootFragment>,
-}
-
-/// Represents a top-level type in the XSD namespace, which can be either simple or complex.
-#[derive(Debug, Clone)]
-pub enum TopLevelType {
-    /// A simple type.
-    Simple(TopLevelSimpleType),
-    /// A complex type.
-    Complex(TopLevelComplexType),
-}
-
-/// Represents a top-level element in the XSD namespace.
-#[derive(Debug, Clone)]
-pub struct TopLevelElement {
-    /// The root fragment of the complex type.
-    pub root_fragment: FragmentIdx<fragments::complex::TopLevelElementFragment>,
-}
-
-/// Represents a top-level attribute in the XSD namespace.
-#[derive(Debug, Clone)]
-pub struct TopLevelAttribute {
-    /// The root fragment of the complex type.
-    pub root_fragment: FragmentIdx<fragments::complex::TopLevelAttributeFragment>,
-}
-
-/// Represents a top-level group in the XSD namespace.
-#[derive(Debug, Clone)]
-pub struct TopLevelGroup {
-    /// The root fragment of the complex type.
-    pub root_fragment: FragmentIdx<fragments::complex::TopLevelGroupFragment>,
-}
-
-/// Represents a top-level attribute group in the XSD namespace.
-#[derive(Debug, Clone)]
-pub struct TopLevelAttributeGroup {
-    /// The root fragment of the complex type.
-    pub root_fragment: FragmentIdx<fragments::complex::TopLevelAttributeGroupFragment>,
 }

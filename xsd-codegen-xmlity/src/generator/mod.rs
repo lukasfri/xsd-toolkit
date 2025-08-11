@@ -11,7 +11,7 @@ pub use scope::GeneratorScope;
 mod handler_container;
 pub use handler_container::handler_container;
 use syn::{parse_quote, Ident, Item, ItemMod};
-use xmlity::ExpandedName;
+use xmlity::{ExpandedName, XmlNamespace};
 use xsd_fragments::{
     fragments::{FragmentAccess, FragmentedXsdDocumentIdx},
     FragmentedXsdDocumentKey, TopLevelComplexType, TopLevelSimpleType, TopLevelType,
@@ -29,6 +29,7 @@ use crate::{
 #[derive(Debug)]
 pub struct Generator<'a> {
     pub context: &'a xsd_fragments::XmlnsContext,
+    pub global_bound_namespaces: BTreeMap<XmlNamespace<'static>, syn::Path>,
     pub bound_namespaces: BTreeMap<FragmentedXsdDocumentIdx, syn::Path>,
     pub bound_types: BTreeMap<ExpandedName<'static>, BoundType>,
     pub bound_elements: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
@@ -45,6 +46,7 @@ impl<'a> Generator<'a> {
     ) -> Self {
         Self {
             context,
+            global_bound_namespaces: BTreeMap::new(),
             bound_namespaces: BTreeMap::new(),
             bound_types: BTreeMap::new(),
             bound_elements: BTreeMap::new(),
@@ -67,6 +69,10 @@ impl<'a> Generator<'a> {
             .expect("Namespace should exist");
 
         self.bound_namespaces.insert(*namespace_idx, path);
+    }
+
+    pub fn bind_global_namespace(&mut self, namespace: XmlNamespace<'static>, path: syn::Path) {
+        self.global_bound_namespaces.insert(namespace, path);
     }
 
     pub fn bind_namespace_idx(&mut self, namespace_idx: FragmentedXsdDocumentIdx, path: syn::Path) {

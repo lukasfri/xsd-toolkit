@@ -33,10 +33,10 @@ fn test(#[case] path: &str) {
     let resolver = |url: &Url| {
         let path = url.to_file_path().unwrap();
 
-        let text = std::fs::read_to_string(&path).unwrap();
+        let xml = std::fs::read_to_string(&path).unwrap();
 
         let schema: XmlRoot<xsd::xs::Schema> =
-            xmlity_quick_xml::from_str(&text).expect("Failed to parse XML Schema");
+            xmlity_quick_xml::from_str(&xml).expect("Failed to parse XML Schema");
 
         let schema = schema
             .elements
@@ -62,7 +62,7 @@ fn test(#[case] path: &str) {
     );
 
     let mut context = XmlnsContext::new();
-    context.import_namespace_map(&map, &root_url, None).unwrap();
+    context.import_namespace_map(&map, &root_url).unwrap();
 
     println!(
         "Context: {:?}",

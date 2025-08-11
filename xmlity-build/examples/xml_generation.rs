@@ -12,7 +12,7 @@ fn main() {
 
     let time = std::time::Instant::now();
 
-    let xml_path = FragmentedXsdDocumentKey::Original(
+    let xml_path = FragmentedXsdDocumentKey(
         Url::from_file_path(
             current_dir()
                 .unwrap()

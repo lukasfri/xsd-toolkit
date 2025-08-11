@@ -63,12 +63,34 @@ impl std::ops::BitOrAssign for TransformChange {
 
 impl FromIterator<TransformChange> for TransformChange {
     fn from_iter<T: IntoIterator<Item = TransformChange>>(iter: T) -> Self {
-        let mut changed = Self::new();
+        iter.into_iter().fold(Self::new(), |acc, item| acc | item)
+    }
+}
 
-        for item in iter {
-            changed |= item;
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_transform_change() {
+        let change1 = TransformChange::Changed;
+        let change2 = TransformChange::Unchanged;
 
-        changed
+        assert!(change1 | change2 == TransformChange::Changed);
+        assert!(change1 | change1 == TransformChange::Changed);
+        assert!(change2 | change2 == TransformChange::Unchanged);
+    }
+
+    #[test]
+    fn test_transform_change_from_bool() {
+        assert!(TransformChange::from(true) == TransformChange::Changed);
+        assert!(TransformChange::from(false) == TransformChange::Unchanged);
+    }
+
+    #[test]
+    fn test_transform_change_from_iter() {
+        let changes: Vec<TransformChange> =
+            vec![TransformChange::Changed, TransformChange::Unchanged];
+        let combined_change: TransformChange = changes.into_iter().collect();
+        assert!(combined_change == TransformChange::Changed);
     }
 }

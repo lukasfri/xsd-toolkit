@@ -16,3 +16,9 @@ mod remove_prohibited_attributes;
 pub use remove_prohibited_attributes::{
     Error as RemoveProhibitedAttributesError, RemoveProhibitedAttributes,
 };
+mod expand_include_fragments;
+pub use expand_include_fragments::{Error as ExpandIncludeFragmentsError, ExpandIncludeFragments};
+mod expand_redefine_fragments;
+pub use expand_redefine_fragments::{
+    Error as ExpandRedefineFragmentsError, ExpandRedefineFragments,
+};

@@ -2,7 +2,11 @@
 //!
 //! It is naturally dependent on the simple type compiler, as complex types can contain simple types.
 
-use std::{any::type_name, collections::VecDeque, ops::Deref};
+use std::{
+    any::type_name,
+    collections::{BTreeMap, VecDeque},
+    ops::Deref,
+};
 
 use crate::{
     fragments::{
@@ -14,7 +18,10 @@ use crate::{
 };
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
-use xsd::{ns, xs};
+use xsd::{
+    ns,
+    xs::{self, redefine_items::RedefineContent},
+};
 
 /// Extension trait for [`ExpandedName`] to handle default namespaces.
 pub trait XmlNamespaceExt<'a> {
@@ -33,240 +40,357 @@ impl<'a> XmlNamespaceExt<'a> for ExpandedName<'a> {
 }
 
 pub trait ComplexOffsetable {
-    fn offset(&mut self, offsets: &IdOffsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    );
 }
 
 pub trait ComplexOffsetableExt: ComplexOffsetable + Sized {
-    fn with_offset(mut self, offsets: &IdOffsets) -> Self {
-        self.offset(offsets);
+    fn with_offset(
+        mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) -> Self {
+        self.offset(target, new, offsets);
         self
     }
 }
 
 impl<T: ComplexOffsetable> ComplexOffsetableExt for T {}
 
-impl ComplexOffsetable for NamedOrAnonymous<FragmentIdx<ComplexTypeRootFragment>> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        match self {
-            NamedOrAnonymous::Named(_idx) => {}
-            NamedOrAnonymous::Anonymous(idx) => idx.offset(offsets),
+pub trait HasOffset {
+    fn get_offset(offsets: &IdOffsets) -> usize;
+}
+
+impl<T: HasOffset> ComplexOffsetable for FragmentIdx<T> {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        if self.0 == *target {
+            self.0 = *new;
+            self.1 += T::get_offset(offsets);
         }
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<ComplexTypeRootFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.complex_type_roots_offset;
+impl HasOffset for ComplexTypeRootFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.complex_type_roots_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<GroupRefFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.group_ref_offset;
+impl HasOffset for simple::SimpleTypeRootFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        <Self as simple::HasOffset>::get_offset(&offsets.simple)
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<AllFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.all_offset;
+impl HasOffset for SimpleRestrictionFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.simple_restrictions_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<SequenceFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.sequence_offset;
+impl HasOffset for SimpleExtensionFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.simple_extensions_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<ChoiceFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.choice_offset;
+impl HasOffset for SimpleContentFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.simple_contents_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<SimpleContentFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.simple_contents_offset;
+impl HasOffset for RestrictionFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.restrictions_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<SimpleExtensionFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.simple_extensions_offset;
+impl HasOffset for ExtensionFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.extensions_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<SimpleRestrictionFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.simple_restrictions_offset;
+impl HasOffset for ComplexContentFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.complex_contents_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<ComplexContentFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.complex_contents_offset;
+impl HasOffset for GroupRefFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.group_ref_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<LocalElementFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.element_offset;
+impl HasOffset for AllFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.all_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<TopLevelElementFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.top_level_element_offset;
+impl HasOffset for ChoiceFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.choice_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<LocalAttributeFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.local_attribute_offset;
+impl HasOffset for SequenceFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.sequence_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<TopLevelAttributeFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.top_level_attribute_offset;
+impl HasOffset for AnyFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.any_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<AttributeDeclarationsFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.attribute_declaration_offset;
+impl HasOffset for LocalElementFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.element_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<AssertionsFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.assertion_offset;
+impl HasOffset for TopLevelElementFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.top_level_element_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<AttributeGroupRefFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.attribute_group_ref_offset;
+impl HasOffset for LocalAttributeFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.local_attribute_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<TopLevelGroupFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.top_level_group_offset;
+impl HasOffset for TopLevelAttributeFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.top_level_attribute_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<TopLevelAttributeGroupFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.top_level_attribute_group_offset;
+impl HasOffset for AttributeGroupRefFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.attribute_group_ref_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<ExtensionFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.extensions_offset;
+impl HasOffset for TopLevelGroupFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.top_level_group_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<RestrictionFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.restrictions_offset;
+impl HasOffset for TopLevelAttributeGroupFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.top_level_attribute_group_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<AnyFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.any_offset;
+impl HasOffset for AttributeDeclarationsFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.attribute_declaration_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<AnyAttributeFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.any_attribute_offset;
+impl HasOffset for AnyAttributeFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.any_attribute_offset
     }
 }
 
-impl ComplexOffsetable for FragmentIdx<AssertionFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.assertion_offset;
+impl HasOffset for AssertionFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.assertion_offset
+    }
+}
+
+impl HasOffset for AssertionsFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.assertion_group_offset
+    }
+}
+
+impl HasOffset for IncludeFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.includes
+    }
+}
+
+impl HasOffset for RedefineFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.redefines
+    }
+}
+
+impl HasOffset for ImportFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.imports
+    }
+}
+
+impl HasOffset for OverrideFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.overrides
+    }
+}
+
+impl ComplexOffsetable for NamedOrAnonymous<FragmentIdx<ComplexTypeRootFragment>> {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        match self {
+            NamedOrAnonymous::Named(_idx) => {}
+            NamedOrAnonymous::Anonymous(idx) => idx.offset(target, new, offsets),
+        }
     }
 }
 
 impl ComplexOffsetable for ExtensionFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         if let Some(ref mut content) = self.content_fragment {
-            content.offset(offsets);
+            content.offset(target, new, offsets);
         }
-        self.attribute_declarations.offset(offsets);
-        self.assertions.offset(offsets);
+        self.attribute_declarations.offset(target, new, offsets);
+        self.assertions.offset(target, new, offsets);
     }
 }
 
 impl ComplexOffsetable for ComplexContentFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.content_fragment.offset(offsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.content_fragment.offset(target, new, offsets);
     }
 }
 
 impl ComplexOffsetable for ComplexContentChildId {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
-            ComplexContentChildId::Extension(fragment_id) => fragment_id.offset(offsets),
-            ComplexContentChildId::Restriction(fragment_id) => fragment_id.offset(offsets),
+            ComplexContentChildId::Extension(fragment_id) => {
+                fragment_id.offset(target, new, offsets)
+            }
+            ComplexContentChildId::Restriction(fragment_id) => {
+                fragment_id.offset(target, new, offsets)
+            }
         }
     }
 }
 
 impl ComplexOffsetable for GroupRefFragment {
     #[allow(unused_variables)]
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         // GroupRefFragment has no fragmentIdx fields that need offsetting
         // Only contains ref_, min_occurs, max_occurs which are not fragment indices
     }
 }
 
 impl ComplexOffsetable for AllFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         for fragment in &mut self.fragments {
-            fragment.offset(offsets);
+            fragment.offset(target, new, offsets);
         }
     }
 }
 
 impl ComplexOffsetable for ChoiceFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         for fragment in &mut self.fragments {
-            fragment.offset(offsets);
+            fragment.offset(target, new, offsets);
         }
     }
 }
 
 impl ComplexOffsetable for SequenceFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         for fragment in &mut self.fragments {
-            fragment.offset(offsets);
+            fragment.offset(target, new, offsets);
         }
     }
 }
 
 impl ComplexOffsetable for AnyFragment {
     #[allow(unused_variables)]
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         // AnyFragment has no fragmentIdx fields that need offsetting
         // Only contains id and process_contents which are not fragment indices
     }
 }
 
 impl ComplexOffsetable for LocalElementFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.type_.offset(offsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.type_.offset(target, new, offsets);
     }
 }
 
 impl ComplexOffsetable for LocalElementFragmentType {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
-            LocalElementFragmentType::Local(declared) => declared.offset(offsets),
+            LocalElementFragmentType::Local(declared) => declared.offset(target, new, offsets),
             LocalElementFragmentType::Reference(_) => {
                 // Reference elements don't have fragment indices to offset
             }
@@ -275,29 +399,51 @@ impl ComplexOffsetable for LocalElementFragmentType {
 }
 
 impl ComplexOffsetable for DeclaredElementFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.type_.offset(offsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.type_.offset(target, new, offsets);
     }
 }
 
 impl ComplexOffsetable for TopLevelElementFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         if let Some(ref mut type_) = self.type_ {
-            type_.offset(offsets);
+            type_.offset(target, new, offsets);
         }
     }
 }
 
 impl ComplexOffsetable for LocalAttributeFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.type_mode.offset(offsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.type_mode.offset(target, new, offsets);
     }
 }
 
 impl ComplexOffsetable for LocalAttributeFragmentTypeMode {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
-            LocalAttributeFragmentTypeMode::Declared(declared) => declared.offset(offsets),
+            LocalAttributeFragmentTypeMode::Declared(declared) => {
+                declared.offset(target, new, offsets)
+            }
             LocalAttributeFragmentTypeMode::Reference(_) => {
                 // Reference attributes don't have fragment indices to offset
             }
@@ -306,55 +452,90 @@ impl ComplexOffsetable for LocalAttributeFragmentTypeMode {
 }
 
 impl ComplexOffsetable for DeclaredAttributeFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         if let Some(ref mut type_) = self.type_ {
-            SimpleOffsetable::offset(type_, &offsets.simple);
+            type_.offset(target, new, &offsets.simple);
         }
     }
 }
 
 impl ComplexOffsetable for TopLevelAttributeFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         if let Some(ref mut type_) = self.type_ {
-            SimpleOffsetable::offset(type_, &offsets.simple);
+            type_.offset(target, new, &offsets.simple);
         }
     }
 }
 
 impl ComplexOffsetable for AttributeGroupRefFragment {
     #[allow(unused_variables)]
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         // AttributeGroupRefFragment has no fragmentIdx fields that need offsetting
         // Only contains ref_ which is not a fragment index
     }
 }
 
 impl ComplexOffsetable for TopLevelGroupFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.content.offset(offsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.content.offset(target, new, offsets);
     }
 }
 
 impl ComplexOffsetable for TopLevelAttributeGroupFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.attr_decls.offset(offsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.attr_decls.offset(target, new, offsets);
     }
 }
 
 impl ComplexOffsetable for AttributeDeclarationsFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         for declaration in &mut self.declarations {
-            declaration.offset(offsets);
+            declaration.offset(target, new, offsets);
         }
         if let Some(ref mut any_attribute) = self.any_attribute {
-            any_attribute.offset(offsets);
+            any_attribute.offset(target, new, offsets);
         }
     }
 }
 
 impl ComplexOffsetable for AnyAttributeFragment {
     #[allow(unused_variables)]
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         // AnyAttributeFragment has no fragmentIdx fields that need offsetting
         // Only contains id and process_contents which are not fragment indices
     }
@@ -362,58 +543,167 @@ impl ComplexOffsetable for AnyAttributeFragment {
 
 impl ComplexOffsetable for AssertionFragment {
     #[allow(unused_variables)]
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         // AssertionFragment has no fragmentIdx fields that need offsetting
         // Only contains id and test which are not fragment indices
     }
 }
 
 impl ComplexOffsetable for AssertionsFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         for assertion in &mut self.assertions {
-            assertion.offset(offsets);
+            assertion.offset(target, new, offsets);
         }
     }
 }
 
 impl ComplexOffsetable for NestedParticleId {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
-            NestedParticleId::Element(fragment_id) => fragment_id.offset(offsets),
-            NestedParticleId::Group(fragment_id) => fragment_id.offset(offsets),
-            NestedParticleId::Choice(fragment_id) => fragment_id.offset(offsets),
-            NestedParticleId::Sequence(fragment_id) => fragment_id.offset(offsets),
-            NestedParticleId::Any(fragment_id) => fragment_id.offset(offsets),
+            NestedParticleId::Element(fragment_id) => fragment_id.offset(target, new, offsets),
+            NestedParticleId::Group(fragment_id) => fragment_id.offset(target, new, offsets),
+            NestedParticleId::Choice(fragment_id) => fragment_id.offset(target, new, offsets),
+            NestedParticleId::Sequence(fragment_id) => fragment_id.offset(target, new, offsets),
+            NestedParticleId::Any(fragment_id) => fragment_id.offset(target, new, offsets),
         }
     }
 }
 
 impl ComplexOffsetable for NamedOrAnonymous<ElementTypeContentId> {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
             NamedOrAnonymous::Named(_) => {
                 // Named types don't need offsetting as they reference names
             }
-            NamedOrAnonymous::Anonymous(content_id) => content_id.offset(offsets),
+            NamedOrAnonymous::Anonymous(content_id) => content_id.offset(target, new, offsets),
         }
     }
 }
 
 impl ComplexOffsetable for ElementTypeContentId {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
-            ElementTypeContentId::SimpleType(fragment_id) => fragment_id.offset(&offsets.simple),
-            ElementTypeContentId::ComplexType(fragment_id) => fragment_id.offset(offsets),
+            ElementTypeContentId::SimpleType(fragment_id) => {
+                simple::SimpleOffsetable::offset(fragment_id, target, new, &offsets.simple)
+            }
+            ElementTypeContentId::ComplexType(fragment_id) => {
+                fragment_id.offset(target, new, offsets)
+            }
         }
     }
 }
 
 impl ComplexOffsetable for NamedGroupTypeContentId {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
-            NamedGroupTypeContentId::All(fragment_id) => fragment_id.offset(offsets),
-            NamedGroupTypeContentId::Sequence(fragment_id) => fragment_id.offset(offsets),
-            NamedGroupTypeContentId::Choice(fragment_id) => fragment_id.offset(offsets),
+            NamedGroupTypeContentId::All(fragment_id) => fragment_id.offset(target, new, offsets),
+            NamedGroupTypeContentId::Sequence(fragment_id) => {
+                fragment_id.offset(target, new, offsets)
+            }
+            NamedGroupTypeContentId::Choice(fragment_id) => {
+                fragment_id.offset(target, new, offsets)
+            }
+        }
+    }
+}
+
+impl ComplexOffsetable for TopLevelTypeId {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        match self {
+            TopLevelTypeId::ComplexType(fragment_id) => fragment_id.offset(target, new, offsets),
+            TopLevelTypeId::SimpleType(fragment_id) => {
+                ComplexOffsetable::offset(fragment_id, target, new, offsets)
+            }
+        }
+    }
+}
+
+impl ComplexOffsetable for RedefinableId {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        match self {
+            RedefinableId::ComplexType(fragment_id) => fragment_id.offset(target, new, offsets),
+            RedefinableId::SimpleType(fragment_id) => {
+                ComplexOffsetable::offset(fragment_id, target, new, offsets)
+            }
+            RedefinableId::AttributeGroup(fragment_id) => fragment_id.offset(target, new, offsets),
+            RedefinableId::Group(fragment_id) => fragment_id.offset(target, new, offsets),
+        }
+    }
+}
+
+impl ComplexOffsetable for SchemaTopId {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        match self {
+            SchemaTopId::Redefinable(redefinable_id) => {
+                redefinable_id.offset(target, new, offsets);
+            }
+            SchemaTopId::Element(fragment_idx) => {
+                fragment_idx.offset(target, new, offsets);
+            }
+            SchemaTopId::Attribute(fragment_idx) => {
+                fragment_idx.offset(target, new, offsets);
+            }
+        }
+    }
+}
+
+impl ComplexOffsetable for CompositionId {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        match self {
+            CompositionId::Include(fragment_idx) => fragment_idx.offset(target, new, offsets),
+            CompositionId::Import(fragment_idx) => fragment_idx.offset(target, new, offsets),
+            CompositionId::Redefine(fragment_idx) => fragment_idx.offset(target, new, offsets),
+            CompositionId::Override(fragment_idx) => fragment_idx.offset(target, new, offsets),
         }
     }
 }
@@ -432,12 +722,17 @@ pub enum TypeDefParticleId {
 }
 
 impl ComplexOffsetable for TypeDefParticleId {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
-            TypeDefParticleId::Group(fragment_id) => fragment_id.offset(offsets),
-            TypeDefParticleId::All(fragment_id) => fragment_id.offset(offsets),
-            TypeDefParticleId::Sequence(fragment_id) => fragment_id.offset(offsets),
-            TypeDefParticleId::Choice(fragment_id) => fragment_id.offset(offsets),
+            TypeDefParticleId::Group(fragment_id) => fragment_id.offset(target, new, offsets),
+            TypeDefParticleId::All(fragment_id) => fragment_id.offset(target, new, offsets),
+            TypeDefParticleId::Sequence(fragment_id) => fragment_id.offset(target, new, offsets),
+            TypeDefParticleId::Choice(fragment_id) => fragment_id.offset(target, new, offsets),
         }
     }
 }
@@ -460,6 +755,322 @@ impl From<FragmentIdx<SequenceFragment>> for TypeDefParticleId {
 impl From<FragmentIdx<ChoiceFragment>> for TypeDefParticleId {
     fn from(value: FragmentIdx<ChoiceFragment>) -> Self {
         Self::Choice(value)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum TopLevelTypeId {
+    /// A complex type.
+    ComplexType(FragmentIdx<ComplexTypeRootFragment>),
+    /// A simple type.
+    SimpleType(FragmentIdx<simple::SimpleTypeRootFragment>),
+}
+
+#[derive(Debug, Clone)]
+pub struct SchemaFragment {
+    pub compiler: ComplexTypeFragmentCompiler,
+    pub target_namespace: Option<XmlNamespace<'static>>,
+    pub top_level_types: BTreeMap<LocalName<'static>, TopLevelTypeId>,
+    pub top_level_elements: BTreeMap<LocalName<'static>, FragmentIdx<TopLevelElementFragment>>,
+    pub top_level_attributes: BTreeMap<LocalName<'static>, FragmentIdx<TopLevelAttributeFragment>>,
+    pub top_level_groups: BTreeMap<LocalName<'static>, FragmentIdx<TopLevelGroupFragment>>,
+    pub top_level_attribute_groups:
+        BTreeMap<LocalName<'static>, FragmentIdx<TopLevelAttributeGroupFragment>>,
+    pub compositions: VecDeque<CompositionId>,
+    pub schema_tops: VecDeque<SchemaTopId>,
+}
+
+impl SchemaFragment {
+    pub fn register_refinable(
+        &mut self,
+        redefinable_id: RedefinableId,
+        prefix: bool,
+    ) -> Result<(), Error> {
+        match redefinable_id {
+            RedefinableId::ComplexType(fragment_idx) => {
+                let fragment = self
+                    .compiler
+                    .get_fragment(&fragment_idx)
+                    .expect("Just added.");
+
+                self.top_level_types.insert(
+                    fragment.name.clone().expect("Missing name"),
+                    TopLevelTypeId::ComplexType(fragment_idx),
+                );
+            }
+            RedefinableId::SimpleType(fragment_idx) => {
+                let fragment = self
+                    .compiler
+                    .simple_type_compiler
+                    .get_fragment(&fragment_idx)
+                    .expect("Just added.");
+
+                self.top_level_types.insert(
+                    fragment.name.clone().expect("Missing name"),
+                    TopLevelTypeId::SimpleType(fragment_idx),
+                );
+            }
+            RedefinableId::AttributeGroup(fragment_idx) => {
+                let fragment = self
+                    .compiler
+                    .get_fragment(&fragment_idx)
+                    .expect("Just added.");
+
+                self.top_level_attribute_groups
+                    .insert(fragment.name.clone(), fragment_idx);
+            }
+            RedefinableId::Group(fragment_idx) => {
+                let fragment = self
+                    .compiler
+                    .get_fragment(&fragment_idx)
+                    .expect("Just added.");
+
+                self.top_level_groups
+                    .insert(fragment.name.clone(), fragment_idx);
+            }
+        }
+
+        if prefix {
+            self.schema_tops
+                .push_front(SchemaTopId::Redefinable(redefinable_id));
+        } else {
+            self.schema_tops
+                .push_back(SchemaTopId::Redefinable(redefinable_id));
+        }
+
+        Ok(())
+    }
+
+    /// Converts this type to complex fragments.
+    pub fn from_schema(
+        schema: &xs::Schema,
+        namespace_idx: FragmentedXsdDocumentIdx,
+    ) -> Result<Self, Error> {
+        let xs::Schema::Schema(schema) = schema else {
+            panic!("Expected a schema, but found: {:?}", schema);
+        };
+
+        let compiler = ComplexTypeFragmentCompiler::new(namespace_idx);
+        let target_namespace = schema
+            .target_namespace
+            .as_ref()
+            .map(|ns| XmlNamespace::new(ns.to_owned()))
+            .transpose()
+            .unwrap();
+
+        let top_level_types = BTreeMap::new();
+        let top_level_elements = BTreeMap::new();
+        let top_level_attributes = BTreeMap::new();
+        let top_level_groups = BTreeMap::new();
+        let top_level_attribute_groups = BTreeMap::new();
+
+        let mut schema_fragment = SchemaFragment {
+            compiler,
+            target_namespace,
+            top_level_types,
+            top_level_elements,
+            top_level_attributes,
+            top_level_groups,
+            top_level_attribute_groups,
+            schema_tops: VecDeque::new(),
+            compositions: VecDeque::new(),
+        };
+
+        let default_namespace = schema_fragment.target_namespace.clone();
+
+        schema
+            .child_2
+            .iter()
+            .map(|a: &xs::schema_items::Child2| &a.schema_top)
+            .try_for_each(|schema_top| {
+                let schema_top = schema_top.to_complex_fragments(
+                    &mut schema_fragment.compiler,
+                    &Context {
+                        default_namespace: default_namespace.as_ref(),
+                    },
+                )?;
+
+                match schema_top {
+                    SchemaTopId::Redefinable(redefinable_id) => {
+                        schema_fragment.register_refinable(redefinable_id, false)
+                    }
+                    SchemaTopId::Element(fragment_idx) => {
+                        let fragment = schema_fragment
+                            .compiler
+                            .get_fragment(&fragment_idx)
+                            .expect("Just added.");
+
+                        schema_fragment
+                            .top_level_elements
+                            .insert(fragment.name.clone(), fragment_idx);
+                        schema_fragment
+                            .schema_tops
+                            .push_back(SchemaTopId::Element(fragment_idx));
+
+                        Ok(())
+                    }
+                    SchemaTopId::Attribute(fragment_idx) => {
+                        let fragment = schema_fragment
+                            .compiler
+                            .get_fragment(&fragment_idx)
+                            .expect("Just added.");
+
+                        schema_fragment
+                            .top_level_attributes
+                            .insert(fragment.name.clone(), fragment_idx);
+                        schema_fragment
+                            .schema_tops
+                            .push_back(SchemaTopId::Attribute(fragment_idx));
+
+                        Ok(())
+                    }
+                }
+            })?;
+
+        schema_fragment.compositions.extend(
+            schema
+                .composition
+                .iter()
+                .map(|composition| {
+                    composition.to_complex_fragments(
+                        &mut schema_fragment.compiler,
+                        &Context {
+                            default_namespace: default_namespace.as_ref(),
+                        },
+                    )
+                })
+                .collect::<Result<Vec<_>, Error>>()?,
+        );
+
+        Ok(schema_fragment)
+    }
+
+    /// Reconstructs this type from complex fragments.
+    pub fn to_schema(&self) -> Result<xs::Schema, Error> {
+        let schema_tops = self
+            .schema_tops
+            .iter()
+            .map(|schema_top_id| {
+                xs::groups::SchemaTop::from_complex_fragments(&self.compiler, schema_top_id)
+            })
+            .map(|schema_top| {
+                schema_top.map(|schema_top| xs::schema_items::Child2 {
+                    schema_top,
+                    annotation: Vec::new(),
+                })
+            })
+            .collect::<Result<Vec<_>, Error>>()?;
+
+        let compositions = self
+            .compositions
+            .iter()
+            .map(|composition_id| {
+                xs::groups::Composition::from_complex_fragments(&self.compiler, composition_id)
+            })
+            .collect::<Result<Vec<_>, Error>>()?;
+
+        Ok(xs::Schema::Schema(
+            xs::schema_items::Schema::builder()
+                .maybe_target_namespace(self.target_namespace.as_ref().map(|ns| ns.to_string()))
+                .child_2(schema_tops)
+                .composition(compositions)
+                .build(),
+        ))
+    }
+
+    /// This merges another schema fragment into this one.
+    pub fn merge_with(&mut self, other: &Self) -> Result<(), Error> {
+        if other
+            .target_namespace
+            .as_ref()
+            .is_some_and(|ns| Some(ns) != self.target_namespace.as_ref())
+        {
+            todo!(
+                "Handle error for merging namespaces with different namespaces: {:?} and {:?}",
+                self.target_namespace,
+                other.target_namespace
+            );
+        }
+
+        let offsets = self.compiler.merge_with(&other.compiler)?;
+
+        for (name, top_level_type) in &other.top_level_types {
+            self.top_level_types.entry(name.clone()).or_insert_with(|| {
+                top_level_type.clone().with_offset(
+                    &other.compiler.namespace_idx,
+                    &self.compiler.namespace_idx,
+                    &offsets,
+                )
+            });
+        }
+
+        for (name, top_level_element) in &other.top_level_elements {
+            self.top_level_elements
+                .entry(name.clone())
+                .or_insert_with(|| {
+                    top_level_element.clone().with_offset(
+                        &other.compiler.namespace_idx,
+                        &self.compiler.namespace_idx,
+                        &offsets,
+                    )
+                });
+        }
+
+        for (name, top_level_attribute) in &other.top_level_attributes {
+            self.top_level_attributes
+                .entry(name.clone())
+                .or_insert_with(|| {
+                    top_level_attribute.clone().with_offset(
+                        &other.compiler.namespace_idx,
+                        &self.compiler.namespace_idx,
+                        &offsets,
+                    )
+                });
+        }
+
+        for (name, top_level_group) in &other.top_level_groups {
+            self.top_level_groups
+                .entry(name.clone())
+                .or_insert_with(|| {
+                    top_level_group.clone().with_offset(
+                        &other.compiler.namespace_idx,
+                        &self.compiler.namespace_idx,
+                        &offsets,
+                    )
+                });
+        }
+
+        for (name, top_level_attribute_group) in &other.top_level_attribute_groups {
+            self.top_level_attribute_groups
+                .entry(name.clone())
+                .or_insert_with(|| {
+                    top_level_attribute_group.clone().with_offset(
+                        &other.compiler.namespace_idx,
+                        &self.compiler.namespace_idx,
+                        &offsets,
+                    )
+                });
+        }
+
+        other.schema_tops.iter().rev().for_each(|schema_top_id| {
+            self.schema_tops
+                .push_front(schema_top_id.clone().with_offset(
+                    &other.compiler.namespace_idx,
+                    &self.compiler.namespace_idx,
+                    &offsets,
+                ));
+        });
+
+        other.compositions.iter().for_each(|composition_id| {
+            self.compositions
+                .push_front(composition_id.clone().with_offset(
+                    &other.compiler.namespace_idx,
+                    &self.compiler.namespace_idx,
+                    &offsets,
+                ));
+        });
+
+        Ok(())
     }
 }
 
@@ -490,12 +1101,17 @@ pub struct RestrictionFragment {
 }
 
 impl ComplexOffsetable for RestrictionFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         self.content_fragment
             .as_mut()
-            .map(|fragment| fragment.offset(offsets));
-        self.attribute_declarations.offset(offsets);
-        self.assertions.offset(offsets);
+            .map(|fragment| fragment.offset(target, new, offsets));
+        self.attribute_declarations.offset(target, new, offsets);
+        self.assertions.offset(target, new, offsets);
     }
 }
 
@@ -509,10 +1125,19 @@ pub enum AttributeDeclarationId {
 }
 
 impl ComplexOffsetable for AttributeDeclarationId {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
-            AttributeDeclarationId::Attribute(fragment_id) => fragment_id.offset(offsets),
-            AttributeDeclarationId::AttributeGroupRef(fragment_id) => fragment_id.offset(offsets),
+            AttributeDeclarationId::Attribute(fragment_id) => {
+                fragment_id.offset(target, new, offsets)
+            }
+            AttributeDeclarationId::AttributeGroupRef(fragment_id) => {
+                fragment_id.offset(target, new, offsets)
+            }
         }
     }
 }
@@ -603,6 +1228,7 @@ pub struct TopLevelAttributeFragment {
     pub name: LocalName<'static>,
     /// Type of the attribute.
     pub type_: Option<NamedOrAnonymous<FragmentIdx<simple::SimpleTypeRootFragment>>>,
+    pub default_: Option<String>,
 }
 
 /// Fragment representing a top-level group declaration.
@@ -647,8 +1273,13 @@ pub struct SimpleContentFragment {
 }
 
 impl ComplexOffsetable for SimpleContentFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.content_fragment.offset(offsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.content_fragment.offset(target, new, offsets);
     }
 }
 
@@ -664,9 +1295,14 @@ pub struct SimpleExtensionFragment {
 }
 
 impl ComplexOffsetable for SimpleExtensionFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.attribute_declarations.offset(offsets);
-        self.assertions.offset(offsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.attribute_declarations.offset(target, new, offsets);
+        self.assertions.offset(target, new, offsets);
     }
 }
 
@@ -688,15 +1324,20 @@ pub struct SimpleRestrictionFragment {
 }
 
 impl ComplexOffsetable for SimpleRestrictionFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         for facet in &mut self.facets {
-            facet.offset(&offsets.simple);
+            simple::SimpleOffsetable::offset(facet, target, new, &offsets.simple);
         }
         if let Some(simple_type) = &mut self.simple_type {
-            simple_type.offset(&offsets.simple);
+            simple::SimpleOffsetable::offset(simple_type, target, new, &offsets.simple);
         }
-        self.attribute_declarations.offset(offsets);
-        self.assertions.offset(offsets);
+        self.attribute_declarations.offset(target, new, offsets);
+        self.assertions.offset(target, new, offsets);
     }
 }
 
@@ -710,10 +1351,19 @@ pub enum SimpleContentChildId {
 }
 
 impl ComplexOffsetable for SimpleContentChildId {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
-            SimpleContentChildId::Extension(fragment_id) => fragment_id.offset(offsets),
-            SimpleContentChildId::Restriction(fragment_id) => fragment_id.offset(offsets),
+            SimpleContentChildId::Extension(fragment_id) => {
+                fragment_id.offset(target, new, offsets)
+            }
+            SimpleContentChildId::Restriction(fragment_id) => {
+                fragment_id.offset(target, new, offsets)
+            }
         }
     }
 }
@@ -907,20 +1557,25 @@ pub enum ComplexTypeModelId {
 }
 
 impl ComplexOffsetable for ComplexTypeModelId {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
-            ComplexTypeModelId::SimpleContent(fragment) => fragment.offset(offsets),
-            ComplexTypeModelId::ComplexContent(fragment) => fragment.offset(offsets),
+            ComplexTypeModelId::SimpleContent(fragment) => fragment.offset(target, new, offsets),
+            ComplexTypeModelId::ComplexContent(fragment) => fragment.offset(target, new, offsets),
             ComplexTypeModelId::Other {
                 particle,
                 attr_decls,
                 assertions,
             } => {
                 if let Some(particle) = particle {
-                    particle.offset(offsets);
+                    particle.offset(target, new, offsets);
                 }
-                attr_decls.offset(offsets);
-                assertions.offset(offsets);
+                attr_decls.offset(target, new, offsets);
+                assertions.offset(target, new, offsets);
             }
         }
     }
@@ -940,8 +1595,13 @@ pub struct ComplexTypeRootFragment {
 }
 
 impl ComplexOffsetable for ComplexTypeRootFragment {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.content.offset(offsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.content.offset(target, new, offsets);
     }
 }
 
@@ -1041,6 +1701,56 @@ pub struct AssertionsFragment {
     pub assertions: VecDeque<FragmentIdx<AssertionFragment>>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct RedefineFragment {
+    pub schema_location: String,
+    pub redefineable: VecDeque<RedefinableId>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RedefinableId {
+    /// Complex type to redefine.
+    ComplexType(FragmentIdx<ComplexTypeRootFragment>),
+    /// Simple type to redefine.
+    SimpleType(FragmentIdx<simple::SimpleTypeRootFragment>),
+    /// Attribute group to redefine.
+    AttributeGroup(FragmentIdx<TopLevelAttributeGroupFragment>),
+    /// Group to redefine.
+    Group(FragmentIdx<TopLevelGroupFragment>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SchemaTopId {
+    Redefinable(RedefinableId),
+    Element(FragmentIdx<TopLevelElementFragment>),
+    Attribute(FragmentIdx<TopLevelAttributeFragment>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CompositionId {
+    Include(FragmentIdx<IncludeFragment>),
+    Import(FragmentIdx<ImportFragment>),
+    Redefine(FragmentIdx<RedefineFragment>),
+    Override(FragmentIdx<OverrideFragment>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct IncludeFragment {
+    pub schema_location: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ImportFragment {
+    pub namespace: Option<XmlNamespace<'static>>,
+    pub schema_location: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct OverrideFragment {
+    pub schema_location: String,
+    pub schema_tops: VecDeque<SchemaTopId>,
+}
+
 /// Complex type fragment compiler responsible for converting XSD complex types to fragment representations.
 #[derive(Debug, Clone)]
 pub struct ComplexTypeFragmentCompiler {
@@ -1070,6 +1780,10 @@ pub struct ComplexTypeFragmentCompiler {
     any_attributes: FragmentCollection<AnyAttributeFragment>,
     assertions: FragmentCollection<AssertionFragment>,
     assertion_groups: FragmentCollection<AssertionsFragment>,
+    redefines: FragmentCollection<RedefineFragment>,
+    includes: FragmentCollection<IncludeFragment>,
+    imports: FragmentCollection<ImportFragment>,
+    overrides: FragmentCollection<OverrideFragment>,
 }
 
 impl HasFragmentCollection<ComplexTypeRootFragment> for ComplexTypeFragmentCompiler {
@@ -1289,6 +2003,42 @@ impl HasFragmentCollection<AssertionFragment> for ComplexTypeFragmentCompiler {
     }
 }
 
+impl HasFragmentCollection<RedefineFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<RedefineFragment> {
+        &self.redefines
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<RedefineFragment> {
+        &mut self.redefines
+    }
+}
+
+impl HasFragmentCollection<IncludeFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<IncludeFragment> {
+        &self.includes
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<IncludeFragment> {
+        &mut self.includes
+    }
+}
+
+impl HasFragmentCollection<ImportFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<ImportFragment> {
+        &self.imports
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<ImportFragment> {
+        &mut self.imports
+    }
+}
+
+impl HasFragmentCollection<OverrideFragment> for ComplexTypeFragmentCompiler {
+    fn get_fragment_collection(&self) -> &FragmentCollection<OverrideFragment> {
+        &self.overrides
+    }
+    fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<OverrideFragment> {
+        &mut self.overrides
+    }
+}
+
 impl<T: 'static> FragmentAccess<T> for ComplexTypeFragmentCompiler
 where
     ComplexTypeFragmentCompiler: HasFragmentCollection<T>,
@@ -1348,17 +2098,18 @@ pub struct IdOffsets {
     any_attribute_offset: usize,
     assertion_offset: usize,
     assertion_group_offset: usize,
+    includes: usize,
+    redefines: usize,
+    imports: usize,
+    overrides: usize,
 }
 
 impl ComplexTypeFragmentCompiler {
     /// Creates a new [`ComplexTypeFragmentCompiler`] with the given namespace and namespace index.
-    pub fn new(
-        namespace: Option<XmlNamespace<'static>>,
-        namespace_idx: FragmentedXsdDocumentIdx,
-    ) -> Self {
+    pub fn new(namespace_idx: FragmentedXsdDocumentIdx) -> Self {
         Self::new_with_simple_compiler(
             namespace_idx,
-            SimpleTypeFragmentCompiler::new(namespace, namespace_idx),
+            SimpleTypeFragmentCompiler::new(namespace_idx),
         )
     }
 
@@ -1393,6 +2144,10 @@ impl ComplexTypeFragmentCompiler {
             any_attributes: FragmentCollection::new(),
             assertions: FragmentCollection::new(),
             assertion_groups: FragmentCollection::new(),
+            includes: FragmentCollection::new(),
+            redefines: FragmentCollection::new(),
+            imports: FragmentCollection::new(),
+            overrides: FragmentCollection::new(),
         }
     }
 
@@ -1426,6 +2181,10 @@ impl ComplexTypeFragmentCompiler {
             any_attribute_offset: self.any_attributes.len(),
             assertion_offset: self.assertions.len(),
             assertion_group_offset: self.assertion_groups.len(),
+            includes: self.includes.len(),
+            redefines: self.redefines.len(),
+            imports: self.imports.len(),
+            overrides: self.overrides.len(),
         };
 
         self.complex_types
@@ -1433,7 +2192,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.complex_types.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.complex_type_roots_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1442,7 +2205,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.simple_restrictions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.simple_restrictions_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1451,7 +2218,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.simple_extensions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.simple_extensions_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1460,7 +2231,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.simple_contents.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.simple_contents_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1469,7 +2244,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.restrictions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.restrictions_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1478,7 +2257,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.extensions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.extensions_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1487,7 +2270,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.complex_contents.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.complex_contents_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1496,7 +2283,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.group_refs.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.group_ref_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1505,7 +2296,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.alls.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.all_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1514,7 +2309,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.choices.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.choice_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1523,7 +2322,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.sequences.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.sequence_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1532,7 +2335,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.anys.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.any_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1541,7 +2348,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.elements.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.element_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1550,7 +2361,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.top_level_elements.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.top_level_element_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1559,7 +2374,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.local_attributes.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.local_attribute_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1567,7 +2386,11 @@ impl ComplexTypeFragmentCompiler {
             other.top_level_attributes.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.top_level_attribute_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }),
         );
@@ -1576,7 +2399,11 @@ impl ComplexTypeFragmentCompiler {
             other.attribute_group_refs.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.attribute_group_ref_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }),
         );
@@ -1586,7 +2413,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.groups.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.top_level_group_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1595,7 +2426,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.attribute_groups.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.top_level_attribute_group_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1603,7 +2438,11 @@ impl ComplexTypeFragmentCompiler {
             other.attribute_declarations.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.attribute_declaration_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }),
         );
@@ -1613,7 +2452,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.any_attributes.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.any_attribute_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1622,7 +2465,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.assertions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.assertion_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1631,7 +2478,11 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.assertion_groups.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.assertion_group_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -1832,7 +2683,7 @@ impl ComplexFragmentEquivalent for xs::types::LocalElement {
                 ref_: ref_
                     .0
                     .clone()
-                    .with_default_namespace(|| context.default_namespace.clone()),
+                    .with_default_namespace(|| context.default_namespace.cloned()),
             })
         } else if let Some(name) = self.name.clone() {
             let type_ = if let Some(type_) = self.type_attribute.as_ref() {
@@ -1840,7 +2691,7 @@ impl ComplexFragmentEquivalent for xs::types::LocalElement {
                     type_
                         .0
                         .clone()
-                        .with_default_namespace(|| context.default_namespace.clone()),
+                        .with_default_namespace(|| context.default_namespace.cloned()),
                 )
             } else if let Some(type_choice) = self.type_.as_ref() {
                 let content_type = type_choice.to_complex_fragments(&mut compiler, context)?;
@@ -1920,7 +2771,7 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelElement {
                 type_
                     .0
                     .clone()
-                    .with_default_namespace(|| context.default_namespace.clone()),
+                    .with_default_namespace(|| context.default_namespace.cloned()),
             )),
             (None, Some(type_choice)) => {
                 let content_type = type_choice.to_complex_fragments(&mut compiler, context)?;
@@ -1995,7 +2846,7 @@ impl ComplexFragmentEquivalent for xs::types::GroupRef {
             .ref_
             .0
             .clone()
-            .with_default_namespace(|| context.default_namespace.clone());
+            .with_default_namespace(|| context.default_namespace.cloned());
 
         Ok(compiler.push_fragment(GroupRefFragment {
             min_occurs: self.min_occurs,
@@ -2204,7 +3055,7 @@ impl ComplexFragmentEquivalent for xs::groups::all_model_items::Child1 {
                     ref_: ref_
                         .0
                         .clone()
-                        .with_default_namespace(|| context.default_namespace.clone()),
+                        .with_default_namespace(|| context.default_namespace.cloned()),
                 })
                 .into()),
         }
@@ -2745,7 +3596,7 @@ impl ComplexFragmentEquivalent for xs::types::Attribute {
                 ref_: ref_
                     .0
                     .clone()
-                    .with_default_namespace(|| context.default_namespace.clone()),
+                    .with_default_namespace(|| context.default_namespace.cloned()),
             })
         } else {
             let name = self
@@ -2829,7 +3680,11 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelAttribute {
             (None, None) => None,
         };
 
-        Ok(compiler.push_fragment(TopLevelAttributeFragment { name, type_ }))
+        Ok(compiler.push_fragment(TopLevelAttributeFragment {
+            name,
+            type_,
+            default_: self.default.clone(),
+        }))
     }
 
     fn from_complex_fragments(
@@ -2849,6 +3704,7 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelAttribute {
             .name(name)
             .maybe_type_(type_)
             .any_attributes(ns::AnyAttributes::default())
+            .maybe_default(fragment.default_.clone())
             .build())
     }
 }
@@ -2866,7 +3722,7 @@ impl ComplexFragmentEquivalent for xs::types::AttributeGroupRef {
                 .ref_
                 .0
                 .clone()
-                .with_default_namespace(|| context.default_namespace.clone()),
+                .with_default_namespace(|| context.default_namespace.cloned()),
         }))
     }
 
@@ -2902,7 +3758,7 @@ impl ComplexFragmentEquivalent for xs::types::SimpleExtensionType {
                 .base
                 .0
                 .clone()
-                .with_default_namespace(|| context.default_namespace.clone()),
+                .with_default_namespace(|| context.default_namespace.cloned()),
             attribute_declarations,
             assertions,
         }))
@@ -2945,7 +3801,7 @@ impl ComplexFragmentEquivalent for xs::types::SimpleRestrictionType {
             .base
             .0
             .clone()
-            .with_default_namespace(|| context.default_namespace.clone());
+            .with_default_namespace(|| context.default_namespace.cloned());
 
         let simple_restriction_model = self
             .simple_restriction_model
@@ -3305,7 +4161,6 @@ impl ComplexFragmentEquivalent for xs::types::TopLevelComplexType {
         let complex_type_model =
             xs::groups::ComplexTypeModel::from_complex_fragments(compiler, &fragment.content)?;
 
-        //TODO
         Ok(Self::builder()
             .name(fragment.name.clone().ok_or(Error::NameMissingInTopLevel)?)
             .maybe_mixed(fragment.mixed)
@@ -3349,8 +4204,8 @@ impl ComplexFragmentEquivalent for xs::types::LocalComplexType {
             xs::groups::ComplexTypeModel::from_complex_fragments(compiler, &fragment.content)?;
 
         Ok(xs::types::LocalComplexType::builder()
-            .complex_type_model(content.into())
             .maybe_mixed(fragment.mixed)
+            .complex_type_model(content.into())
             .any_attributes(ns::AnyAttributes::default())
             .build())
     }
@@ -3704,5 +4559,402 @@ impl ComplexFragmentEquivalent for xs::types::NamedAttributeGroup {
             .attr_decls(attr_decls.into())
             .any_attributes(ns::AnyAttributes::default())
             .build())
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::groups::Redefinable {
+    type FragmentId = RedefinableId;
+
+    fn to_complex_fragments(
+        &self,
+        compiler: &mut ComplexTypeFragmentCompiler,
+        context: &Context,
+    ) -> Result<Self::FragmentId, Error> {
+        match self {
+            xs::groups::Redefinable::SimpleType(simple_type) => {
+                let xs::SimpleType::SimpleType(simple_type) = simple_type.deref() else {
+                    todo!();
+                };
+
+                let fragment_id =
+                    simple_type.to_simple_fragments(&mut compiler.simple_type_compiler, context)?;
+
+                Ok(RedefinableId::SimpleType(fragment_id))
+            }
+            xs::groups::Redefinable::ComplexType(complex_type) => {
+                let xs::ComplexType::ComplexType(complex_type) = complex_type.deref() else {
+                    todo!();
+                };
+
+                let fragment_id = complex_type.to_complex_fragments(compiler, context)?;
+
+                Ok(RedefinableId::ComplexType(fragment_id))
+            }
+            xs::groups::Redefinable::Group(group) => {
+                let xs::Group::Group(group) = group.deref() else {
+                    todo!();
+                };
+
+                let fragment_id = group.to_complex_fragments(compiler, context)?;
+
+                Ok(RedefinableId::Group(fragment_id))
+            }
+            xs::groups::Redefinable::AttributeGroup(attribute_group) => {
+                let xs::AttributeGroup::AttributeGroup(attribute_group) = attribute_group.deref()
+                else {
+                    todo!();
+                };
+
+                let fragment_id = attribute_group.to_complex_fragments(compiler, context)?;
+
+                Ok(RedefinableId::AttributeGroup(fragment_id))
+            }
+        }
+    }
+
+    fn from_complex_fragments(
+        compiler: &ComplexTypeFragmentCompiler,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        match fragment_id {
+            RedefinableId::ComplexType(fragment_idx) => {
+                xs::types::TopLevelComplexType::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::ComplexType::from)
+                    .map(xs::groups::Redefinable::from)
+            }
+            RedefinableId::SimpleType(fragment_idx) => {
+                xs::types::TopLevelSimpleType::from_simple_fragments(
+                    &compiler.simple_type_compiler,
+                    fragment_idx,
+                )
+                .map(xs::SimpleType::from)
+                .map(xs::groups::Redefinable::from)
+                .map_err(Error::Simple)
+            }
+            RedefinableId::AttributeGroup(fragment_idx) => {
+                xs::types::NamedAttributeGroup::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::AttributeGroup::from)
+                    .map(xs::groups::Redefinable::from)
+            }
+            RedefinableId::Group(fragment_idx) => {
+                xs::types::NamedGroup::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::Group::from)
+                    .map(xs::groups::Redefinable::from)
+            }
+        }
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::groups::SchemaTop {
+    type FragmentId = SchemaTopId;
+
+    fn to_complex_fragments(
+        &self,
+        compiler: &mut ComplexTypeFragmentCompiler,
+        context: &Context,
+    ) -> Result<Self::FragmentId, Error> {
+        match self {
+            xs::groups::SchemaTop::Redefinable(redefinable) => redefinable
+                .to_complex_fragments(compiler, context)
+                .map(SchemaTopId::Redefinable),
+            xs::groups::SchemaTop::Element(element) => {
+                let xs::Element::Element(element) = element.deref() else {
+                    todo!();
+                };
+
+                element
+                    .to_complex_fragments(compiler, context)
+                    .map(SchemaTopId::Element)
+            }
+            xs::groups::SchemaTop::Attribute(attribute) => {
+                let xs::Attribute::Attribute(attribute) = attribute.deref() else {
+                    todo!();
+                };
+
+                attribute
+                    .to_complex_fragments(compiler, context)
+                    .map(SchemaTopId::Attribute)
+            }
+            xs::groups::SchemaTop::Notation(notation) => {
+                todo!("Notation fragments are not yet supported: {notation:?}");
+            }
+        }
+    }
+
+    fn from_complex_fragments(
+        compiler: &ComplexTypeFragmentCompiler,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        match fragment_id {
+            SchemaTopId::Redefinable(fragment_idx) => {
+                xs::groups::Redefinable::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::groups::SchemaTop::from)
+            }
+            SchemaTopId::Element(fragment_idx) => {
+                xs::types::TopLevelElement::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::Element::from)
+                    .map(xs::groups::SchemaTop::from)
+            }
+            SchemaTopId::Attribute(fragment_idx) => {
+                xs::types::TopLevelAttribute::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::Attribute::from)
+                    .map(xs::groups::SchemaTop::from)
+            }
+        }
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::Import {
+    type FragmentId = FragmentIdx<ImportFragment>;
+
+    fn to_complex_fragments(
+        &self,
+        compiler: &mut ComplexTypeFragmentCompiler,
+        context: &Context,
+    ) -> Result<Self::FragmentId, Error> {
+        let xs::Import::Import(import) = self else {
+            return Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            });
+        };
+
+        let namespace = import.namespace.clone();
+        let schema_location = import.schema_location.clone();
+
+        let fragment = ImportFragment {
+            schema_location,
+            namespace: namespace
+                .clone()
+                .map(XmlNamespace::new)
+                .transpose()
+                .expect("Invalid namespace"),
+        };
+
+        let fragment_id = compiler.push_fragment(fragment);
+
+        Ok(fragment_id)
+    }
+
+    fn from_complex_fragments(
+        compiler: &ComplexTypeFragmentCompiler,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        let namespace = fragment.namespace.as_ref().map(|ns| ns.to_string());
+
+        Ok(xs::Import::from(xs::import_items::Import {
+            id: None,
+            namespace,
+            schema_location: fragment.schema_location.clone(),
+            annotation: None,
+        }))
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::Include {
+    type FragmentId = FragmentIdx<IncludeFragment>;
+
+    fn to_complex_fragments(
+        &self,
+        compiler: &mut ComplexTypeFragmentCompiler,
+        context: &Context,
+    ) -> Result<Self::FragmentId, Error> {
+        let xs::Include::Include(include) = self else {
+            return Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            });
+        };
+
+        let schema_location = include.schema_location.clone();
+
+        let fragment = IncludeFragment { schema_location };
+
+        Ok(compiler.push_fragment(fragment))
+    }
+
+    fn from_complex_fragments(
+        compiler: &ComplexTypeFragmentCompiler,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        Ok(xs::Include::from(xs::include_items::Include {
+            id: None,
+            schema_location: fragment.schema_location.clone(),
+            annotation: None,
+        }))
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::Redefine {
+    type FragmentId = FragmentIdx<RedefineFragment>;
+
+    fn to_complex_fragments(
+        &self,
+        compiler: &mut ComplexTypeFragmentCompiler,
+        context: &Context,
+    ) -> Result<Self::FragmentId, Error> {
+        let xs::Redefine::Redefine(redefine) = self else {
+            return Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            });
+        };
+
+        let schema_location = redefine.schema_location.clone();
+
+        let redefineable = redefine
+            .redefine_content
+            .iter()
+            .filter_map(|redefinable| match redefinable {
+                xs::redefine_items::RedefineContent::Annotation(_) => None,
+                xs::redefine_items::RedefineContent::Redefinable(redefinable) => {
+                    Some(redefinable.deref())
+                }
+            })
+            .map(|redefinable| redefinable.to_complex_fragments(compiler, context))
+            .collect::<Result<_, _>>()?;
+
+        let fragment = RedefineFragment {
+            schema_location,
+            redefineable,
+        };
+
+        Ok(compiler.push_fragment(fragment))
+    }
+
+    fn from_complex_fragments(
+        compiler: &ComplexTypeFragmentCompiler,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        let schema_location = fragment.schema_location.clone();
+
+        let redefine_content = fragment
+            .redefineable
+            .iter()
+            .map(|redefinable_id| {
+                xs::groups::Redefinable::from_complex_fragments(compiler, redefinable_id)
+            })
+            .map(|redefinable| redefinable.map(xs::redefine_items::RedefineContent::from))
+            .collect::<Result<_, _>>()?;
+
+        Ok(xs::Redefine::from(xs::redefine_items::Redefine {
+            id: None,
+            schema_location,
+            redefine_content,
+        }))
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::Override {
+    type FragmentId = FragmentIdx<OverrideFragment>;
+
+    fn to_complex_fragments(
+        &self,
+        compiler: &mut ComplexTypeFragmentCompiler,
+        context: &Context,
+    ) -> Result<Self::FragmentId, Error> {
+        let xs::Override::Override(override_) = self else {
+            return Err(Error::SubstitutionGroupNotSupported {
+                fragment_type: type_name::<Self>(),
+            });
+        };
+
+        let schema_location = override_.schema_location.clone();
+
+        let schema_tops = override_
+            .schema_top
+            .iter()
+            .map(|top| top.to_complex_fragments(compiler, context))
+            .collect::<Result<_, _>>()?;
+
+        let fragment = OverrideFragment {
+            schema_location,
+            schema_tops,
+        };
+
+        Ok(compiler.push_fragment(fragment))
+    }
+
+    fn from_complex_fragments(
+        compiler: &ComplexTypeFragmentCompiler,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        let fragment = compiler
+            .get_fragment(fragment_id)
+            .expect("Fragment not found in compiler.");
+
+        let schema_top = fragment
+            .schema_tops
+            .iter()
+            .map(|schema_top_id| {
+                xs::groups::SchemaTop::from_complex_fragments(compiler, schema_top_id)
+            })
+            .collect::<Result<_, _>>()?;
+
+        Ok(xs::Override::from(xs::override_items::Override {
+            id: None,
+            schema_location: fragment.schema_location.clone(),
+            schema_top,
+            annotation: None,
+        }))
+    }
+}
+
+impl ComplexFragmentEquivalent for xs::groups::Composition {
+    type FragmentId = CompositionId;
+
+    fn to_complex_fragments(
+        &self,
+        compiler: &mut ComplexTypeFragmentCompiler,
+        context: &Context,
+    ) -> Result<Self::FragmentId, Error> {
+        match self {
+            xs::groups::Composition::Include(include) => include
+                .to_complex_fragments(compiler, context)
+                .map(CompositionId::Include),
+            xs::groups::Composition::Import(import) => import
+                .to_complex_fragments(compiler, context)
+                .map(CompositionId::Import),
+            xs::groups::Composition::Redefine(redefine) => redefine
+                .to_complex_fragments(compiler, context)
+                .map(CompositionId::Redefine),
+            xs::groups::Composition::Override(override_) => override_
+                .to_complex_fragments(compiler, context)
+                .map(CompositionId::Override),
+            xs::groups::Composition::Annotation(annotation) => todo!(),
+        }
+    }
+
+    fn from_complex_fragments(
+        compiler: &ComplexTypeFragmentCompiler,
+        fragment_id: &Self::FragmentId,
+    ) -> Result<Self, Error> {
+        match fragment_id {
+            CompositionId::Include(fragment_idx) => {
+                xs::Include::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::groups::Composition::from)
+            }
+            CompositionId::Import(fragment_idx) => {
+                xs::Import::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::groups::Composition::from)
+            }
+            CompositionId::Redefine(fragment_idx) => {
+                xs::Redefine::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::groups::Composition::from)
+            }
+            CompositionId::Override(fragment_idx) => {
+                xs::Override::from_complex_fragments(compiler, fragment_idx)
+                    .map(xs::groups::Composition::from)
+            }
+        }
     }
 }

@@ -2294,6 +2294,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "xbrl-xsd"
+version = "0.1.0"
+dependencies = [
+ "rstest",
+ "rust_decimal",
+ "syn 2.0.101",
+ "url",
+ "xmlity",
+ "xmlity-build",
+ "xmlity-ns",
+ "xmlity-ns-xml",
+ "xmlity-ns-xs",
+ "xmlity-quick-xml",
+]
+
+[[package]]
 name = "xmlity"
 version = "0.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2479,6 +2495,7 @@ name = "xsd-fragments"
 version = "0.0.0"
 dependencies = [
  "derive_more",
+ "glob",
  "insta",
  "map-macro",
  "pretty_assertions",

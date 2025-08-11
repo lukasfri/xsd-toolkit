@@ -68,7 +68,7 @@ pub static NMTOKEN: LazyLockEN = LazyLock::new(|| xs_name!("NMTOKEN"));
 /// The NMTOKENS derived type.
 pub static NMTOKENS: LazyLockEN = LazyLock::new(|| xs_name!("NMTOKENS"));
 /// The NAME derived type.
-pub static NAME: LazyLockEN = LazyLock::new(|| xs_name!("NAME"));
+pub static NAME: LazyLockEN = LazyLock::new(|| xs_name!("Name"));
 /// The NCName derived type.
 pub static NCNAME: LazyLockEN = LazyLock::new(|| xs_name!("NCName"));
 /// The ID derived type.

@@ -22,6 +22,12 @@ impl FragmentedXsdDocumentIdx {
     }
 }
 
+impl fmt::Display for FragmentedXsdDocumentIdx {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "FragmentedXsdDocumentIdx({})", self.0)
+    }
+}
+
 #[derive(Debug)]
 /// Index identifying a specific fragment within a namespace.
 pub struct FragmentIdx<T>(FragmentedXsdDocumentIdx, usize, PhantomData<T>);
@@ -160,6 +166,6 @@ trait HasFragmentCollection<F> {
     fn get_fragment_collection_mut(&mut self) -> &mut FragmentCollection<F>;
 }
 
-pub struct Context {
-    pub default_namespace: Option<XmlNamespace<'static>>,
+pub struct Context<'a> {
+    pub default_namespace: Option<&'a XmlNamespace<'static>>,
 }

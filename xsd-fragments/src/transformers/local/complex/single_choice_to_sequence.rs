@@ -126,7 +126,7 @@ impl SingleChoiceToSequence {
             id: None,
         };
 
-        let compiler = &mut ctx.current_namespace_mut().complex_type_compiler;
+        let compiler = &mut ctx.current_namespace_mut().compiler;
 
         let sequence = compiler.push_fragment(sequence);
 

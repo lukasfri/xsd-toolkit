@@ -17,13 +17,13 @@ use xmlity::{ExpandedName, XmlNamespace};
 pub mod fragments;
 
 mod context;
-mod namespace;
+// mod namespace;
 pub mod transformers;
 pub use context::{FragmentedXsdDocumentKey, XmlnsContext};
-pub use namespace::{
-    FragmentedXsdDocument, TopLevelAttribute, TopLevelAttributeGroup, TopLevelComplexType,
-    TopLevelElement, TopLevelGroup, TopLevelSimpleType, TopLevelType,
-};
+// pub use namespace::{
+//     FragmentedXsdDocument, TopLevelAttribute, TopLevelAttributeGroup, TopLevelComplexType,
+//     TopLevelElement, TopLevelGroup, TopLevelSimpleType, TopLevelType,
+// };
 
 /// Error type used for when importing, exporting and otherwise interacting with namespaces.
 #[derive(Debug, derive_more::derive::From, derive_more::derive::Display)]

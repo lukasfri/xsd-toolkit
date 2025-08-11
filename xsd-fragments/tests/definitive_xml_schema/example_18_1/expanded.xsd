@@ -1,0 +1,13 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns="http://datypic.com/prod"
+  targetNamespace="http://datypic.com/prod">
+  <xs:element name="size" type="DressSizeType" />
+  <xs:element name="color" type="xs:string" />
+  <xs:simpleType name="DressSizeType">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="2" />
+      <xs:maxInclusive value="16" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="newSize" type="DressSizeType" />
+</xs:schema>

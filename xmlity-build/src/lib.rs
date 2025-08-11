@@ -1,6 +1,7 @@
 //! This crate provides an easy API for generating XMLity-based Rust code from XSD schemas.
 //!
 //! It is designed to be able to be used in a build script, and provides a easy-to-use step-by-step API.
+use std::str::FromStr;
 use std::{collections::HashSet, path::PathBuf};
 
 use bon::Builder;
@@ -9,11 +10,13 @@ use syn::parse_quote;
 /// The `reexports` module provides re-exports of dependencies required during configuration.
 pub mod reexports {
     pub use url;
+
+    pub use xsd_fragments::FragmentedXsdDocumentKey;
 }
 use url::Url;
 
 use xmlity::types::utils::XmlRoot;
-use xmlity::ExpandedName;
+use xmlity::{ExpandedName, XmlNamespace};
 use xsd::set::XmlSchemaSet;
 use xsd::{xs, xsn};
 use xsd_codegen_xmlity::CodegenTransformer;
@@ -42,6 +45,9 @@ pub struct BuildEngine {
     /// A list of namespaces to bind to specific paths.
     #[builder(default)]
     pub bound_namespaces: Vec<(FragmentedXsdDocumentKey, syn::Path)>,
+    /// A map of globally bound namespaces to their keys.
+    #[builder(default)]
+    pub globally_bound_namespaces: Vec<(XmlNamespace<'static>, FragmentedXsdDocumentKey)>,
     /// A list of types to bind to specific types.
     #[builder(default)]
     pub bound_types: Vec<(ExpandedName<'static>, BoundType)>,
@@ -202,9 +208,59 @@ impl BuildEngine {
 
         let mut context = XmlnsContext::new();
 
+        context
+            .global_namespaces
+            .extend(
+                self.globally_bound_namespaces
+                    .clone()
+                    .into_iter()
+                    .map(|(ns, key)| {
+                        (
+                            ns,
+                            *context
+                                .namespace_idxs
+                                .get(&key)
+                                .expect("Namespace should exist"),
+                        )
+                    }),
+            );
+
         root_uris
             .iter()
-            .try_for_each(|uri| context.import_namespace_map(&map, uri, None).map(|_| ()))?;
+            .try_for_each(|uri| context.import_namespace_map(&map, uri).map(|_| ()))?;
+
+        println!(
+            "Namespaces: {}",
+            context
+                .namespace_idxs
+                .iter()
+                .map(|(k, v)| format!("{}: {}", k, v))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+
+        println!(
+            "{}",
+            context
+                .namespaces
+                .get(
+                    &context
+                        .namespace_idxs
+                        .get(&FragmentedXsdDocumentKey(
+                            Url::from_str(
+                                "http://www.xbrl.org/2013/inlinexbrl/xhtml-inlinexbrl-1_1.xsd"
+                            )
+                            .unwrap()
+                        ))
+                        .unwrap()
+                )
+                .unwrap()
+                .top_level_attribute_groups
+                .iter()
+                .map(|(k, _)| format!("{}", k))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
 
         let allowed_simple_bases: HashSet<ExpandedName<'static>> = [
             &xsn::DECIMAL,

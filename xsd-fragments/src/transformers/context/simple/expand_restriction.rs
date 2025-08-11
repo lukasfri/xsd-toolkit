@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use xmlity::ExpandedName;
 
 use crate::fragments::{
+    complex::TopLevelTypeId,
     simple::{RestrictionFragment, SimpleDerivation, SimpleTypeRootFragment},
     FragmentIdx,
 };
@@ -66,7 +67,7 @@ impl<'a> ExpandSimpleRestriction<'a> {
             return Ok(TransformChange::default());
         }
 
-        let crate::TopLevelType::Simple(base_simple_type) = ctx
+        let TopLevelTypeId::SimpleType(base_simple_type) = ctx
             .get_named_type(&fragment_idx.namespace_idx(), base)
             .ok_or(Error::BaseNotFound { base: base.clone() })?
         else {
@@ -74,7 +75,7 @@ impl<'a> ExpandSimpleRestriction<'a> {
         };
 
         let base_fragment: &SimpleTypeRootFragment = ctx
-            .get_simple_fragment(&base_simple_type.root_fragment)
+            .get_simple_fragment(&base_simple_type)
             .expect("Base fragment should exist");
 
         match base_fragment.simple_derivation {
@@ -127,166 +128,5 @@ impl XmlnsContextTransformer for ExpandSimpleRestriction<'_> {
             .into_iter()
             .map(|f| self.flatten_restriction(&mut ctx, &f))
             .collect()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::XmlnsContext;
-
-    use super::*;
-    use pretty_assertions::assert_eq;
-    use std::{collections::HashSet, str::FromStr};
-    use url::Url;
-
-    use xmlity::{ExpandedName, LocalName, XmlNamespace};
-    use xsd::{xs, xsn};
-
-    #[test]
-    #[ignore = "Currently does not pass due to restriction expansion not being fully featured yet"]
-    fn restrict_union_test_1() {
-        let parent_type: &str = r###"
-        <xs:simpleType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="allNNI">
-            <xs:union memberTypes="xs:nonNegativeInteger">
-                <xs:simpleType>
-                    <xs:restriction base="xs:NMTOKEN">
-                        <xs:enumeration value="unbounded"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:union>
-        </xs:simpleType>
-        "###;
-        let parent_type: xs::SimpleType = xmlity_quick_xml::from_str(parent_type.trim()).unwrap();
-
-        let child_type: &str = r###"
-        <xs:simpleType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="allNNIRestriction">
-            <xs:restriction base="xs:allNNI">
-                <xs:enumeration value="0"/>
-                <xs:enumeration value="1"/>
-            </xs:restriction>
-        </xs:simpleType>
-        "###;
-        let child_type: xs::SimpleType = xmlity_quick_xml::from_str(child_type.trim()).unwrap();
-
-        let allowed_bases: HashSet<ExpandedName<'static>> =
-            [&xsn::NMTOKEN, &xsn::NON_NEGATIVE_INTEGER]
-                .into_iter()
-                .map(|name| (*name).clone())
-                .collect();
-
-        const TEST_NAMESPACE: XmlNamespace<'static> = XmlNamespace::XS;
-        let test_namespace_location = Url::from_str("http://www.w3.org/2001/XMLSchema").unwrap();
-
-        let mut ctx = XmlnsContext::new();
-
-        let (_, ns) = ctx.init_namespace(test_namespace_location.clone(), TEST_NAMESPACE.into());
-
-        ns.import_top_level_simple_type(&parent_type).unwrap();
-        ns.import_top_level_simple_type(&child_type).unwrap();
-
-        let transform_changed = ctx
-            .context_transform(ExpandSimpleRestriction::new(&allowed_bases))
-            .unwrap();
-
-        assert_eq!(transform_changed, TransformChange::Changed);
-
-        let ns = ctx.get_namespace_direct(&test_namespace_location).unwrap();
-
-        let actual = ns
-            .export_top_level_simple_type(&LocalName::new_dangerous("allNNIRestriction"))
-            .unwrap()
-            .unwrap();
-
-        let expected: &str = r###"
-        <xs:simpleType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="allNNIRestriction">
-            <xs:restriction base="xs:nonNegativeInteger">
-                <xs:enumeration value="0"/>
-                <xs:enumeration value="1"/>
-            </xs:restriction>
-        </xs:simpleType>
-        "###;
-
-        let expected: xs::SimpleType = xmlity_quick_xml::from_str(expected.trim()).unwrap();
-
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    #[ignore = "Currently does not pass due to restriction expansion not being fully featured yet"]
-    fn restrict_union_test_2() {
-        let parent_type: &str = r###"
-        <xs:simpleType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="customAllNNI">
-            <xs:union memberTypes="xs:nonNegativeInteger xs:float">
-                <xs:simpleType>
-                    <xs:restriction base="xs:NMTOKEN">
-                        <xs:enumeration value="unbounded"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:union>
-        </xs:simpleType>
-        "###;
-        let parent_type: xs::SimpleType = xmlity_quick_xml::from_str(parent_type.trim()).unwrap();
-
-        let child_type: &str = r###"
-        <xs:simpleType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="allNNIRestriction">
-            <xs:restriction base="xs:customAllNNI">
-                <xs:enumeration value="0"/>
-                <xs:enumeration value="1"/>
-                <xs:enumeration value="2.0"/>
-            </xs:restriction>
-        </xs:simpleType>
-        "###;
-        let child_type: xs::SimpleType = xmlity_quick_xml::from_str(child_type.trim()).unwrap();
-
-        let allowed_bases: HashSet<ExpandedName<'static>> =
-            [&xsn::NMTOKEN, &xsn::NON_NEGATIVE_INTEGER]
-                .into_iter()
-                .map(|name| (*name).clone())
-                .collect();
-
-        const TEST_NAMESPACE: XmlNamespace<'static> = XmlNamespace::XS;
-        let test_namespace_location = Url::from_str("http://www.w3.org/2001/XMLSchema").unwrap();
-
-        let mut ctx = XmlnsContext::new();
-
-        let (_, ns) = ctx.init_namespace(test_namespace_location.clone(), TEST_NAMESPACE.into());
-
-        ns.import_top_level_simple_type(&parent_type).unwrap();
-        ns.import_top_level_simple_type(&child_type).unwrap();
-
-        let transform_changed = ctx
-            .context_transform(ExpandSimpleRestriction::new(&allowed_bases))
-            .unwrap();
-
-        assert_eq!(transform_changed, TransformChange::Changed);
-
-        let ns = ctx.get_namespace_direct(&test_namespace_location).unwrap();
-
-        let actual = ns
-            .export_top_level_simple_type(&LocalName::new_dangerous("allNNIRestriction"))
-            .unwrap()
-            .unwrap();
-
-        let expected: &str = r###"
-        <xs:simpleType xmlns:xs="http://www.w3.org/2001/XMLSchema" name="allNNIRestriction">
-            <xs:union>
-                <xs:simpleType>
-                    <xs:restriction base="xs:nonNegativeInteger">
-                        <xs:enumeration value="0"/>
-                        <xs:enumeration value="1"/>
-                    </xs:restriction>
-                </xs:simpleType>
-                <xs:simpleType>
-                    <xs:restriction base="xs:float">
-                        <xs:enumeration value="2.0"/>
-                    </xs:restriction>
-                </xs:simpleType>
-            </xs:union>
-        </xs:simpleType>
-        "###;
-
-        let expected: xs::SimpleType = xmlity_quick_xml::from_str(expected.trim()).unwrap();
-
-        assert_eq!(actual, expected);
     }
 }

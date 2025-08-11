@@ -1,0 +1,9 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:group name="DescriptionGroup">
+    <xs:sequence>
+      <xs:element name="description" type="xs:string" />
+      <xs:element name="comment" type="xs:string" minOccurs="0" />
+      <xs:element name="notes" type="xs:string" />
+    </xs:sequence>
+  </xs:group>
+</xs:schema>

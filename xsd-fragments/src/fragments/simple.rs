@@ -15,12 +15,22 @@ use crate::{
 use std::collections::VecDeque;
 
 pub trait SimpleOffsetable {
-    fn offset(&mut self, offsets: &IdOffsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    );
 }
 
 pub trait SimpleOffsetableExt: SimpleOffsetable + Sized {
-    fn with_offset(mut self, offsets: &IdOffsets) -> Self {
-        self.offset(offsets);
+    fn with_offset(
+        mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) -> Self {
+        self.offset(target, new, offsets);
         self
     }
 }
@@ -28,47 +38,70 @@ pub trait SimpleOffsetableExt: SimpleOffsetable + Sized {
 impl<T: SimpleOffsetable> SimpleOffsetableExt for T {}
 
 impl SimpleOffsetable for NamedOrAnonymous<FragmentIdx<SimpleTypeRootFragment>> {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
             NamedOrAnonymous::Named(_idx) => {}
-            NamedOrAnonymous::Anonymous(idx) => idx.offset(offsets),
+            NamedOrAnonymous::Anonymous(idx) => idx.offset(target, new, offsets),
         }
     }
 }
 
-impl SimpleOffsetable for FragmentIdx<FacetFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.facet_offset;
+pub trait HasOffset {
+    fn get_offset(offsets: &IdOffsets) -> usize;
+}
+
+impl<T: HasOffset> SimpleOffsetable for FragmentIdx<T> {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        if self.0 == *target {
+            self.0 = *new;
+            self.1 += T::get_offset(offsets);
+        }
     }
 }
 
-impl SimpleOffsetable for FragmentIdx<SimpleTypeRootFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.simple_type_roots_offset;
+impl HasOffset for SimpleTypeRootFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.simple_type_roots_offset
     }
 }
 
-impl SimpleOffsetable for FragmentIdx<RestrictionFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.restrictions_offset;
+impl HasOffset for FacetFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.facet_offset
     }
 }
 
-impl SimpleOffsetable for FragmentIdx<ListFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.list_offset;
+impl HasOffset for RestrictionFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.restrictions_offset
     }
 }
 
-impl SimpleOffsetable for FragmentIdx<UnionFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.union_offset;
+impl HasOffset for ListFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.list_offset
     }
 }
 
-impl SimpleOffsetable for FragmentIdx<GroupRefFragment> {
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.0 .0 += offsets.group_ref_offset;
+impl HasOffset for UnionFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.union_offset
+    }
+}
+
+impl HasOffset for GroupRefFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        offsets.group_ref_offset
     }
 }
 
@@ -87,10 +120,17 @@ pub struct RestrictionFragment {
 
 impl SimpleOffsetable for RestrictionFragment {
     /// Offsets the IDs of the fragments within this restriction.
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.facets.iter_mut().for_each(|f| f.offset(offsets));
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.facets
+            .iter_mut()
+            .for_each(|f| f.offset(target, new, offsets));
         if let Some(ref mut s) = self.simple_type {
-            s.offset(offsets);
+            s.offset(target, new, offsets);
         }
     }
 }
@@ -106,8 +146,13 @@ pub struct SimpleTypeRootFragment {
 
 impl SimpleOffsetable for SimpleTypeRootFragment {
     /// Offsets the IDs of the fragments within this simple type.
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.simple_derivation.offset(offsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.simple_derivation.offset(target, new, offsets);
     }
 }
 
@@ -122,8 +167,13 @@ pub struct ListFragment {
 
 impl SimpleOffsetable for ListFragment {
     /// Offsets the IDs of the fragments within this list.
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.item_type.offset(offsets);
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.item_type.offset(target, new, offsets);
     }
 }
 
@@ -140,8 +190,15 @@ pub struct UnionFragment {
 
 impl SimpleOffsetable for UnionFragment {
     /// Offsets the IDs of the fragments within this union.
-    fn offset(&mut self, offsets: &IdOffsets) {
-        self.simple_types.iter_mut().for_each(|s| s.offset(offsets));
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.simple_types
+            .iter_mut()
+            .for_each(|s| s.offset(target, new, offsets));
     }
 }
 
@@ -153,7 +210,13 @@ pub struct GroupRefFragment {
 }
 
 impl SimpleOffsetable for GroupRefFragment {
-    fn offset(&mut self, _offsets: &IdOffsets) {}
+    fn offset(
+        &mut self,
+        _target: &FragmentedXsdDocumentIdx,
+        _new: &FragmentedXsdDocumentIdx,
+        _offsets: &IdOffsets,
+    ) {
+    }
 }
 
 /// A value used in facets.
@@ -310,13 +373,19 @@ pub enum FacetFragment {
 }
 
 impl SimpleOffsetable for FacetFragment {
-    fn offset(&mut self, _offsets: &IdOffsets) {}
+    fn offset(
+        &mut self,
+        _target: &FragmentedXsdDocumentIdx,
+        _new: &FragmentedXsdDocumentIdx,
+        _offsets: &IdOffsets,
+    ) {
+    }
 }
 
 /// Compiler for simple type fragments.
 #[derive(Debug, Clone)]
 pub struct SimpleTypeFragmentCompiler {
-    namespace: Option<XmlNamespace<'static>>,
+    // namespace: Option<XmlNamespace<'static>>,
     pub namespace_idx: FragmentedXsdDocumentIdx,
     simple_types: FragmentCollection<SimpleTypeRootFragment>,
     restrictions: FragmentCollection<RestrictionFragment>,
@@ -349,12 +418,9 @@ pub struct IdOffsets {
 
 impl SimpleTypeFragmentCompiler {
     /// Creates a new [`SimpleTypeFragmentCompiler`] with the given namespace and namespace index.
-    pub fn new(
-        namespace: Option<XmlNamespace<'static>>,
-        namespace_idx: FragmentedXsdDocumentIdx,
-    ) -> Self {
+    pub fn new(namespace_idx: FragmentedXsdDocumentIdx) -> Self {
         Self {
-            namespace,
+            // namespace,
             namespace_idx,
             simple_types: FragmentCollection::new(),
             restrictions: FragmentCollection::new(),
@@ -380,7 +446,11 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.simple_types.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.simple_type_roots_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -389,7 +459,11 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.restrictions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.restrictions_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -398,7 +472,11 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.facets.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.facet_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -407,7 +485,11 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.lists.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.list_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -416,7 +498,11 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.unions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.union_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -425,7 +511,11 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.group_refs.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.group_ref_offset,
-                    a.1.clone().with_offset(&merge_result),
+                    a.1.clone().with_offset(
+                        &other.namespace_idx,
+                        &self.namespace_idx,
+                        &merge_result,
+                    ),
                 )
             }));
 
@@ -575,6 +665,9 @@ impl SimpleFragmentEquivalent for xs::types::TopLevelSimpleType {
         compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
+        println!("Loading simple type fragment: {:?}", fragment_id);
+        println!("In {:?}", compiler.namespace_idx);
+        println!("{:?}", compiler.simple_types.fragments);
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -1446,7 +1539,7 @@ impl SimpleFragmentEquivalent for xs::Union {
                     .iter()
                     .map(|a| {
                         a.0.clone()
-                            .with_default_namespace(|| compiler.namespace.clone())
+                            .with_default_namespace(|| context.default_namespace.cloned())
                     })
                     .collect()
             })
@@ -1604,11 +1697,16 @@ pub enum SimpleDerivation {
 }
 
 impl SimpleOffsetable for SimpleDerivation {
-    fn offset(&mut self, offsets: &IdOffsets) {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
         match self {
-            SimpleDerivation::Restriction(fragment_id) => fragment_id.offset(offsets),
-            SimpleDerivation::List(fragment_id) => fragment_id.offset(offsets),
-            SimpleDerivation::Union(fragment_id) => fragment_id.offset(offsets),
+            SimpleDerivation::Restriction(fragment_id) => fragment_id.offset(target, new, offsets),
+            SimpleDerivation::List(fragment_id) => fragment_id.offset(target, new, offsets),
+            SimpleDerivation::Union(fragment_id) => fragment_id.offset(target, new, offsets),
         }
     }
 }

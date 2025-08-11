@@ -10,10 +10,11 @@ use xmlity::LocalName;
 
 use crate::{
     fragments::{
-        complex as cx, simple as sm, FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
+        complex::{self as cx, SchemaFragment, TopLevelTypeId},
+        simple as sm, FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
     },
     transformers::TransformChange,
-    FragmentedXsdDocument,
+    FragmentedXsdDocumentKey,
 };
 
 /// This transformer type is only capable of doing local transformations within a namespace, and cannot access other namespaces.
@@ -34,17 +35,17 @@ pub trait XmlnsLocalTransformer {
 #[derive(Debug)]
 pub struct XmlnsLocalTransformerContext<'a> {
     /// The namespace being transformed.
-    pub namespace: &'a mut FragmentedXsdDocument,
+    pub namespace: &'a mut SchemaFragment,
 }
 
 impl XmlnsLocalTransformerContext<'_> {
     /// Gets the current namespace.
-    pub fn current_namespace(&self) -> &crate::FragmentedXsdDocument {
+    pub fn current_namespace(&self) -> &SchemaFragment {
         self.namespace
     }
 
     /// Gets the current namespace mutably.
-    pub fn current_namespace_mut(&mut self) -> &mut crate::FragmentedXsdDocument {
+    pub fn current_namespace_mut(&mut self) -> &mut SchemaFragment {
         self.namespace
     }
 
@@ -54,7 +55,7 @@ impl XmlnsLocalTransformerContext<'_> {
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace()
-            .complex_type_compiler
+            .compiler
             .iter_fragment_ids()
             .into_iter()
     }
@@ -64,9 +65,7 @@ impl XmlnsLocalTransformerContext<'_> {
     where
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
-        self.current_namespace()
-            .complex_type_compiler
-            .get_fragment(fragment_idx)
+        self.current_namespace().compiler.get_fragment(fragment_idx)
     }
 
     /// Gets a mutable complex fragment by its ID.
@@ -75,7 +74,7 @@ impl XmlnsLocalTransformerContext<'_> {
         cx::ComplexTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace_mut()
-            .complex_type_compiler
+            .compiler
             .get_fragment_mut(fragment_idx)
     }
 
@@ -85,7 +84,7 @@ impl XmlnsLocalTransformerContext<'_> {
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace()
-            .complex_type_compiler
+            .compiler
             .simple_type_compiler
             .iter_fragment_ids()
     }
@@ -96,7 +95,7 @@ impl XmlnsLocalTransformerContext<'_> {
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace()
-            .complex_type_compiler
+            .compiler
             .simple_type_compiler
             .get_fragment(fragment_idx)
     }
@@ -107,16 +106,13 @@ impl XmlnsLocalTransformerContext<'_> {
         sm::SimpleTypeFragmentCompiler: FragmentAccess<F>,
     {
         self.current_namespace_mut()
-            .complex_type_compiler
+            .compiler
             .simple_type_compiler
             .get_fragment_mut(fragment_idx)
     }
 
     /// Gets a named type by its local name within this namespace.
-    pub fn get_named_type<'a>(
-        &'a self,
-        name: &'a LocalName<'_>,
-    ) -> Option<&'a crate::TopLevelType> {
+    pub fn get_named_type<'a>(&'a self, name: &'a LocalName<'_>) -> Option<&'a TopLevelTypeId> {
         self.current_namespace().top_level_types.get(name)
     }
 
@@ -124,7 +120,7 @@ impl XmlnsLocalTransformerContext<'_> {
     pub fn get_named_attribute_group<'a>(
         &'a self,
         name: &'a LocalName<'_>,
-    ) -> Option<&'a crate::TopLevelAttributeGroup> {
+    ) -> Option<&'a FragmentIdx<cx::TopLevelAttributeGroupFragment>> {
         self.current_namespace()
             .top_level_attribute_groups
             .get(name)
@@ -138,7 +134,8 @@ impl crate::XmlnsContext {
         namespace: &Url,
         transformer: T,
     ) -> Result<TransformChange, T::Error> {
-        let Some(namespace) = self.get_namespace_direct_mut(namespace) else {
+        let Some(namespace) = self.resolve_schema_mut(&FragmentedXsdDocumentKey(namespace.clone()))
+        else {
             return Ok(TransformChange::Unchanged);
         };
 
@@ -172,7 +169,7 @@ impl crate::XmlnsContext {
     }
 }
 
-impl crate::FragmentedXsdDocument {
+impl SchemaFragment {
     /// Applies a local transformer to this namespace.
     pub fn transform<T: XmlnsLocalTransformer>(
         &mut self,
