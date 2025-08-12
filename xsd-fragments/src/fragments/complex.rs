@@ -667,6 +667,9 @@ impl ComplexOffsetable for RedefinableId {
             }
             RedefinableId::AttributeGroup(fragment_id) => fragment_id.offset(target, new, offsets),
             RedefinableId::Group(fragment_id) => fragment_id.offset(target, new, offsets),
+            RedefinableId::Notation => {
+                //TODO
+            }
         }
     }
 }
@@ -688,6 +691,9 @@ impl ComplexOffsetable for SchemaTopId {
             SchemaTopId::Attribute(fragment_idx) => {
                 fragment_idx.offset(target, new, offsets);
             }
+            SchemaTopId::Notation => {
+                //TODO
+            }
         }
     }
 }
@@ -704,6 +710,9 @@ impl ComplexOffsetable for CompositionId {
             CompositionId::Import(fragment_idx) => fragment_idx.offset(target, new, offsets),
             CompositionId::Redefine(fragment_idx) => fragment_idx.offset(target, new, offsets),
             CompositionId::Override(fragment_idx) => fragment_idx.offset(target, new, offsets),
+            CompositionId::AnnotationId => {
+                //TODO
+            }
         }
     }
 }
@@ -828,6 +837,9 @@ impl SchemaFragment {
                 self.top_level_groups
                     .insert(fragment.name.clone(), fragment_idx);
             }
+            RedefinableId::Notation => {
+                //TODO
+            }
         }
 
         if prefix {
@@ -922,6 +934,10 @@ impl SchemaFragment {
                             .schema_tops
                             .push_back(SchemaTopId::Attribute(fragment_idx));
 
+                        Ok(())
+                    }
+                    SchemaTopId::Notation => {
+                        //TODO
                         Ok(())
                     }
                 }
@@ -1717,6 +1733,7 @@ pub enum RedefinableId {
     AttributeGroup(FragmentIdx<TopLevelAttributeGroupFragment>),
     /// Group to redefine.
     Group(FragmentIdx<TopLevelGroupFragment>),
+    Notation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -1724,6 +1741,8 @@ pub enum SchemaTopId {
     Redefinable(RedefinableId),
     Element(FragmentIdx<TopLevelElementFragment>),
     Attribute(FragmentIdx<TopLevelAttributeFragment>),
+    //TODO
+    Notation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -1732,6 +1751,7 @@ pub enum CompositionId {
     Import(FragmentIdx<ImportFragment>),
     Redefine(FragmentIdx<RedefineFragment>),
     Override(FragmentIdx<OverrideFragment>),
+    AnnotationId,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -4641,6 +4661,7 @@ impl ComplexFragmentEquivalent for xs::groups::Redefinable {
                     .map(xs::Group::from)
                     .map(xs::groups::Redefinable::from)
             }
+            RedefinableId::Notation => todo!(),
         }
     }
 }
@@ -4676,7 +4697,8 @@ impl ComplexFragmentEquivalent for xs::groups::SchemaTop {
                     .map(SchemaTopId::Attribute)
             }
             xs::groups::SchemaTop::Notation(notation) => {
-                todo!("Notation fragments are not yet supported: {notation:?}");
+                //TODO
+                Ok(SchemaTopId::Notation)
             }
         }
     }
@@ -4700,6 +4722,7 @@ impl ComplexFragmentEquivalent for xs::groups::SchemaTop {
                     .map(xs::Attribute::from)
                     .map(xs::groups::SchemaTop::from)
             }
+            SchemaTopId::Notation => todo!(),
         }
     }
 }
@@ -4930,7 +4953,8 @@ impl ComplexFragmentEquivalent for xs::groups::Composition {
             xs::groups::Composition::Override(override_) => override_
                 .to_complex_fragments(compiler, context)
                 .map(CompositionId::Override),
-            xs::groups::Composition::Annotation(annotation) => todo!(),
+            //TODO
+            xs::groups::Composition::Annotation(annotation) => Ok(CompositionId::AnnotationId),
         }
     }
 
@@ -4955,6 +4979,7 @@ impl ComplexFragmentEquivalent for xs::groups::Composition {
                 xs::Override::from_complex_fragments(compiler, fragment_idx)
                     .map(xs::groups::Composition::from)
             }
+            CompositionId::AnnotationId => todo!(),
         }
     }
 }

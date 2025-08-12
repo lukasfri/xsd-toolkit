@@ -229,39 +229,6 @@ impl BuildEngine {
             .iter()
             .try_for_each(|uri| context.import_namespace_map(&map, uri).map(|_| ()))?;
 
-        println!(
-            "Namespaces: {}",
-            context
-                .namespace_idxs
-                .iter()
-                .map(|(k, v)| format!("{}: {}", k, v))
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-
-        println!(
-            "{}",
-            context
-                .namespaces
-                .get(
-                    &context
-                        .namespace_idxs
-                        .get(&FragmentedXsdDocumentKey(
-                            Url::from_str(
-                                "http://www.xbrl.org/2013/inlinexbrl/xhtml-inlinexbrl-1_1.xsd"
-                            )
-                            .unwrap()
-                        ))
-                        .unwrap()
-                )
-                .unwrap()
-                .top_level_attribute_groups
-                .iter()
-                .map(|(k, _)| format!("{}", k))
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-
         let allowed_simple_bases: HashSet<ExpandedName<'static>> = [
             &xsn::DECIMAL,
             &xsn::FLOAT,

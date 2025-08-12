@@ -24,6 +24,9 @@ pub enum Error {
     MissingKey {
         key: FragmentedXsdDocumentIdx,
     },
+    MissingBoundedNamespace {
+        key: FragmentedXsdDocumentIdx,
+    },
     NoNamespace,
     MissingElement {
         name: ExpandedName<'static>,
@@ -117,6 +120,9 @@ impl std::fmt::Display for Error {
         match self {
             Error::MissingKey { key } => {
                 write!(f, "Missing namespace key: {:?}", key)
+            }
+            Error::MissingBoundedNamespace { key } => {
+                write!(f, "Missing bounded namespace for key: {:?}", key)
             }
             Error::NoNamespace => write!(f, "No namespace specified"),
             Error::MissingElement { name } => write!(f, "Missing element: {}", name),

@@ -97,6 +97,9 @@ impl ExpandRedefineFragments {
 
                         fragment.name.clone()
                     }
+                    crate::fragments::complex::RedefinableId::Notation => {
+                        todo!()
+                    }
                 };
 
                 (name, redefinable)
@@ -143,6 +146,7 @@ impl ExpandRedefineFragments {
                 crate::fragments::complex::RedefinableId::Group(root_fragment) => {
                     target_document.top_level_groups.insert(name, root_fragment);
                 }
+                crate::fragments::complex::RedefinableId::Notation => todo!(),
             });
 
         Ok(TransformChange::Changed)

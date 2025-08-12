@@ -13,8 +13,12 @@ pub use handler_container::handler_container;
 use syn::{parse_quote, Ident, Item, ItemMod};
 use xmlity::{ExpandedName, XmlNamespace};
 use xsd_fragments::{
-    fragments::{FragmentAccess, FragmentedXsdDocumentIdx},
-    FragmentedXsdDocumentKey, TopLevelComplexType, TopLevelSimpleType, TopLevelType,
+    fragments::{
+        complex::{ComplexTypeRootFragment, TopLevelTypeId},
+        simple::SimpleTypeRootFragment,
+        FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
+    },
+    FragmentedXsdDocumentKey,
 };
 
 use crate::{
@@ -173,8 +177,11 @@ impl<'a> Generator<'a> {
             .top_level_elements
             .keys()
             .map(|local_name| {
-                ExpandedName::new(local_name.as_ref(), compiled_namespace.namespace.clone())
-                    .into_owned()
+                ExpandedName::new(
+                    local_name.as_ref(),
+                    compiled_namespace.target_namespace.clone(),
+                )
+                .into_owned()
             })
         {
             if self.bound_elements.contains_key(&expanded_name) {
@@ -185,7 +192,7 @@ impl<'a> Generator<'a> {
             let bound_namespace = self
                 .bound_namespaces
                 .get(key)
-                .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
+                .ok_or_else(|| Error::MissingBoundedNamespace { key: key.clone() })?;
 
             let path: syn::Path = parse_quote!(#bound_namespace);
 
@@ -202,7 +209,7 @@ impl<'a> Generator<'a> {
         &self,
         key: &FragmentedXsdDocumentIdx,
         name: &xmlity::ExpandedName<'_>,
-        simple_type: &TopLevelSimpleType,
+        simple_type: &FragmentIdx<SimpleTypeRootFragment>,
     ) -> Result<(BoundType, Vec<Item>)> {
         let compiled_namespace = self
             .context
@@ -211,9 +218,9 @@ impl<'a> Generator<'a> {
             .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let fragment = compiled_namespace
-            .complex_type_compiler
+            .compiler
             .simple_type_compiler
-            .get_fragment(&simple_type.root_fragment)
+            .get_fragment(&simple_type)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "simple type fragment".to_string(),
             })?;
@@ -258,7 +265,7 @@ impl<'a> Generator<'a> {
         &self,
         key: &FragmentedXsdDocumentIdx,
         name: &xmlity::ExpandedName<'_>,
-        complex_type: &TopLevelComplexType,
+        complex_type: &FragmentIdx<ComplexTypeRootFragment>,
     ) -> Result<(BoundType, Vec<Item>)> {
         let compiled_namespace = self
             .context
@@ -267,8 +274,8 @@ impl<'a> Generator<'a> {
             .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
 
         let fragment = compiled_namespace
-            .complex_type_compiler
-            .get_fragment(&complex_type.root_fragment)
+            .compiler
+            .get_fragment(&complex_type)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "complex type fragment".to_string(),
             })?;
@@ -330,10 +337,10 @@ impl<'a> Generator<'a> {
             })?;
 
         match type_ {
-            xsd_fragments::TopLevelType::Simple(simple_type) => {
+            TopLevelTypeId::SimpleType(simple_type) => {
                 self.generate_simple_type(key, name, simple_type)
             }
-            xsd_fragments::TopLevelType::Complex(complex_type) => {
+            TopLevelTypeId::ComplexType(complex_type) => {
                 self.generate_complex_type(key, name, complex_type)
             }
         }
@@ -354,8 +361,8 @@ impl<'a> Generator<'a> {
             .top_level_types
             .iter()
             .filter_map(|(key, type_)| match type_ {
-                TopLevelType::Simple(simple_type) => Some((
-                    ExpandedName::new(key.as_ref(), compiled_namespace.namespace.clone())
+                TopLevelTypeId::SimpleType(simple_type) => Some((
+                    ExpandedName::new(key.as_ref(), compiled_namespace.target_namespace.clone())
                         .into_owned(),
                     simple_type,
                 )),
@@ -376,7 +383,7 @@ impl<'a> Generator<'a> {
                 let bound_namespace = self
                     .bound_namespaces
                     .get(key)
-                    .ok_or_else(|| Error::MissingKey { key: key.clone() });
+                    .ok_or_else(|| Error::MissingBoundedNamespace { key: key.clone() });
 
                 let bound_namespace = match bound_namespace {
                     Ok(bound_namespace) => bound_namespace,
@@ -397,8 +404,8 @@ impl<'a> Generator<'a> {
             .top_level_types
             .iter()
             .filter_map(|(key, type_)| match type_ {
-                TopLevelType::Complex(complex_type) => Some((
-                    ExpandedName::new(key.as_ref(), compiled_namespace.namespace.clone())
+                TopLevelTypeId::ComplexType(complex_type) => Some((
+                    ExpandedName::new(key.as_ref(), compiled_namespace.target_namespace.clone())
                         .into_owned(),
                     complex_type,
                 )),
@@ -407,8 +414,8 @@ impl<'a> Generator<'a> {
             // Remove abstract types
             .filter(|(_, complex_type)| {
                 let fragment = compiled_namespace
-                    .complex_type_compiler
-                    .get_fragment(&complex_type.root_fragment)
+                    .compiler
+                    .get_fragment(&complex_type)
                     .expect("Fragment should exist");
 
                 matches!(fragment.abstract_, Some(false) | None)
@@ -420,7 +427,7 @@ impl<'a> Generator<'a> {
                 let bound_namespace = self
                     .bound_namespaces
                     .get(key)
-                    .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
+                    .ok_or_else(|| Error::MissingBoundedNamespace { key: key.clone() })?;
 
                 let path: syn::Path = parse_quote!(#bound_namespace::#module_name);
 
@@ -471,8 +478,8 @@ impl<'a> Generator<'a> {
             })?;
 
         let fragment = compiled_namespace
-            .complex_type_compiler
-            .get_fragment(&attribute.root_fragment)
+            .compiler
+            .get_fragment(&attribute)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "attribute fragment".to_string(),
             })?;
@@ -522,8 +529,11 @@ impl<'a> Generator<'a> {
             .top_level_attributes
             .keys()
             .map(|local_name| {
-                ExpandedName::new(local_name.as_ref(), compiled_namespace.namespace.clone())
-                    .into_owned()
+                ExpandedName::new(
+                    local_name.as_ref(),
+                    compiled_namespace.target_namespace.clone(),
+                )
+                .into_owned()
             })
             .map(|expanded_name| {
                 let (mut bound_type, i) = self.generate_attribute(key, &expanded_name)?;
@@ -531,7 +541,7 @@ impl<'a> Generator<'a> {
                 let bound_namespace = self
                     .bound_namespaces
                     .get(key)
-                    .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
+                    .ok_or_else(|| Error::MissingBoundedNamespace { key: key.clone() })?;
 
                 let path: syn::Path = parse_quote!(#bound_namespace::#module_name);
 
@@ -583,11 +593,10 @@ impl<'a> Generator<'a> {
         let context = GeneratorContext::new(self, namespace, key, item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
-        let type_ = self.handlers.top_level_element_handler.to_type_template(
-            &context,
-            &mut scope,
-            &element.root_fragment,
-        )?;
+        let type_ = self
+            .handlers
+            .top_level_element_handler
+            .to_type_template(&context, &mut scope, &element)?;
 
         let mut items = Vec::new();
 
@@ -627,8 +636,8 @@ impl<'a> Generator<'a> {
             })?;
 
         let fragment = compiled_namespace
-            .complex_type_compiler
-            .get_fragment(&group.root_fragment)
+            .compiler
+            .get_fragment(&group)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "group fragment".to_string(),
             })?;
@@ -678,8 +687,11 @@ impl<'a> Generator<'a> {
             .top_level_groups
             .keys()
             .map(|local_name| {
-                ExpandedName::new(local_name.as_ref(), compiled_namespace.namespace.clone())
-                    .into_owned()
+                ExpandedName::new(
+                    local_name.as_ref(),
+                    compiled_namespace.target_namespace.clone(),
+                )
+                .into_owned()
             })
             .map(|expanded_name| {
                 let (mut bound_type, i) = self.generate_group(key, &expanded_name)?;
@@ -687,7 +699,7 @@ impl<'a> Generator<'a> {
                 let bound_namespace = self
                     .bound_namespaces
                     .get(key)
-                    .ok_or_else(|| Error::MissingKey { key: key.clone() })?;
+                    .ok_or_else(|| Error::MissingBoundedNamespace { key: key.clone() })?;
 
                 let path: syn::Path = parse_quote!(#bound_namespace::#groups_module_name);
 

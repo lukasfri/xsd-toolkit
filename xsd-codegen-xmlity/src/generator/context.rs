@@ -6,12 +6,10 @@ use complex::ComplexToTypeTemplate;
 use quote::format_ident;
 use syn::{parse_quote, Ident};
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xsd_fragments::{
-    fragments::{
-        complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
-        FragmentIdx, FragmentedXsdDocumentIdx,
-    },
-    FragmentedXsdDocument,
+use xsd_fragments::fragments::complex::SchemaFragment;
+use xsd_fragments::fragments::{
+    complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
+    FragmentIdx, FragmentedXsdDocumentIdx,
 };
 
 use crate::simple::SimpleToTypeTemplate;
@@ -40,7 +38,7 @@ impl<'a> GeneratorContext<'a> {
         }
     }
 
-    pub fn current_namespace(&self) -> Result<&FragmentedXsdDocument> {
+    pub fn current_namespace(&self) -> Result<&SchemaFragment> {
         self.generator
             .context
             .namespaces
@@ -76,7 +74,7 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
     {
         let namespace = self.current_namespace()?;
         namespace
-            .complex_type_compiler
+            .compiler
             .simple_type_compiler
             .get_fragment(fragment_id)
             .ok_or_else(|| Error::FragmentNotFound {
@@ -100,7 +98,7 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
 
     fn resolve_named_type(
         &self,
-        key: &FragmentedXsdDocumentIdx,
+        document_idx: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<BoundType> {
         if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
@@ -112,7 +110,7 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
         let referenced_namespace_idx = self
             .generator
             .context
-            .resolve_ref_namespace(key, name.namespace())
+            .resolve_ref_namespace(document_idx, name.namespace())
             .expect("Namespace should exist");
 
         let namespace_crate = self
@@ -180,7 +178,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
             })?;
 
         namespace
-            .complex_type_compiler
+            .compiler
             .get_fragment(fragment_id)
             .ok_or_else(|| Error::FragmentNotFound {
                 fragment_type: "complex type fragment".to_string(),
@@ -201,7 +199,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
 
     fn resolve_named_type(
         &self,
-        namespace_idx: &FragmentedXsdDocumentIdx,
+        document_idx: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<BoundType> {
         if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
@@ -213,7 +211,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         let referenced_namespace_idx = self
             .generator
             .context
-            .resolve_ref_namespace(namespace_idx, name.namespace())
+            .resolve_ref_namespace(document_idx, name.namespace())
             .expect("Namespace should exist");
 
         let namespace_crate = self
@@ -352,14 +350,12 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
                     .top_level_elements
                     .iter()
                     .filter_map(|(key, fragment_id)| {
-                        let fragment = namespace
-                            .complex_type_compiler
-                            .get_fragment(&fragment_id.root_fragment)?;
+                        let fragment = namespace.compiler.get_fragment(&fragment_id)?;
 
                         if fragment.substitution_groups.contains(name) {
                             Some(ExpandedName::new(
                                 key.as_ref(),
-                                namespace.namespace.as_ref().map(|a| a.as_ref()),
+                                namespace.target_namespace.as_ref().map(|a| a.as_ref()),
                             ))
                         } else {
                             None
