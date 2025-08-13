@@ -275,7 +275,7 @@ impl XmlSchemaSet {
         self.locations
             .iter()
             .filter_map(|(_, location)| location.as_ref().map(|loc| &loc.schema))
-            .filter(|schema| schema.namespace().as_ref() == name.namespace())
+            .filter(|schema| schema.namespace() == *name.namespace())
             .flat_map(|schema| schema.redefinable())
             .find_map(|a| match a {
                 xmlity_ns_xs::groups::Redefinable::SimpleType(simple_type) => {
@@ -435,7 +435,7 @@ impl XmlSchemaSet {
         self.locations
             .iter()
             .filter_map(|(_, location)| location.as_ref().map(|loc| &loc.schema))
-            .filter(|schema| schema.namespace().as_ref() == name.namespace())
+            .filter(|schema| schema.namespace() == *name.namespace())
             .flat_map(|schema| schema.top_level_elements())
             .find_map(|element| match element {
                 xs::Element::Element(el) if el.name == *name.local_name() => Some(el.deref()),
@@ -448,7 +448,7 @@ impl XmlSchemaSet {
         &self,
         name: &ExpandedName<'_>,
     ) -> Option<&xs::types::TopLevelAttribute> {
-        self.namespace_schemas(name.namespace().map(|a| a.clone().into_owned()))
+        self.namespace_schemas(name.namespace().as_ref().map(|a| a.clone().into_owned()))
             .flat_map(|schema| schema.top_level_attributes())
             .find_map(|attribute| match attribute {
                 xs::Attribute::Attribute(attr) if attr.name == *name.local_name() => {

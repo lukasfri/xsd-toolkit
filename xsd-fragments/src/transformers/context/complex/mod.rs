@@ -22,3 +22,7 @@ mod expand_redefine_fragments;
 pub use expand_redefine_fragments::{
     Error as ExpandRedefineFragmentsError, ExpandRedefineFragments,
 };
+mod expand_override_fragments;
+pub use expand_override_fragments::{
+    Error as ExpandOverrideFragmentsError, ExpandOverrideFragments,
+};

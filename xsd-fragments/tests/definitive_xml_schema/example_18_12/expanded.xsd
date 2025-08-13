@@ -1,0 +1,11 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:group name="DescriptionGroup">
+    <xs:sequence>
+      <xs:element name="description" type="xs:string" />
+    </xs:sequence>
+  </xs:group>
+  <xs:attributeGroup name="IdentifierGroup">
+    <xs:attribute name="effDate" type="xs:date" />
+    <xs:attribute name="id" type="xs:ID" />
+  </xs:attributeGroup>
+</xs:schema>

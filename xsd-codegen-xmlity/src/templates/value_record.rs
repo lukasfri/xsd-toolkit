@@ -92,8 +92,12 @@ impl ItemFieldElement {
     pub fn option_attributes(&self) -> impl Iterator<Item = syn::Meta> {
         let name = self.name.local_name().to_string();
         let name_option: syn::Meta = parse_quote! { name = #name };
-        let namespace_option: Option<syn::Meta> =
-            self.name.namespace().map(ToString::to_string).map(|ns| {
+        let namespace_option: Option<syn::Meta> = self
+            .name
+            .namespace()
+            .as_ref()
+            .map(ToString::to_string)
+            .map(|ns| {
                 parse_quote! { namespace = #ns }
             });
 

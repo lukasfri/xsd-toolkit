@@ -7,36 +7,12 @@ use std::convert::Infallible;
 use url::Url;
 use xmlity::types::utils::{XmlRoot, XmlRootTop};
 use xsd::set::XmlSchemaSet;
-use xsd_fragments::{transformers::context::complex::ExpandRedefineFragments, XmlnsContext};
+use xsd_fragments::{transformers::context::complex::ExpandIncludeFragments, XmlnsContext};
 
 #[rstest]
-#[case::dxs_example_18_1(
-    "definitive_xml_schema/example_18_1/prod2.xsd",
-    "definitive_xml_schema/example_18_1/expanded.xsd"
-)]
-#[case::dxs_example_18_2(
-    "definitive_xml_schema/example_18_2/prod2.xsd",
-    "definitive_xml_schema/example_18_2/expanded.xsd"
-)]
-#[case::dxs_example_18_3(
-    "definitive_xml_schema/example_18_3/prod2.xsd",
-    "definitive_xml_schema/example_18_3/expanded.xsd"
-)]
-#[case::dxs_example_18_4(
-    "definitive_xml_schema/example_18_4/prod2.xsd",
-    "definitive_xml_schema/example_18_4/expanded.xsd"
-)]
-#[case::dxs_example_18_5(
-    "definitive_xml_schema/example_18_5/prod2.xsd",
-    "definitive_xml_schema/example_18_5/expanded.xsd"
-)]
-#[case::dxs_example_18_6(
-    "definitive_xml_schema/example_18_6/prod2.xsd",
-    "definitive_xml_schema/example_18_6/expanded.xsd"
-)]
-#[case::dxs_example_18_7(
-    "definitive_xml_schema/example_18_7/prod2.xsd",
-    "definitive_xml_schema/example_18_7/expanded.xsd"
+#[case::dxs_example_todo(
+    "definitive_xml_schema/TODO/prod2.xsd",
+    "definitive_xml_schema/TODO/expanded.xsd"
 )]
 fn test(#[case] path: &str, #[case] result: &str) {
     use xsd::xs;
@@ -85,7 +61,7 @@ fn test(#[case] path: &str, #[case] result: &str) {
         .clone();
 
     let changed = context
-        .context_transform(ExpandRedefineFragments::new())
+        .context_transform(ExpandIncludeFragments::new())
         .unwrap();
 
     assert_eq!(changed, TransformChange::Changed);

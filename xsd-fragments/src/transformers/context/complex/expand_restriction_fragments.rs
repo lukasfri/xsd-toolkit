@@ -275,6 +275,14 @@ impl ExpandRestrictionFragments {
             }
         };
 
+        Self::expand_restriction_from_base(ctx, child_fragment_idx, &base_restriction_id)
+    }
+
+    pub fn expand_restriction_from_base(
+        ctx: &mut XmlnsContextTransformerContext<'_>,
+        child_fragment_idx: &FragmentIdx<RestrictionFragment>,
+        base_restriction_id: &FragmentIdx<RestrictionFragment>,
+    ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let base = ctx
             .get_complex_fragment(&base_restriction_id)
             .expect("Fragment not found in compiler.")

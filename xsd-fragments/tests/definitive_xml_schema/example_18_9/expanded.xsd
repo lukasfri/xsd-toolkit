@@ -2,8 +2,8 @@
   <xs:element name="size" type="DressSizeType" />
   <xs:simpleType name="DressSizeType">
     <xs:restriction base="xs:integer">
-      <xs:maxInclusive value="18" />
       <xs:minInclusive value="2" />
+      <xs:maxInclusive value="18" />
     </xs:restriction>
   </xs:simpleType>
   <xs:element name="newSize" type="DressSizeType" />

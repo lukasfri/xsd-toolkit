@@ -2,21 +2,20 @@ use xsd::UrlExt;
 
 use crate::{
     fragments::{
-        complex::{ComplexOffsetableExt, RedefinableId, RedefineFragment, TopLevelTypeId},
+        complex::{
+            ComplexOffsetableExt, OverrideFragment, RedefinableId, SchemaTopId, TopLevelTypeId,
+        },
         FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
     },
-    transformers::{
-        context::{complex::ExpandRestrictionFragments, simple::ExpandSimpleRestriction},
-        TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext,
-    },
+    transformers::{TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext},
     FragmentedXsdDocumentKey,
 };
 
 #[non_exhaustive]
-pub struct ExpandRedefineFragments {}
+pub struct ExpandOverrideFragments {}
 
 #[derive(Debug, thiserror::Error)]
-/// Error type for the [`ExpandRedefineFragments`] transformer.
+/// Error type for the [`ExpandOverrideFragments`] transformer.
 pub enum Error {
     #[error("Schema not found: {0}")]
     SchemaNotFound(FragmentedXsdDocumentIdx),
@@ -26,20 +25,20 @@ pub enum Error {
     SimpleFragment(#[from] crate::fragments::simple::Error),
 }
 
-impl ExpandRedefineFragments {
-    /// Creates a new instance of the [`ExpandRedefineFragments`] transformer.
+impl ExpandOverrideFragments {
+    /// Creates a new instance of the [`ExpandOverrideFragments`] transformer.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }
 
-    fn expand_schema_redefine(
+    fn expand_schema_override(
         ctx: &mut XmlnsContextTransformerContext<'_>,
         target_idx: &FragmentedXsdDocumentIdx,
-        redefine_fragment_id: &FragmentIdx<RedefineFragment>,
+        override_fragment_id: &FragmentIdx<OverrideFragment>,
     ) -> Result<TransformChange, Error> {
-        let redefine_fragment = ctx
-            .get_complex_fragment(&redefine_fragment_id)
+        let override_fragment = ctx
+            .get_complex_fragment(&override_fragment_id)
             .expect("Expected include to be found")
             .clone();
 
@@ -53,7 +52,7 @@ impl ExpandRedefineFragments {
 
         let location_url = current_fragment_location
             .0
-            .resolve_xml_url(&redefine_fragment.schema_location)
+            .resolve_xml_url(&override_fragment.schema_location)
             .expect("Expected a valid URL");
 
         let key = FragmentedXsdDocumentKey(location_url);
@@ -65,11 +64,13 @@ impl ExpandRedefineFragments {
             .cloned()
             .ok_or_else(|| Error::SchemaNotFound(target_idx.clone()))?;
 
-        let redefined_complex_types = redefine_fragment
-            .redefineable
+        let overriden_complex_types = override_fragment
+            .schema_tops
             .iter()
             .filter_map(|redefinable| match redefinable {
-                RedefinableId::ComplexType(fragment_idx) => Some(fragment_idx),
+                SchemaTopId::Redefinable(RedefinableId::ComplexType(fragment_idx)) => {
+                    Some(fragment_idx)
+                }
                 _ => None,
             })
             .map(|fragment_idx| {
@@ -84,11 +85,13 @@ impl ExpandRedefineFragments {
             })
             .collect::<Vec<_>>();
 
-        let redefined_simple_types = redefine_fragment
-            .redefineable
+        let overriden_simple_types = override_fragment
+            .schema_tops
             .iter()
             .filter_map(|redefinable| match redefinable {
-                RedefinableId::SimpleType(fragment_idx) => Some(fragment_idx),
+                SchemaTopId::Redefinable(RedefinableId::SimpleType(fragment_idx)) => {
+                    Some(fragment_idx)
+                }
                 _ => None,
             })
             .map(|fragment_idx| {
@@ -103,11 +106,13 @@ impl ExpandRedefineFragments {
             })
             .collect::<Vec<_>>();
 
-        let redefined_attribute_groups = redefine_fragment
-            .redefineable
+        let overriden_attribute_groups = override_fragment
+            .schema_tops
             .iter()
             .filter_map(|redefinable| match redefinable {
-                RedefinableId::AttributeGroup(fragment_idx) => Some(fragment_idx),
+                SchemaTopId::Redefinable(RedefinableId::AttributeGroup(fragment_idx)) => {
+                    Some(fragment_idx)
+                }
                 _ => None,
             })
             .map(|fragment_idx| {
@@ -117,11 +122,11 @@ impl ExpandRedefineFragments {
             .map(|fragment| fragment.name.clone())
             .collect::<Vec<_>>();
 
-        let redefined_groups = redefine_fragment
-            .redefineable
+        let overriden_groups = override_fragment
+            .schema_tops
             .iter()
             .filter_map(|redefinable| match redefinable {
-                RedefinableId::Group(fragment_idx) => Some(fragment_idx),
+                SchemaTopId::Redefinable(RedefinableId::Group(fragment_idx)) => Some(fragment_idx),
                 _ => None,
             })
             .map(|fragment_idx| {
@@ -131,24 +136,52 @@ impl ExpandRedefineFragments {
             .map(|fragment| fragment.name.clone())
             .collect::<Vec<_>>();
 
-        let (redefined_document, target_document) = ctx.xmlns_context.namespaces.iter_mut().fold(
+        let overriden_elements = override_fragment
+            .schema_tops
+            .iter()
+            .filter_map(|schema_top| match schema_top {
+                SchemaTopId::Element(fragment_idx) => Some(fragment_idx),
+                _ => None,
+            })
+            .map(|fragment_idx| {
+                ctx.get_complex_fragment(&fragment_idx)
+                    .expect("Expected fragment to be found")
+            })
+            .map(|fragment| fragment.name.clone())
+            .collect::<Vec<_>>();
+
+        let overriden_attributes = override_fragment
+            .schema_tops
+            .iter()
+            .filter_map(|schema_top| match schema_top {
+                SchemaTopId::Attribute(fragment_idx) => Some(fragment_idx),
+                _ => None,
+            })
+            .map(|fragment_idx| {
+                ctx.get_complex_fragment(&fragment_idx)
+                    .expect("Expected fragment to be found")
+            })
+            .map(|fragment| fragment.name.clone())
+            .collect::<Vec<_>>();
+
+        let (overriden_document, target_document) = ctx.xmlns_context.namespaces.iter_mut().fold(
             (None, None),
-            |(redefined, target_document), (key, namespace)| {
+            |(overriden, target_document), (key, namespace)| {
                 if key == &schema_location {
                     (Some(namespace), target_document)
                 } else if key == target_idx {
-                    (redefined, Some(namespace))
+                    (overriden, Some(namespace))
                 } else {
-                    (redefined, target_document)
+                    (overriden, target_document)
                 }
             },
         );
 
-        let redefined_document =
-            redefined_document.expect("Expected redefined document to be found");
+        let overriden_document =
+            overriden_document.expect("Expected overriden document to be found");
         let target_document = target_document.expect("Expected target document to be found");
 
-        if redefined_document
+        if overriden_document
             .target_namespace
             .as_ref()
             .is_some_and(|ns| Some(ns) != target_document.target_namespace.as_ref())
@@ -156,17 +189,17 @@ impl ExpandRedefineFragments {
             todo!(
                 "Handle error for merging namespaces with different namespaces: {:?} and {:?}",
                 target_document.target_namespace,
-                redefined_document.target_namespace
+                overriden_document.target_namespace
             );
         }
 
         let offsets = target_document.compiler.merge_with(
-            &redefined_document.compiler,
-            &redefined_document.target_namespace,
+            &overriden_document.compiler,
+            &overriden_document.target_namespace,
             &target_document.target_namespace,
         )?;
 
-        for (name, top_level_type) in &redefined_document.top_level_types {
+        for (name, top_level_type) in &overriden_document.top_level_types {
             target_document
                 .top_level_types
                 .entry(name.clone())
@@ -174,18 +207,18 @@ impl ExpandRedefineFragments {
                     top_level_type
                         .clone()
                         .with_offset(
-                            &redefined_document.compiler.namespace_idx,
+                            &overriden_document.compiler.namespace_idx,
                             &target_document.compiler.namespace_idx,
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &redefined_document.target_namespace,
+                            &overriden_document.target_namespace,
                             &target_document.target_namespace,
                         )
                 });
         }
 
-        for (name, top_level_element) in &redefined_document.top_level_elements {
+        for (name, top_level_element) in &overriden_document.top_level_elements {
             target_document
                 .top_level_elements
                 .entry(name.clone())
@@ -193,18 +226,18 @@ impl ExpandRedefineFragments {
                     top_level_element
                         .clone()
                         .with_offset(
-                            &redefined_document.compiler.namespace_idx,
+                            &overriden_document.compiler.namespace_idx,
                             &target_document.compiler.namespace_idx,
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &redefined_document.target_namespace,
+                            &overriden_document.target_namespace,
                             &target_document.target_namespace,
                         )
                 });
         }
 
-        for (name, top_level_attribute) in &redefined_document.top_level_attributes {
+        for (name, top_level_attribute) in &overriden_document.top_level_attributes {
             target_document
                 .top_level_attributes
                 .entry(name.clone())
@@ -212,18 +245,18 @@ impl ExpandRedefineFragments {
                     top_level_attribute
                         .clone()
                         .with_offset(
-                            &redefined_document.compiler.namespace_idx,
+                            &overriden_document.compiler.namespace_idx,
                             &target_document.compiler.namespace_idx,
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &redefined_document.target_namespace,
+                            &overriden_document.target_namespace,
                             &target_document.target_namespace,
                         )
                 });
         }
 
-        for (name, top_level_group) in &redefined_document.top_level_groups {
+        for (name, top_level_group) in &overriden_document.top_level_groups {
             target_document
                 .top_level_groups
                 .entry(name.clone())
@@ -231,18 +264,18 @@ impl ExpandRedefineFragments {
                     top_level_group
                         .clone()
                         .with_offset(
-                            &redefined_document.compiler.namespace_idx,
+                            &overriden_document.compiler.namespace_idx,
                             &target_document.compiler.namespace_idx,
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &redefined_document.target_namespace,
+                            &overriden_document.target_namespace,
                             &target_document.target_namespace,
                         )
                 });
         }
 
-        for (name, top_level_attribute_group) in &redefined_document.top_level_attribute_groups {
+        for (name, top_level_attribute_group) in &overriden_document.top_level_attribute_groups {
             target_document
                 .top_level_attribute_groups
                 .entry(name.clone())
@@ -250,29 +283,29 @@ impl ExpandRedefineFragments {
                     top_level_attribute_group
                         .clone()
                         .with_offset(
-                            &redefined_document.compiler.namespace_idx,
+                            &overriden_document.compiler.namespace_idx,
                             &target_document.compiler.namespace_idx,
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &redefined_document.target_namespace,
+                            &overriden_document.target_namespace,
                             &target_document.target_namespace,
                         )
                 });
         }
 
-        redefined_document
+        overriden_document
             .compositions
             .iter()
             .copied()
             .map(|a| {
                 a.with_offset(
-                    &redefined_document.compiler.namespace_idx,
+                    &overriden_document.compiler.namespace_idx,
                     &target_document.compiler.namespace_idx,
                     &offsets,
                 )
                 .with_remapped_namespace(
-                    &redefined_document.target_namespace,
+                    &overriden_document.target_namespace,
                     &target_document.target_namespace,
                 )
             })
@@ -280,15 +313,15 @@ impl ExpandRedefineFragments {
                 target_document.compositions.push_front(composition_id);
             });
 
-        redefine_fragment
-            .redefineable
+        override_fragment
+            .schema_tops
             .iter()
             .copied()
             .into_iter()
             .rev()
-            .for_each(|redefinable| {
-                match redefinable {
-                    RedefinableId::ComplexType(root_fragment) => {
+            .for_each(|schema_top| {
+                match schema_top {
+                    SchemaTopId::Redefinable(RedefinableId::ComplexType(root_fragment)) => {
                         let fragment = target_document
                             .compiler
                             .get_fragment(&root_fragment)
@@ -303,7 +336,7 @@ impl ExpandRedefineFragments {
                             .top_level_types
                             .insert(name, TopLevelTypeId::ComplexType(root_fragment));
                     }
-                    RedefinableId::SimpleType(root_fragment) => {
+                    SchemaTopId::Redefinable(RedefinableId::SimpleType(root_fragment)) => {
                         let fragment = target_document
                             .compiler
                             .simple_type_compiler
@@ -319,7 +352,7 @@ impl ExpandRedefineFragments {
                             .top_level_types
                             .insert(name, TopLevelTypeId::SimpleType(root_fragment));
                     }
-                    RedefinableId::AttributeGroup(root_fragment) => {
+                    SchemaTopId::Redefinable(RedefinableId::AttributeGroup(root_fragment)) => {
                         let fragment = target_document
                             .compiler
                             .get_fragment(&root_fragment)
@@ -331,7 +364,7 @@ impl ExpandRedefineFragments {
                             .top_level_attribute_groups
                             .insert(name, root_fragment);
                     }
-                    RedefinableId::Group(root_fragment) => {
+                    SchemaTopId::Redefinable(RedefinableId::Group(root_fragment)) => {
                         let fragment = target_document
                             .compiler
                             .get_fragment(&root_fragment)
@@ -341,27 +374,46 @@ impl ExpandRedefineFragments {
 
                         target_document.top_level_groups.insert(name, root_fragment);
                     }
-                    RedefinableId::Notation => todo!(),
+                    SchemaTopId::Redefinable(RedefinableId::Notation) => todo!(),
+                    SchemaTopId::Element(element) => {
+                        let fragment = target_document
+                            .compiler
+                            .get_fragment(&element)
+                            .expect("Expected fragment to be found");
+
+                        let name = fragment.name.clone();
+
+                        target_document.top_level_elements.insert(name, element);
+                    }
+                    SchemaTopId::Attribute(attribute) => {
+                        let fragment = target_document
+                            .compiler
+                            .get_fragment(&attribute)
+                            .expect("Expected fragment to be found");
+
+                        let name = fragment.name.clone();
+
+                        target_document.top_level_attributes.insert(name, attribute);
+                    }
+                    SchemaTopId::Notation => todo!(),
                 }
 
-                target_document.schema_tops.push_front(
-                    crate::fragments::complex::SchemaTopId::Redefinable(redefinable),
-                );
+                target_document.schema_tops.push_front(schema_top);
             });
 
-        redefined_document
+        overriden_document
             .schema_tops
             .iter()
             .rev()
             .copied()
             .map(|a| {
                 a.with_offset(
-                    &redefined_document.compiler.namespace_idx,
+                    &overriden_document.compiler.namespace_idx,
                     &target_document.compiler.namespace_idx,
                     &offsets,
                 )
                 .with_remapped_namespace(
-                    &redefined_document.target_namespace,
+                    &overriden_document.target_namespace,
                     &target_document.target_namespace,
                 )
             })
@@ -379,7 +431,7 @@ impl ExpandRedefineFragments {
                                 .as_ref()
                                 .expect("Top level type should have a name");
 
-                            !redefined_complex_types.contains(name)
+                            !overriden_complex_types.contains(name)
                         }
                         RedefinableId::SimpleType(fragment_idx) => {
                             let fragment = target_document
@@ -393,7 +445,7 @@ impl ExpandRedefineFragments {
                                 .as_ref()
                                 .expect("Top level type should have a name");
 
-                            !redefined_simple_types.contains(name)
+                            !overriden_simple_types.contains(name)
                         }
                         RedefinableId::AttributeGroup(fragment_idx) => {
                             let fragment = target_document
@@ -403,7 +455,7 @@ impl ExpandRedefineFragments {
 
                             let name = &fragment.name;
 
-                            !redefined_attribute_groups.contains(name)
+                            !overriden_attribute_groups.contains(name)
                         }
                         RedefinableId::Group(fragment_idx) => {
                             let fragment = target_document
@@ -413,172 +465,41 @@ impl ExpandRedefineFragments {
 
                             let name = &fragment.name;
 
-                            !redefined_groups.contains(name)
+                            !overriden_groups.contains(name)
                         }
                         RedefinableId::Notation => todo!(),
                     }
                 }
-                _ => true,
+                SchemaTopId::Element(fragment_idx) => {
+                    let fragment = target_document
+                        .compiler
+                        .get_fragment(&fragment_idx)
+                        .expect("Expected fragment to be found");
+
+                    let name = fragment.name.clone();
+
+                    !overriden_elements.contains(&name)
+                }
+                SchemaTopId::Attribute(fragment_idx) => {
+                    let fragment = target_document
+                        .compiler
+                        .get_fragment(&fragment_idx)
+                        .expect("Expected fragment to be found");
+
+                    let name = fragment.name.clone();
+
+                    !overriden_attributes.contains(&name)
+                }
+                SchemaTopId::Notation => todo!(),
             })
             .for_each(|schema_top_id| {
                 target_document.schema_tops.push_front(schema_top_id);
             });
 
-        redefine_fragment
-            .redefineable
-            .iter()
-            .copied()
-            .into_iter()
-            .rev()
-            .for_each(|redefinable| {
-                let (redefined_document, target_document) = ctx.xmlns_context.namespaces.iter_mut().fold(
-                    (None, None),
-                    |(redefined, target_document), (key, namespace)| {
-                        if key == &schema_location {
-                            (Some(namespace), target_document)
-                        } else if key == target_idx {
-                            (redefined, Some(namespace))
-                        } else {
-                            (redefined, target_document)
-                        }
-                    },
-                );
-
-                let redefined_document =
-                    redefined_document.expect("Expected redefined document to be found");
-                let target_document = target_document.expect("Expected target document to be found");
-
-                match redefinable {
-                    RedefinableId::ComplexType(root_fragment) => {
-                        let fragment = target_document
-                            .compiler
-                            .get_fragment(&root_fragment)
-                            .expect("Expected fragment to be found");
-
-                        let name = fragment
-                            .name
-                            .clone()
-                            .expect("Top level type should have a name");
-
-                        let TopLevelTypeId::ComplexType(base_fragment) = *redefined_document
-                            .top_level_types
-                            .get(&name)
-                            .expect("Expected base fragment with same local name to be found")
-                        else {
-                            panic!("Expected base fragment to also be a complex type");
-                        };
-
-                        let base_fragment = base_fragment.with_offset(
-                            &redefined_document.compiler.namespace_idx,
-                            &target_document.compiler.namespace_idx,
-                            &offsets,
-                        ).with_remapped_namespace(
-                            &redefined_document.target_namespace,
-                            &target_document.target_namespace,
-                        );
-
-                        let base_fragment = target_document
-                            .compiler
-                            .get_fragment(&base_fragment)
-                            .expect("Expected base fragment to be found");
-
-                        //TODO: Only transform if reference will disappear.
-                        match fragment.content {
-                            crate::fragments::complex::ComplexTypeModelId::SimpleContent(_) =>  {},
-                            crate::fragments::complex::ComplexTypeModelId::ComplexContent(fragment_idx) => {
-                                let fragment = target_document.compiler.get_fragment(&fragment_idx).expect("Expected fragment to be found");
-                                match fragment.content_fragment {
-                                    crate::fragments::complex::ComplexContentChildId::Extension(_) => {
-                                        todo!("Handle extension of complex type in redefine");
-                                    },
-                                    crate::fragments::complex::ComplexContentChildId::Restriction(child_fragment_idx) => {
-                                        let crate::fragments::complex::ComplexTypeModelId::ComplexContent(base_complex_content_id) =
-                                            base_fragment.content else {
-                                            panic!("Expected base fragment to have complex content");
-                                        };
-
-                                        let base_content_fragment = target_document
-                                            .compiler
-                                            .get_fragment(&base_complex_content_id)
-                                            .expect("Expected base content fragment to be found");
-
-                                        let crate::fragments::complex::ComplexContentChildId::Restriction(base_restriction_id) =
-                                            base_content_fragment.content_fragment else {
-                                            panic!("Expected base content fragment to have restriction");
-                                        }; //TODO: Handle extension of complex type in redefine
-
-                                        let _todo_use_value = ExpandRestrictionFragments::expand_restriction_from_base(ctx, &child_fragment_idx, &base_restriction_id)
-                                            .expect("Expected restriction to be expanded");
-                                    },
-                                }
-                            },
-                            crate::fragments::complex::ComplexTypeModelId::Other { .. } => {},
-                        }
-                    }
-
-                        //TODO: Only transform if reference will disappear.
-                    RedefinableId::SimpleType(root_fragment) => {
-                        let fragment = target_document
-                            .compiler
-                            .simple_type_compiler
-                            .get_fragment(&root_fragment)
-                            .expect("Expected fragment to be found");
-
-                        let name = fragment
-                            .name
-                            .clone()
-                            .expect("Top level type should have a name");
-
-                        let TopLevelTypeId::SimpleType(base_fragment_idx) = redefined_document
-                            .top_level_types
-                            .get(&name)
-                            .expect("Expected base fragment with same local name to be found")
-                        else {
-                            panic!("Expected base fragment to also be a simple type");
-                        };
-
-                        let base_fragment_idx = base_fragment_idx.with_offset(
-                            &redefined_document.compiler.namespace_idx,
-                            &target_document.compiler.namespace_idx,
-                            &offsets,
-                        ).with_remapped_namespace(
-                            &redefined_document.target_namespace,
-                            &target_document.target_namespace,
-                        );
-
-                        let base_fragment = target_document
-                            .compiler
-                            .simple_type_compiler
-                            .get_fragment(&base_fragment_idx)
-                            .expect("Expected base fragment to be found");
-
-                        match base_fragment.simple_derivation {
-                            crate::fragments::simple::SimpleDerivation::Restriction(fragment_idx) => {
-                                let _todo_use_value = ExpandSimpleRestriction::flatten_restriction_with_base(
-                                    ctx,
-                                    &root_fragment,
-                                    &base_fragment_idx
-                                ).expect("Expected restriction to be expanded");
-                            },
-                            crate::fragments::simple::SimpleDerivation::List(fragment_idx) =>  {},
-                            crate::fragments::simple::SimpleDerivation::Union(fragment_idx) => {},
-                        }
-
-
-                    }
-                    RedefinableId::AttributeGroup(root_fragment) => {
-                    }
-                    RedefinableId::Group(root_fragment) => {
-
-                    }
-                    RedefinableId::Notation => todo!(),
-                }
-            });
-
         Ok(TransformChange::Changed)
     }
 
-    fn expand_schema_redefines(
+    fn expand_schema_overrides(
         ctx: &mut XmlnsContextTransformerContext<'_>,
         document_idx: &FragmentedXsdDocumentIdx,
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
@@ -588,11 +509,11 @@ impl ExpandRedefineFragments {
             .get_mut(document_idx)
             .ok_or_else(|| Error::SchemaNotFound(document_idx.clone()))?;
 
-        let (compositions, redefines) = namespace
+        let (compositions, overrides) = namespace
             .compositions
             .drain(..)
             .map(|a| match a {
-                crate::fragments::complex::CompositionId::Redefine(fragment_idx) => {
+                crate::fragments::complex::CompositionId::Override(fragment_idx) => {
                     (None, Some(fragment_idx))
                 }
                 _ => (Some(a), None),
@@ -601,15 +522,15 @@ impl ExpandRedefineFragments {
 
         namespace.compositions = compositions.into_iter().flatten().collect();
 
-        redefines
+        overrides
             .into_iter()
             .flatten()
-            .map(|r| Self::expand_schema_redefine(ctx, document_idx, &r))
+            .map(|r| Self::expand_schema_override(ctx, document_idx, &r))
             .collect()
     }
 }
 
-impl XmlnsContextTransformer for ExpandRedefineFragments {
+impl XmlnsContextTransformer for ExpandOverrideFragments {
     type Error = Error;
 
     fn transform(
@@ -624,7 +545,7 @@ impl XmlnsContextTransformer for ExpandRedefineFragments {
             .collect::<Vec<_>>();
 
         keys.into_iter()
-            .map(|document_idx| Self::expand_schema_redefines(&mut context, &document_idx))
+            .map(|document_idx| Self::expand_schema_overrides(&mut context, &document_idx))
             .collect::<Result<TransformChange, Self::Error>>()
     }
 }

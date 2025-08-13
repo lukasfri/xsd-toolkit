@@ -7,36 +7,32 @@ use std::convert::Infallible;
 use url::Url;
 use xmlity::types::utils::{XmlRoot, XmlRootTop};
 use xsd::set::XmlSchemaSet;
-use xsd_fragments::{transformers::context::complex::ExpandRedefineFragments, XmlnsContext};
+use xsd_fragments::{transformers::context::complex::ExpandOverrideFragments, XmlnsContext};
 
 #[rstest]
-#[case::dxs_example_18_1(
-    "definitive_xml_schema/example_18_1/prod2.xsd",
-    "definitive_xml_schema/example_18_1/expanded.xsd"
+#[case::dxs_example_18_8(
+    "definitive_xml_schema/example_18_8/prod2.xsd",
+    "definitive_xml_schema/example_18_8/expanded.xsd"
 )]
-#[case::dxs_example_18_2(
-    "definitive_xml_schema/example_18_2/prod2.xsd",
-    "definitive_xml_schema/example_18_2/expanded.xsd"
+#[case::dxs_example_18_9(
+    "definitive_xml_schema/example_18_9/prod2.xsd",
+    "definitive_xml_schema/example_18_9/expanded.xsd"
 )]
-#[case::dxs_example_18_3(
-    "definitive_xml_schema/example_18_3/prod2.xsd",
-    "definitive_xml_schema/example_18_3/expanded.xsd"
+#[case::dxs_example_18_10(
+    "definitive_xml_schema/example_18_10/prod2.xsd",
+    "definitive_xml_schema/example_18_10/expanded.xsd"
 )]
-#[case::dxs_example_18_4(
-    "definitive_xml_schema/example_18_4/prod2.xsd",
-    "definitive_xml_schema/example_18_4/expanded.xsd"
+#[case::dxs_example_18_11(
+    "definitive_xml_schema/example_18_11/prod2.xsd",
+    "definitive_xml_schema/example_18_11/expanded.xsd"
 )]
-#[case::dxs_example_18_5(
-    "definitive_xml_schema/example_18_5/prod2.xsd",
-    "definitive_xml_schema/example_18_5/expanded.xsd"
+#[case::dxs_example_18_12(
+    "definitive_xml_schema/example_18_12/prod2.xsd",
+    "definitive_xml_schema/example_18_12/expanded.xsd"
 )]
-#[case::dxs_example_18_6(
-    "definitive_xml_schema/example_18_6/prod2.xsd",
-    "definitive_xml_schema/example_18_6/expanded.xsd"
-)]
-#[case::dxs_example_18_7(
-    "definitive_xml_schema/example_18_7/prod2.xsd",
-    "definitive_xml_schema/example_18_7/expanded.xsd"
+#[case::dxs_example_18_13(
+    "definitive_xml_schema/example_18_13/prod2.xsd",
+    "definitive_xml_schema/example_18_13/expanded.xsd"
 )]
 fn test(#[case] path: &str, #[case] result: &str) {
     use xsd::xs;
@@ -85,7 +81,7 @@ fn test(#[case] path: &str, #[case] result: &str) {
         .clone();
 
     let changed = context
-        .context_transform(ExpandRedefineFragments::new())
+        .context_transform(ExpandOverrideFragments::new())
         .unwrap();
 
     assert_eq!(changed, TransformChange::Changed);

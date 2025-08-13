@@ -56,7 +56,7 @@ impl ElementFieldAttribute {
         let namespace_option: Option<syn::Meta> = self
             .name
             .as_ref()
-            .and_then(|en| en.namespace())
+            .and_then(|en| en.namespace().as_ref())
             .map(ToString::to_string)
             .map(|ns| parse_quote! { namespace = #ns });
 
@@ -318,8 +318,12 @@ impl ElementRecord {
     pub fn option_attributes(&self) -> impl Iterator<Item = syn::MetaNameValue> {
         let name = self.name.local_name().to_string();
         let name_option: syn::MetaNameValue = parse_quote! { name = #name };
-        let namespace_option: Option<syn::MetaNameValue> =
-            self.name.namespace().map(ToString::to_string).map(|ns| {
+        let namespace_option: Option<syn::MetaNameValue> = self
+            .name
+            .namespace()
+            .as_ref()
+            .map(ToString::to_string)
+            .map(|ns| {
                 parse_quote! { namespace = #ns }
             });
 

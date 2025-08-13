@@ -21,6 +21,8 @@ pub trait SimpleOffsetable {
         new: &FragmentedXsdDocumentIdx,
         offsets: &IdOffsets,
     );
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>);
 }
 
 pub trait SimpleOffsetableExt: SimpleOffsetable + Sized {
@@ -31,6 +33,15 @@ pub trait SimpleOffsetableExt: SimpleOffsetable + Sized {
         offsets: &IdOffsets,
     ) -> Self {
         self.offset(target, new, offsets);
+        self
+    }
+
+    fn with_remapped_namespace(
+        mut self,
+        old: &Option<XmlNamespace>,
+        new: &Option<XmlNamespace<'static>>,
+    ) -> Self {
+        self.remap_namespace(old, new);
         self
     }
 }
@@ -47,6 +58,18 @@ impl SimpleOffsetable for NamedOrAnonymous<FragmentIdx<SimpleTypeRootFragment>> 
         match self {
             NamedOrAnonymous::Named(_idx) => {}
             NamedOrAnonymous::Anonymous(idx) => idx.offset(target, new, offsets),
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            NamedOrAnonymous::Named(expanded_name) => {
+                if expanded_name.namespace() == old {
+                    *expanded_name =
+                        ExpandedName::new(expanded_name.local_name().clone(), new.clone());
+                }
+            }
+            NamedOrAnonymous::Anonymous(_) => {}
         }
     }
 }
@@ -66,6 +89,10 @@ impl<T: HasOffset> SimpleOffsetable for FragmentIdx<T> {
             self.0 = *new;
             self.1 += T::get_offset(offsets);
         }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        // No namespace remapping needed for simple fragments.
     }
 }
 
@@ -111,7 +138,7 @@ pub struct RestrictionFragment {
     /// The base type being restricted.
     pub base: Option<ExpandedName<'static>>,
     /// Facets applied in this restriction.
-    pub facets: Vec<FragmentIdx<FacetFragment>>,
+    pub facets: VecDeque<FragmentIdx<FacetFragment>>,
     /// Inline simple type definition.
     pub simple_type: Option<FragmentIdx<SimpleTypeRootFragment>>,
     /// ID attribute for the restriction.
@@ -131,6 +158,20 @@ impl SimpleOffsetable for RestrictionFragment {
             .for_each(|f| f.offset(target, new, offsets));
         if let Some(ref mut s) = self.simple_type {
             s.offset(target, new, offsets);
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if let Some(ref mut base) = self.base {
+            if base.namespace() == old {
+                *base = ExpandedName::new(base.local_name().clone(), new.clone());
+            }
+        }
+        self.facets
+            .iter_mut()
+            .for_each(|f| f.remap_namespace(old, new));
+        if let Some(ref mut s) = self.simple_type {
+            s.remap_namespace(old, new);
         }
     }
 }
@@ -154,6 +195,10 @@ impl SimpleOffsetable for SimpleTypeRootFragment {
     ) {
         self.simple_derivation.offset(target, new, offsets);
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.simple_derivation.remap_namespace(old, new);
+    }
 }
 
 /// Fragment representing a list type.
@@ -174,6 +219,10 @@ impl SimpleOffsetable for ListFragment {
         offsets: &IdOffsets,
     ) {
         self.item_type.offset(target, new, offsets);
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.item_type.remap_namespace(old, new);
     }
 }
 
@@ -200,6 +249,18 @@ impl SimpleOffsetable for UnionFragment {
             .iter_mut()
             .for_each(|s| s.offset(target, new, offsets));
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.member_types.iter_mut().for_each(|m| {
+            if m.namespace() == old {
+                let local_name = m.local_name().clone();
+                *m = ExpandedName::new(local_name, new.clone());
+            }
+        });
+        self.simple_types
+            .iter_mut()
+            .for_each(|s| s.remap_namespace(old, new));
+    }
 }
 
 /// Fragment representing a group reference.
@@ -216,6 +277,12 @@ impl SimpleOffsetable for GroupRefFragment {
         _new: &FragmentedXsdDocumentIdx,
         _offsets: &IdOffsets,
     ) {
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if self.ref_.namespace() == old {
+            self.ref_ = ExpandedName::new(self.ref_.local_name().clone(), new.clone());
+        }
     }
 }
 
@@ -380,6 +447,10 @@ impl SimpleOffsetable for FacetFragment {
         _offsets: &IdOffsets,
     ) {
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        // No namespace remapping needed for facets.
+    }
 }
 
 /// Compiler for simple type fragments.
@@ -431,7 +502,12 @@ impl SimpleTypeFragmentCompiler {
         }
     }
 
-    pub fn merge_with(&mut self, other: &Self) -> Result<IdOffsets, Error> {
+    pub fn merge_with(
+        &mut self,
+        other: &Self,
+        old_target_namespace: &Option<XmlNamespace<'_>>,
+        new_target_namespace: &Option<XmlNamespace<'static>>,
+    ) -> Result<IdOffsets, Error> {
         let merge_result = IdOffsets {
             simple_type_roots_offset: self.simple_types.len(),
             restrictions_offset: self.restrictions.len(),
@@ -446,11 +522,9 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.simple_types.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.simple_type_roots_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -459,11 +533,9 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.restrictions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.restrictions_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -472,11 +544,9 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.facets.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.facet_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -485,11 +555,9 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.lists.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.list_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -498,11 +566,9 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.unions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.union_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -511,11 +577,9 @@ impl SimpleTypeFragmentCompiler {
             .extend(other.group_refs.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.group_ref_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -611,16 +675,19 @@ where
 }
 
 /// Error type for [`SimpleTypeFragmentCompiler`] operations.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
     /// List type is missing its item type definition.
+    #[error("List type is missing its item type definition.")]
     ListMissingType,
     /// Substitution group is not supported.
+    #[error("Substitution group is not supported.")]
     SubstitutionGroupNotSupported {
         /// Name of the element with unsupported substitution group.
         fragment_type: &'static str,
     },
     /// Name is missing in a top-level simple type.
+    #[error("Name is missing in a top-level simple type.")]
     NameMissingInTopLevelSimpleType,
 }
 
@@ -665,9 +732,6 @@ impl SimpleFragmentEquivalent for xs::types::TopLevelSimpleType {
         compiler: &SimpleTypeFragmentCompiler,
         fragment_id: &Self::FragmentId,
     ) -> Result<Self, Error> {
-        println!("Loading simple type fragment: {:?}", fragment_id);
-        println!("In {:?}", compiler.namespace_idx);
-        println!("{:?}", compiler.simple_types.fragments);
         let fragment = compiler
             .get_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
@@ -1628,7 +1692,7 @@ impl SimpleFragmentEquivalent for xs::Restriction {
                 _ => None,
             })
             .map(|facet| facet.to_simple_fragments(&mut compiler, context))
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<_, _>>()?;
 
         Ok(compiler.push_fragment(RestrictionFragment {
             base,
@@ -1707,6 +1771,14 @@ impl SimpleOffsetable for SimpleDerivation {
             SimpleDerivation::Restriction(fragment_id) => fragment_id.offset(target, new, offsets),
             SimpleDerivation::List(fragment_id) => fragment_id.offset(target, new, offsets),
             SimpleDerivation::Union(fragment_id) => fragment_id.offset(target, new, offsets),
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            SimpleDerivation::Restriction(fragment_id) => fragment_id.remap_namespace(old, new),
+            SimpleDerivation::List(fragment_id) => fragment_id.remap_namespace(old, new),
+            SimpleDerivation::Union(fragment_id) => fragment_id.remap_namespace(old, new),
         }
     }
 }

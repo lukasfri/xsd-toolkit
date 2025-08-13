@@ -227,7 +227,7 @@ impl<'a> Generator<'a> {
 
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
+        let namespace = name.namespace().as_ref().ok_or(Error::NoNamespace)?;
         let context = GeneratorContext::new(self, namespace, key, item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
@@ -282,7 +282,7 @@ impl<'a> Generator<'a> {
 
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
+        let namespace = name.namespace().as_ref().ok_or(Error::NoNamespace)?;
         let context = GeneratorContext::new(self, namespace, key, item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
@@ -486,7 +486,7 @@ impl<'a> Generator<'a> {
 
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
+        let namespace = name.namespace().as_ref().ok_or(Error::NoNamespace)?;
         let context = GeneratorContext::new(self, namespace, key, item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
@@ -589,7 +589,7 @@ impl<'a> Generator<'a> {
 
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
+        let namespace = name.namespace().as_ref().ok_or(Error::NoNamespace)?;
         let context = GeneratorContext::new(self, namespace, key, item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 
@@ -644,7 +644,7 @@ impl<'a> Generator<'a> {
 
         let item_name = name.local_name().to_item_ident();
         let module_name = format_ident!("{}Items", item_name).to_path_ident();
-        let namespace = name.namespace().ok_or(Error::NoNamespace)?;
+        let namespace = name.namespace().as_ref().ok_or(Error::NoNamespace)?;
         let context = GeneratorContext::new(self, namespace, key, item_name.clone());
         let mut scope = GeneratorScope::new(&self.augmenter);
 

@@ -46,6 +46,8 @@ pub trait ComplexOffsetable {
         new: &FragmentedXsdDocumentIdx,
         offsets: &IdOffsets,
     );
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>);
 }
 
 pub trait ComplexOffsetableExt: ComplexOffsetable + Sized {
@@ -56,6 +58,15 @@ pub trait ComplexOffsetableExt: ComplexOffsetable + Sized {
         offsets: &IdOffsets,
     ) -> Self {
         self.offset(target, new, offsets);
+        self
+    }
+
+    fn with_remapped_namespace(
+        mut self,
+        old: &Option<XmlNamespace>,
+        new: &Option<XmlNamespace<'static>>,
+    ) -> Self {
+        self.remap_namespace(old, new);
         self
     }
 }
@@ -78,6 +89,14 @@ impl<T: HasOffset> ComplexOffsetable for FragmentIdx<T> {
             self.1 += T::get_offset(offsets);
         }
     }
+
+    fn remap_namespace(
+        &mut self,
+        _old: &Option<XmlNamespace>,
+        _new: &Option<XmlNamespace<'static>>,
+    ) {
+        // FragmentIdx doesn't contain namespace information, so no remapping needed
+    }
 }
 
 impl HasOffset for ComplexTypeRootFragment {
@@ -87,6 +106,12 @@ impl HasOffset for ComplexTypeRootFragment {
 }
 
 impl HasOffset for simple::SimpleTypeRootFragment {
+    fn get_offset(offsets: &IdOffsets) -> usize {
+        <Self as simple::HasOffset>::get_offset(&offsets.simple)
+    }
+}
+
+impl HasOffset for simple::FacetFragment {
     fn get_offset(offsets: &IdOffsets) -> usize {
         <Self as simple::HasOffset>::get_offset(&offsets.simple)
     }
@@ -260,6 +285,18 @@ impl ComplexOffsetable for NamedOrAnonymous<FragmentIdx<ComplexTypeRootFragment>
             NamedOrAnonymous::Anonymous(idx) => idx.offset(target, new, offsets),
         }
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            NamedOrAnonymous::Named(expanded_name) => {
+                if expanded_name.namespace() == old {
+                    *expanded_name =
+                        ExpandedName::new(expanded_name.local_name().clone(), new.clone());
+                }
+            }
+            NamedOrAnonymous::Anonymous(_idx) => {}
+        }
+    }
 }
 
 impl ComplexOffsetable for ExtensionFragment {
@@ -275,6 +312,17 @@ impl ComplexOffsetable for ExtensionFragment {
         self.attribute_declarations.offset(target, new, offsets);
         self.assertions.offset(target, new, offsets);
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if self.base.namespace() == old {
+            self.base = ExpandedName::new(self.base.local_name().clone(), new.clone());
+        }
+        if let Some(ref mut content) = self.content_fragment {
+            content.remap_namespace(old, new);
+        }
+        self.attribute_declarations.remap_namespace(old, new);
+        self.assertions.remap_namespace(old, new);
+    }
 }
 
 impl ComplexOffsetable for ComplexContentFragment {
@@ -285,6 +333,10 @@ impl ComplexOffsetable for ComplexContentFragment {
         offsets: &IdOffsets,
     ) {
         self.content_fragment.offset(target, new, offsets);
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.content_fragment.remap_namespace(old, new);
     }
 }
 
@@ -304,6 +356,15 @@ impl ComplexOffsetable for ComplexContentChildId {
             }
         }
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            ComplexContentChildId::Extension(fragment_id) => fragment_id.remap_namespace(old, new),
+            ComplexContentChildId::Restriction(fragment_id) => {
+                fragment_id.remap_namespace(old, new)
+            }
+        }
+    }
 }
 
 impl ComplexOffsetable for GroupRefFragment {
@@ -317,6 +378,13 @@ impl ComplexOffsetable for GroupRefFragment {
         // GroupRefFragment has no fragmentIdx fields that need offsetting
         // Only contains ref_, min_occurs, max_occurs which are not fragment indices
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if self.ref_.namespace() == old {
+            let local_name = self.ref_.local_name().clone();
+            self.ref_ = ExpandedName::new(local_name, new.clone());
+        }
+    }
 }
 
 impl ComplexOffsetable for AllFragment {
@@ -328,6 +396,12 @@ impl ComplexOffsetable for AllFragment {
     ) {
         for fragment in &mut self.fragments {
             fragment.offset(target, new, offsets);
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        for fragment in &mut self.fragments {
+            fragment.remap_namespace(old, new);
         }
     }
 }
@@ -343,6 +417,12 @@ impl ComplexOffsetable for ChoiceFragment {
             fragment.offset(target, new, offsets);
         }
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        for fragment in &mut self.fragments {
+            fragment.remap_namespace(old, new);
+        }
+    }
 }
 
 impl ComplexOffsetable for SequenceFragment {
@@ -354,6 +434,12 @@ impl ComplexOffsetable for SequenceFragment {
     ) {
         for fragment in &mut self.fragments {
             fragment.offset(target, new, offsets);
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        for fragment in &mut self.fragments {
+            fragment.remap_namespace(old, new);
         }
     }
 }
@@ -369,6 +455,14 @@ impl ComplexOffsetable for AnyFragment {
         // AnyFragment has no fragmentIdx fields that need offsetting
         // Only contains id and process_contents which are not fragment indices
     }
+
+    fn remap_namespace(
+        &mut self,
+        _old: &Option<XmlNamespace>,
+        _new: &Option<XmlNamespace<'static>>,
+    ) {
+        // AnyFragment has no namespace-related fields that need remapping
+    }
 }
 
 impl ComplexOffsetable for LocalElementFragment {
@@ -379,6 +473,10 @@ impl ComplexOffsetable for LocalElementFragment {
         offsets: &IdOffsets,
     ) {
         self.type_.offset(target, new, offsets);
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.type_.remap_namespace(old, new);
     }
 }
 
@@ -396,6 +494,18 @@ impl ComplexOffsetable for LocalElementFragmentType {
             }
         }
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            LocalElementFragmentType::Local(declared) => declared.remap_namespace(old, new),
+            LocalElementFragmentType::Reference(reference) => {
+                if reference.ref_.namespace() == old {
+                    reference.ref_ =
+                        ExpandedName::new(reference.ref_.local_name().clone(), new.clone());
+                }
+            }
+        }
+    }
 }
 
 impl ComplexOffsetable for DeclaredElementFragment {
@@ -406,6 +516,10 @@ impl ComplexOffsetable for DeclaredElementFragment {
         offsets: &IdOffsets,
     ) {
         self.type_.offset(target, new, offsets);
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.type_.remap_namespace(old, new);
     }
 }
 
@@ -420,6 +534,18 @@ impl ComplexOffsetable for TopLevelElementFragment {
             type_.offset(target, new, offsets);
         }
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if let Some(ref mut type_) = self.type_ {
+            type_.remap_namespace(old, new);
+        }
+        for substitution_group in &mut self.substitution_groups {
+            if substitution_group.namespace() == old {
+                let local_name = substitution_group.local_name().clone();
+                *substitution_group = ExpandedName::new(local_name, new.clone());
+            }
+        }
+    }
 }
 
 impl ComplexOffsetable for LocalAttributeFragment {
@@ -430,6 +556,10 @@ impl ComplexOffsetable for LocalAttributeFragment {
         offsets: &IdOffsets,
     ) {
         self.type_mode.offset(target, new, offsets);
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.type_mode.remap_namespace(old, new);
     }
 }
 
@@ -449,6 +579,20 @@ impl ComplexOffsetable for LocalAttributeFragmentTypeMode {
             }
         }
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            LocalAttributeFragmentTypeMode::Declared(declared) => {
+                declared.remap_namespace(old, new)
+            }
+            LocalAttributeFragmentTypeMode::Reference(reference) => {
+                if reference.ref_.namespace() == old {
+                    let local_name = reference.ref_.local_name().clone();
+                    reference.ref_ = ExpandedName::new(local_name, new.clone());
+                }
+            }
+        }
+    }
 }
 
 impl ComplexOffsetable for DeclaredAttributeFragment {
@@ -459,7 +603,13 @@ impl ComplexOffsetable for DeclaredAttributeFragment {
         offsets: &IdOffsets,
     ) {
         if let Some(ref mut type_) = self.type_ {
-            type_.offset(target, new, &offsets.simple);
+            simple::SimpleOffsetable::offset(type_, target, new, &offsets.simple);
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if let Some(ref mut type_) = self.type_ {
+            simple::SimpleOffsetable::remap_namespace(type_, old, new);
         }
     }
 }
@@ -472,7 +622,13 @@ impl ComplexOffsetable for TopLevelAttributeFragment {
         offsets: &IdOffsets,
     ) {
         if let Some(ref mut type_) = self.type_ {
-            type_.offset(target, new, &offsets.simple);
+            simple::SimpleOffsetable::offset(type_, target, new, &offsets.simple);
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if let Some(ref mut type_) = self.type_ {
+            simple::SimpleOffsetable::remap_namespace(type_, old, new);
         }
     }
 }
@@ -488,6 +644,13 @@ impl ComplexOffsetable for AttributeGroupRefFragment {
         // AttributeGroupRefFragment has no fragmentIdx fields that need offsetting
         // Only contains ref_ which is not a fragment index
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if self.ref_.namespace() == old {
+            let local_name = self.ref_.local_name().clone();
+            self.ref_ = ExpandedName::new(local_name, new.clone());
+        }
+    }
 }
 
 impl ComplexOffsetable for TopLevelGroupFragment {
@@ -499,6 +662,10 @@ impl ComplexOffsetable for TopLevelGroupFragment {
     ) {
         self.content.offset(target, new, offsets);
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.content.remap_namespace(old, new);
+    }
 }
 
 impl ComplexOffsetable for TopLevelAttributeGroupFragment {
@@ -509,6 +676,10 @@ impl ComplexOffsetable for TopLevelAttributeGroupFragment {
         offsets: &IdOffsets,
     ) {
         self.attr_decls.offset(target, new, offsets);
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.attr_decls.remap_namespace(old, new);
     }
 }
 
@@ -526,6 +697,15 @@ impl ComplexOffsetable for AttributeDeclarationsFragment {
             any_attribute.offset(target, new, offsets);
         }
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        for declaration in &mut self.declarations {
+            declaration.remap_namespace(old, new);
+        }
+        if let Some(ref mut any_attribute) = self.any_attribute {
+            any_attribute.remap_namespace(old, new);
+        }
+    }
 }
 
 impl ComplexOffsetable for AnyAttributeFragment {
@@ -538,6 +718,14 @@ impl ComplexOffsetable for AnyAttributeFragment {
     ) {
         // AnyAttributeFragment has no fragmentIdx fields that need offsetting
         // Only contains id and process_contents which are not fragment indices
+    }
+
+    fn remap_namespace(
+        &mut self,
+        _old: &Option<XmlNamespace>,
+        _new: &Option<XmlNamespace<'static>>,
+    ) {
+        // AnyAttributeFragment has no namespace-related fields that need remapping
     }
 }
 
@@ -552,6 +740,14 @@ impl ComplexOffsetable for AssertionFragment {
         // AssertionFragment has no fragmentIdx fields that need offsetting
         // Only contains id and test which are not fragment indices
     }
+
+    fn remap_namespace(
+        &mut self,
+        _old: &Option<XmlNamespace>,
+        _new: &Option<XmlNamespace<'static>>,
+    ) {
+        // AssertionFragment has no namespace-related fields that need remapping
+    }
 }
 
 impl ComplexOffsetable for AssertionsFragment {
@@ -563,6 +759,12 @@ impl ComplexOffsetable for AssertionsFragment {
     ) {
         for assertion in &mut self.assertions {
             assertion.offset(target, new, offsets);
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        for assertion in &mut self.assertions {
+            assertion.remap_namespace(old, new);
         }
     }
 }
@@ -582,6 +784,16 @@ impl ComplexOffsetable for NestedParticleId {
             NestedParticleId::Any(fragment_id) => fragment_id.offset(target, new, offsets),
         }
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            NestedParticleId::Element(fragment_id) => fragment_id.remap_namespace(old, new),
+            NestedParticleId::Group(fragment_id) => fragment_id.remap_namespace(old, new),
+            NestedParticleId::Choice(fragment_id) => fragment_id.remap_namespace(old, new),
+            NestedParticleId::Sequence(fragment_id) => fragment_id.remap_namespace(old, new),
+            NestedParticleId::Any(fragment_id) => fragment_id.remap_namespace(old, new),
+        }
+    }
 }
 
 impl ComplexOffsetable for NamedOrAnonymous<ElementTypeContentId> {
@@ -596,6 +808,18 @@ impl ComplexOffsetable for NamedOrAnonymous<ElementTypeContentId> {
                 // Named types don't need offsetting as they reference names
             }
             NamedOrAnonymous::Anonymous(content_id) => content_id.offset(target, new, offsets),
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            NamedOrAnonymous::Named(expanded_name) => {
+                if expanded_name.namespace() == old {
+                    let local_name = expanded_name.local_name().clone();
+                    *expanded_name = ExpandedName::new(local_name, new.clone());
+                }
+            }
+            NamedOrAnonymous::Anonymous(content_id) => content_id.remap_namespace(old, new),
         }
     }
 }
@@ -614,6 +838,15 @@ impl ComplexOffsetable for ElementTypeContentId {
             ElementTypeContentId::ComplexType(fragment_id) => {
                 fragment_id.offset(target, new, offsets)
             }
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            ElementTypeContentId::SimpleType(fragment_id) => {
+                simple::SimpleOffsetable::remap_namespace(fragment_id, old, new)
+            }
+            ElementTypeContentId::ComplexType(fragment_id) => fragment_id.remap_namespace(old, new),
         }
     }
 }
@@ -635,6 +868,14 @@ impl ComplexOffsetable for NamedGroupTypeContentId {
             }
         }
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            NamedGroupTypeContentId::All(fragment_id) => fragment_id.remap_namespace(old, new),
+            NamedGroupTypeContentId::Sequence(fragment_id) => fragment_id.remap_namespace(old, new),
+            NamedGroupTypeContentId::Choice(fragment_id) => fragment_id.remap_namespace(old, new),
+        }
+    }
 }
 
 impl ComplexOffsetable for TopLevelTypeId {
@@ -647,7 +888,16 @@ impl ComplexOffsetable for TopLevelTypeId {
         match self {
             TopLevelTypeId::ComplexType(fragment_id) => fragment_id.offset(target, new, offsets),
             TopLevelTypeId::SimpleType(fragment_id) => {
-                ComplexOffsetable::offset(fragment_id, target, new, offsets)
+                simple::SimpleOffsetable::offset(fragment_id, target, new, &offsets.simple)
+            }
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            TopLevelTypeId::ComplexType(fragment_id) => fragment_id.remap_namespace(old, new),
+            TopLevelTypeId::SimpleType(fragment_id) => {
+                simple::SimpleOffsetable::remap_namespace(fragment_id, old, new)
             }
         }
     }
@@ -667,6 +917,20 @@ impl ComplexOffsetable for RedefinableId {
             }
             RedefinableId::AttributeGroup(fragment_id) => fragment_id.offset(target, new, offsets),
             RedefinableId::Group(fragment_id) => fragment_id.offset(target, new, offsets),
+            RedefinableId::Notation => {
+                //TODO
+            }
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            RedefinableId::ComplexType(fragment_id) => fragment_id.remap_namespace(old, new),
+            RedefinableId::SimpleType(fragment_id) => {
+                simple::SimpleOffsetable::remap_namespace(fragment_id, old, new)
+            }
+            RedefinableId::AttributeGroup(fragment_id) => fragment_id.remap_namespace(old, new),
+            RedefinableId::Group(fragment_id) => fragment_id.remap_namespace(old, new),
             RedefinableId::Notation => {
                 //TODO
             }
@@ -696,6 +960,23 @@ impl ComplexOffsetable for SchemaTopId {
             }
         }
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            SchemaTopId::Redefinable(redefinable_id) => {
+                redefinable_id.remap_namespace(old, new);
+            }
+            SchemaTopId::Element(fragment_idx) => {
+                fragment_idx.remap_namespace(old, new);
+            }
+            SchemaTopId::Attribute(fragment_idx) => {
+                fragment_idx.remap_namespace(old, new);
+            }
+            SchemaTopId::Notation => {
+                //TODO
+            }
+        }
+    }
 }
 
 impl ComplexOffsetable for CompositionId {
@@ -710,6 +991,18 @@ impl ComplexOffsetable for CompositionId {
             CompositionId::Import(fragment_idx) => fragment_idx.offset(target, new, offsets),
             CompositionId::Redefine(fragment_idx) => fragment_idx.offset(target, new, offsets),
             CompositionId::Override(fragment_idx) => fragment_idx.offset(target, new, offsets),
+            CompositionId::AnnotationId => {
+                //TODO
+            }
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            CompositionId::Include(fragment_idx) => fragment_idx.remap_namespace(old, new),
+            CompositionId::Import(fragment_idx) => fragment_idx.remap_namespace(old, new),
+            CompositionId::Redefine(fragment_idx) => fragment_idx.remap_namespace(old, new),
+            CompositionId::Override(fragment_idx) => fragment_idx.remap_namespace(old, new),
             CompositionId::AnnotationId => {
                 //TODO
             }
@@ -742,6 +1035,15 @@ impl ComplexOffsetable for TypeDefParticleId {
             TypeDefParticleId::All(fragment_id) => fragment_id.offset(target, new, offsets),
             TypeDefParticleId::Sequence(fragment_id) => fragment_id.offset(target, new, offsets),
             TypeDefParticleId::Choice(fragment_id) => fragment_id.offset(target, new, offsets),
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            TypeDefParticleId::Group(fragment_id) => fragment_id.remap_namespace(old, new),
+            TypeDefParticleId::All(fragment_id) => fragment_id.remap_namespace(old, new),
+            TypeDefParticleId::Sequence(fragment_id) => fragment_id.remap_namespace(old, new),
+            TypeDefParticleId::Choice(fragment_id) => fragment_id.remap_namespace(old, new),
         }
     }
 }
@@ -1008,15 +1310,22 @@ impl SchemaFragment {
             );
         }
 
-        let offsets = self.compiler.merge_with(&other.compiler)?;
+        let offsets = self.compiler.merge_with(
+            &other.compiler,
+            &other.target_namespace,
+            &self.target_namespace,
+        )?;
 
         for (name, top_level_type) in &other.top_level_types {
             self.top_level_types.entry(name.clone()).or_insert_with(|| {
-                top_level_type.clone().with_offset(
-                    &other.compiler.namespace_idx,
-                    &self.compiler.namespace_idx,
-                    &offsets,
-                )
+                top_level_type
+                    .clone()
+                    .with_offset(
+                        &other.compiler.namespace_idx,
+                        &self.compiler.namespace_idx,
+                        &offsets,
+                    )
+                    .with_remapped_namespace(&other.target_namespace, &self.target_namespace)
             });
         }
 
@@ -1024,11 +1333,14 @@ impl SchemaFragment {
             self.top_level_elements
                 .entry(name.clone())
                 .or_insert_with(|| {
-                    top_level_element.clone().with_offset(
-                        &other.compiler.namespace_idx,
-                        &self.compiler.namespace_idx,
-                        &offsets,
-                    )
+                    top_level_element
+                        .clone()
+                        .with_offset(
+                            &other.compiler.namespace_idx,
+                            &self.compiler.namespace_idx,
+                            &offsets,
+                        )
+                        .with_remapped_namespace(&other.target_namespace, &self.target_namespace)
                 });
         }
 
@@ -1036,11 +1348,14 @@ impl SchemaFragment {
             self.top_level_attributes
                 .entry(name.clone())
                 .or_insert_with(|| {
-                    top_level_attribute.clone().with_offset(
-                        &other.compiler.namespace_idx,
-                        &self.compiler.namespace_idx,
-                        &offsets,
-                    )
+                    top_level_attribute
+                        .clone()
+                        .with_offset(
+                            &other.compiler.namespace_idx,
+                            &self.compiler.namespace_idx,
+                            &offsets,
+                        )
+                        .with_remapped_namespace(&other.target_namespace, &self.target_namespace)
                 });
         }
 
@@ -1048,11 +1363,14 @@ impl SchemaFragment {
             self.top_level_groups
                 .entry(name.clone())
                 .or_insert_with(|| {
-                    top_level_group.clone().with_offset(
-                        &other.compiler.namespace_idx,
-                        &self.compiler.namespace_idx,
-                        &offsets,
-                    )
+                    top_level_group
+                        .clone()
+                        .with_offset(
+                            &other.compiler.namespace_idx,
+                            &self.compiler.namespace_idx,
+                            &offsets,
+                        )
+                        .with_remapped_namespace(&other.target_namespace, &self.target_namespace)
                 });
         }
 
@@ -1060,30 +1378,41 @@ impl SchemaFragment {
             self.top_level_attribute_groups
                 .entry(name.clone())
                 .or_insert_with(|| {
-                    top_level_attribute_group.clone().with_offset(
-                        &other.compiler.namespace_idx,
-                        &self.compiler.namespace_idx,
-                        &offsets,
-                    )
+                    top_level_attribute_group
+                        .clone()
+                        .with_offset(
+                            &other.compiler.namespace_idx,
+                            &self.compiler.namespace_idx,
+                            &offsets,
+                        )
+                        .with_remapped_namespace(&other.target_namespace, &self.target_namespace)
                 });
         }
 
         other.schema_tops.iter().rev().for_each(|schema_top_id| {
-            self.schema_tops
-                .push_front(schema_top_id.clone().with_offset(
-                    &other.compiler.namespace_idx,
-                    &self.compiler.namespace_idx,
-                    &offsets,
-                ));
+            self.schema_tops.push_front(
+                schema_top_id
+                    .clone()
+                    .with_offset(
+                        &other.compiler.namespace_idx,
+                        &self.compiler.namespace_idx,
+                        &offsets,
+                    )
+                    .with_remapped_namespace(&other.target_namespace, &self.target_namespace),
+            );
         });
 
         other.compositions.iter().for_each(|composition_id| {
-            self.compositions
-                .push_front(composition_id.clone().with_offset(
-                    &other.compiler.namespace_idx,
-                    &self.compiler.namespace_idx,
-                    &offsets,
-                ));
+            self.compositions.push_front(
+                composition_id
+                    .clone()
+                    .with_offset(
+                        &other.compiler.namespace_idx,
+                        &self.compiler.namespace_idx,
+                        &offsets,
+                    )
+                    .with_remapped_namespace(&other.target_namespace, &self.target_namespace),
+            );
         });
 
         Ok(())
@@ -1129,6 +1458,18 @@ impl ComplexOffsetable for RestrictionFragment {
         self.attribute_declarations.offset(target, new, offsets);
         self.assertions.offset(target, new, offsets);
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if self.base.namespace() == old {
+            let local_name = self.base.local_name().clone();
+            self.base = ExpandedName::new(local_name, new.clone());
+        }
+        if let Some(ref mut content_fragment) = self.content_fragment {
+            content_fragment.remap_namespace(old, new);
+        }
+        self.attribute_declarations.remap_namespace(old, new);
+        self.assertions.remap_namespace(old, new);
+    }
 }
 
 /// Identifier for attribute declarations, either direct attributes or attribute group references.
@@ -1153,6 +1494,15 @@ impl ComplexOffsetable for AttributeDeclarationId {
             }
             AttributeDeclarationId::AttributeGroupRef(fragment_id) => {
                 fragment_id.offset(target, new, offsets)
+            }
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            AttributeDeclarationId::Attribute(fragment_id) => fragment_id.remap_namespace(old, new),
+            AttributeDeclarationId::AttributeGroupRef(fragment_id) => {
+                fragment_id.remap_namespace(old, new)
             }
         }
     }
@@ -1297,6 +1647,10 @@ impl ComplexOffsetable for SimpleContentFragment {
     ) {
         self.content_fragment.offset(target, new, offsets);
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.content_fragment.remap_namespace(old, new);
+    }
 }
 
 /// Fragment representing a simple content extension.
@@ -1319,6 +1673,15 @@ impl ComplexOffsetable for SimpleExtensionFragment {
     ) {
         self.attribute_declarations.offset(target, new, offsets);
         self.assertions.offset(target, new, offsets);
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if self.base.namespace() == old {
+            let local_name = self.base.local_name().clone();
+            self.base = ExpandedName::new(local_name, new.clone());
+        }
+        self.attribute_declarations.remap_namespace(old, new);
+        self.assertions.remap_namespace(old, new);
     }
 }
 
@@ -1355,6 +1718,21 @@ impl ComplexOffsetable for SimpleRestrictionFragment {
         self.attribute_declarations.offset(target, new, offsets);
         self.assertions.offset(target, new, offsets);
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if self.base.namespace() == old {
+            let local_name = self.base.local_name().clone();
+            self.base = ExpandedName::new(local_name, new.clone());
+        }
+        for facet in &mut self.facets {
+            simple::SimpleOffsetable::remap_namespace(facet, old, new);
+        }
+        if let Some(ref mut simple_type) = self.simple_type {
+            simple::SimpleOffsetable::remap_namespace(simple_type, old, new);
+        }
+        self.attribute_declarations.remap_namespace(old, new);
+        self.assertions.remap_namespace(old, new);
+    }
 }
 
 /// Identifier for simple content child fragments.
@@ -1380,6 +1758,13 @@ impl ComplexOffsetable for SimpleContentChildId {
             SimpleContentChildId::Restriction(fragment_id) => {
                 fragment_id.offset(target, new, offsets)
             }
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            SimpleContentChildId::Extension(fragment_id) => fragment_id.remap_namespace(old, new),
+            SimpleContentChildId::Restriction(fragment_id) => fragment_id.remap_namespace(old, new),
         }
     }
 }
@@ -1595,6 +1980,24 @@ impl ComplexOffsetable for ComplexTypeModelId {
             }
         }
     }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        match self {
+            ComplexTypeModelId::SimpleContent(fragment) => fragment.remap_namespace(old, new),
+            ComplexTypeModelId::ComplexContent(fragment) => fragment.remap_namespace(old, new),
+            ComplexTypeModelId::Other {
+                particle,
+                attr_decls,
+                assertions,
+            } => {
+                if let Some(particle) = particle {
+                    particle.remap_namespace(old, new);
+                }
+                attr_decls.remap_namespace(old, new);
+                assertions.remap_namespace(old, new);
+            }
+        }
+    }
 }
 
 /// Fragment representing a complex type definition.
@@ -1618,6 +2021,10 @@ impl ComplexOffsetable for ComplexTypeRootFragment {
         offsets: &IdOffsets,
     ) {
         self.content.offset(target, new, offsets);
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.content.remap_namespace(old, new);
     }
 }
 
@@ -2171,10 +2578,17 @@ impl ComplexTypeFragmentCompiler {
         }
     }
 
-    pub fn merge_with(&mut self, other: &Self) -> Result<IdOffsets, Error> {
-        let simple_merge_result = self
-            .simple_type_compiler
-            .merge_with(&other.simple_type_compiler)?;
+    pub fn merge_with(
+        &mut self,
+        other: &Self,
+        old_target_namespace: &Option<XmlNamespace<'_>>,
+        new_target_namespace: &Option<XmlNamespace<'static>>,
+    ) -> Result<IdOffsets, Error> {
+        let simple_merge_result = self.simple_type_compiler.merge_with(
+            &other.simple_type_compiler,
+            old_target_namespace,
+            new_target_namespace,
+        )?;
 
         let merge_result = IdOffsets {
             simple: simple_merge_result,
@@ -2212,11 +2626,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.complex_types.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.complex_type_roots_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2225,11 +2637,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.simple_restrictions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.simple_restrictions_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2238,11 +2648,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.simple_extensions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.simple_extensions_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2251,11 +2659,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.simple_contents.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.simple_contents_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2264,11 +2670,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.restrictions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.restrictions_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2277,11 +2681,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.extensions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.extensions_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2290,11 +2692,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.complex_contents.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.complex_contents_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2303,11 +2703,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.group_refs.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.group_ref_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2316,11 +2714,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.alls.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.all_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2329,11 +2725,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.choices.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.choice_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2342,11 +2736,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.sequences.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.sequence_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2355,11 +2747,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.anys.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.any_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2368,11 +2758,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.elements.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.element_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2381,11 +2769,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.top_level_elements.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.top_level_element_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2394,11 +2780,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.local_attributes.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.local_attribute_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2406,11 +2790,9 @@ impl ComplexTypeFragmentCompiler {
             other.top_level_attributes.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.top_level_attribute_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }),
         );
@@ -2419,11 +2801,9 @@ impl ComplexTypeFragmentCompiler {
             other.attribute_group_refs.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.attribute_group_ref_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }),
         );
@@ -2433,11 +2813,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.groups.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.top_level_group_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2446,11 +2824,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.attribute_groups.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.top_level_attribute_group_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2458,11 +2834,9 @@ impl ComplexTypeFragmentCompiler {
             other.attribute_declarations.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.attribute_declaration_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }),
         );
@@ -2472,11 +2846,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.any_attributes.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.any_attribute_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2485,11 +2857,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.assertions.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.assertion_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2498,11 +2868,9 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.assertion_groups.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.assertion_group_offset,
-                    a.1.clone().with_offset(
-                        &other.namespace_idx,
-                        &self.namespace_idx,
-                        &merge_result,
-                    ),
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
                 )
             }));
 
@@ -2535,25 +2903,31 @@ impl AsRef<ComplexTypeFragmentCompiler> for ComplexTypeFragmentCompiler {
 }
 
 /// Error types for complex fragment operations.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
     /// Error from simple type processing.
+    #[error("Error in simple type processing: {0}")]
     Simple(simple::Error),
     /// Name is missing in top-level declaration.
+    #[error("Name is missing in top-level declaration")]
     NameMissingInTopLevel,
     /// Element type is invalid, both type and type_choice are present.
+    #[error("Element type is invalid, both type and type_choice are present: {name}")]
     TypeAttributeAndTypeContentBothPresent {
         /// Name of the element with conflicting type representations.
         name: LocalName<'static>,
     },
     /// Element type is invalid, neither type nor type_choice are present.
+    #[error("Element type is invalid, neither type nor type_choice are present: {name}")]
     NoTypePresent {
         /// Name of the element without a type.
         name: LocalName<'static>,
     },
     /// Name or reference is missing in a top-level element.
+    #[error("Name or reference is missing in a top-level element")]
     NameOrRefMissingInTopLevelElement {},
     /// Substitution group is not supported.
+    #[error("Substitution group not supported for element type: {fragment_type}")]
     SubstitutionGroupNotSupported {
         /// Name of the element with unsupported substitution group.
         fragment_type: &'static str,

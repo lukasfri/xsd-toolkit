@@ -34,8 +34,10 @@ thiserror = "^2.0.4"
 pretty_assertions = "^1.4.1"
 rstest = "^0.25.0"
 ntest = "0.9.3"
-xmlity = { version = "0.0.8", features = ["derive"] }
-xmlity-quick-xml = { version = "0.0.8" }
+xmlity = { version = "0.0.8", features = [
+  "derive",
+], git = "https://github.com/lukasfri/xmlity.git", rev = "c6cdccc611e063eb7bd9f46033dc44abe4e9ad08" }
+xmlity-quick-xml = { version = "0.0.8", git = "https://github.com/lukasfri/xmlity.git", rev = "c6cdccc611e063eb7bd9f46033dc44abe4e9ad08" }
 url = { version = "2.5.4" }
 derive_more = { version = "2.0.1", features = ["full"] }
 static_assertions = "1.1.0"

@@ -129,10 +129,11 @@ impl XmlnsContext {
     pub fn resolve_ref_namespace<'a>(
         &'a self,
         resolve_from: &'a FragmentedXsdDocumentIdx,
-        referenced_namespace: Option<&XmlNamespace<'a>>,
+        referenced_namespace: &Option<XmlNamespace<'a>>,
     ) -> Option<&'a FragmentedXsdDocumentIdx> {
-        if let Some(global_namespace) =
-            referenced_namespace.and_then(|ns| self.global_namespaces.get(ns))
+        if let Some(global_namespace) = referenced_namespace
+            .as_ref()
+            .and_then(|ns| self.global_namespaces.get(ns))
         {
             return Some(global_namespace);
         }
@@ -146,7 +147,7 @@ impl XmlnsContext {
         })?;
         let compiled_namespace = self.namespaces.get(resolve_from)?;
 
-        if referenced_namespace == compiled_namespace.target_namespace.as_ref() {
+        if compiled_namespace.target_namespace == *referenced_namespace {
             Some(resolve_from)
         } else {
             // let referenced_ns = compiled_namespace.imports.get(referenced_namespace?)?;
@@ -173,7 +174,7 @@ impl XmlnsContext {
                         .namespace_idxs
                         .get(&FragmentedXsdDocumentKey(location))?;
 
-                    if import.namespace.as_ref() == referenced_namespace {
+                    if import.namespace == *referenced_namespace {
                         Some(referenced_ns)
                     } else {
                         let schema = self
@@ -181,7 +182,7 @@ impl XmlnsContext {
                             .get(referenced_ns)
                             .expect("Expected referenced namespace to be found");
 
-                        if schema.target_namespace.as_ref() == referenced_namespace {
+                        if schema.target_namespace == *referenced_namespace {
                             Some(referenced_ns)
                         } else {
                             None
