@@ -145,7 +145,7 @@ const SAME_ATTRIBUTE_OVERWRITES_VALUES_2_EXPECTED: &str = r###"
     SAME_ATTRIBUTE_OVERWRITES_VALUES_2_INPUT,
     SAME_ATTRIBUTE_OVERWRITES_VALUES_2_EXPECTED
 )]
-fn one_attribute_group(#[case] input: &str, #[case] output: &str) {
+fn test(#[case] input: &str, #[case] output: &str) {
     let input: xs::Schema =
         xmlity_quick_xml::from_str(input.trim()).expect("Failed to parse XML Schema");
 

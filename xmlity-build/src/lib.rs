@@ -1,7 +1,6 @@
 //! This crate provides an easy API for generating XMLity-based Rust code from XSD schemas.
 //!
 //! It is designed to be able to be used in a build script, and provides a easy-to-use step-by-step API.
-use std::str::FromStr;
 use std::{collections::HashSet, path::PathBuf};
 
 use bon::Builder;

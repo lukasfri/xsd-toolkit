@@ -10,7 +10,7 @@ use std::{
 
 use crate::{
     fragments::{
-        simple::{self, SimpleFragmentEquivalent, SimpleOffsetable, SimpleTypeFragmentCompiler},
+        simple::{self, SimpleFragmentEquivalent, SimpleTypeFragmentCompiler},
         Context, FragmentAccess, FragmentCollection, FragmentIdx, FragmentedXsdDocumentIdx,
         HasFragmentCollection,
     },
@@ -18,10 +18,7 @@ use crate::{
 };
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
-use xsd::{
-    ns,
-    xs::{self, redefine_items::RedefineContent},
-};
+use xsd::{ns, xs};
 
 /// Extension trait for [`ExpandedName`] to handle default namespaces.
 pub trait XmlNamespaceExt<'a> {

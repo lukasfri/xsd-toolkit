@@ -9,7 +9,7 @@ use crate::fragments::{
         AttributeDeclarationId, AttributeDeclarationsFragment, AttributeGroupRefFragment,
         LocalAttributeFragment, LocalAttributeFragmentTypeMode,
     },
-    FragmentIdx,
+    FragmentAccess, FragmentIdx,
 };
 use crate::transformers::{
     TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext,
@@ -54,15 +54,34 @@ impl ExpandAttributeDeclarations {
         let mut new_attributes = VecDeque::new();
 
         fn merge_attribute(
-            target: &mut LocalAttributeFragment,
-            source: &LocalAttributeFragment,
-        ) -> Result<(), Error> {
+            ctx: &mut XmlnsContextTransformerContext<'_>,
+            target_idx: &FragmentIdx<LocalAttributeFragment>,
+            source_idx: &FragmentIdx<LocalAttributeFragment>,
+        ) -> Result<FragmentIdx<LocalAttributeFragment>, Error> {
+            let source = ctx
+                .get_complex_fragment(source_idx)
+                .expect("Fragment not found in compiler.")
+                .clone();
+
+            let mut changed = false;
+
+            let mut target = ctx
+                .get_complex_fragment(target_idx)
+                .expect("Fragment not found in compiler.")
+                .clone();
+
             if let Some(default) = &source.default {
-                target.default = Some(default.clone());
+                if source.default != target.default {
+                    changed = true;
+                    target.default = Some(default.clone());
+                }
             }
 
             if let Some(use_) = source.use_ {
-                target.use_ = Some(use_);
+                if target.use_ != Some(use_.clone()) {
+                    changed = true;
+                    target.use_ = Some(use_);
+                }
             }
 
             match (&mut target.type_mode, &source.type_mode) {
@@ -76,10 +95,11 @@ impl ExpandAttributeDeclarations {
                     );
 
                     if let Some(type_) = source_declared.type_.clone() {
-                        target_declared.type_ = Some(type_);
+                        if target_declared.type_ != Some(type_.clone()) {
+                            changed = true;
+                            target_declared.type_ = Some(type_);
+                        }
                     }
-
-                    Ok(())
                 }
                 (
                     LocalAttributeFragmentTypeMode::Reference(target_reference),
@@ -89,22 +109,33 @@ impl ExpandAttributeDeclarations {
                         target_reference.ref_, source_reference.ref_,
                         "When merging, the attribute references must be the same"
                     );
-
-                    Ok(())
                 }
-                _ => Err(Error::MismatchedAttributeModes),
+                _ => return Err(Error::MismatchedAttributeModes),
+            };
+
+            if changed {
+                let ns = ctx
+                    .xmlns_context
+                    .namespaces
+                    .get_mut(&target_idx.namespace_idx())
+                    .expect("Namespace not found in context");
+
+                let new_idx = ns.compiler.push_fragment(target);
+
+                Ok(new_idx)
+            } else {
+                Ok(*target_idx)
             }
         }
 
         fn add_attribute(
             new_attributes: &mut VecDeque<AttributeDeclarationId>,
             ctx: &mut XmlnsContextTransformerContext<'_>,
-            fragment_idx: &FragmentIdx<LocalAttributeFragment>,
+            new_idx: &FragmentIdx<LocalAttributeFragment>,
         ) -> Result<(), Error> {
-            let possible = ctx
-                .get_complex_fragment(fragment_idx)
-                .expect("Fragment not found in compiler.")
-                .clone();
+            let new = ctx
+                .get_complex_fragment(new_idx)
+                .expect("Fragment not found in compiler.");
 
             // Check if the attribute already exists in the new_attributes list
             let attribute_exists = new_attributes
@@ -122,15 +153,15 @@ impl ExpandAttributeDeclarations {
                     )
                 })
                 .find(
-                    |(_, existing)| match (&existing.type_mode, &possible.type_mode) {
+                    |(_, existing)| match (&existing.type_mode, &new.type_mode) {
                         (
                             LocalAttributeFragmentTypeMode::Declared(existing),
-                            LocalAttributeFragmentTypeMode::Declared(possible),
-                        ) => existing.name == possible.name,
+                            LocalAttributeFragmentTypeMode::Declared(new),
+                        ) => existing.name == new.name,
                         (
                             LocalAttributeFragmentTypeMode::Reference(existing),
-                            LocalAttributeFragmentTypeMode::Reference(possible),
-                        ) => existing.ref_ == possible.ref_,
+                            LocalAttributeFragmentTypeMode::Reference(new),
+                        ) => existing.ref_ == new.ref_,
                         _ => false,
                     },
                 )
@@ -138,7 +169,7 @@ impl ExpandAttributeDeclarations {
 
             // If the attribute does not exist, add it to the new_attributes list
             let Some(i) = attribute_exists else {
-                new_attributes.push_back(AttributeDeclarationId::Attribute(*fragment_idx));
+                new_attributes.push_back(AttributeDeclarationId::Attribute(*new_idx));
                 return Ok(());
             };
 
@@ -150,11 +181,8 @@ impl ExpandAttributeDeclarations {
                 unreachable!("Attribute must exist in the list since we just found it - we filtered out attribute groups")
             };
 
-            let existing = ctx
-                .get_complex_fragment_mut(existing_idx)
-                .expect("Fragment not found in compiler.");
-
-            merge_attribute(existing, &possible)?;
+            let resulting_idx = merge_attribute(ctx, existing_idx, new_idx)?;
+            new_attributes[i] = AttributeDeclarationId::Attribute(resulting_idx);
 
             Ok(())
         }

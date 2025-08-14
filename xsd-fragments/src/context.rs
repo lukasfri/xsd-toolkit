@@ -1,14 +1,11 @@
-use std::{collections::BTreeMap, ops::Deref};
+use std::collections::BTreeMap;
 
 use url::Url;
 use xmlity::XmlNamespace;
 use xsd::{xs, UrlExt};
 
 use crate::{
-    fragments::{
-        complex::{IncludeFragment, RedefineFragment, SchemaFragment},
-        FragmentAccess, FragmentedXsdDocumentIdx,
-    },
+    fragments::{complex::SchemaFragment, FragmentAccess, FragmentedXsdDocumentIdx},
     Error,
 };
 
