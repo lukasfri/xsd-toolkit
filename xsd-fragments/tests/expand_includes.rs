@@ -10,9 +10,13 @@ use xsd::set::XmlSchemaSet;
 use xsd_fragments::{transformers::context::complex::ExpandIncludeFragments, XmlnsContext};
 
 #[rstest]
-#[case::dxs_example_todo(
-    "definitive_xml_schema/TODO/prod2.xsd",
-    "definitive_xml_schema/TODO/expanded.xsd"
+#[case::dxs_example_4_1(
+    "definitive_xml_schema/example_4_1/ord1.xsd",
+    "definitive_xml_schema/example_4_1/expanded.xsd"
+)]
+#[case::dxs_example_4_2(
+    "definitive_xml_schema/example_4_2/ord1.xsd",
+    "definitive_xml_schema/example_4_2/expanded.xsd"
 )]
 fn test(#[case] path: &str, #[case] result: &str) {
     use xsd::xs;

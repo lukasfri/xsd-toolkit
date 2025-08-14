@@ -2127,6 +2127,25 @@ pub struct RedefineFragment {
     pub redefineable: VecDeque<RedefinableId>,
 }
 
+impl ComplexOffsetable for RedefineFragment {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        self.redefineable.iter_mut().for_each(|redefinable| {
+            redefinable.offset(target, new, offsets);
+        });
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        self.redefineable.iter_mut().for_each(|redefinable| {
+            redefinable.remap_namespace(old, new);
+        });
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RedefinableId {
     /// Complex type to redefine.
@@ -2163,16 +2182,89 @@ pub struct IncludeFragment {
     pub schema_location: String,
 }
 
+impl ComplexOffsetable for IncludeFragment {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        _offsets: &IdOffsets,
+    ) {
+        // No specific offsetting needed for IncludeFragment
+    }
+
+    fn remap_namespace(
+        &mut self,
+        _old: &Option<XmlNamespace>,
+        _new: &Option<XmlNamespace<'static>>,
+    ) {
+        // No specific namespace remapping needed for IncludeFragment
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ImportFragment {
     pub namespace: Option<XmlNamespace<'static>>,
     pub schema_location: Option<String>,
 }
 
+impl ComplexOffsetable for ImportFragment {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        _offsets: &IdOffsets,
+    ) {
+        // No specific offsetting needed for ImportFragment
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        if self.namespace == *old {
+            self.namespace = new.clone();
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct OverrideFragment {
     pub schema_location: String,
     pub schema_tops: VecDeque<SchemaTopId>,
+}
+
+impl ComplexOffsetable for OverrideFragment {
+    fn offset(
+        &mut self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) {
+        for schema_top in &mut self.schema_tops {
+            match schema_top {
+                SchemaTopId::Redefinable(redefinable_id) => {
+                    redefinable_id.offset(target, new, offsets);
+                }
+                SchemaTopId::Element(fragment_id) => {
+                    fragment_id.offset(target, new, offsets);
+                }
+                SchemaTopId::Attribute(fragment_id) => {
+                    fragment_id.offset(target, new, offsets);
+                }
+                SchemaTopId::Notation => {}
+            }
+        }
+    }
+
+    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+        for schema_top in &mut self.schema_tops {
+            match schema_top {
+                SchemaTopId::Redefinable(redefinable_id) => {
+                    redefinable_id.remap_namespace(old, new)
+                }
+                SchemaTopId::Element(fragment_id) => fragment_id.remap_namespace(old, new),
+                SchemaTopId::Attribute(fragment_id) => fragment_id.remap_namespace(old, new),
+                SchemaTopId::Notation => {}
+            }
+        }
+    }
 }
 
 /// Complex type fragment compiler responsible for converting XSD complex types to fragment representations.
@@ -2865,6 +2957,39 @@ impl ComplexTypeFragmentCompiler {
             .extend(other.assertion_groups.fragments.iter().map(|a| {
                 (
                     *a.0 + merge_result.assertion_group_offset,
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
+                )
+            }));
+
+        self.includes
+            .fragments
+            .extend(other.includes.fragments.iter().map(|a| {
+                (
+                    *a.0 + merge_result.includes,
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
+                )
+            }));
+
+        self.redefines
+            .fragments
+            .extend(other.redefines.fragments.iter().map(|a| {
+                (
+                    *a.0 + merge_result.redefines,
+                    a.1.clone()
+                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
+                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
+                )
+            }));
+
+        self.imports
+            .fragments
+            .extend(other.imports.fragments.iter().map(|a| {
+                (
+                    *a.0 + merge_result.imports,
                     a.1.clone()
                         .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
                         .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
@@ -5112,16 +5237,18 @@ impl ComplexFragmentEquivalent for xs::Import {
             });
         };
 
-        let namespace = import.namespace.clone();
+        let namespace = import
+            .namespace
+            .clone()
+            .map(XmlNamespace::new)
+            .transpose()
+            .expect("Invalid namespace");
+
         let schema_location = import.schema_location.clone();
 
         let fragment = ImportFragment {
             schema_location,
-            namespace: namespace
-                .clone()
-                .map(XmlNamespace::new)
-                .transpose()
-                .expect("Invalid namespace"),
+            namespace,
         };
 
         let fragment_id = compiler.push_fragment(fragment);
