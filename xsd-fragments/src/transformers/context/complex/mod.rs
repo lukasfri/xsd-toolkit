@@ -1,9 +1,9 @@
-mod expand_restriction_fragments;
-pub use expand_restriction_fragments::{
+mod expand_restrictions;
+pub use expand_restrictions::{
     Error as ExpandRestrictionFragmentsError, ExpandRestrictionFragments,
 };
-mod expand_extension_fragments;
-pub use expand_extension_fragments::{
+mod expand_extensions;
+pub use expand_extensions::{
     Error as ExpandExtensionFragmentsError, ExpandExtensionFragments,
 };
 mod expand_groups;
@@ -16,13 +16,13 @@ mod remove_prohibited_attributes;
 pub use remove_prohibited_attributes::{
     Error as RemoveProhibitedAttributesError, RemoveProhibitedAttributes,
 };
-mod expand_include_fragments;
-pub use expand_include_fragments::{Error as ExpandIncludeFragmentsError, ExpandIncludeFragments};
-mod expand_redefine_fragments;
-pub use expand_redefine_fragments::{
+mod expand_includes;
+pub use expand_includes::{Error as ExpandIncludeFragmentsError, ExpandIncludeFragments};
+mod expand_redefines;
+pub use expand_redefines::{
     Error as ExpandRedefineFragmentsError, ExpandRedefineFragments,
 };
-mod expand_override_fragments;
-pub use expand_override_fragments::{
+mod expand_overrides;
+pub use expand_overrides::{
     Error as ExpandOverrideFragmentsError, ExpandOverrideFragments,
 };
