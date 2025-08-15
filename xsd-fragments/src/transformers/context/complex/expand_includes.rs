@@ -6,12 +6,14 @@ use crate::{
     FragmentedXsdDocumentKey,
 };
 
+/// This transformer expands the include fragments in the XML Schema context.
 #[non_exhaustive]
 pub struct ExpandIncludeFragments {}
 
 #[derive(Debug, thiserror::Error)]
 /// Error type for the [`ExpandIncludeFragments`] transformer.
 pub enum Error {
+    /// Error indicating that a schema was not found in the context.
     #[error("Schema not found: {0}")]
     SchemaNotFound(FragmentedXsdDocumentIdx),
 }

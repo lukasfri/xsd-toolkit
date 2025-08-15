@@ -91,7 +91,11 @@ impl<T: HasOffset> SimpleOffsetable for FragmentIdx<T> {
         }
     }
 
-    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+    fn remap_namespace(
+        &mut self,
+        _old: &Option<XmlNamespace>,
+        _new: &Option<XmlNamespace<'static>>,
+    ) {
         // No namespace remapping needed for simple fragments.
     }
 }
@@ -448,7 +452,11 @@ impl SimpleOffsetable for FacetFragment {
     ) {
     }
 
-    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+    fn remap_namespace(
+        &mut self,
+        _old: &Option<XmlNamespace>,
+        _new: &Option<XmlNamespace<'static>>,
+    ) {
         // No namespace remapping needed for facets.
     }
 }

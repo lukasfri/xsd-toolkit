@@ -38,7 +38,7 @@ impl<'a> ExpandSimpleRestriction<'a> {
         Self { allowed_bases }
     }
 
-    pub fn flatten_restriction_with_base(
+    pub(crate) fn flatten_restriction_with_base(
         ctx: &mut XmlnsContextTransformerContext,
         fragment_idx: &FragmentIdx<SimpleTypeRootFragment>,
         base_simple_type: &FragmentIdx<SimpleTypeRootFragment>,

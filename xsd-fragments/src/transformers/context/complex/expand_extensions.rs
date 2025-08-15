@@ -227,7 +227,7 @@ impl ExpandExtensionFragments {
         Ok(child_assertions)
     }
 
-    pub fn expand_extension_from_base(
+    pub(crate) fn expand_extension_from_base(
         ctx: &mut XmlnsContextTransformerContext<'_>,
         child_complex_content_fragment_idx: &FragmentIdx<ComplexContentFragment>,
         base_fragment: &FragmentIdx<ComplexTypeRootFragment>,

@@ -11,16 +11,20 @@ use crate::{
     FragmentedXsdDocumentKey,
 };
 
+/// This transformer expands the override fragments in the XML Schema context.
 #[non_exhaustive]
 pub struct ExpandOverrideFragments {}
 
 #[derive(Debug, thiserror::Error)]
 /// Error type for the [`ExpandOverrideFragments`] transformer.
 pub enum Error {
+    /// Error indicating that a schema was not found in the context.
     #[error("Schema not found: {0}")]
     SchemaNotFound(FragmentedXsdDocumentIdx),
+    /// Error indicating a complex fragment error.
     #[error("Complex fragment error: {0}")]
     ComplexFragment(#[from] crate::fragments::complex::Error),
+    /// Error indicating a simple fragment error.
     #[error("Simple fragment error: {0}")]
     SimpleFragment(#[from] crate::fragments::simple::Error),
 }

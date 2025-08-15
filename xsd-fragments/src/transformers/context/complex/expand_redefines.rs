@@ -15,16 +15,20 @@ use crate::{
     FragmentedXsdDocumentKey,
 };
 
+/// This transformer expands the redefine fragments in the XML Schema context.
 #[non_exhaustive]
 pub struct ExpandRedefineFragments {}
 
 #[derive(Debug, thiserror::Error)]
 /// Error type for the [`ExpandRedefineFragments`] transformer.
 pub enum Error {
+    /// Error indicating that a schema was not found in the context.
     #[error("Schema not found: {0}")]
     SchemaNotFound(FragmentedXsdDocumentIdx),
+    /// Error indicating a complex fragment error.
     #[error("Complex fragment error: {0}")]
     ComplexFragment(#[from] crate::fragments::complex::Error),
+    /// Error indicating a simple fragment error.
     #[error("Simple fragment error: {0}")]
     SimpleFragment(#[from] crate::fragments::simple::Error),
 }
@@ -647,22 +651,22 @@ impl ExpandRedefineFragments {
                             .expect("Expected base fragment to be found");
 
                         match base_fragment.simple_derivation {
-                            crate::fragments::simple::SimpleDerivation::Restriction(fragment_idx) => {
+                            crate::fragments::simple::SimpleDerivation::Restriction(_fragment_idx) => {
                                 let _todo_use_value = ExpandSimpleRestriction::flatten_restriction_with_base(
                                     ctx,
                                     &root_fragment,
                                     &base_fragment_idx
                                 ).expect("Expected restriction to be expanded");
                             },
-                            crate::fragments::simple::SimpleDerivation::List(fragment_idx) =>  {},
-                            crate::fragments::simple::SimpleDerivation::Union(fragment_idx) => {},
+                            crate::fragments::simple::SimpleDerivation::List(_fragment_idx) =>  {},
+                            crate::fragments::simple::SimpleDerivation::Union(_fragment_idx) => {},
                         }
 
 
                     }
-                    RedefinableId::AttributeGroup(root_fragment) => {
+                    RedefinableId::AttributeGroup(_root_fragment) => {
                     }
-                    RedefinableId::Group(root_fragment) => {
+                    RedefinableId::Group(_root_fragment) => {
 
                     }
                     RedefinableId::Notation => todo!(),

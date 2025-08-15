@@ -77,32 +77,6 @@ impl XmlnsContext {
         Ok(schema)
     }
 
-    fn merge_with(
-        &mut self,
-        source: &FragmentedXsdDocumentIdx,
-        target: &FragmentedXsdDocumentIdx,
-    ) -> Result<(FragmentedXsdDocumentIdx, &mut SchemaFragment), Error> {
-        let (source_namespace, target_namespace) = self.namespaces.iter_mut().fold(
-            (None, None),
-            |(source_namespace, target_namespace), (key, val)| {
-                if key == source {
-                    (Some(val), target_namespace)
-                } else if key == target {
-                    (source_namespace, Some(val))
-                } else {
-                    (source_namespace, target_namespace)
-                }
-            },
-        );
-
-        let source_namespace = source_namespace.ok_or_else(|| Error::UndefinedNamespace)?;
-        let target_namespace = target_namespace.ok_or_else(|| Error::UndefinedNamespace)?;
-
-        target_namespace.merge_with(&source_namespace)?;
-
-        Ok((*target, target_namespace))
-    }
-
     pub fn resolve_schema(&self, namespace: &FragmentedXsdDocumentKey) -> Option<&SchemaFragment> {
         let namespace_idx = self.namespace_idxs.get(namespace)?;
 

@@ -278,7 +278,7 @@ impl ExpandRestrictionFragments {
         Self::expand_restriction_from_base(ctx, child_fragment_idx, &base_restriction_id)
     }
 
-    pub fn expand_restriction_from_base(
+    pub(crate) fn expand_restriction_from_base(
         ctx: &mut XmlnsContextTransformerContext<'_>,
         child_fragment_idx: &FragmentIdx<RestrictionFragment>,
         base_restriction_id: &FragmentIdx<RestrictionFragment>,

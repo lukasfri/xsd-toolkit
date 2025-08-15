@@ -2146,6 +2146,7 @@ impl ComplexOffsetable for RedefineFragment {
     }
 }
 
+/// Identifier for redefinable schema elements.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RedefinableId {
     /// Complex type to redefine.
@@ -2159,34 +2160,46 @@ pub enum RedefinableId {
     Notation,
 }
 
+/// Identifier for schema top-level elements and attributes.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SchemaTopId {
+    /// Redefinable schema element.
     Redefinable(RedefinableId),
+    /// Top-level element.
     Element(FragmentIdx<TopLevelElementFragment>),
+    /// Top-level attribute.
     Attribute(FragmentIdx<TopLevelAttributeFragment>),
     //TODO
     Notation,
 }
 
+/// Identifier for composition fragments in a schema.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CompositionId {
+    /// Include fragment.
     Include(FragmentIdx<IncludeFragment>),
+    /// Import fragment.
     Import(FragmentIdx<ImportFragment>),
+    /// Redefine fragment.
     Redefine(FragmentIdx<RedefineFragment>),
+    /// Override fragment.
     Override(FragmentIdx<OverrideFragment>),
+    /// Annotation fragment.
     AnnotationId,
 }
 
+/// Fragment representing an include in a schema.
 #[derive(Debug, Clone, PartialEq)]
 pub struct IncludeFragment {
+    /// The schema location for the included schema.
     pub schema_location: String,
 }
 
 impl ComplexOffsetable for IncludeFragment {
     fn offset(
         &mut self,
-        target: &FragmentedXsdDocumentIdx,
-        new: &FragmentedXsdDocumentIdx,
+        _target: &FragmentedXsdDocumentIdx,
+        _new: &FragmentedXsdDocumentIdx,
         _offsets: &IdOffsets,
     ) {
         // No specific offsetting needed for IncludeFragment
@@ -2201,17 +2214,19 @@ impl ComplexOffsetable for IncludeFragment {
     }
 }
 
+/// Fragment representing an import in a schema.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ImportFragment {
     pub namespace: Option<XmlNamespace<'static>>,
+    /// The schema location for the included schema.
     pub schema_location: Option<String>,
 }
 
 impl ComplexOffsetable for ImportFragment {
     fn offset(
         &mut self,
-        target: &FragmentedXsdDocumentIdx,
-        new: &FragmentedXsdDocumentIdx,
+        _target: &FragmentedXsdDocumentIdx,
+        _new: &FragmentedXsdDocumentIdx,
         _offsets: &IdOffsets,
     ) {
         // No specific offsetting needed for ImportFragment
@@ -2224,8 +2239,10 @@ impl ComplexOffsetable for ImportFragment {
     }
 }
 
+/// Fragment representing an override in a schema.
 #[derive(Debug, Clone, PartialEq)]
 pub struct OverrideFragment {
+    /// The schema location for the included schema.
     pub schema_location: String,
     pub schema_tops: VecDeque<SchemaTopId>,
 }
@@ -5149,7 +5166,7 @@ impl ComplexFragmentEquivalent for xs::groups::SchemaTop {
                     .to_complex_fragments(compiler, context)
                     .map(SchemaTopId::Attribute)
             }
-            xs::groups::SchemaTop::Notation(notation) => {
+            xs::groups::SchemaTop::Notation(_notation) => {
                 //TODO
                 Ok(SchemaTopId::Notation)
             }
@@ -5186,7 +5203,7 @@ impl ComplexFragmentEquivalent for xs::Import {
     fn to_complex_fragments(
         &self,
         compiler: &mut ComplexTypeFragmentCompiler,
-        context: &Context,
+        _context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let xs::Import::Import(import) = self else {
             return Err(Error::SubstitutionGroupNotSupported {
@@ -5238,7 +5255,7 @@ impl ComplexFragmentEquivalent for xs::Include {
     fn to_complex_fragments(
         &self,
         compiler: &mut ComplexTypeFragmentCompiler,
-        context: &Context,
+        _context: &Context,
     ) -> Result<Self::FragmentId, Error> {
         let xs::Include::Include(include) = self else {
             return Err(Error::SubstitutionGroupNotSupported {
@@ -5409,7 +5426,7 @@ impl ComplexFragmentEquivalent for xs::groups::Composition {
                 .to_complex_fragments(compiler, context)
                 .map(CompositionId::Override),
             //TODO
-            xs::groups::Composition::Annotation(annotation) => Ok(CompositionId::AnnotationId),
+            xs::groups::Composition::Annotation(_annotation) => Ok(CompositionId::AnnotationId),
         }
     }
 
