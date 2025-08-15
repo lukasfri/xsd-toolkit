@@ -517,71 +517,59 @@ impl SimpleTypeFragmentCompiler {
             group_ref_offset: self.group_refs.len(),
         };
 
-        self.simple_types
-            .fragments
-            .extend(other.simple_types.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.simple_type_roots_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.simple_types.merge_with_simple(
+            &other.simple_types,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
-        self.restrictions
-            .fragments
-            .extend(other.restrictions.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.restrictions_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.restrictions.merge_with_simple(
+            &other.restrictions,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
-        self.facets
-            .fragments
-            .extend(other.facets.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.facet_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.facets.merge_with_simple(
+            &other.facets,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
-        self.lists
-            .fragments
-            .extend(other.lists.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.list_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.lists.merge_with_simple(
+            &other.lists,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
-        self.unions
-            .fragments
-            .extend(other.unions.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.union_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.unions.merge_with_simple(
+            &other.unions,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
-        self.group_refs
-            .fragments
-            .extend(other.group_refs.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.group_ref_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.group_refs.merge_with_simple(
+            &other.group_refs,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
         Ok(merge_result)
     }

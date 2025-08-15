@@ -6,7 +6,10 @@ use crate::{
         FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
     },
     transformers::{
-        context::{complex::ExpandRestrictionFragments, simple::ExpandSimpleRestriction},
+        context::{
+            complex::{ExpandExtensionFragments, ExpandRestrictionFragments},
+            simple::ExpandSimpleRestriction,
+        },
         TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext,
     },
     FragmentedXsdDocumentKey,
@@ -33,11 +36,72 @@ impl ExpandRedefineFragments {
         Self {}
     }
 
+    // fn expand_schema_redefine_compatible(
+    //     ctx: &XmlnsContextTransformerContext<'_>,
+    //     target_idx: &FragmentedXsdDocumentIdx,
+    //     redefine_fragment_id: &FragmentIdx<RedefineFragment>,
+    // ) -> Result<bool, Error> {
+    //     // Ensure that the complex types do not have extensions
+    //     let redefine_fragment = ctx
+    //         .get_complex_fragment(redefine_fragment_id)
+    //         .expect("Expected redefine fragment to be found");
+
+    //     let contains_extension_based_on_not_any_type =
+    //         redefine_fragment
+    //             .redefineable
+    //             .iter()
+    //             .any(|redefinable| match redefinable {
+    //                 RedefinableId::ComplexType(fragment_idx) => {
+    //                     let fragment = ctx
+    //                         .get_complex_fragment(fragment_idx)
+    //                         .expect("Expected fragment to be found");
+    //                     match fragment.content {
+    //                         crate::fragments::complex::ComplexTypeModelId::SimpleContent(_) => {
+    //                             false
+    //                         }
+    //                         crate::fragments::complex::ComplexTypeModelId::ComplexContent(
+    //                             fragment_idx,
+    //                         ) => {
+    //                             let fragment = ctx
+    //                                 .get_complex_fragment(&fragment_idx)
+    //                                 .expect("Expected fragment to be found");
+    //                             match fragment.content_fragment {
+    //                             crate::fragments::complex::ComplexContentChildId::Extension(
+    //                                 extension_idx,
+    //                             ) => {
+    //                                 let extension = ctx
+    //                                     .get_complex_fragment(&extension_idx)
+    //                                     .expect("Expected extension fragment to be found");
+
+    //                                 todo!()
+    //                             }
+    //                             crate::fragments::complex::ComplexContentChildId::Restriction(
+    //                                 _,
+    //                             ) => false,
+    //                         }
+    //                         }
+    //                         crate::fragments::complex::ComplexTypeModelId::Other {
+    //                             particle,
+    //                             attr_decls,
+    //                             assertions,
+    //                         } => false,
+    //                     }
+    //                 }
+    //                 _ => false,
+    //             });
+
+    //     Ok(!contains_extension_based_on_not_any_type)
+    // }
+
     fn expand_schema_redefine(
         ctx: &mut XmlnsContextTransformerContext<'_>,
         target_idx: &FragmentedXsdDocumentIdx,
         redefine_fragment_id: &FragmentIdx<RedefineFragment>,
     ) -> Result<TransformChange, Error> {
+        // if !Self::expand_schema_redefine_compatible(ctx, target_idx, redefine_fragment_id)? {
+        //     return Ok(TransformChange::Unchanged);
+        // }
+
         let redefine_fragment = ctx
             .get_complex_fragment(&redefine_fragment_id)
             .expect("Expected include to be found")
@@ -449,49 +513,79 @@ impl ExpandRedefineFragments {
                 let target_document = target_document.expect("Expected target document to be found");
 
                 match redefinable {
-                    RedefinableId::ComplexType(root_fragment) => {
-                        let fragment = target_document
+                    RedefinableId::ComplexType(root_fragment_idx) => {
+                        let root_fragment = target_document
                             .compiler
-                            .get_fragment(&root_fragment)
+                            .get_fragment(&root_fragment_idx)
                             .expect("Expected fragment to be found");
-
-                        let name = fragment
-                            .name
-                            .clone()
-                            .expect("Top level type should have a name");
-
-                        let TopLevelTypeId::ComplexType(base_fragment) = *redefined_document
-                            .top_level_types
-                            .get(&name)
-                            .expect("Expected base fragment with same local name to be found")
-                        else {
-                            panic!("Expected base fragment to also be a complex type");
-                        };
-
-                        let base_fragment = base_fragment.with_offset(
-                            &redefined_document.compiler.namespace_idx,
-                            &target_document.compiler.namespace_idx,
-                            &offsets,
-                        ).with_remapped_namespace(
-                            &redefined_document.target_namespace,
-                            &target_document.target_namespace,
-                        );
-
-                        let base_fragment = target_document
-                            .compiler
-                            .get_fragment(&base_fragment)
-                            .expect("Expected base fragment to be found");
-
                         //TODO: Only transform if reference will disappear.
-                        match fragment.content {
+                        match root_fragment.content {
                             crate::fragments::complex::ComplexTypeModelId::SimpleContent(_) =>  {},
                             crate::fragments::complex::ComplexTypeModelId::ComplexContent(fragment_idx) => {
                                 let fragment = target_document.compiler.get_fragment(&fragment_idx).expect("Expected fragment to be found");
                                 match fragment.content_fragment {
-                                    crate::fragments::complex::ComplexContentChildId::Extension(_) => {
-                                        todo!("Handle extension of complex type in redefine");
+                                    crate::fragments::complex::ComplexContentChildId::Extension(extension_idx) => {
+                                        let extension = target_document
+                                            .compiler
+                                            .get_fragment(&extension_idx)
+                                            .expect("Expected extension fragment to be found");
+
+                                        assert_eq!(*extension.base.namespace(), redefined_document.target_namespace, "Right now we're assuming that the base is in the same namespace as the redefine fragment");
+
+                                        let TopLevelTypeId::ComplexType(base_fragment_idx) = *redefined_document
+                                            .top_level_types
+                                            .get(&extension.base.local_name())
+                                            .expect("Expected base fragment with same local name to be found")
+                                        else {
+                                            panic!("Expected base fragment to also be a complex type");
+                                        };
+
+                                        let base_fragment_idx = base_fragment_idx.with_offset(
+                                            &redefined_document.compiler.namespace_idx,
+                                            &target_document.compiler.namespace_idx,
+                                            &offsets,
+                                        ).with_remapped_namespace(
+                                            &redefined_document.target_namespace,
+                                            &target_document.target_namespace,
+                                        );
+
+                                        let _todo_use_value = ExpandExtensionFragments::expand_extension_from_base(
+                                            ctx,
+                                            &fragment_idx,
+                                            &base_fragment_idx,
+                                        ).expect("Expected extension to be expanded");
                                     },
-                                    crate::fragments::complex::ComplexContentChildId::Restriction(child_fragment_idx) => {
+                                    crate::fragments::complex::ComplexContentChildId::Restriction(restriction_idx) => {
+                                        let restriction = target_document
+                                            .compiler
+                                            .get_fragment(&restriction_idx)
+                                            .expect("Expected restriction fragment to be found");
+
+                                        assert_eq!(*restriction.base.namespace(), redefined_document.target_namespace, "Right now we're assuming that the base is in the same namespace as the redefine fragment");
+
+                                        let TopLevelTypeId::ComplexType(base_fragment_idx) = *redefined_document
+                                            .top_level_types
+                                            .get(restriction.base.local_name())
+                                            .expect("Expected base fragment with same local name to be found")
+                                        else {
+                                            panic!("Expected base fragment to also be a complex type");
+                                        };
+
+                                        let base_fragment_idx = base_fragment_idx.with_offset(
+                                            &redefined_document.compiler.namespace_idx,
+                                            &target_document.compiler.namespace_idx,
+                                            &offsets,
+                                        ).with_remapped_namespace(
+                                            &redefined_document.target_namespace,
+                                            &target_document.target_namespace,
+                                        );
+
+                                        let base_fragment = target_document
+                                            .compiler
+                                            .get_fragment(&base_fragment_idx)
+                                            .expect("Expected base fragment to be found");
+
+
                                         let crate::fragments::complex::ComplexTypeModelId::ComplexContent(base_complex_content_id) =
                                             base_fragment.content else {
                                             panic!("Expected base fragment to have complex content");
@@ -507,7 +601,7 @@ impl ExpandRedefineFragments {
                                             panic!("Expected base content fragment to have restriction");
                                         }; //TODO: Handle extension of complex type in redefine
 
-                                        let _todo_use_value = ExpandRestrictionFragments::expand_restriction_from_base(ctx, &child_fragment_idx, &base_restriction_id)
+                                        let _todo_use_value = ExpandRestrictionFragments::expand_restriction_from_base(ctx, &restriction_idx, &base_restriction_id)
                                             .expect("Expected restriction to be expanded");
                                     },
                                 }

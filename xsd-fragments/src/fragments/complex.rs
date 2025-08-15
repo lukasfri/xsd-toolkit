@@ -2283,7 +2283,7 @@ pub struct ComplexTypeFragmentCompiler {
     group_refs: FragmentCollection<GroupRefFragment>,
     alls: FragmentCollection<AllFragment>,
     choices: FragmentCollection<ChoiceFragment>,
-    sequences: FragmentCollection<SequenceFragment>,
+    pub sequences: FragmentCollection<SequenceFragment>,
     anys: FragmentCollection<AnyFragment>,
     elements: FragmentCollection<LocalElementFragment>,
     top_level_elements: FragmentCollection<TopLevelElementFragment>,
@@ -2710,291 +2710,248 @@ impl ComplexTypeFragmentCompiler {
             overrides: self.overrides.len(),
         };
 
-        self.complex_types
-            .fragments
-            .extend(other.complex_types.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.complex_type_roots_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.simple_restrictions
-            .fragments
-            .extend(other.simple_restrictions.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.simple_restrictions_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.simple_extensions
-            .fragments
-            .extend(other.simple_extensions.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.simple_extensions_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.simple_contents
-            .fragments
-            .extend(other.simple_contents.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.simple_contents_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.restrictions
-            .fragments
-            .extend(other.restrictions.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.restrictions_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.extensions
-            .fragments
-            .extend(other.extensions.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.extensions_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.complex_contents
-            .fragments
-            .extend(other.complex_contents.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.complex_contents_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.group_refs
-            .fragments
-            .extend(other.group_refs.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.group_ref_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.alls
-            .fragments
-            .extend(other.alls.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.all_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.choices
-            .fragments
-            .extend(other.choices.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.choice_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.sequences
-            .fragments
-            .extend(other.sequences.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.sequence_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.anys
-            .fragments
-            .extend(other.anys.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.any_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.elements
-            .fragments
-            .extend(other.elements.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.element_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.top_level_elements
-            .fragments
-            .extend(other.top_level_elements.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.top_level_element_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.local_attributes
-            .fragments
-            .extend(other.local_attributes.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.local_attribute_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.top_level_attributes.fragments.extend(
-            other.top_level_attributes.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.top_level_attribute_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }),
+        self.complex_types.merge_with(
+            &other.complex_types,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
         );
 
-        self.attribute_group_refs.fragments.extend(
-            other.attribute_group_refs.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.attribute_group_ref_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }),
+        self.simple_restrictions.merge_with(
+            &other.simple_restrictions,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
         );
 
-        self.groups
-            .fragments
-            .extend(other.groups.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.top_level_group_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.attribute_groups
-            .fragments
-            .extend(other.attribute_groups.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.top_level_attribute_group_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
-
-        self.attribute_declarations.fragments.extend(
-            other.attribute_declarations.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.attribute_declaration_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }),
+        self.simple_extensions.merge_with(
+            &other.simple_extensions,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
         );
 
-        self.any_attributes
-            .fragments
-            .extend(other.any_attributes.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.any_attribute_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.simple_contents.merge_with(
+            &other.simple_contents,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
-        self.assertions
-            .fragments
-            .extend(other.assertions.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.assertion_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.restrictions.merge_with(
+            &other.restrictions,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
-        self.assertion_groups
-            .fragments
-            .extend(other.assertion_groups.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.assertion_group_offset,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.extensions.merge_with(
+            &other.extensions,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
-        self.includes
-            .fragments
-            .extend(other.includes.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.includes,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.complex_contents.merge_with(
+            &other.complex_contents,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
-        self.redefines
-            .fragments
-            .extend(other.redefines.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.redefines,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.group_refs.merge_with(
+            &other.group_refs,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
-        self.imports
-            .fragments
-            .extend(other.imports.fragments.iter().map(|a| {
-                (
-                    *a.0 + merge_result.imports,
-                    a.1.clone()
-                        .with_offset(&other.namespace_idx, &self.namespace_idx, &merge_result)
-                        .with_remapped_namespace(&old_target_namespace, &new_target_namespace),
-                )
-            }));
+        self.alls.merge_with(
+            &other.alls,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.choices.merge_with(
+            &other.choices,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.sequences.merge_with(
+            &other.sequences,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.anys.merge_with(
+            &other.anys,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.elements.merge_with(
+            &other.elements,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.top_level_elements.merge_with(
+            &other.top_level_elements,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.local_attributes.merge_with(
+            &other.local_attributes,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.top_level_attributes.merge_with(
+            &other.top_level_attributes,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.attribute_group_refs.merge_with(
+            &other.attribute_group_refs,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.groups.merge_with(
+            &other.groups,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.attribute_groups.merge_with(
+            &other.attribute_groups,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.attribute_declarations.merge_with(
+            &other.attribute_declarations,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.any_attributes.merge_with(
+            &other.any_attributes,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.assertions.merge_with(
+            &other.assertions,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.assertion_groups.merge_with(
+            &other.assertion_groups,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.includes.merge_with(
+            &other.includes,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.redefines.merge_with(
+            &other.redefines,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.imports.merge_with(
+            &other.imports,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
+
+        self.overrides.merge_with(
+            &other.overrides,
+            &other.namespace_idx,
+            &self.namespace_idx,
+            &merge_result,
+            old_target_namespace,
+            new_target_namespace,
+        );
 
         Ok(merge_result)
     }

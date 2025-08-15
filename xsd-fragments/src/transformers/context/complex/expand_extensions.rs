@@ -227,9 +227,10 @@ impl ExpandExtensionFragments {
         Ok(child_assertions)
     }
 
-    fn expand_extension(
+    pub fn expand_extension_from_base(
         ctx: &mut XmlnsContextTransformerContext<'_>,
         child_complex_content_fragment_idx: &FragmentIdx<ComplexContentFragment>,
+        base_fragment: &FragmentIdx<ComplexTypeRootFragment>,
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
         let child_complex_content_fragment = ctx
             .get_complex_fragment(child_complex_content_fragment_idx)
@@ -244,23 +245,6 @@ impl ExpandExtensionFragments {
         let child_fragment = ctx
             .get_complex_fragment(&child_fragment_idx)
             .expect("Fragment not found in compiler.");
-
-        let base = child_fragment.base.clone();
-
-        if base == *xsn::ANY_TYPE {
-            return Ok(TransformChange::Unchanged);
-        }
-
-        let base_fragment = ctx
-            .get_named_type(&child_fragment_idx.namespace_idx(), &base)
-            .ok_or(Error::BaseNotFound { base: base.clone() })?;
-
-        let base_fragment = match base_fragment {
-            TopLevelTypeId::ComplexType(complex) => complex,
-            TopLevelTypeId::SimpleType(_) => {
-                return Err(Error::BaseNotComplexType { base: base.clone() });
-            }
-        };
 
         let base_root_fragment = ctx
             .get_complex_fragment::<ComplexTypeRootFragment>(&base_fragment)
@@ -334,20 +318,14 @@ impl ExpandExtensionFragments {
                     id: None,
                     max_occurs: None,
                     min_occurs: None,
-                    fragments: {
-                        let mut fragments = VecDeque::with_capacity(2);
-                        fragments.push_back(
-                            base_content_content_fragment_id
-                                .try_into()
-                                .expect("TODO: Error handling for conversion failure"),
-                        );
-                        fragments.push_back(
-                            child_content_content_fragment_id
-                                .try_into()
-                                .expect("TODO: Error handling for conversion failure"),
-                        );
-                        fragments
-                    },
+                    fragments: VecDeque::from([
+                        base_content_content_fragment_id
+                            .try_into()
+                            .expect("TODO: Error handling for conversion failure"),
+                        child_content_content_fragment_id
+                            .try_into()
+                            .expect("TODO: Error handling for conversion failure"),
+                    ]),
                 };
 
                 let ns = &mut ctx
@@ -388,6 +366,44 @@ impl ExpandExtensionFragments {
             .content_fragment = ComplexContentChildId::Restriction(new_child_content);
 
         Ok(TransformChange::Changed)
+    }
+
+    fn expand_extension(
+        ctx: &mut XmlnsContextTransformerContext<'_>,
+        child_complex_content_fragment_idx: &FragmentIdx<ComplexContentFragment>,
+    ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
+        let child_complex_content_fragment = ctx
+            .get_complex_fragment(child_complex_content_fragment_idx)
+            .expect("Fragment not found in compiler.");
+        let child_fragment_idx = match child_complex_content_fragment.content_fragment {
+            ComplexContentChildId::Extension(fragment_idx) => fragment_idx,
+            ComplexContentChildId::Restriction(_) => {
+                return Ok(TransformChange::Unchanged);
+            }
+        };
+
+        let child_fragment = ctx
+            .get_complex_fragment(&child_fragment_idx)
+            .expect("Fragment not found in compiler.");
+
+        let base = child_fragment.base.clone();
+
+        if base == *xsn::ANY_TYPE {
+            return Ok(TransformChange::Unchanged);
+        }
+
+        let base_fragment = ctx
+            .get_named_type(&child_fragment_idx.namespace_idx(), &base)
+            .ok_or(Error::BaseNotFound { base: base.clone() })?;
+
+        let base_fragment = match base_fragment {
+            TopLevelTypeId::ComplexType(complex) => *complex,
+            TopLevelTypeId::SimpleType(_) => {
+                return Err(Error::BaseNotComplexType { base: base.clone() });
+            }
+        };
+
+        Self::expand_extension_from_base(ctx, child_complex_content_fragment_idx, &base_fragment)
     }
 }
 

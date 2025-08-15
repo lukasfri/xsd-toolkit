@@ -255,6 +255,57 @@ const EXPAND_REF_ATTRIBUTE_EXPECTED: &str = r###"
 </xs:schema>
 "###;
 
+const EXPAND_DXS_REDEFINE_INPUT: &str = r###"
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:complexType name="parent">
+    <xs:sequence>
+      <xs:element name="number" type="xs:integer" />
+      <xs:element name="name" type="xs:string" />
+      <xs:element name="size" type="xs:integer" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="child">
+    <xs:complexContent>
+      <xs:extension base="parent">
+        <xs:sequence>
+          <xs:element name="color" type="xs:string" />
+        </xs:sequence>
+        <xs:attribute name="effDate" type="xs:date" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+</xs:schema>
+"###;
+
+const EXPAND_DXS_REDEFINE_EXPECTED: &str = r###"
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:complexType name="parent">
+    <xs:sequence>
+      <xs:element name="number" type="xs:integer" />
+      <xs:element name="name" type="xs:string" />
+      <xs:element name="size" type="xs:integer" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="child">
+    <xs:complexContent>
+      <xs:restriction base="xs:anyType">
+        <xs:sequence>
+          <xs:sequence>
+            <xs:element name="number" type="xs:integer" />
+            <xs:element name="name" type="xs:string" />
+            <xs:element name="size" type="xs:integer" />
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element name="color" type="xs:string" />
+          </xs:sequence>
+        </xs:sequence>
+        <xs:attribute name="effDate" type="xs:date" />
+      </xs:restriction>
+    </xs:complexContent>
+  </xs:complexType>
+</xs:schema>
+"###;
+
 #[rstest::rstest]
 #[case::basic_extension(BASIC_EXTENSION_INPUT, BASIC_EXTENSION_EXPECTED)]
 #[case::attribute_extension(ATTRIBUTE_EXTENSION_INPUT, ATTRIBUTE_EXTENSION_EXPECTED)]
@@ -264,6 +315,7 @@ const EXPAND_REF_ATTRIBUTE_EXPECTED: &str = r###"
 )]
 #[case::expand_htmlx_a(EXPAND_HTMLX_A_INPUT, EXPAND_HTMLX_A_EXPECTED)]
 #[case::expand_ref_attribute(EXPAND_REF_ATTRIBUTE_INPUT, EXPAND_REF_ATTRIBUTE_EXPECTED)]
+#[case::expand_dx_redefine(EXPAND_DXS_REDEFINE_INPUT, EXPAND_DXS_REDEFINE_EXPECTED)]
 fn expand_extension_fragments(#[case] input: &str, #[case] output: &str) {
     use xsd_fragments::transformers::TransformChange;
 

@@ -11,6 +11,9 @@ use std::marker::PhantomData;
 
 use xmlity::XmlNamespace;
 
+use crate::fragments::complex::ComplexOffsetable;
+use crate::fragments::simple::SimpleOffsetable;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// Index identifying a specific document within the fragment system. This exists as a lightweight counterpart to the [`FragmentedXsdDocumentKey`].
 pub struct FragmentedXsdDocumentIdx(usize);
@@ -123,6 +126,58 @@ impl<T> FragmentCollection<T> {
     /// Returns true if the collection contains no fragments.
     pub fn is_empty(&self) -> bool {
         self.fragments.is_empty()
+    }
+}
+
+impl<T: SimpleOffsetable + Clone> FragmentCollection<T> {
+    pub fn merge_with_simple(
+        &mut self,
+        other: &Self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        merge_result: &simple::IdOffsets,
+        old_ns: &Option<XmlNamespace>,
+        new_ns: &Option<XmlNamespace<'static>>,
+    ) {
+        use crate::fragments::simple::SimpleOffsetableExt;
+
+        self.fragments
+            .extend(other.fragments.iter().map(|(id, val)| {
+                (
+                    *id + self.fragment_id_count,
+                    val.clone()
+                        .with_offset(&target, &new, merge_result)
+                        .with_remapped_namespace(old_ns, new_ns),
+                )
+            }));
+
+        self.fragment_id_count += other.fragment_id_count
+    }
+}
+
+impl<T: ComplexOffsetable + Clone> FragmentCollection<T> {
+    pub fn merge_with(
+        &mut self,
+        other: &Self,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        merge_result: &complex::IdOffsets,
+        old_ns: &Option<XmlNamespace>,
+        new_ns: &Option<XmlNamespace<'static>>,
+    ) {
+        use crate::fragments::complex::ComplexOffsetableExt;
+
+        self.fragments
+            .extend(other.fragments.iter().map(|(id, val)| {
+                (
+                    *id + self.fragment_id_count,
+                    val.clone()
+                        .with_offset(&target, &new, merge_result)
+                        .with_remapped_namespace(old_ns, new_ns),
+                )
+            }));
+
+        self.fragment_id_count += other.fragment_id_count
     }
 }
 
