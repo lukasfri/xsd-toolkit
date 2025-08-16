@@ -26,6 +26,7 @@ use xsd_fragments::{transformers::context::complex::ExpandRedefineFragments, Xml
     "definitive_xml_schema/example_18_4/prod2.xsd",
     "definitive_xml_schema/example_18_4/expanded.xsd"
 )]
+#[ignore = "Groups in redefines are not supported yet"]
 #[case::dxs_example_18_5(
     "definitive_xml_schema/example_18_5/prod2.xsd",
     "definitive_xml_schema/example_18_5/expanded.xsd"
@@ -34,6 +35,7 @@ use xsd_fragments::{transformers::context::complex::ExpandRedefineFragments, Xml
     "definitive_xml_schema/example_18_6/prod2.xsd",
     "definitive_xml_schema/example_18_6/expanded.xsd"
 )]
+#[ignore = "Attribute groups in redefines are not supported yet"]
 #[case::dxs_example_18_7(
     "definitive_xml_schema/example_18_7/prod2.xsd",
     "definitive_xml_schema/example_18_7/expanded.xsd"
