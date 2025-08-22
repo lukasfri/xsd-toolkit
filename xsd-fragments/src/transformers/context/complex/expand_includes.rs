@@ -14,8 +14,11 @@ pub struct ExpandIncludeFragments {}
 /// Error type for the [`ExpandIncludeFragments`] transformer.
 pub enum Error {
     /// Error indicating that a schema was not found in the context.
-    #[error("Schema not found: {0}")]
-    SchemaNotFound(FragmentedXsdDocumentIdx),
+    #[error("Schema not found for document {origin_document}: \"{missing_location}\"")]
+    SchemaNotFound {
+        origin_document: FragmentedXsdDocumentIdx,
+        missing_location: url::Url,
+    },
 }
 
 impl ExpandIncludeFragments {
@@ -54,7 +57,10 @@ impl ExpandIncludeFragments {
             .namespace_idxs
             .get(&key)
             .cloned()
-            .ok_or_else(|| Error::SchemaNotFound(target_idx.clone()))?;
+            .ok_or_else(|| Error::SchemaNotFound {
+                origin_document: target_idx.clone(),
+                missing_location: key.0.clone(),
+            })?;
 
         let (included_document, target_document) = ctx.xmlns_context.namespaces.iter_mut().fold(
             (None, None),
@@ -81,11 +87,9 @@ impl ExpandIncludeFragments {
         ctx: &mut XmlnsContextTransformerContext<'_>,
         document_idx: &FragmentedXsdDocumentIdx,
     ) -> Result<TransformChange, Error> {
-        let namespace = ctx
-            .xmlns_context
-            .namespaces
-            .get_mut(document_idx)
-            .ok_or_else(|| Error::SchemaNotFound(document_idx.clone()))?;
+        let namespace = ctx.xmlns_context.namespaces.get_mut(document_idx).expect(
+            "Expected namespace to be found since we are expanding includes of the document",
+        );
 
         let (compositions, includes) = namespace
             .compositions

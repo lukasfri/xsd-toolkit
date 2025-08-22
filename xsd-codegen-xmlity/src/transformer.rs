@@ -74,7 +74,6 @@ impl XmlnsContextTransformer for CodegenTransformer {
     ) -> std::result::Result<TransformChange, Self::Error> {
         let mut total_change = TransformChange::Changed;
 
-        // Expand inclusions and redefines first
         for i in 0..self.max_iterations {
             if i >= self.max_iterations - 1 {
                 return Err(Error::MaxTransformationLoopsReached);
@@ -91,20 +90,6 @@ impl XmlnsContextTransformer for CodegenTransformer {
                 .xmlns_context
                 .context_transform(ExpandRedefineFragments::new())
                 .map_err(Error::ExpandRedefineFragmentsError)?;
-
-            total_change |= i_change;
-
-            if i_change == TransformChange::Unchanged {
-                break;
-            }
-        }
-
-        for i in 0..self.max_iterations {
-            if i >= self.max_iterations - 1 {
-                return Err(Error::MaxTransformationLoopsReached);
-            }
-
-            let mut i_change = TransformChange::Unchanged;
 
             i_change |= context
                 .xmlns_context
