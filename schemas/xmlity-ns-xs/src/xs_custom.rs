@@ -72,11 +72,21 @@ pub mod types {
     }
 
     impl Serialize for QName {
-        fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: xmlity::Serializer,
         {
-            todo!()
+            //TODO
+            format!(
+                "{}:{}",
+                self.0
+                    .namespace()
+                    .as_ref()
+                    .map(|a| a.to_string())
+                    .unwrap_or_default(),
+                self.0.local_name()
+            )
+            .serialize(serializer)
         }
     }
 }

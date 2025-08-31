@@ -1,0 +1,6 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns="http://datypic.com/ext"
+  targetNamespace="http://datypic.com/ext">
+  <xs:complexType name="ExtensionType">
+  </xs:complexType>
+</xs:schema>

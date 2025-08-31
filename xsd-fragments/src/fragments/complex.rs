@@ -16,6 +16,7 @@ use crate::{
     },
     NamedOrAnonymous,
 };
+use url::Url;
 use xmlity::{ExpandedName, LocalName, XmlNamespace};
 
 use xsd::{ns, xs};
@@ -45,6 +46,8 @@ pub trait ComplexOffsetable {
     );
 
     fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>);
+
+    fn remap_base_url(&mut self, target_url: &url::Url, other_url: &url::Url) {}
 }
 
 pub trait ComplexOffsetableExt: ComplexOffsetable + Sized {
@@ -64,6 +67,11 @@ pub trait ComplexOffsetableExt: ComplexOffsetable + Sized {
         new: &Option<XmlNamespace<'static>>,
     ) -> Self {
         self.remap_namespace(old, new);
+        self
+    }
+
+    fn with_remapped_base_url(mut self, target_url: &url::Url, other_url: &url::Url) -> Self {
+        self.remap_base_url(target_url, other_url);
         self
     }
 }
@@ -1294,7 +1302,12 @@ impl SchemaFragment {
     }
 
     /// This merges another schema fragment into this one.
-    pub fn merge_with(&mut self, other: &Self) -> Result<(), Error> {
+    pub fn merge_with(
+        &mut self,
+        other: &Self,
+        target_url: &Url,
+        other_url: &Url,
+    ) -> Result<(), Error> {
         if other
             .target_namespace
             .as_ref()
@@ -1311,6 +1324,8 @@ impl SchemaFragment {
             &other.compiler,
             &other.target_namespace,
             &self.target_namespace,
+            target_url,
+            other_url,
         )?;
 
         for (name, top_level_type) in &other.top_level_types {
@@ -2195,6 +2210,76 @@ pub struct IncludeFragment {
     pub schema_location: String,
 }
 
+fn remap_relative_url(
+    old_base_url: &url::Url,
+    new_base_url: &url::Url,
+    schema_location: &str,
+) -> String {
+    if Url::parse(schema_location).is_ok() {
+        return schema_location.to_string();
+    }
+
+    if let Ok(schema_url) = old_base_url.join(schema_location) {
+        if let Some(relative_url) = new_base_url.make_relative(&schema_url) {
+            return relative_url;
+        }
+    }
+    schema_location.to_string()
+}
+
+#[cfg(test)]
+mod remap_tests {
+    #[rstest::rstest]
+    #[case::same_base(
+        "http://example.com/schemas/test1.xsd",
+        "http://example.com/schemas/test1.xsd",
+        "included.xsd",
+        "included.xsd"
+    )]
+    #[case::different_base(
+        "http://example.com/schemas/test1.xsd",
+        "http://example.com/other-schemas/test1.xsd",
+        "included.xsd",
+        "../schemas/included.xsd"
+    )]
+    #[case::absolute_url(
+        "http://example.com/schemas/test1.xsd",
+        "http://example.com/other-schemas/test1.xsd",
+        "http://example.com/schemas/included.xsd",
+        "http://example.com/schemas/included.xsd"
+    )]
+    #[case::relative_path(
+        "http://example.com/schemas/test1.xsd",
+        "http://example.com/other-schemas/test1.xsd",
+        "subdir/included.xsd",
+        "../schemas/subdir/included.xsd"
+    )]
+    #[case::file_example(
+        "file:///home/lukasfri/Repositories/github.com/lukasfri/xsd-toolkit/xsd-fragments/tests/include_examples/parent.xsd",
+        "file:///home/lukasfri/Repositories/github.com/lukasfri/xsd-toolkit/xsd-fragments/tests/include_examples/folder/sub.xsd",
+        "another-folder/sub.xsd",
+        "../another-folder/sub.xsd"
+    )]
+    #[case::file_example2(
+        "file:///home/lukasfri/Repositories/github.com/lukasfri/xsd-toolkit/xsd-fragments/tests/include_examples/folder/sub.xsd",
+        "file:///home/lukasfri/Repositories/github.com/lukasfri/xsd-toolkit/xsd-fragments/tests/include_examples/parent.xsd",
+        "another-folder/sub.xsd",
+        "folder/another-folder/sub.xsd"
+    )]
+    fn test_remap_relative_url(
+        #[case] old_base: &str,
+        #[case] new_base: &str,
+        #[case] schema_location: &str,
+        #[case] expected: &str,
+    ) {
+        let old_base = url::Url::parse(old_base).unwrap();
+        let new_base = url::Url::parse(new_base).unwrap();
+
+        let remapped = super::remap_relative_url(&old_base, &new_base, schema_location);
+        assert_eq!(remapped, expected);
+    }
+}
+
 impl ComplexOffsetable for IncludeFragment {
     fn offset(
         &mut self,
@@ -2211,6 +2296,10 @@ impl ComplexOffsetable for IncludeFragment {
         _new: &Option<XmlNamespace<'static>>,
     ) {
         // No specific namespace remapping needed for IncludeFragment
+    }
+
+    fn remap_base_url(&mut self, target_url: &url::Url, other_url: &url::Url) {
+        self.schema_location = remap_relative_url(other_url, target_url, &self.schema_location);
     }
 }
 
@@ -2236,6 +2325,13 @@ impl ComplexOffsetable for ImportFragment {
         if self.namespace == *old {
             self.namespace = new.clone();
         }
+    }
+
+    fn remap_base_url(&mut self, target_url: &url::Url, other_url: &url::Url) {
+        self.schema_location = self
+            .schema_location
+            .as_ref()
+            .map(|schema_location| remap_relative_url(other_url, target_url, schema_location));
     }
 }
 
@@ -2281,6 +2377,10 @@ impl ComplexOffsetable for OverrideFragment {
                 SchemaTopId::Notation => {}
             }
         }
+    }
+
+    fn remap_base_url(&mut self, target_url: &url::Url, other_url: &url::Url) {
+        self.schema_location = remap_relative_url(other_url, target_url, &self.schema_location);
     }
 }
 
@@ -2689,6 +2789,8 @@ impl ComplexTypeFragmentCompiler {
         other: &Self,
         old_target_namespace: &Option<XmlNamespace<'_>>,
         new_target_namespace: &Option<XmlNamespace<'static>>,
+        target_url: &Url,
+        other_url: &Url,
     ) -> Result<IdOffsets, Error> {
         let simple_merge_result = self.simple_type_compiler.merge_with(
             &other.simple_type_compiler,
@@ -2734,6 +2836,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.simple_restrictions.merge_with(
@@ -2743,6 +2847,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.simple_extensions.merge_with(
@@ -2752,6 +2858,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.simple_contents.merge_with(
@@ -2761,6 +2869,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.restrictions.merge_with(
@@ -2770,6 +2880,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.extensions.merge_with(
@@ -2779,6 +2891,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.complex_contents.merge_with(
@@ -2788,6 +2902,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.group_refs.merge_with(
@@ -2797,6 +2913,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.alls.merge_with(
@@ -2806,6 +2924,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.choices.merge_with(
@@ -2815,6 +2935,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.sequences.merge_with(
@@ -2824,6 +2946,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.anys.merge_with(
@@ -2833,6 +2957,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.elements.merge_with(
@@ -2842,6 +2968,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.top_level_elements.merge_with(
@@ -2851,6 +2979,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.local_attributes.merge_with(
@@ -2860,6 +2990,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.top_level_attributes.merge_with(
@@ -2869,6 +3001,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.attribute_group_refs.merge_with(
@@ -2878,6 +3012,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.groups.merge_with(
@@ -2887,6 +3023,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.attribute_groups.merge_with(
@@ -2896,6 +3034,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.attribute_declarations.merge_with(
@@ -2905,6 +3045,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.any_attributes.merge_with(
@@ -2914,6 +3056,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.assertions.merge_with(
@@ -2923,6 +3067,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.assertion_groups.merge_with(
@@ -2932,6 +3078,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.includes.merge_with(
@@ -2941,6 +3089,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.redefines.merge_with(
@@ -2950,6 +3100,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.imports.merge_with(
@@ -2959,6 +3111,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         self.overrides.merge_with(
@@ -2968,6 +3122,8 @@ impl ComplexTypeFragmentCompiler {
             &merge_result,
             old_target_namespace,
             new_target_namespace,
+            target_url,
+            other_url,
         );
 
         Ok(merge_result)

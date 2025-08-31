@@ -50,7 +50,7 @@ impl ExpandOverrideFragments {
             .xmlns_context
             .namespace_idxs
             .iter()
-            .find(|(_, idx)| *idx == target_idx)
+            .find(|(_, idx)| **idx == override_fragment_id.namespace_idx())
             .map(|(location, _)| location)
             .expect("Expected current fragment location to be found");
 
@@ -197,10 +197,15 @@ impl ExpandOverrideFragments {
             );
         }
 
+        let old_base_url = &current_fragment_location.0;
+        let new_base_url = &key.0;
+
         let offsets = target_document.compiler.merge_with(
             &overriden_document.compiler,
             &overriden_document.target_namespace,
             &target_document.target_namespace,
+            old_base_url,
+            new_base_url,
         )?;
 
         for (name, top_level_type) in &overriden_document.top_level_types {

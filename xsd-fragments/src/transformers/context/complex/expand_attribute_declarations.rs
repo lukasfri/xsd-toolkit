@@ -2,8 +2,6 @@
 
 use std::collections::VecDeque;
 
-use xmlity::ExpandedName;
-
 use crate::fragments::{
     complex::{
         AttributeDeclarationId, AttributeDeclarationsFragment, AttributeGroupRefFragment,
@@ -20,18 +18,12 @@ use crate::transformers::{
 pub struct ExpandAttributeDeclarations {}
 
 /// Error type for the [`ExpandAttributeDeclarations`] transformer.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq)]
 pub enum Error {
     //TODO: Review if this is actually a requirement.
     /// When merging attributes, the type modes must be compatible.
     #[error("When merging, the attribute type modes must be the same")]
     MismatchedAttributeModes,
-    /// When an attribute group is referenced, but the group is not found in the context.
-    #[error("Named attribute group not found: {name}")]
-    NamedAttributeGroupNotFound {
-        /// The name of the attribute group that was not found.
-        name: ExpandedName<'static>,
-    },
 }
 
 impl ExpandAttributeDeclarations {
@@ -45,13 +37,11 @@ impl ExpandAttributeDeclarations {
         context: &mut XmlnsContextTransformerContext<'_>,
         fragment_id: &FragmentIdx<AttributeDeclarationsFragment>,
     ) -> Result<TransformChange, <Self as XmlnsContextTransformer>::Error> {
-        let mut change = TransformChange::default();
-
         let fragment = context
             .get_complex_fragment(fragment_id)
             .expect("Fragment not found in compiler.");
 
-        let mut new_attributes = VecDeque::new();
+        let mut new_declarations = VecDeque::new();
 
         fn merge_attribute(
             ctx: &mut XmlnsContextTransformerContext<'_>,
@@ -129,7 +119,7 @@ impl ExpandAttributeDeclarations {
         }
 
         fn add_attribute(
-            new_attributes: &mut VecDeque<AttributeDeclarationId>,
+            new_declarations: &mut VecDeque<AttributeDeclarationId>,
             ctx: &mut XmlnsContextTransformerContext<'_>,
             new_idx: &FragmentIdx<LocalAttributeFragment>,
         ) -> Result<(), Error> {
@@ -138,7 +128,7 @@ impl ExpandAttributeDeclarations {
                 .expect("Fragment not found in compiler.");
 
             // Check if the attribute already exists in the new_attributes list
-            let attribute_exists = new_attributes
+            let attribute_exists = new_declarations
                 .iter()
                 .enumerate()
                 .filter_map(|(i, a)| match a {
@@ -169,12 +159,12 @@ impl ExpandAttributeDeclarations {
 
             // If the attribute does not exist, add it to the new_attributes list
             let Some(i) = attribute_exists else {
-                new_attributes.push_back(AttributeDeclarationId::Attribute(*new_idx));
+                new_declarations.push_back(AttributeDeclarationId::Attribute(*new_idx));
                 return Ok(());
             };
 
             // Otherwise, merge the attributes
-            let AttributeDeclarationId::Attribute(existing_idx) = new_attributes
+            let AttributeDeclarationId::Attribute(existing_idx) = new_declarations
                 .get(i)
                 .expect("Attribute must exist in the list since we just found it")
             else {
@@ -182,13 +172,13 @@ impl ExpandAttributeDeclarations {
             };
 
             let resulting_idx = merge_attribute(ctx, existing_idx, new_idx)?;
-            new_attributes[i] = AttributeDeclarationId::Attribute(resulting_idx);
+            new_declarations[i] = AttributeDeclarationId::Attribute(resulting_idx);
 
             Ok(())
         }
 
         fn add_group(
-            new_attributes: &mut VecDeque<AttributeDeclarationId>,
+            new_declarations: &mut VecDeque<AttributeDeclarationId>,
             ctx: &mut XmlnsContextTransformerContext<'_>,
             fragment_idx: &FragmentIdx<AttributeGroupRefFragment>,
         ) {
@@ -198,7 +188,7 @@ impl ExpandAttributeDeclarations {
                 .clone();
 
             // Check if the attribute group already exists in the new_attributes list
-            let group_exists = new_attributes
+            let group_exists = new_declarations
                 .iter()
                 .enumerate()
                 .filter_map(|(i, a)| match a {
@@ -216,58 +206,99 @@ impl ExpandAttributeDeclarations {
 
             // If the attribute group does not exist, add it to the new_attributes list
             if !group_exists {
-                new_attributes.push_back(AttributeDeclarationId::AttributeGroupRef(*fragment_idx));
+                new_declarations
+                    .push_back(AttributeDeclarationId::AttributeGroupRef(*fragment_idx));
             }
         }
 
         // We iterate through all attributes and attribute groups, applying edits to already existing attributes.
-        for attributes in fragment.declarations.clone().iter() {
-            match attributes {
+        let change = fragment
+            .declarations
+            .clone()
+            .iter()
+            .map(|attributes| match attributes {
                 AttributeDeclarationId::Attribute(fragment_idx) => {
-                    add_attribute(&mut new_attributes, context, fragment_idx)?;
+                    add_attribute(&mut new_declarations, context, fragment_idx)?;
+
+                    Ok(TransformChange::Unchanged)
                 }
                 AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
-                    change = TransformChange::Changed;
-
                     let attribute_fragment = context
                         .get_complex_fragment::<AttributeGroupRefFragment>(fragment_idx)
                         .expect("Fragment not found in compiler.");
 
-                    let group = context
-                        .get_named_attribute_group(
-                            &fragment_idx.namespace_idx(),
-                            &attribute_fragment.ref_,
-                        )
-                        .ok_or_else(|| Error::NamedAttributeGroupNotFound {
-                            name: attribute_fragment.ref_.clone(),
-                        })?;
+                    let Some(group_fragment_idx) = context.get_named_attribute_group(
+                        &fragment_idx.namespace_idx(),
+                        &attribute_fragment.ref_,
+                    ) else {
+                        new_declarations
+                            .push_back(AttributeDeclarationId::AttributeGroupRef(*fragment_idx));
+
+                        return Ok(TransformChange::Unchanged);
+                    };
 
                     let group = context
-                        .get_complex_fragment(&group)
+                        .get_complex_fragment(&group_fragment_idx)
                         .expect("Fragment not found in compiler.");
                     let attr_decls = context
                         .get_complex_fragment(&group.attr_decls)
                         .expect("Fragment not found in compiler.");
 
-                    for declaration in attr_decls.declarations.clone().iter() {
-                        match declaration {
-                            AttributeDeclarationId::Attribute(fragment_idx) => {
-                                add_attribute(&mut new_attributes, context, fragment_idx)?;
-                            }
+                    if attr_decls
+                        .declarations
+                        .iter()
+                        .filter_map(|a| match a {
                             AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
-                                add_group(&mut new_attributes, context, fragment_idx);
+                                Some(fragment_idx)
                             }
-                        }
+                            _ => None,
+                        })
+                        .any(|a| {
+                            let child_group_fragment = context
+                                .get_complex_fragment(a)
+                                .expect("Fragment not found in compiler.");
+
+                            context
+                                .get_named_attribute_group(
+                                    &a.namespace_idx(),
+                                    &child_group_fragment.ref_,
+                                )
+                                .is_some_and(|a| *a == *group_fragment_idx)
+                        })
+                    {
+                        new_declarations
+                            .push_back(AttributeDeclarationId::AttributeGroupRef(*fragment_idx));
+
+                        // If it is self-referencing, we skip expansion to avoid infinite loops.
+                        return Ok(TransformChange::Unchanged);
                     }
+
+                    attr_decls
+                        .declarations
+                        .clone()
+                        .iter()
+                        .map(|declaration| {
+                            match declaration {
+                                AttributeDeclarationId::Attribute(fragment_idx) => {
+                                    add_attribute(&mut new_declarations, context, fragment_idx)?;
+                                }
+                                AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
+                                    add_group(&mut new_declarations, context, fragment_idx);
+                                }
+                            }
+
+                            Ok(TransformChange::Changed)
+                        })
+                        .collect()
                 }
-            }
-        }
+            })
+            .collect::<Result<TransformChange, Error>>()?;
 
         let fragment = context
             .get_complex_fragment_mut(fragment_id)
             .expect("Fragment not found in compiler.");
 
-        fragment.declarations = new_attributes;
+        fragment.declarations = new_declarations;
 
         Ok(change)
     }

@@ -1,0 +1,7 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns="http://datypic.com/ord"
+  targetNamespace="http://datypic.com/ord">
+  <xs:include schemaLocation="folder/another-folder/sub.xsd" />
+  <xs:element name="title" type="xs:string" />
+  <xs:element name="name" type="xs:string" />
+</xs:schema>

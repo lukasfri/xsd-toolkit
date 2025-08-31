@@ -198,8 +198,6 @@ impl BuildEngine {
 
         map.inform_locations(self.urls.iter().cloned());
 
-        let root_uris = map.locations.keys().cloned().collect::<Vec<_>>();
-
         let resolver = Resolver::new(self.allow_network_access);
 
         map.explore_locations(&|url| resolver.resolve(url))
@@ -224,8 +222,8 @@ impl BuildEngine {
                     }),
             );
 
-        root_uris
-            .iter()
+        map.locations
+            .keys()
             .try_for_each(|uri| context.import_namespace_map(&map, uri).map(|_| ()))?;
 
         let allowed_simple_bases: HashSet<ExpandedName<'static>> = [

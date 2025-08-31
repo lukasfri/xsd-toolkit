@@ -8,7 +8,9 @@ use crate::{
 
 /// This transformer expands the include fragments in the XML Schema context.
 #[non_exhaustive]
-pub struct ExpandIncludeFragments {}
+pub struct ExpandIncludeFragments {
+    bypass: Vec<url::Url>,
+}
 
 #[derive(Debug, thiserror::Error)]
 /// Error type for the [`ExpandIncludeFragments`] transformer.
@@ -25,23 +27,28 @@ impl ExpandIncludeFragments {
     /// Creates a new instance of the [`ExpandIncludeFragments`] transformer.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self {}
+        Self { bypass: Vec::new() }
+    }
+
+    pub fn with_bypass(mut self, urls: Vec<url::Url>) -> Self {
+        self.bypass = urls;
+        self
     }
 
     fn expand_schema_include(
         ctx: &mut XmlnsContextTransformerContext<'_>,
         target_idx: &FragmentedXsdDocumentIdx,
-        include_fragment: &FragmentIdx<IncludeFragment>,
+        include_fragment_id: &FragmentIdx<IncludeFragment>,
     ) -> Result<TransformChange, Error> {
         let fragment = ctx
-            .get_complex_fragment(&include_fragment)
+            .get_complex_fragment(&include_fragment_id)
             .expect("Expected include to be found");
 
         let current_fragment_location = ctx
             .xmlns_context
             .namespace_idxs
             .iter()
-            .find(|(_, idx)| *idx == target_idx)
+            .find(|(_, idx)| **idx == include_fragment_id.namespace_idx())
             .map(|(location, _)| location)
             .expect("Expected current fragment location to be found");
 
@@ -77,16 +84,40 @@ impl ExpandIncludeFragments {
 
         let included_document = included_document.expect("Expected included document to be found");
         let target_document = target_document.expect("Expected target document to be found");
+        let target_url = &current_fragment_location.0;
+        let other_url = &key.0;
 
-        target_document.merge_with(included_document).unwrap();
+        target_document
+            .merge_with(included_document, target_url, other_url)
+            .unwrap();
 
         Ok(TransformChange::Changed)
     }
 
     fn expand_schema_includes(
+        &self,
         ctx: &mut XmlnsContextTransformerContext<'_>,
         document_idx: &FragmentedXsdDocumentIdx,
     ) -> Result<TransformChange, Error> {
+        let url = ctx
+            .xmlns_context
+            .namespace_idxs
+            .iter()
+            .find_map(
+                |(key, idx)| {
+                    if idx == document_idx {
+                        Some(key)
+                    } else {
+                        None
+                    }
+                },
+            )
+            .expect("Expected URL to be found");
+
+        if self.bypass.contains(&url.0) {
+            return Ok(TransformChange::Unchanged);
+        }
+
         let namespace = ctx.xmlns_context.namespaces.get_mut(document_idx).expect(
             "Expected namespace to be found since we are expanding includes of the document",
         );
@@ -127,7 +158,7 @@ impl XmlnsContextTransformer for ExpandIncludeFragments {
             .collect::<Vec<_>>();
 
         keys.into_iter()
-            .map(|document_idx| Self::expand_schema_includes(&mut context, &document_idx))
+            .map(|document_idx| self.expand_schema_includes(&mut context, &document_idx))
             .collect::<Result<TransformChange, Self::Error>>()
     }
 }

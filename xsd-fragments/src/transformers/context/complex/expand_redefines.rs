@@ -40,72 +40,11 @@ impl ExpandRedefineFragments {
         Self {}
     }
 
-    // fn expand_schema_redefine_compatible(
-    //     ctx: &XmlnsContextTransformerContext<'_>,
-    //     target_idx: &FragmentedXsdDocumentIdx,
-    //     redefine_fragment_id: &FragmentIdx<RedefineFragment>,
-    // ) -> Result<bool, Error> {
-    //     // Ensure that the complex types do not have extensions
-    //     let redefine_fragment = ctx
-    //         .get_complex_fragment(redefine_fragment_id)
-    //         .expect("Expected redefine fragment to be found");
-
-    //     let contains_extension_based_on_not_any_type =
-    //         redefine_fragment
-    //             .redefineable
-    //             .iter()
-    //             .any(|redefinable| match redefinable {
-    //                 RedefinableId::ComplexType(fragment_idx) => {
-    //                     let fragment = ctx
-    //                         .get_complex_fragment(fragment_idx)
-    //                         .expect("Expected fragment to be found");
-    //                     match fragment.content {
-    //                         crate::fragments::complex::ComplexTypeModelId::SimpleContent(_) => {
-    //                             false
-    //                         }
-    //                         crate::fragments::complex::ComplexTypeModelId::ComplexContent(
-    //                             fragment_idx,
-    //                         ) => {
-    //                             let fragment = ctx
-    //                                 .get_complex_fragment(&fragment_idx)
-    //                                 .expect("Expected fragment to be found");
-    //                             match fragment.content_fragment {
-    //                             crate::fragments::complex::ComplexContentChildId::Extension(
-    //                                 extension_idx,
-    //                             ) => {
-    //                                 let extension = ctx
-    //                                     .get_complex_fragment(&extension_idx)
-    //                                     .expect("Expected extension fragment to be found");
-
-    //                                 todo!()
-    //                             }
-    //                             crate::fragments::complex::ComplexContentChildId::Restriction(
-    //                                 _,
-    //                             ) => false,
-    //                         }
-    //                         }
-    //                         crate::fragments::complex::ComplexTypeModelId::Other {
-    //                             particle,
-    //                             attr_decls,
-    //                             assertions,
-    //                         } => false,
-    //                     }
-    //                 }
-    //                 _ => false,
-    //             });
-
-    //     Ok(!contains_extension_based_on_not_any_type)
-    // }
-
     fn expand_schema_redefine(
         ctx: &mut XmlnsContextTransformerContext<'_>,
         target_idx: &FragmentedXsdDocumentIdx,
         redefine_fragment_id: &FragmentIdx<RedefineFragment>,
     ) -> Result<TransformChange, Error> {
-        // if !Self::expand_schema_redefine_compatible(ctx, target_idx, redefine_fragment_id)? {
-        //     return Ok(TransformChange::Unchanged);
-        // }
-
         let redefine_fragment = ctx
             .get_complex_fragment(&redefine_fragment_id)
             .expect("Expected include to be found")
@@ -115,7 +54,7 @@ impl ExpandRedefineFragments {
             .xmlns_context
             .namespace_idxs
             .iter()
-            .find(|(_, idx)| *idx == target_idx)
+            .find(|(_, idx)| **idx == redefine_fragment_id.namespace_idx())
             .map(|(location, _)| location)
             .expect("Expected current fragment location to be found");
 
@@ -228,10 +167,15 @@ impl ExpandRedefineFragments {
             );
         }
 
+        let old_base_url = &current_fragment_location.0;
+        let new_base_url = &key.0;
+
         let offsets = target_document.compiler.merge_with(
             &redefined_document.compiler,
             &redefined_document.target_namespace,
             &target_document.target_namespace,
+            old_base_url,
+            new_base_url,
         )?;
 
         for (name, top_level_type) in &redefined_document.top_level_types {

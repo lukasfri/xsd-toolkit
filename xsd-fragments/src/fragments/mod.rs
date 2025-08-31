@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::marker::PhantomData;
 
+use url::Url;
 use xmlity::XmlNamespace;
 
 use crate::fragments::complex::ComplexOffsetable;
@@ -164,6 +165,8 @@ impl<T: ComplexOffsetable + Clone> FragmentCollection<T> {
         merge_result: &complex::IdOffsets,
         old_ns: &Option<XmlNamespace>,
         new_ns: &Option<XmlNamespace<'static>>,
+        target_url: &Url,
+        other_url: &Url,
     ) {
         use crate::fragments::complex::ComplexOffsetableExt;
 
@@ -173,7 +176,8 @@ impl<T: ComplexOffsetable + Clone> FragmentCollection<T> {
                     *id + self.fragment_id_count,
                     val.clone()
                         .with_offset(&target, &new, merge_result)
-                        .with_remapped_namespace(old_ns, new_ns),
+                        .with_remapped_namespace(old_ns, new_ns)
+                        .with_remapped_base_url(target_url, other_url),
                 )
             }));
 

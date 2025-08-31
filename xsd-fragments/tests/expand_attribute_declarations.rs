@@ -134,18 +134,90 @@ const SAME_ATTRIBUTE_OVERWRITES_VALUES_2_EXPECTED: &str = r###"
 </xs:schema>
 "###;
 
+const DO_NOT_EXPAND_REDEFINE_ATTRIBUTE_GROUP_INPUT: &str = r###"
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:redefine schemaLocation="other.xsd">
+    <xs:attributeGroup name="test-attr-group">
+      <xs:attributeGroup ref="test-attr-group"/>
+      <xs:attribute name="test-attr2" type="xs:string"/>
+    </xs:attributeGroup>
+  </xs:redefine>
+</xs:schema>
+"###;
+
+const DO_NOT_EXPAND_REDEFINE_ATTRIBUTE_GROUP_EXPECTED: &str = r###"
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:redefine schemaLocation="other.xsd">
+    <xs:attributeGroup name="test-attr-group">
+      <xs:attributeGroup ref="test-attr-group"/>
+      <xs:attribute name="test-attr2" type="xs:string"/>
+    </xs:attributeGroup>
+  </xs:redefine>
+</xs:schema>
+"###;
+
+const ONLY_EXPAND_REDEFINE_NON_SELF_ATTRIBUTE_GROUP_INPUT: &str = r###"
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:redefine schemaLocation="other.xsd">
+    <xs:attributeGroup name="test-attr-group">
+      <xs:attributeGroup ref="test-attr-group"/>
+      <xs:attributeGroup ref="another-attr-group"/>
+      <xs:attribute name="test-attr2" type="xs:string"/>
+    </xs:attributeGroup>
+  </xs:redefine>
+  <xs:attributeGroup name="another-attr-group">
+    <xs:attribute name="another-attr" type="xs:string"/>
+  </xs:attributeGroup>
+</xs:schema>
+"###;
+
+const ONLY_EXPAND_REDEFINE_NON_SELF_ATTRIBUTE_GROUP_EXPECTED: &str = r###"
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:redefine schemaLocation="other.xsd">
+    <xs:attributeGroup name="test-attr-group">
+      <xs:attributeGroup ref="test-attr-group"/>
+      <xs:attribute name="another-attr" type="xs:string"/>
+      <xs:attribute name="test-attr2" type="xs:string"/>
+    </xs:attributeGroup>
+  </xs:redefine>
+  <xs:attributeGroup name="another-attr-group">
+    <xs:attribute name="another-attr" type="xs:string"/>
+  </xs:attributeGroup>
+</xs:schema>
+"###;
+
 #[rstest::rstest]
-#[case::one_attribute_group(ONE_ATTRIBUTE_GROUP_INPUT, ONE_ATTRIBUTE_GROUP_EXPECTED)]
-#[case::two_attribute_groups(TWO_ATTRIBUTE_GROUP_INPUT, TWO_ATTRIBUTE_GROUP_EXPECTED)]
+#[case::one_attribute_group(
+    ONE_ATTRIBUTE_GROUP_INPUT,
+    ONE_ATTRIBUTE_GROUP_EXPECTED,
+    TransformChange::Changed
+)]
+#[case::two_attribute_groups(
+    TWO_ATTRIBUTE_GROUP_INPUT,
+    TWO_ATTRIBUTE_GROUP_EXPECTED,
+    TransformChange::Changed
+)]
 #[case::same_attribute_overwrites_values_1(
     SAME_ATTRIBUTE_OVERWRITES_VALUES_1_INPUT,
-    SAME_ATTRIBUTE_OVERWRITES_VALUES_1_EXPECTED
+    SAME_ATTRIBUTE_OVERWRITES_VALUES_1_EXPECTED,
+    TransformChange::Changed
 )]
 #[case::same_attribute_overwrites_values_2(
     SAME_ATTRIBUTE_OVERWRITES_VALUES_2_INPUT,
-    SAME_ATTRIBUTE_OVERWRITES_VALUES_2_EXPECTED
+    SAME_ATTRIBUTE_OVERWRITES_VALUES_2_EXPECTED,
+    TransformChange::Changed
 )]
-fn test(#[case] input: &str, #[case] output: &str) {
+#[case::do_not_expand_redefine_attribute_group(
+    DO_NOT_EXPAND_REDEFINE_ATTRIBUTE_GROUP_INPUT,
+    DO_NOT_EXPAND_REDEFINE_ATTRIBUTE_GROUP_EXPECTED,
+    TransformChange::Unchanged
+)]
+#[case::only_expand_redefine_non_self_attribute_group(
+    ONLY_EXPAND_REDEFINE_NON_SELF_ATTRIBUTE_GROUP_INPUT,
+    ONLY_EXPAND_REDEFINE_NON_SELF_ATTRIBUTE_GROUP_EXPECTED,
+    TransformChange::Changed
+)]
+fn test(#[case] input: &str, #[case] output: &str, #[case] expected_change: TransformChange) {
     let input: xs::Schema =
         xmlity_quick_xml::from_str(input.trim()).expect("Failed to parse XML Schema");
 
@@ -165,7 +237,7 @@ fn test(#[case] input: &str, #[case] output: &str) {
         .context_transform(ExpandAttributeDeclarations::new())
         .unwrap();
 
-    assert_eq!(changed, TransformChange::Changed);
+    assert_eq!(changed, expected_change);
 
     let actual = ctx.export_schema(&id).unwrap();
 

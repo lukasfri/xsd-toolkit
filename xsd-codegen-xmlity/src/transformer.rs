@@ -45,7 +45,19 @@ pub enum Error {
     #[error("Error when transforming single choices to sequences: {0}")]
     SingleChoiceToSequenceError(SingleChoiceToSequenceError),
     #[error("Maximum transformation loops reached")]
-    MaxTransformationLoopsReached,
+    MaxTransformationLoopsReached {
+        expand_include_fragments: TransformChange,
+        expand_redefine_fragments: TransformChange,
+        flatten_nested_sequences: TransformChange,
+        flatten_nested_choices: TransformChange,
+        expand_simple_restriction: TransformChange,
+        expand_short_form_complex_types: TransformChange,
+        expand_restriction_fragments: TransformChange,
+        expand_extension_fragments: TransformChange,
+        expand_attribute_declarations: TransformChange,
+        remove_prohibited_attributes: TransformChange,
+        single_choice_to_sequence: TransformChange,
+    },
 }
 
 #[non_exhaustive]
@@ -72,77 +84,97 @@ impl XmlnsContextTransformer for CodegenTransformer {
         self,
         context: xsd_fragments::transformers::XmlnsContextTransformerContext<'_>,
     ) -> std::result::Result<TransformChange, Self::Error> {
-        let mut total_change = TransformChange::Changed;
+        let mut has_changed = TransformChange::Unchanged;
 
         for i in 0..self.max_iterations {
-            if i >= self.max_iterations - 1 {
-                return Err(Error::MaxTransformationLoopsReached);
-            }
-
-            let mut i_change = TransformChange::Unchanged;
-
-            i_change |= context
+            let expand_include_fragments = context
                 .xmlns_context
                 .context_transform(ExpandIncludeFragments::new())
                 .map_err(Error::ExpandIncludeFragmentsError)?;
 
-            i_change |= context
+            let expand_redefine_fragments = context
                 .xmlns_context
                 .context_transform(ExpandRedefineFragments::new())
                 .map_err(Error::ExpandRedefineFragmentsError)?;
 
-            i_change |= context
+            let expand_simple_restriction = context
                 .xmlns_context
                 .context_transform(ExpandSimpleRestriction::new(&self.allowed_simple_bases))
                 .map_err(Error::ExpandSimpleRestrictionError)?;
 
-            i_change |= context
+            let expand_short_form_complex_types = context
                 .xmlns_context
                 .local_transform_all(&ExpandShortFormComplexTypes::new())
                 .map_err(Error::ExpandShortFormComplexTypesError)?;
 
-            i_change |= context
+            let single_choice_to_sequence = context
                 .xmlns_context
                 .local_transform_all(&SingleChoiceToSequence::new())
                 .map_err(Error::SingleChoiceToSequenceError)?;
 
-            i_change |= context
+            let flatten_nested_sequences = context
                 .xmlns_context
                 .local_transform_all(&FlattenNestedSequences::new())
                 .map_err(Error::FlattenNestedSequencesError)?;
 
-            i_change |= context
+            let flatten_nested_choices = context
                 .xmlns_context
                 .local_transform_all(&FlattenNestedChoices::new())
                 .map_err(Error::FlattenNestedChoicesError)?;
 
-            i_change |= context
+            let expand_attribute_declarations = context
                 .xmlns_context
                 .context_transform(ExpandAttributeDeclarations::new())
                 .map_err(Error::ExpandAttributeDeclarationsError)?;
 
-            i_change |= context
+            let expand_extension_fragments = context
                 .xmlns_context
                 .context_transform(ExpandExtensionFragments::new())
                 .map_err(Error::ExpandExtensionFragmentsError)?;
 
-            i_change |= context
+            let expand_restriction_fragments = context
                 .xmlns_context
                 .context_transform(ExpandRestrictionFragments::new())
                 .map_err(Error::ExpandRestrictionFragmentsError)?;
 
-            i_change |= context
+            let remove_prohibited_attributes = context
                 .xmlns_context
                 .context_transform(&RemoveProhibitedAttributes::new())
                 .map_err(Error::RemoveProhibitedAttributesError)?;
 
-            total_change |= i_change;
+            let total_change = expand_include_fragments
+                | expand_redefine_fragments
+                | flatten_nested_sequences
+                | flatten_nested_choices
+                | expand_simple_restriction
+                | expand_short_form_complex_types
+                | expand_restriction_fragments
+                | expand_extension_fragments
+                | expand_attribute_declarations
+                | remove_prohibited_attributes
+                | single_choice_to_sequence;
 
-            if i_change == TransformChange::Unchanged {
+            has_changed |= total_change;
+
+            if total_change == TransformChange::Unchanged {
                 break;
+            } else if i >= self.max_iterations - 1 {
+                return Err(Error::MaxTransformationLoopsReached {
+                    expand_include_fragments,
+                    expand_redefine_fragments,
+                    flatten_nested_sequences,
+                    flatten_nested_choices,
+                    expand_simple_restriction,
+                    expand_short_form_complex_types,
+                    expand_restriction_fragments,
+                    expand_extension_fragments,
+                    expand_attribute_declarations,
+                    remove_prohibited_attributes,
+                    single_choice_to_sequence,
+                });
             }
         }
 
-        Ok(total_change)
+        Ok(has_changed)
     }
 }
