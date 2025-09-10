@@ -9,7 +9,10 @@ use xmlity::ExpandedName;
 
 use crate::{
     fragments::{
-        complex::{self as cx, SchemaFragment, TopLevelAttributeGroupFragment, TopLevelTypeId},
+        complex::{
+            self as cx, SchemaFragment, TopLevelAttributeGroupFragment, TopLevelGroupFragment,
+            TopLevelTypeId,
+        },
         simple as sm, FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
     },
     transformers::TransformChange,
@@ -122,6 +125,20 @@ impl XmlnsContextTransformerContext<'_> {
         let ns = self.xmlns_context.namespaces.get(ns_id)?;
 
         ns.top_level_types.get(name.local_name())
+    }
+
+    /// Gets a named attribute group by its expanded name.
+    pub fn get_named_group<'a>(
+        &'a self,
+        namespace_idx: &FragmentedXsdDocumentIdx,
+        name: &'a ExpandedName<'_>,
+    ) -> Option<&'a FragmentIdx<TopLevelGroupFragment>> {
+        let ns_id = self
+            .xmlns_context
+            .resolve_ref_namespace(namespace_idx, name.namespace())?;
+        let ns = self.xmlns_context.namespaces.get(ns_id)?;
+
+        ns.top_level_groups.get(name.local_name())
     }
 
     /// Gets a named attribute group by its expanded name.

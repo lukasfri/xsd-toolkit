@@ -1,13 +1,16 @@
+use xmlity::ExpandedName;
 use xsd::UrlExt;
 
 use crate::{
     fragments::{
-        complex::{ComplexOffsetableExt, RedefinableId, RedefineFragment, TopLevelTypeId},
+        complex::{AllFragment, AttributeDeclarationId, ChoiceFragment, ComplexOffsetable, ComplexOffsetableExt, IdOffsets, NamedGroupTypeContentId, NestedParticleId, RedefinableId, RedefineFragment, SequenceFragment, TopLevelTypeId},
         FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
     },
     transformers::{
         context::{
-            complex::{ExpandExtensionFragments, ExpandRestrictionFragments},
+            complex::{
+                ExpandAttributeDeclarations, ExpandExtensionFragments, ExpandRestrictionFragments,
+            },
             simple::ExpandSimpleRestriction,
         },
         TransformChange, XmlnsContextTransformer, XmlnsContextTransformerContext,
@@ -31,6 +34,34 @@ pub enum Error {
     /// Error indicating a simple fragment error.
     #[error("Simple fragment error: {0}")]
     SimpleFragment(#[from] crate::fragments::simple::Error),
+    /// Error indicating an attribute group expansion error.
+    #[error("Attribute group expansion error: {0}")]
+    ExpandAttributeGroupError(#[from] crate::transformers::context::complex::ExpandAttributeDeclarationsError),
+}
+
+pub trait BTreeMapExt<K, V> {
+    fn get_multiple_mut<const N: usize>(
+        &mut self,
+        keys: &[K; N],
+    ) -> [Option<&mut V>; N];
+}
+
+impl<K, V> BTreeMapExt<K, V> for std::collections::BTreeMap<K, V> where K: std::cmp::Ord {
+    fn get_multiple_mut<const N: usize>(
+        &mut self,
+        keys: &[K; N],
+    ) -> [Option<&mut V>; N] {
+        let mut result: [Option<&mut V>; N] = [(); N].map(|_| None);
+
+        for (k, v) in self.iter_mut() {
+            let index = keys.iter().position(|key| key == k);
+            if let Some(i) = index {
+                result[i] = Some(v);
+            }
+        }
+
+        result
+    }
 }
 
 impl ExpandRedefineFragments {
@@ -38,6 +69,213 @@ impl ExpandRedefineFragments {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
+    }
+
+    fn expand_nested_particle_id(
+        ctx: &mut XmlnsContextTransformerContext<'_>,
+        id: &NestedParticleId,
+        allowed_name: &ExpandedName<'_>,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) -> Result<NestedParticleId, Error> { 
+        match id {
+            NestedParticleId::Element(fragment_idx) => {
+                //TODO: Might need to expand group references in element declarations
+                Ok(NestedParticleId::Element(*fragment_idx))
+            },
+            NestedParticleId::Group(fragment_idx) =>  Self::expand_group_ref_fragment(ctx, fragment_idx, allowed_name, target, new, offsets),
+            NestedParticleId::Choice(fragment_idx) =>  Self::expand_choice_fragment(ctx, fragment_idx, allowed_name, target, new, offsets).map(NestedParticleId::Choice),
+            NestedParticleId::Sequence(fragment_idx) => Self::expand_sequence_fragment(ctx, fragment_idx, allowed_name, target, new, offsets).map(NestedParticleId::Sequence),
+            NestedParticleId::Any(fragment_idx) => todo!(),
+        }
+    }
+
+    fn expand_group_ref_fragment(
+        ctx: &mut XmlnsContextTransformerContext<'_>,
+        fragment_idx: &FragmentIdx<crate::fragments::complex::GroupRefFragment>,
+        allowed_name: &ExpandedName<'_>,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) -> Result<NestedParticleId, Error> {
+        let fragment = ctx.get_complex_fragment(fragment_idx)
+            .expect("Expected fragment to be found");
+
+        let group_ref_fragment = fragment.clone();
+
+        if &group_ref_fragment.ref_ != allowed_name {
+            return Ok(NestedParticleId::Group(*fragment_idx));
+        }
+
+        let Some(named_group) = ctx.get_named_group(target, &group_ref_fragment.ref_) else {
+            return Ok(NestedParticleId::Group(*fragment_idx));
+        };
+
+        let named_group = named_group.with_offset(target, new, offsets);
+
+        let named_group = ctx.get_complex_fragment(&named_group)
+            .expect("Expected fragment to be found");
+
+            match named_group.content {
+                NamedGroupTypeContentId::All(fragment_idx) => todo!(),
+                NamedGroupTypeContentId::Sequence(fragment_idx) => Ok(NestedParticleId::Sequence(fragment_idx)),
+                NamedGroupTypeContentId::Choice(fragment_idx) => Ok(NestedParticleId::Choice(fragment_idx)),
+            }
+    }
+
+    fn expand_all_fragment(
+        ctx: &mut XmlnsContextTransformerContext<'_>,
+        fragment_idx: &FragmentIdx<AllFragment>,
+        allowed_name: &ExpandedName<'_>,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) -> Result<FragmentIdx<AllFragment>, Error> {
+        let fragment = ctx.get_complex_fragment(fragment_idx)
+            .expect("Expected fragment to be found");
+
+        let all_fragment = fragment.clone();
+
+        let mut change = TransformChange::Unchanged;
+
+        let new_fragments = all_fragment.fragments
+        .into_iter()
+        .map(|a| Self::expand_nested_particle_id(ctx, &a, allowed_name, target, new, offsets).inspect(|new_id| {
+            if *new_id != a {
+                change.mark_changed();
+            }
+        }))
+        .collect::<Result<_, _>>()?;
+
+        if change.is_changed() {
+            let ns = ctx
+                .xmlns_context
+                .namespaces
+                .get_mut(&fragment_idx.namespace_idx())
+                .expect("Namespace not found in context");
+
+            let new_idx = ns.compiler.push_fragment(AllFragment {
+                fragments: new_fragments,
+                max_occurs: all_fragment.max_occurs,
+                min_occurs: all_fragment.min_occurs,
+            });
+
+            Ok(new_idx)
+
+        } else {
+            Ok(*fragment_idx)
+        }
+    }
+
+    fn expand_sequence_fragment(
+        ctx: &mut XmlnsContextTransformerContext<'_>,
+        fragment_idx: &FragmentIdx<SequenceFragment>,
+        allowed_name: &ExpandedName<'_>,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) -> Result<FragmentIdx<SequenceFragment>, Error> {
+        let fragment = ctx.get_complex_fragment(fragment_idx)
+            .expect("Expected fragment to be found");
+
+            let sequence_fragment = fragment.clone();
+
+        let mut change = TransformChange::Unchanged;
+        
+        let new_fragments = sequence_fragment.fragments
+        .into_iter()
+        .map(|a| Self::expand_nested_particle_id(ctx, &a, allowed_name, target, new, offsets).inspect(|new_id| {
+            if *new_id != a {
+                change.mark_changed();
+            }
+        }))
+        .collect::<Result<_, _>>()?;
+
+        if change.is_changed() {
+            let ns = ctx
+                .xmlns_context
+                .namespaces
+                .get_mut(&fragment_idx.namespace_idx())
+                .expect("Namespace not found in context");
+
+            let new_idx = ns.compiler.push_fragment(SequenceFragment {
+                id: sequence_fragment.id,
+                fragments: new_fragments,
+                max_occurs: sequence_fragment.max_occurs,
+                min_occurs: sequence_fragment.min_occurs,
+            });
+
+            Ok(new_idx)
+
+        } else {
+            Ok(*fragment_idx)
+        }
+    }
+
+    fn expand_choice_fragment(
+        ctx: &mut XmlnsContextTransformerContext<'_>,
+        fragment_idx: &FragmentIdx<ChoiceFragment>,
+        allowed_name: &ExpandedName<'_>,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) -> Result<FragmentIdx<ChoiceFragment>, Error> {
+        let fragment = ctx.get_complex_fragment(fragment_idx)
+            .expect("Expected fragment to be found");
+
+            let choice_fragment = fragment.clone();
+
+        let mut change = TransformChange::Unchanged;
+
+        let new_fragments = choice_fragment.fragments
+        .into_iter()
+        .map(|a| Self::expand_nested_particle_id(ctx, &a, allowed_name, target, new, offsets).inspect(|new_id| {
+            if *new_id != a {
+                change.mark_changed();
+            }
+        }))
+        .collect::<Result<_, _>>()?;
+
+        if change.is_changed() {
+            let ns = ctx
+                .xmlns_context
+                .namespaces
+                .get_mut(&fragment_idx.namespace_idx())
+                .expect("Namespace not found in context");
+
+            let new_idx = ns.compiler.push_fragment(ChoiceFragment {
+                fragments: new_fragments,
+                max_occurs: choice_fragment.max_occurs,
+                min_occurs: choice_fragment.min_occurs,
+            });
+
+            Ok(new_idx)
+        } else {
+            Ok(*fragment_idx)
+        }
+    }
+
+    fn expand_group_references(
+        ctx : &mut XmlnsContextTransformerContext<'_>,
+        id: &NamedGroupTypeContentId,
+        allowed_name: &ExpandedName<'_>,
+        target: &FragmentedXsdDocumentIdx,
+        new: &FragmentedXsdDocumentIdx,
+        offsets: &IdOffsets,
+    ) -> Result<NamedGroupTypeContentId, Error> { 
+        match id {
+            NamedGroupTypeContentId::All(fragment_idx) => {
+                Self::expand_all_fragment(ctx, fragment_idx, allowed_name, target, new, offsets).map(NamedGroupTypeContentId::All)
+            },
+            NamedGroupTypeContentId::Sequence(fragment_idx) => {
+                Self::expand_sequence_fragment(ctx, fragment_idx, allowed_name, target, new, offsets).map(NamedGroupTypeContentId::Sequence)
+            },
+            NamedGroupTypeContentId::Choice(fragment_idx) => {
+                Self::expand_choice_fragment(ctx, fragment_idx, allowed_name, target, new, offsets).map(NamedGroupTypeContentId::Choice)
+            },
+        }
+
     }
 
     fn expand_schema_redefine(
@@ -138,19 +376,8 @@ impl ExpandRedefineFragments {
             .map(|fragment| fragment.name.clone())
             .collect::<Vec<_>>();
 
-        let (redefined_document, target_document) = ctx.xmlns_context.namespaces.iter_mut().fold(
-            (None, None),
-            |(redefined, target_document), (key, namespace)| {
-                if key == &schema_location {
-                    (Some(namespace), target_document)
-                } else if key == target_idx {
-                    (redefined, Some(namespace))
-                } else {
-                    (redefined, target_document)
-                }
-            },
-        );
-
+        let [redefined_document, target_document] = ctx.xmlns_context.namespaces.get_multiple_mut(&[schema_location, *target_idx]);
+        
         let redefined_document =
             redefined_document.expect("Expected redefined document to be found");
         let target_document = target_document.expect("Expected target document to be found");
@@ -443,18 +670,7 @@ impl ExpandRedefineFragments {
             .into_iter()
             .rev()
             .for_each(|redefinable| {
-                let (redefined_document, target_document) = ctx.xmlns_context.namespaces.iter_mut().fold(
-                    (None, None),
-                    |(redefined, target_document), (key, namespace)| {
-                        if key == &schema_location {
-                            (Some(namespace), target_document)
-                        } else if key == target_idx {
-                            (redefined, Some(namespace))
-                        } else {
-                            (redefined, target_document)
-                        }
-                    },
-                );
+                let [redefined_document, target_document] = ctx.xmlns_context.namespaces.get_multiple_mut(&[schema_location, *target_idx]);
 
                 let redefined_document =
                     redefined_document.expect("Expected redefined document to be found");
@@ -605,12 +821,90 @@ impl ExpandRedefineFragments {
                             crate::fragments::simple::SimpleDerivation::List(_fragment_idx) =>  {},
                             crate::fragments::simple::SimpleDerivation::Union(_fragment_idx) => {},
                         }
-
-
                     }
-                    RedefinableId::AttributeGroup(_root_fragment) => {
+                    RedefinableId::AttributeGroup(root_fragment) => {
+                        let root_fragment = target_document
+                            .compiler
+                            .get_fragment(&root_fragment)
+                            .expect("Expected fragment to be found");
+
+                        let this_name = &root_fragment.name.clone();
+
+                        let attr_decls_id = root_fragment.attr_decls;
+
+                        let attr_decls =  ctx.get_complex_fragment(&attr_decls_id)
+                            .expect("Expected fragment to be found");
+
+                        let possible_index = attr_decls.declarations.iter().enumerate().filter_map(|(i, a)| {
+                            match a {
+                                crate::fragments::complex::AttributeDeclarationId::Attribute(_) => None,
+                                crate::fragments::complex::AttributeDeclarationId::AttributeGroupRef(fragment_idx) => Some((i, fragment_idx)),
+                            }
+                        })
+                        .map(|(i, id)| {
+                            let fragment = ctx.get_complex_fragment(id)
+                                .expect("Expected fragment to be found");
+
+                            (i, &fragment.ref_)
+                        })
+                        .find_map(|(i, name)| {
+                            (name.local_name() == this_name).then_some(i)
+                        });
+
+                        if let Some(index) = possible_index {
+                            let mut before = attr_decls.declarations.clone();
+                            let mut after = before.split_off(index);
+                            let AttributeDeclarationId::AttributeGroupRef(ref_id) = after.pop_front().expect("Expected to pop back") else {
+                                unreachable!("Only finding attribute group refs");
+                            };
+                            
+                            ExpandAttributeDeclarations::merge_attribute_group_decl(
+                                &mut before,
+                                ctx,
+                                &ref_id,
+                    Some(&schema_location)
+                            ).expect("Expected to expand attribute group");
+
+                             after.iter().map(|a| match a {
+                                AttributeDeclarationId::Attribute(fragment_idx) => {
+                                    ExpandAttributeDeclarations::add_attribute(&mut before, ctx, fragment_idx)
+                                },
+                                AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
+                                    ExpandAttributeDeclarations::add_group_ref(&mut before, ctx, fragment_idx)
+                                },
+                            }).collect::<Result<(), _>>().expect("Expected to expand all attributes");
+
+                            let attr_decls = ctx.get_complex_fragment_mut(&attr_decls_id)
+                                .expect("Expected fragment to be found");
+
+                            before.iter_mut().for_each(|a| a.offset(
+                                &schema_location,
+                                target_idx,
+                                &offsets,
+                            ));
+
+                            attr_decls.declarations = before;
+                        }
                     }
-                    RedefinableId::Group(_root_fragment) => {
+                    RedefinableId::Group(root_fragment_idx) => {
+                        let root_fragment = target_document
+                            .compiler
+                            .get_fragment(&root_fragment_idx)
+                            .expect("Expected fragment to be found");
+
+                        let this_name = root_fragment.name.clone();
+
+                        let content_id = root_fragment.content;
+
+                        let allowed_name = ExpandedName::new(this_name, redefined_document.target_namespace.clone());
+
+                        // TODO: Transform node to change all references to the redefined group to the content of the redefined group.
+                        let transformed_content_id = Self::expand_group_references(ctx, &content_id, &allowed_name, &schema_location, target_idx, &offsets).expect("Expected to expand group references");
+                        
+                        let root_fragment = ctx.get_complex_fragment_mut(&root_fragment_idx)
+                            .expect("Expected fragment to be found");
+
+                        root_fragment.content = transformed_content_id;
 
                     }
                     RedefinableId::Notation => todo!(),

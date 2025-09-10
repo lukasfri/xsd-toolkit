@@ -15,10 +15,19 @@ pub enum TransformChange {
     /// Indicates that no changes were made during the transformation.
     Unchanged,
 }
+
 impl TransformChange {
     /// Creates a new [`TransformChange`] instance indicating no changes.
     pub const fn new() -> Self {
         Self::Unchanged
+    }
+
+    pub const fn mark_changed(&mut self) {
+        *self = Self::Changed;
+    }
+
+    pub const fn is_changed(&self) -> bool {
+        matches!(self, Self::Changed)
     }
 }
 

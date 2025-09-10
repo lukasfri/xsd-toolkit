@@ -47,7 +47,9 @@ pub trait ComplexOffsetable {
 
     fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>);
 
-    fn remap_base_url(&mut self, target_url: &url::Url, other_url: &url::Url) {}
+    fn remap_base_url(&mut self, target_url: &url::Url, other_url: &url::Url) {
+        let _ = (target_url, other_url);
+    }
 }
 
 pub trait ComplexOffsetableExt: ComplexOffsetable + Sized {
