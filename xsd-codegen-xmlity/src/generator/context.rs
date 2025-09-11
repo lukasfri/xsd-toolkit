@@ -44,7 +44,14 @@ impl<'a> GeneratorContext<'a> {
             .namespaces
             .get(self.key)
             .ok_or_else(|| Error::MissingKey {
-                key: self.key.clone(),
+                key: self
+                    .generator
+                    .context
+                    .namespace_idxs
+                    .iter()
+                    .find(|(_, ns)| *ns == self.key)
+                    .map(|(key, _)| key.clone())
+                    .expect("Should find namespace"),
             })
     }
 }
@@ -118,8 +125,15 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
             .bound_namespaces
             .get(referenced_namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
-                namespace: *referenced_namespace_idx,
-                item_name: Some(name.local_name().to_string()),
+                document: self
+                    .generator
+                    .context
+                    .namespace_idxs
+                    .iter()
+                    .find(|(_, ns)| *ns == referenced_namespace_idx)
+                    .map(|(key, _)| key.clone())
+                    .expect("Should find namespace"),
+                namespace: name.namespace().clone().map(|a| a.into_owned()),
             })?;
 
         let name = name.local_name().to_item_ident();
@@ -219,8 +233,15 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
             .bound_namespaces
             .get(referenced_namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
-                namespace: *referenced_namespace_idx,
-                item_name: Some(name.local_name().to_string()),
+                document: self
+                    .generator
+                    .context
+                    .namespace_idxs
+                    .iter()
+                    .find(|(_, ns)| *ns == referenced_namespace_idx)
+                    .map(|(key, _)| key.clone())
+                    .expect("Should find namespace"),
+                namespace: name.namespace().clone().map(|a| a.into_owned()),
             })?;
 
         let name = name.local_name().to_item_ident();
@@ -249,15 +270,35 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
             .generator
             .context
             .resolve_ref_namespace(namespace_idx, name.namespace())
-            .expect("Namespace should exist");
+            .unwrap_or_else(|| {
+                panic!(
+                    "Namespace should exist: {:?} in \"{}\" for element {:?}",
+                    name.namespace(),
+                    self.generator
+                        .context
+                        .namespace_idxs
+                        .iter()
+                        .find(|(_, ns)| *ns == namespace_idx)
+                        .map(|(key, _)| key.clone())
+                        .expect("Should find namespace"),
+                    name
+                )
+            });
 
         let namespace_crate = self
             .generator
             .bound_namespaces
             .get(referenced_namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
-                namespace: *referenced_namespace_idx,
-                item_name: Some(name.local_name().to_string()),
+                document: self
+                    .generator
+                    .context
+                    .namespace_idxs
+                    .iter()
+                    .find(|(_, ns)| *ns == referenced_namespace_idx)
+                    .map(|(key, _)| key.clone())
+                    .expect("Should find namespace"),
+                namespace: name.namespace().clone().map(|a| a.into_owned()),
             })?;
 
         let name = name.local_name().to_item_ident();
@@ -290,8 +331,15 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
             .bound_namespaces
             .get(referenced_namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
-                namespace: *referenced_namespace_idx,
-                item_name: Some(format!("attribute {}", name.local_name())),
+                document: self
+                    .generator
+                    .context
+                    .namespace_idxs
+                    .iter()
+                    .find(|(_, ns)| *ns == referenced_namespace_idx)
+                    .map(|(key, _)| key.clone())
+                    .expect("Should find namespace"),
+                namespace: name.namespace().clone().map(|a| a.into_owned()),
             })?;
 
         let name = name.local_name().to_item_ident();
@@ -324,8 +372,15 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
             .bound_namespaces
             .get(namespace_idx)
             .ok_or_else(|| Error::UnboundNamespace {
-                namespace: *referenced_namespace_idx,
-                item_name: Some(format!("group {}", name.local_name())),
+                document: self
+                    .generator
+                    .context
+                    .namespace_idxs
+                    .iter()
+                    .find(|(_, ns)| *ns == referenced_namespace_idx)
+                    .map(|(key, _)| key.clone())
+                    .expect("Should find namespace"),
+                namespace: name.namespace().clone().map(|a| a.into_owned()),
             })?;
 
         let name = name.local_name().to_item_ident();
@@ -339,13 +394,13 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
     fn substitution_group_members(
         &self,
         name: &ExpandedName<'_>,
-    ) -> Result<impl Iterator<Item = ExpandedName<'_>>> {
-        let members: Vec<ExpandedName<'_>> = self
+    ) -> Result<impl Iterator<Item = (FragmentedXsdDocumentIdx, ExpandedName<'_>)>> {
+        let members: Vec<_> = self
             .generator
             .context
             .namespaces
             .iter()
-            .flat_map(|(_, namespace)| {
+            .flat_map(|(id, namespace)| {
                 namespace
                     .top_level_elements
                     .iter()
@@ -353,9 +408,12 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
                         let fragment = namespace.compiler.get_fragment(&fragment_id)?;
 
                         if fragment.substitution_groups.contains(name) {
-                            Some(ExpandedName::new(
-                                key.as_ref(),
-                                namespace.target_namespace.as_ref().map(|a| a.as_ref()),
+                            Some((
+                                *id,
+                                ExpandedName::new(
+                                    key.as_ref(),
+                                    namespace.target_namespace.as_ref().map(|a| a.as_ref()),
+                                ),
                             ))
                         } else {
                             None

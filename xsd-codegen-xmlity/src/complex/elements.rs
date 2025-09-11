@@ -280,9 +280,8 @@ impl ComplexToTypeTemplate<FragmentIdx<cx::TopLevelElementFragment>> for TopLeve
         substitution_choices.extend(
             context
                 .substitution_group_members(&name)?
-                .map(|a| {
-                    let element_type =
-                        context.resolve_named_element(&fragment_idx.namespace_idx(), &a)?;
+                .map(|(id, a)| {
+                    let element_type = context.resolve_named_element(&id, &a)?;
                     Ok((
                         a.local_name().to_variant_ident(),
                         choice::ChoiceVariantType::Item(

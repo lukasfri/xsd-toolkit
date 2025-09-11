@@ -251,7 +251,7 @@ impl ComplexToTypeTemplate<cx::ComplexContentFragment> for ComplexContentHandler
         match &item.content_fragment {
             cx::ComplexContentChildId::Extension(_fragment_idx) => {
                 Err(crate::Error::UnsupportedFragment {
-                    fragment: " ComplexContent Extension".to_string(),
+                    fragment: "ComplexContent Extension".to_string(),
                 })
             }
             cx::ComplexContentChildId::Restriction(fragment_idx) => self

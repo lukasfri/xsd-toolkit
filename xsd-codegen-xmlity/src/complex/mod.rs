@@ -68,7 +68,7 @@ pub trait ComplexContext {
     fn substitution_group_members(
         &self,
         name: &ExpandedName<'_>,
-    ) -> Result<impl Iterator<Item = ExpandedName<'_>>>;
+    ) -> Result<impl Iterator<Item = (FragmentedXsdDocumentIdx, ExpandedName<'_>)>>;
 }
 
 pub trait ComplexToTypeTemplate<I> {

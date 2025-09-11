@@ -14,18 +14,18 @@ use inflector::Inflector;
 use misc::TypeReference;
 use quote::format_ident;
 use syn::Ident;
-use xmlity::{ExpandedName, LocalName};
-use xsd_fragments::fragments::FragmentedXsdDocumentIdx;
+use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xsd_fragments::FragmentedXsdDocumentKey;
 
 use crate::augments::ItemAugmentation;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
     MissingKey {
-        key: FragmentedXsdDocumentIdx,
+        key: FragmentedXsdDocumentKey,
     },
     MissingBoundedNamespace {
-        key: FragmentedXsdDocumentIdx,
+        key: FragmentedXsdDocumentKey,
     },
     NoNamespace,
     MissingElement {
@@ -54,8 +54,8 @@ pub enum Error {
         fragment_type: String,
     },
     UnboundNamespace {
-        namespace: FragmentedXsdDocumentIdx,
-        item_name: Option<String>,
+        document: FragmentedXsdDocumentKey,
+        namespace: Option<XmlNamespace<'static>>,
     },
     UnsupportedItemType {
         item_type: String,
@@ -142,13 +142,13 @@ impl std::fmt::Display for Error {
                 write!(f, "Fragment not found: {}", fragment_type)
             }
             Error::UnboundNamespace {
+                document,
                 namespace,
-                item_name,
             } => {
                 write!(
                     f,
-                    "Unbound namespace: {:?} for item: {:?}",
-                    namespace, item_name
+                    "Unbound namespace: \"{:?}\" in document: {}",
+                    namespace, document
                 )
             }
             Error::UnsupportedItemType { item_type } => {

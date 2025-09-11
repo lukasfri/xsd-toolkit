@@ -194,7 +194,9 @@ impl ComplexToTypeTemplate<cx::AttributeDeclarationId> for AttributeDeclarationH
             cx::AttributeDeclarationId::Attribute(fragment_idx) => self
                 .local_attribute_handler
                 .to_type_template(context, scope, fragment_idx),
-            cx::AttributeDeclarationId::AttributeGroupRef(_fragment_idx) => {
+            cx::AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
+                let fragment = context.get_fragment(fragment_idx).unwrap();
+                println!("Unsupported fragment: {fragment:#?}");
                 Err(crate::Error::UnsupportedFragment {
                     fragment: "AttributeGroupRef".to_string(),
                 })
