@@ -78,6 +78,8 @@ fn type_to_element_field(
 #[derive(Debug)]
 pub struct DeclaredElementHandler {
     pub element_type_content_handler: Arc<ElementTypeContentIdHandler>,
+    pub allow_unknown_attributes: AllowUnknown,
+    pub allow_unknown_children: AllowUnknown,
 }
 
 impl ComplexToTypeTemplate<(FragmentedXsdDocumentIdx, &cx::DeclaredElementFragment)>
@@ -112,7 +114,9 @@ impl ComplexToTypeTemplate<(FragmentedXsdDocumentIdx, &cx::DeclaredElementFragme
                     .element_type_content_handler
                     .to_type_template(context, scope, anonymous)?;
 
-                let template = sub_type.template.into_element_record(name);
+                let mut template = sub_type.template.into_element_record(name);
+                template.allow_unknown_attributes = self.allow_unknown_attributes;
+                template.allow_unknown_children = self.allow_unknown_children;
 
                 Ok(ToTypeTemplateData {
                     ident: Some(ident),
@@ -245,6 +249,8 @@ pub struct TopLevelElementHandler {
     pub element_type_content_handler: Arc<ElementTypeContentIdHandler>,
     pub dynamic_variant_ident: String,
     pub substitution_group_wrapper: Arc<dyn Fn(Type) -> Type + 'static>,
+    pub allow_unknown_attributes: AllowUnknown,
+    pub allow_unknown_children: AllowUnknown,
 }
 
 impl Debug for TopLevelElementHandler {
@@ -316,7 +322,7 @@ impl ComplexToTypeTemplate<FragmentIdx<cx::TopLevelElementFragment>> for TopLeve
             ));
         }
 
-        let element_record = (!item.abstract_)
+        let mut element_record = (!item.abstract_)
             .then(|| match type_ {
                 Some(xsd_fragments::NamedOrAnonymous::Named(expanded_name)) => {
                     let bound_type =
@@ -361,6 +367,11 @@ impl ComplexToTypeTemplate<FragmentIdx<cx::TopLevelElementFragment>> for TopLeve
                 None => Ok(ElementRecord::new_empty(name)),
             })
             .transpose()?;
+
+        if let Some(element_record) = &mut element_record {
+            element_record.allow_unknown_attributes = self.allow_unknown_attributes;
+            element_record.allow_unknown_children = self.allow_unknown_children;
+        }
 
         if !substitution_choices.is_empty() || element_record.is_none() {
             let element_variant = element_record.map(|element_record| {

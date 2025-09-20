@@ -27,6 +27,7 @@ use crate::{
         restrictions::RestrictionHandler as SimpleRestrictionHandler,
         simple_type::{ListHandler, SimpleDerivationHandler, SimpleTypeRootHandler, UnionHandler},
     },
+    templates::element_record::AllowUnknown,
 };
 
 #[derive(Debug)]
@@ -195,6 +196,8 @@ pub fn handler_container() -> HandlerContainer {
 
         let declared_element_handler = Arc::new(DeclaredElementHandler {
             element_type_content_handler,
+            allow_unknown_attributes: AllowUnknown::Any,
+            allow_unknown_children: AllowUnknown::None,
         });
 
         let reference_element_handler = Arc::new(ReferenceElementHandler {});
@@ -236,6 +239,8 @@ pub fn handler_container() -> HandlerContainer {
 
             parse_quote!(::xmlity_ns::SubstitutionGroup<#ty>)
         }),
+        allow_unknown_attributes: AllowUnknown::Any,
+        allow_unknown_children: AllowUnknown::None,
     });
 
     let named_group_type_content_handler = Arc::new(NamedGroupTypeContentIdHandler {

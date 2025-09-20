@@ -12,7 +12,7 @@ use super::{
     FieldMode, FieldType, ItemOrder,
 };
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub enum AllowUnknown {
     Any,
     #[default]
