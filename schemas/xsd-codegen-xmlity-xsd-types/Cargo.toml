@@ -1,5 +1,5 @@
 [package]
-name = "xmlity-ns-xsd-types"
+name = "xsd-codegen-xmlity-xsd-types"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

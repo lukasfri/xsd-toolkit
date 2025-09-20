@@ -2942,6 +2942,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "xsd-codegen-xmlity-xsd-types"
+version = "0.0.0"
+dependencies = [
+ "derive_more",
+ "syn 2.0.101",
+ "xmlity",
+ "xsd-codegen-xmlity",
+ "xsd-types",
+]
+
+[[package]]
 name = "xsd-dynamic-query"
 version = "0.0.0"
 dependencies = [
