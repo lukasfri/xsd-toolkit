@@ -114,6 +114,10 @@ impl NumericBaseValue for f32 {
     fn is_repr() -> bool {
         true
     }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0.0f32))
+    }
 }
 
 impl NumericBaseValue for f64 {
@@ -141,6 +145,10 @@ impl NumericBaseValue for f64 {
     fn is_repr() -> bool {
         true
     }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0.0f64))
+    }
 }
 
 impl NumericBaseValue for usize {
@@ -163,6 +171,10 @@ impl NumericBaseValue for usize {
 
     fn is_repr() -> bool {
         true
+    }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0usize))
     }
 }
 
@@ -187,6 +199,10 @@ impl NumericBaseValue for isize {
     fn is_repr() -> bool {
         true
     }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0isize))
+    }
 }
 
 impl NumericBaseValue for u64 {
@@ -209,6 +225,10 @@ impl NumericBaseValue for u64 {
 
     fn is_repr() -> bool {
         true
+    }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0u64))
     }
 }
 
@@ -233,6 +253,10 @@ impl NumericBaseValue for u32 {
     fn is_repr() -> bool {
         true
     }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0u32))
+    }
 }
 
 impl NumericBaseValue for u16 {
@@ -255,6 +279,10 @@ impl NumericBaseValue for u16 {
 
     fn is_repr() -> bool {
         true
+    }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0u16))
     }
 }
 
@@ -279,6 +307,10 @@ impl NumericBaseValue for u8 {
     fn is_repr() -> bool {
         true
     }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0u8))
+    }
 }
 
 impl NumericBaseValue for i64 {
@@ -301,6 +333,10 @@ impl NumericBaseValue for i64 {
 
     fn is_repr() -> bool {
         true
+    }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0i64))
     }
 }
 
@@ -325,6 +361,10 @@ impl NumericBaseValue for i32 {
     fn is_repr() -> bool {
         true
     }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0i32))
+    }
 }
 
 impl NumericBaseValue for i16 {
@@ -348,6 +388,10 @@ impl NumericBaseValue for i16 {
     fn is_repr() -> bool {
         true
     }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0i16))
+    }
 }
 
 impl NumericBaseValue for i8 {
@@ -370,6 +414,10 @@ impl NumericBaseValue for i8 {
 
     fn is_repr() -> bool {
         true
+    }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(0i8))
     }
 }
 
