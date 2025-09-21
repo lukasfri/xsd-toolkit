@@ -1,5 +1,6 @@
-use std::{borrow::Cow, convert::Infallible};
+use std::borrow::Cow;
 
+use derive_more::{Display, Error};
 use xmlity::{
     de::{self, DeserializeContext},
     ser, DeserializeOwned, ExpandedName, NoopDeSerializer, Prefix, Serialize, Serializer,
@@ -49,9 +50,81 @@ pub struct SubStrDeserializer<'a, 'c, C: DeserializeContext + 'c, E: de::Error> 
     _marker: std::marker::PhantomData<E>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Display, Error)]
+pub enum EmptyStrDeseralizeError {
+    #[display("Custom error: {_0}")]
+    Custom(#[error(not(source))] String),
+    #[display("Wrong name: expected {expected}, found {found}")]
+    WrongName {
+        expected: ExpandedName<'static>,
+        found: ExpandedName<'static>,
+    },
+    #[display("Unexpected visit")]
+    UnexpectedVisit {},
+    #[display("Missing field: {_0}")]
+    MissingField(#[error(not(source))] String),
+    #[display("No possible variant: {_0}")]
+    NoPossibleVariant(#[error(not(source))] String),
+    #[display("Missing data")]
+    MissingData,
+    #[display("Unknown child")]
+    UnknownChild,
+    #[display("Invalid string")]
+    InvalidString,
+}
+
+impl de::Error for EmptyStrDeseralizeError {
+    fn custom<T>(msg: T) -> Self
+    where
+        T: std::fmt::Display,
+    {
+        EmptyStrDeseralizeError::Custom(msg.to_string())
+    }
+
+    fn wrong_name(name: &ExpandedName<'_>, expected: &ExpandedName<'_>) -> Self {
+        EmptyStrDeseralizeError::WrongName {
+            expected: expected.clone().into_owned(),
+            found: name.clone().into_owned(),
+        }
+    }
+
+    fn unexpected_visit<T>(_unexpected: de::Unexpected, _expected: &T) -> Self {
+        EmptyStrDeseralizeError::UnexpectedVisit {}
+    }
+
+    fn missing_field(field: &str) -> Self {
+        EmptyStrDeseralizeError::MissingField(field.to_string())
+    }
+
+    fn no_possible_variant(ident: &str) -> Self {
+        EmptyStrDeseralizeError::NoPossibleVariant(ident.to_string())
+    }
+
+    fn missing_data() -> Self {
+        EmptyStrDeseralizeError::MissingData
+    }
+
+    fn unknown_child() -> Self {
+        EmptyStrDeseralizeError::UnknownChild
+    }
+
+    fn invalid_string() -> Self {
+        EmptyStrDeseralizeError::InvalidString
+    }
+}
+
 pub fn empty_str_default<T: DeserializeOwned>() -> T {
-    T::deserialize(SubStrDeserializer::<_, Infallible>::new("", &()))
-        .unwrap_or_else(|_: Infallible| unreachable!())
+    T::deserialize(SubStrDeserializer::<_, EmptyStrDeseralizeError>::new(
+        "",
+        &(),
+    ))
+    .unwrap_or_else(|e| {
+        panic!(
+            "Failed to deserialize empty string to {}: {:?}",
+            std::any::type_name::<T>(),
+            e
+        )
+    })
 }
 
 impl<'a, 'c, C: DeserializeContext + 'c, E: de::Error> SubStrDeserializer<'a, 'c, C, E> {
