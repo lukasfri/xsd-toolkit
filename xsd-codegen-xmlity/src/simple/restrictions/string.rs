@@ -7,6 +7,7 @@ use xsd_dynamic_query::ParsedFacets;
 use super::RestrictionBuilder;
 use crate::misc::TypeReference;
 use crate::templates;
+use crate::templates::specific_enum::text_checks_default;
 use crate::ToIdentTypesExt;
 use inflector::Inflector;
 use xsd_fragments::fragments::simple as sm;
@@ -97,6 +98,7 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: StringBaseValue> Restr
                 repr_type: T::repr_type(),
                 repr: false,
                 enum_with_mod: enum_with_ident,
+                expr_if_empty: None,
             };
 
             let struct_item = struct_def.to_struct();
@@ -132,6 +134,8 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: StringBaseValue> Restr
                 repr: false,
                 enum_with_mod: enum_with_ident,
                 value_to_pattern: |a| T::to_pattern_value(a),
+                text_checks: text_checks_default,
+                expr_if_empty: None,
             };
 
             let enum_item = enum_def.to_enum();

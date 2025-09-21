@@ -1,4 +1,5 @@
 use crate::templates;
+use crate::templates::specific_enum::text_checks_default;
 use crate::ToIdentTypesExt;
 use crate::{misc::TypeReference, simple::restrictions::RestrictionBuilder};
 use quote::format_ident;
@@ -33,6 +34,10 @@ pub trait NumericBaseValue: FromStr<Err: Debug> {
 
     fn supports_fraction_digits() -> bool {
         false
+    }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        None
     }
 }
 
@@ -77,6 +82,10 @@ impl NumericBaseValue for rust_decimal::Decimal {
 
     fn is_repr() -> bool {
         true
+    }
+
+    fn if_str_empty() -> Option<syn::Expr> {
+        Some(parse_quote!(::rust_decimal::Decimal::ZERO))
     }
 }
 
@@ -410,6 +419,7 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: NumericBaseValue> Rest
         let error_ident = format_ident!("{}ParseError", ident.to_item_ident());
 
         let facets = facets.iter().copied().collect::<ParsedFacets>();
+        let expr_if_empty = T::if_str_empty();
 
         if facets.enumerations.is_empty() {
             // Becoming a wrapping struct for the base type
@@ -431,20 +441,21 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: NumericBaseValue> Rest
                 repr_type: T::repr_type(),
                 repr: T::is_repr(),
                 enum_with_mod: enum_with_ident,
+                expr_if_empty,
             };
 
             let struct_item = struct_def.to_struct();
             let err = struct_def.try_from_impl(&error_ident);
             let into_impl = struct_def.into_impl();
             let with_mod = struct_def.with_mod();
-            let enum_ty = scope.add_item(struct_item)?;
+            let struct_ty = scope.add_item(struct_item)?;
             scope.add_item(with_mod)?;
             scope.add_item(err)?;
             scope.add_raw_items([into_impl]);
 
             Ok(crate::ToTypeTemplateData {
                 ident: Some(ident),
-                template: enum_ty,
+                template: struct_ty,
             })
         } else {
             // If there are enumerations, we create an enum type
@@ -468,6 +479,8 @@ impl<C: crate::simple::SimpleContext, S: crate::Scope, T: NumericBaseValue> Rest
                 repr: T::is_repr(),
                 enum_with_mod: format_ident!("test_enum_with"),
                 value_to_pattern: |a| T::to_pattern_value(a),
+                text_checks: text_checks_default,
+                expr_if_empty,
             };
 
             let enum_item = enum_def.to_enum();

@@ -1,6 +1,6 @@
 use syn::{parse_quote, Ident};
 
-use crate::templates::specific_enum::TryFromIntoWithMod;
+use crate::templates::specific_enum::{text_checks_default, TryFromIntoWithMod};
 
 pub struct TryFromStruct<'a> {
     pub repr_type: &'a syn::Type,
@@ -38,6 +38,7 @@ pub struct WrapperStruct {
     pub repr_type: syn::Type,
     pub enum_with_mod: syn::Ident,
     pub repr: bool,
+    pub expr_if_empty: Option<syn::Expr>,
 }
 
 impl WrapperStruct {
@@ -98,6 +99,8 @@ impl WrapperStruct {
             repr_type: &self.repr_type,
             destination_type: &parse_quote!(super::#struct_ident),
             mod_name: &self.enum_with_mod,
+            text_checks: text_checks_default,
+            expr_if_empty: self.expr_if_empty.as_ref(),
         }
         .with_mod()
     }

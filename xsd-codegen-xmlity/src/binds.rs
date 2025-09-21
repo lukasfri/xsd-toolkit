@@ -13,14 +13,18 @@ macro_rules! xs_name {
 }
 
 macro_rules! xs_bind {
-    ($local_name:expr, $($tt:tt)*) => {
+    ($local_name:expr, default_with = $default_with:expr, $($tt:tt)*) => {
         (xs_name!($local_name), BoundType {
           ty: crate::TypeReference::new_static(parse_quote!($($tt)*)),
           ty_type:
           TypeType::Simple,
           serialize_with: None,
           deserialize_with: None,
+          default_with: $default_with,
         })
+    };
+    ($local_name:expr, $($tt:tt)*) => {
+        xs_bind!($local_name, default_with = None, $($tt)*)
     };
 }
 

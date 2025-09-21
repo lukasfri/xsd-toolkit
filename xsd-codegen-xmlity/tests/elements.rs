@@ -418,6 +418,7 @@ fn complex_reference_type_local_element() {
             ty_type: TypeType::Complex,
             serialize_with: None,
             deserialize_with: None,
+            default_with: None,
         },
     );
 
@@ -509,6 +510,7 @@ fn complex_reference_type_top_level_element() {
             ty_type: TypeType::Complex,
             serialize_with: None,
             deserialize_with: None,
+            default_with: None,
         },
     );
 

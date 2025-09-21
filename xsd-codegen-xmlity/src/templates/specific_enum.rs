@@ -1,5 +1,5 @@
 use quote::format_ident;
-use syn::{parse_quote, Ident};
+use syn::{parse_quote, Ident, Stmt};
 
 pub enum BoundEdge {
     Inclusive,
@@ -259,21 +259,30 @@ impl<'a, T: IntoIterator<Item = (&'a Ident, &'a syn::Expr)>> EnumInto<'a, T> {
 //     }
 // }
 
-pub struct TryFromDeserializeWith<'a> {
+pub struct TryFromDeserializeWith<'a, F: Fn(&syn::Expr) -> Vec<Stmt>> {
     pub repr_type: &'a syn::Type,
     pub final_type: &'a syn::Type,
+    pub text_checks: F,
+    pub expr_if_empty: Option<&'a syn::Expr>,
 }
 
-impl TryFromDeserializeWith<'_> {
-    pub fn deserialize_with_fn(
-        &self,
-        fn_ident: &Ident,
-        text_checks: impl for<'a> FnOnce(&'a syn::Expr) -> Vec<syn::Stmt>,
-    ) -> syn::ItemFn {
+pub fn text_checks_default(_: &syn::Expr) -> Vec<syn::Stmt> {
+    vec![]
+}
+
+impl<F: Fn(&syn::Expr) -> Vec<Stmt>> TryFromDeserializeWith<'_, F> {
+    pub fn deserialize_with_fn(&self, fn_ident: &Ident) -> syn::ItemFn {
         let repr_type = &self.repr_type;
         let final_type = &self.final_type;
 
-        let text_checks = text_checks(&parse_quote!(::std::string::String::as_str(&text)));
+        let text_checks = (self.text_checks)(&parse_quote!(::std::string::String::as_str(&text)));
+        let expr_if_empty: Option<syn::ExprIf> = self.expr_if_empty.as_ref().map(|e| {
+            parse_quote!(
+                if text.is_empty() {
+                    return #final_type::try_from(#e).map_err(::xmlity::de::Error::custom);
+                }
+            )
+        });
 
         parse_quote!(
             pub fn #fn_ident<'de, D>(deserializer: D) -> ::core::result::Result<#final_type, D::Error>
@@ -283,6 +292,8 @@ impl TryFromDeserializeWith<'_> {
                 let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
 
                 #(#text_checks)*
+
+                #expr_if_empty
 
                 let value: #repr_type = text.parse().map_err(::xmlity::de::Error::custom)?;
 
@@ -315,23 +326,23 @@ impl IntoSerializeWith<'_> {
     }
 }
 
-pub struct TryFromIntoWithMod<'a> {
+pub struct TryFromIntoWithMod<'a, F> {
     pub repr_type: &'a syn::Type,
     pub destination_type: &'a syn::Type,
     pub mod_name: &'a Ident,
+    pub text_checks: F,
+    pub expr_if_empty: Option<&'a syn::Expr>,
 }
 
-impl<'a> TryFromIntoWithMod<'a> {
-    fn deserialize_with_fn(
-        &self,
-        fn_ident: &Ident,
-        text_checks: impl for<'b> FnOnce(&'b syn::Expr) -> Vec<syn::Stmt>,
-    ) -> syn::ItemFn {
+impl<'a, F: Fn(&syn::Expr) -> Vec<Stmt>> TryFromIntoWithMod<'a, F> {
+    fn deserialize_with_fn(&self, fn_ident: &Ident) -> syn::ItemFn {
         TryFromDeserializeWith {
             repr_type: self.repr_type,
             final_type: self.destination_type,
+            text_checks: &self.text_checks,
+            expr_if_empty: self.expr_if_empty,
         }
-        .deserialize_with_fn(fn_ident, text_checks)
+        .deserialize_with_fn(fn_ident)
     }
 
     fn serialize_with_fn(&self, fn_ident: &Ident) -> syn::ItemFn {
@@ -344,7 +355,7 @@ impl<'a> TryFromIntoWithMod<'a> {
 
     pub fn with_mod(&self) -> syn::ItemMod {
         let deserialize_ident = format_ident!("deserialize");
-        let deserialize = self.deserialize_with_fn(&deserialize_ident, |_| Vec::new());
+        let deserialize = self.deserialize_with_fn(&deserialize_ident);
 
         let serialize_ident = format_ident!("serialize");
         let serialize = self.serialize_with_fn(&serialize_ident);
@@ -360,16 +371,18 @@ impl<'a> TryFromIntoWithMod<'a> {
     }
 }
 
-pub struct SpecificEnum<T: Fn(&syn::Expr) -> syn::Expr> {
+pub struct SpecificEnum<T: Fn(&syn::Expr) -> syn::Expr, F: Fn(&syn::Expr) -> Vec<Stmt>> {
     pub enum_ident: Ident,
     pub repr_type: syn::Type,
     pub enumerations: Vec<(Ident, syn::Pat, syn::Expr)>,
     pub enum_with_mod: syn::Ident,
     pub repr: bool,
     pub value_to_pattern: T,
+    pub text_checks: F,
+    pub expr_if_empty: Option<syn::Expr>,
 }
 
-impl<T: Fn(&syn::Expr) -> syn::Expr> SpecificEnum<T> {
+impl<T: Fn(&syn::Expr) -> syn::Expr, F: Fn(&syn::Expr) -> Vec<Stmt>> SpecificEnum<T, F> {
     pub fn option_attributes(&self) -> impl Iterator<Item = syn::Meta> {
         let enum_with_mod = &self.enum_with_mod;
         Some(parse_quote! { with = #enum_with_mod }).into_iter()
@@ -443,6 +456,8 @@ impl<T: Fn(&syn::Expr) -> syn::Expr> SpecificEnum<T> {
             repr_type: &self.repr_type,
             destination_type: &parse_quote!(super::#enum_ident),
             mod_name: &self.enum_with_mod,
+            text_checks: &self.text_checks,
+            expr_if_empty: self.expr_if_empty.as_ref(),
         }
         .with_mod()
     }

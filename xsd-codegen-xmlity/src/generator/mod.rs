@@ -282,6 +282,7 @@ impl<'a> Generator<'a> {
             ty_type: TypeType::Simple,
             serialize_with: None,
             deserialize_with: None,
+            default_with: None,
         };
 
         Ok((bound_type, items))
@@ -347,6 +348,7 @@ impl<'a> Generator<'a> {
             ty_type: TypeType::Complex,
             serialize_with: None,
             deserialize_with: None,
+            default_with: None,
         };
 
         Ok((bound_type, items))

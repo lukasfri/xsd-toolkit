@@ -174,7 +174,9 @@ impl ComplexToTypeTemplate<FragmentIdx<cx::SimpleExtensionFragment>>
                 ty: simple_type.ty,
                 default: false,
                 // Todo: This should only be added to certain simple types that allow empty strings
-                default_with: Some(parse_quote!(::xmlity_ns::empty_str_default)),
+                default_with: simple_type
+                    .default_with
+                    .or_else(|| Some(parse_quote!(::xmlity_ns::empty_str_default))),
             }),
         );
 

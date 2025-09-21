@@ -146,6 +146,7 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
             ty_type: TypeType::Simple,
             serialize_with: None,
             deserialize_with: None,
+            default_with: None,
         })
     }
 
@@ -254,6 +255,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
             ty_type: TypeType::Complex,
             serialize_with: None,
             deserialize_with: None,
+            default_with: None,
         })
     }
 

@@ -277,6 +277,7 @@ pub struct BoundType {
     pub ty_type: TypeType,
     pub serialize_with: Option<syn::Path>,
     pub deserialize_with: Option<syn::Path>,
+    pub default_with: Option<syn::Path>,
 }
 
 pub struct ToTypeTemplateData<T> {
