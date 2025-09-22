@@ -37,24 +37,96 @@ impl IntoIterator for PrimitiveStdXsdTypes {
     fn into_iter(self) -> Self::IntoIter {
         [
             // Primitives
-            xs_bind!("string", String),
-            xs_bind!("boolean", bool),
-            xs_bind!("decimal", f64),
-            xs_bind!("float", f32),
-            xs_bind!("double", f64),
-            xs_bind!("long", i64),
-            xs_bind!("int", i32),
-            xs_bind!("integer", i32),
-            xs_bind!("short", i16),
-            xs_bind!("byte", i8),
-            xs_bind!("negativeInteger", isize),
-            xs_bind!("nonPositiveInteger", isize),
-            xs_bind!("unsignedLong", u64),
-            xs_bind!("unsignedInt", u32),
-            xs_bind!("unsignedShort", u16),
-            xs_bind!("unsignedByte", u8),
-            xs_bind!("positiveInteger", usize),
-            xs_bind!("nonNegativeInteger", usize),
+            xs_bind!(
+                "string",
+                default_with = Some(parse_quote!(String::new)),
+                String
+            ),
+            xs_bind!(
+                "boolean",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                bool
+            ),
+            xs_bind!(
+                "decimal",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                f64
+            ),
+            xs_bind!(
+                "float",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                f32
+            ),
+            xs_bind!(
+                "double",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                f64
+            ),
+            xs_bind!(
+                "long",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                i64
+            ),
+            xs_bind!(
+                "int",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                i32
+            ),
+            xs_bind!(
+                "integer",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                i32
+            ),
+            xs_bind!(
+                "short",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                i16
+            ),
+            xs_bind!(
+                "byte",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                i8
+            ),
+            xs_bind!(
+                "negativeInteger",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                isize
+            ),
+            xs_bind!(
+                "nonPositiveInteger",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                isize
+            ),
+            xs_bind!(
+                "unsignedLong",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                u64
+            ),
+            xs_bind!(
+                "unsignedInt",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                u32
+            ),
+            xs_bind!(
+                "unsignedShort",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                u16
+            ),
+            xs_bind!(
+                "unsignedByte",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                u8
+            ),
+            xs_bind!(
+                "positiveInteger",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                usize
+            ),
+            xs_bind!(
+                "nonNegativeInteger",
+                default_with = Some(parse_quote!(std::default::Default::default)),
+                usize
+            ),
         ]
         .into_iter()
     }
