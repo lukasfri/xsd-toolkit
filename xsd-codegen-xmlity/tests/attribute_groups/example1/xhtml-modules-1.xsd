@@ -3,7 +3,6 @@
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
   xmlns:xh11d="http://www.w3.org/1999/xhtml/datatypes/"
   xmlns:ix="http://www.xbrl.org/2013/inlineXBRL"
-  elementFormDefault="qualified"
 >
   <xs:import namespace="http://www.w3.org/1999/xhtml/datatypes/"
     schemaLocation="xhtml-datatypes-1.xsd" />

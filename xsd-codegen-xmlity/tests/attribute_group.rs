@@ -10,9 +10,21 @@ use xsd::set::XmlSchemaSet;
 use xsd_fragments::XmlnsContext;
 
 #[rstest]
-#[case::dxs_example_18_1(
+#[case::example1_root_included(
     "attribute_groups/example1/root.xsd",
     "attribute_groups/example1/result.xsd"
+)]
+#[case::example1_only_redefined(
+    "attribute_groups/example1/xhtml-modules-1.xsd",
+    "attribute_groups/example1/result_only_redefine.xsd"
+)]
+#[case::example2_root_included(
+    "attribute_groups/example2/root.xsd",
+    "attribute_groups/example2/result.xsd"
+)]
+#[case::example2_only_redefined(
+    "attribute_groups/example2/top.xsd",
+    "attribute_groups/example2/result_only_redefine.xsd"
 )]
 fn test(#[case] path: &str, #[case] result: &str) {
     use std::collections::HashSet;
@@ -118,12 +130,6 @@ fn test(#[case] path: &str, #[case] result: &str) {
     assert_eq!(changed, TransformChange::Changed);
 
     let actual_schema = context.export_schema(&root_id).unwrap();
-
-    fs::write(
-        root_folder.join("output.xsd"),
-        xmlity_quick_xml::to_string_pretty(&actual_schema, 4).unwrap(),
-    )
-    .unwrap();
 
     let expected_xml = fs::read_to_string(&result_path).unwrap();
     let expected_schema: xs::Schema =

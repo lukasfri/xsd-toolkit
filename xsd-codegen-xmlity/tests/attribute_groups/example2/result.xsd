@@ -1,0 +1,30 @@
+<xs:schema
+  targetNamespace="http://example.com/ns/root"
+  xmlns="http://example.com/ns/root"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+>
+  <xs:group name="bottomgroup">
+    <xs:sequence>
+      <xs:element name="test" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:group>
+
+  <xs:complexType name="bottomtype" mixed="true">
+    <xs:complexContent>
+      <xs:restriction base="xs:anyType">
+        <xs:group ref="bottomgroup" />
+        <xs:attribute name="tabindex" type="xs:integer" />
+        <xs:attribute name="myattr" type="xs:string" />
+      </xs:restriction>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:attributeGroup name="bottomattrgroup">
+    <xs:attribute name="tabindex" type="xs:integer" />
+    <xs:attribute name="myattr" type="xs:string" />
+  </xs:attributeGroup>
+
+  <xs:attributeGroup name="topattrgroup">
+    <xs:attribute name="myattr" type="xs:string" />
+  </xs:attributeGroup>
+</xs:schema>
