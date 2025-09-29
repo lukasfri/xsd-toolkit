@@ -10,30 +10,37 @@ use xsd::set::XmlSchemaSet;
 use xsd_fragments::{transformers::context::complex::ExpandRedefineFragments, XmlnsContext};
 
 #[rstest]
+// Redefine simple type with redefined base
 #[case::dxs_example_18_1(
     "definitive_xml_schema/example_18_1/prod2.xsd",
     "definitive_xml_schema/example_18_1/expanded.xsd"
 )]
+// Redefine simple type with redefined base with no targetNamespace
 #[case::dxs_example_18_2(
     "definitive_xml_schema/example_18_2/prod2.xsd",
     "definitive_xml_schema/example_18_2/expanded.xsd"
 )]
+// Redefine complex type with redefined base
 #[case::dxs_example_18_3(
     "definitive_xml_schema/example_18_3/prod2.xsd",
     "definitive_xml_schema/example_18_3/expanded.xsd"
 )]
+// Redefine group
 #[case::dxs_example_18_4(
     "definitive_xml_schema/example_18_4/prod2.xsd",
     "definitive_xml_schema/example_18_4/expanded.xsd"
 )]
+// Redefine group with redefined group as member
 #[case::dxs_example_18_5(
     "definitive_xml_schema/example_18_5/prod2.xsd",
     "definitive_xml_schema/example_18_5/expanded.xsd"
 )]
+// Redefine attribute group
 #[case::dxs_example_18_6(
     "definitive_xml_schema/example_18_6/prod2.xsd",
     "definitive_xml_schema/example_18_6/expanded.xsd"
 )]
+// Redefine attribute group with redefined attribute group as member
 #[case::dxs_example_18_7(
     "definitive_xml_schema/example_18_7/prod2.xsd",
     "definitive_xml_schema/example_18_7/expanded.xsd"
