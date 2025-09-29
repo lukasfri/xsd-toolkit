@@ -1,0 +1,49 @@
+<xs:schema
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:xh11d="http://www.w3.org/1999/xhtml/datatypes/"
+  xmlns:ix="http://www.xbrl.org/2013/inlineXBRL"
+  blockDefault="#all"
+>
+  <xs:import namespace="http://www.w3.org/1999/xhtml/datatypes/"
+    schemaLocation="xhtml-datatypes-1.xsd" />
+  <xs:import namespace="http://www.w3.org/1999/xhtml/datatypes/"
+    schemaLocation="xhtml-datatypes-1.xsd" />
+  <xs:group name="xhtml.a.content">
+    <xs:sequence>
+      <xs:element name="test" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:group>
+
+  <xs:complexType name="xhtml.a.type" mixed="true">
+    <xs:complexContent>
+      <xs:restriction base="xs:anyType">
+        <xs:group ref="xhtml.a.content" />
+        <xs:attribute name="href" type="xh11d:URI" />
+        <xs:attribute name="charset" type="xh11d:Charset" />
+        <xs:attribute name="type" type="xh11d:ContentType" />
+        <xs:attribute name="hreflang" type="xh11d:LanguageCode" />
+        <xs:attribute name="rel" type="xh11d:LinkTypes" />
+        <xs:attribute name="rev" type="xh11d:LinkTypes" />
+        <xs:attribute name="accesskey" type="xh11d:Character" />
+        <xs:attribute name="tabindex" type="xh11d:Number" />
+        <xs:attribute name="myattr" type="xs:string" />
+      </xs:restriction>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:attributeGroup name="xhtml.a.attlist">
+    <xs:attribute name="href" type="xh11d:URI" />
+    <xs:attribute name="charset" type="xh11d:Charset" />
+    <xs:attribute name="type" type="xh11d:ContentType" />
+    <xs:attribute name="hreflang" type="xh11d:LanguageCode" />
+    <xs:attribute name="rel" type="xh11d:LinkTypes" />
+    <xs:attribute name="rev" type="xh11d:LinkTypes" />
+    <xs:attribute name="accesskey" type="xh11d:Character" />
+    <xs:attribute name="tabindex" type="xh11d:Number" />
+    <xs:attribute name="myattr" type="xs:string" />
+  </xs:attributeGroup>
+
+  <xs:attributeGroup name="mygroup">
+    <xs:attribute name="myattr" type="xs:string" />
+  </xs:attributeGroup>
+</xs:schema>

@@ -1096,6 +1096,7 @@ pub struct SchemaFragment {
         BTreeMap<LocalName<'static>, FragmentIdx<TopLevelAttributeGroupFragment>>,
     pub compositions: VecDeque<CompositionId>,
     pub schema_tops: VecDeque<SchemaTopId>,
+    pub element_form_default: Option<xs::types::form_choice_items::FormChoice>,
 }
 
 impl SchemaFragment {
@@ -1195,6 +1196,7 @@ impl SchemaFragment {
             top_level_attribute_groups,
             schema_tops: VecDeque::new(),
             compositions: VecDeque::new(),
+            element_form_default: schema.element_form_default.as_ref().map(|a| **a),
         };
 
         let default_namespace = schema_fragment.target_namespace.clone();
@@ -1299,6 +1301,7 @@ impl SchemaFragment {
                 .maybe_target_namespace(self.target_namespace.as_ref().map(|ns| ns.to_string()))
                 .child_2(schema_tops)
                 .composition(compositions)
+                .maybe_element_form_default(self.element_form_default.map(Box::new))
                 .build(),
         ))
     }
