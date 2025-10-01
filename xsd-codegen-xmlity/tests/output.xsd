@@ -1,0 +1,22 @@
+<a0:schema xmlns:a0="http://www.w3.org/2001/XMLSchema" targetNamespace="http://example.com/ns/root">
+    <a0:group name="bottomgroup">
+        <a0:sequence>
+            <a0:element name="test" type="http://www.w3.org/2001/XMLSchema:string" minOccurs="0" maxOccurs="unbounded"/>
+        </a0:sequence>
+    </a0:group>
+    <a0:complexType name="bottomtype" mixed="true">
+        <a0:complexContent>
+            <a0:restriction base="http://www.w3.org/2001/XMLSchema:anyType">
+                <a0:group ref="http://example.com/ns/root:bottomgroup"/>
+                <a0:attributeGroup ref="http://example.com/ns/root:bottomattrgroup"/>
+            </a0:restriction>
+        </a0:complexContent>
+    </a0:complexType>
+    <a0:attributeGroup name="bottomattrgroup">
+        <a0:attributeGroup ref="http://example.com/ns/root:bottomattrgroup"/>
+        <a0:attribute name="myattr" type="http://www.w3.org/2001/XMLSchema:string"/>
+    </a0:attributeGroup>
+    <a0:attributeGroup name="topattrgroup">
+        <a0:attribute name="myattr" type="http://www.w3.org/2001/XMLSchema:string"/>
+    </a0:attributeGroup>
+</a0:schema>

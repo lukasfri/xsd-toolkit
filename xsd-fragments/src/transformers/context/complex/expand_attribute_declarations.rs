@@ -212,10 +212,16 @@ impl ExpandAttributeDeclarations {
             .get_complex_fragment::<AttributeGroupRefFragment>(fragment_idx)
             .expect("Fragment not found in compiler.");
 
-        let Some(group_fragment_idx) = context.get_named_attribute_group(
-            namespace_idx.unwrap_or(&fragment_idx.namespace_idx()),
-            &attribute_fragment.ref_,
-        ) else {
+        //TODO: Right now we only look locally. I'm not sure this is the right way to do this.
+        let Some(group_fragment_idx) = context
+            .xmlns_context
+            .namespaces
+            .get(namespace_idx.unwrap_or(&fragment_idx.namespace_idx()))
+            .and_then(|a| {
+                a.top_level_attribute_groups
+                    .get(attribute_fragment.ref_.local_name())
+            })
+        else {
             new_declarations.push_back(AttributeDeclarationId::AttributeGroupRef(*fragment_idx));
 
             return Ok(TransformChange::Unchanged);

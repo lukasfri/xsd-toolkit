@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+>
+  <xs:redefine schemaLocation="bottom.xsd">
+    <xs:attributeGroup name="bottomattrgroup">
+      <xs:attributeGroup ref="bottomattrgroup" />
+      <xs:attributeGroup ref="topattrgroup" />
+    </xs:attributeGroup>
+  </xs:redefine>
+  <xs:attributeGroup name="topattrgroup">
+    <xs:attribute name="myattr" type="xs:string" />
+  </xs:attributeGroup>
+</xs:schema>

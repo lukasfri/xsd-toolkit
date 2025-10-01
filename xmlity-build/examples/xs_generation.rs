@@ -55,6 +55,7 @@ fn main() {
                     ty_type: TypeType::Simple,
                     serialize_with: None,
                     deserialize_with: None,
+                    default_with: None,
                 },
             ),
             (
@@ -64,6 +65,7 @@ fn main() {
                     ty_type: TypeType::Simple,
                     serialize_with: None,
                     deserialize_with: None,
+                    default_with: None,
                 },
             ),
         ])

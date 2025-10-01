@@ -851,40 +851,43 @@ impl ExpandRedefineFragments {
                             (name.local_name() == this_name).then_some(i)
                         });
 
-                        if let Some(index) = possible_index {
-                            let mut before = attr_decls.declarations.clone();
-                            let mut after = before.split_off(index);
-                            let AttributeDeclarationId::AttributeGroupRef(ref_id) = after.pop_front().expect("Expected to pop back") else {
-                                unreachable!("Only finding attribute group refs");
-                            };
-                            
-                            ExpandAttributeDeclarations::merge_attribute_group_decl(
-                                &mut before,
-                                ctx,
-                                &ref_id,
-                    Some(&schema_location)
-                            ).expect("Expected to expand attribute group");
+                        let Some(index) = possible_index else {
+                            return;
+                        };
 
-                             after.iter().map(|a| match a {
-                                AttributeDeclarationId::Attribute(fragment_idx) => {
-                                    ExpandAttributeDeclarations::add_attribute(&mut before, ctx, fragment_idx)
-                                },
-                                AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
-                                    ExpandAttributeDeclarations::add_group_ref(&mut before, ctx, fragment_idx)
-                                },
-                            }).collect::<Result<(), _>>().expect("Expected to expand all attributes");
+                        let mut before = attr_decls.declarations.clone();
+                        let mut after = before.split_off(index);
 
-                            let attr_decls = ctx.get_complex_fragment_mut(&attr_decls_id)
-                                .expect("Expected fragment to be found");
+                        let AttributeDeclarationId::AttributeGroupRef(ref_id) = after.pop_front().expect("Expected to pop front") else {
+                            unreachable!("Only finding attribute group refs");
+                        };
+                        
+                        ExpandAttributeDeclarations::merge_attribute_group_decl(
+                            &mut before,
+                            ctx,
+                            &ref_id,
+                Some(&schema_location)
+                        ).expect("Expected to expand attribute group");
 
-                            before.iter_mut().for_each(|a| a.offset(
-                                &schema_location,
-                                target_idx,
-                                &offsets,
-                            ));
+                        after.iter().try_for_each(|a| match a {
+                            AttributeDeclarationId::Attribute(fragment_idx) => {
+                                ExpandAttributeDeclarations::add_attribute(&mut before, ctx, fragment_idx)
+                            },
+                            AttributeDeclarationId::AttributeGroupRef(fragment_idx) => {
+                                ExpandAttributeDeclarations::add_group_ref(&mut before, ctx, fragment_idx)
+                            },
+                        }).expect("Expected to expand all attributes");
 
-                            attr_decls.declarations = before;
-                        }
+                        let attr_decls = ctx.get_complex_fragment_mut(&attr_decls_id)
+                            .expect("Expected fragment to be found");
+
+                        before.iter_mut().for_each(|a| a.offset(
+                            &schema_location,
+                            target_idx,
+                            &offsets,
+                        ));
+
+                        attr_decls.declarations = before;
                     }
                     RedefinableId::Group(root_fragment_idx) => {
                         let root_fragment = target_document
