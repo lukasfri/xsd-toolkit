@@ -105,7 +105,7 @@ fn test2() {
     ]));
 
     let mut deserializer = xmlity_quick_xml::Deserializer::from(
-        r#""<mycomp:Page xmlns:mycomp="http://mycompany.com/xbrl/roleR">10</mycomp:Page>""#
+        r#"<mycomp:Page xmlns:mycomp="http://mycompany.com/xbrl/roleR">10</mycomp:Page>"#
             .as_bytes(),
     )
     .with_external_data(data);
