@@ -1,5 +1,5 @@
-use xmlity::{ExpandedName, LocalName, XmlNamespace};
-use xmlity_ns::SubstitutionGroup;
+use xmlity::{Deserialize, ExpandedName, LocalName, XmlNamespace};
+use xmlity_ns::{SubstitutionGroup, SubstitutionGroupContext};
 use xmlity_quick_xml::de::ExternalData;
 
 #[derive(Debug, PartialEq, xmlity::Deserialize, xmlity::Serialize)]
@@ -56,8 +56,6 @@ struct Root {
 fn substitution_group_test(#[case] input: &str, #[case] val: Root) {
     use pretty_assertions::assert_eq;
 
-    use xmlity_ns::SubstitutionGroupContext;
-
     let allowed_ns = ExpandedName::new(
         LocalName::new_dangerous("d"),
         Some(XmlNamespace::new_dangerous("http://example.com/ns")),
@@ -70,9 +68,49 @@ fn substitution_group_test(#[case] input: &str, #[case] val: Root) {
     let mut deserializer = xmlity_quick_xml::Deserializer::from(input.trim().as_bytes())
         .with_external_data(external_data);
 
-    let root: Root = xmlity::Deserialize::deserialize(&mut deserializer).unwrap();
+    let root: Root = Deserialize::deserialize(&mut deserializer).unwrap();
 
     println!("{:#?}", root);
 
     assert_eq!(root, val);
+}
+
+#[test]
+fn test2() {
+    #[derive(
+        ::core::fmt::Debug,
+        ::xmlity::Serialize,
+        ::xmlity::Deserialize,
+        ::core::cmp::PartialEq,
+        ::core::clone::Clone,
+    )]
+    enum Part {
+        Dynamic(crate::SubstitutionGroup<Part>),
+    }
+
+    let mut data = ExternalData::new();
+    data.insert(SubstitutionGroupContext::<Part>::new(vec![
+        ExpandedName::new(
+            LocalName::new_dangerous("Page"),
+            Some(XmlNamespace::new_dangerous(
+                "http://mycompany.com/xbrl/roleR",
+            )),
+        ),
+        ExpandedName::new(
+            LocalName::new_dangerous("Paragraph"),
+            Some(XmlNamespace::new_dangerous(
+                "http://mycompany.com/xbrl/roleR",
+            )),
+        ),
+    ]));
+
+    let mut deserializer = xmlity_quick_xml::Deserializer::from(
+        r#""<mycomp:Page xmlns:mycomp="http://mycompany.com/xbrl/roleR">10</mycomp:Page>""#
+            .as_bytes(),
+    )
+    .with_external_data(data);
+
+    let part = Part::deserialize(&mut deserializer).expect("Failed to parse part XML");
+
+    println!("Parsed part: {:?}", part);
 }
