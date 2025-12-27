@@ -88,7 +88,7 @@ mod tests {
             variants: vec![(
                 format_ident!("A"),
                 ChoiceVariantType::Element(ElementRecord {
-                    name: ExpandedName::new(LocalName::new_dangerous("a"), None),
+                    name: ExpandedName::new(LocalName::new("a").unwrap(), None).into_owned(),
                     attribute_order: ItemOrder::None,
                     children_order: ItemOrder::None,
                     fields: ElementFieldType::Empty,
@@ -128,13 +128,16 @@ mod tests {
             variants: vec![(
                 format_ident!("A"),
                 ChoiceVariantType::Element(ElementRecord {
-                    name: ExpandedName::new(LocalName::new_dangerous("a"), None),
+                    name: ExpandedName::new(LocalName::new("a").unwrap(), None).into_owned(),
                     attribute_order: ItemOrder::None,
                     children_order: ItemOrder::None,
                     fields: ElementFieldType::Named(vec![(
                         format_ident!("for_"),
                         ElementField::Attribute(ElementFieldAttribute {
-                            name: Some(ExpandedName::new(LocalName::new_dangerous("for"), None)),
+                            name: Some(
+                                ExpandedName::new(LocalName::new("for").unwrap(), None)
+                                    .into_owned(),
+                            ),
                             ty: TypeReference::new_static(parse_quote!(::std::string::String)),
                             deferred: false,
                             optional: false,

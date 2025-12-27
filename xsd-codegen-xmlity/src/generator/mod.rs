@@ -11,7 +11,7 @@ pub use scope::GeneratorScope;
 mod handler_container;
 pub use handler_container::handler_container;
 use syn::{parse_quote, Ident, Item, ItemMod};
-use xmlity::{ExpandedName, XmlNamespace};
+use xmlity::{ExpandedName, ExpandedNameBuf, XmlNamespace, XmlNamespaceBuf};
 use xsd_fragments::{
     fragments::{
         complex::{ComplexTypeRootFragment, TopLevelTypeId},
@@ -33,12 +33,12 @@ use crate::{
 #[derive(Debug)]
 pub struct Generator<'a> {
     pub context: &'a xsd_fragments::XmlnsContext,
-    pub global_bound_namespaces: BTreeMap<XmlNamespace<'static>, syn::Path>,
+    pub global_bound_namespaces: BTreeMap<XmlNamespaceBuf, syn::Path>,
     pub bound_namespaces: BTreeMap<FragmentedXsdDocumentIdx, syn::Path>,
-    pub bound_types: BTreeMap<ExpandedName<'static>, BoundType>,
-    pub bound_elements: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
-    pub bound_attributes: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
-    pub bound_groups: BTreeMap<ExpandedName<'static>, TypeReference<'static>>,
+    pub bound_types: BTreeMap<ExpandedNameBuf, BoundType>,
+    pub bound_elements: BTreeMap<ExpandedNameBuf, TypeReference<'static>>,
+    pub bound_attributes: BTreeMap<ExpandedNameBuf, TypeReference<'static>>,
+    pub bound_groups: BTreeMap<ExpandedNameBuf, TypeReference<'static>>,
     pub augmenter: Box<dyn ItemAugmentation>,
     pub handlers: HandlerContainer,
 }
@@ -77,7 +77,7 @@ impl<'a> Generator<'a> {
         self.bound_namespaces.insert(*namespace_idx, path);
     }
 
-    pub fn bind_global_namespace(&mut self, namespace: XmlNamespace<'static>, path: syn::Path) {
+    pub fn bind_global_namespace(&mut self, namespace: XmlNamespaceBuf, path: syn::Path) {
         self.global_bound_namespaces.insert(namespace, path);
     }
 
@@ -85,15 +85,15 @@ impl<'a> Generator<'a> {
         self.bound_namespaces.insert(namespace_idx, path);
     }
 
-    pub fn bind_type(
+    pub fn bind_type<N: Into<ExpandedNameBuf>>(
         &mut self,
-        name: ExpandedName<'static>,
+        name: N,
         bound_type: BoundType,
     ) -> Option<BoundType> {
-        self.bound_types.insert(name, bound_type)
+        self.bound_types.insert(name.into(), bound_type)
     }
 
-    pub fn bind_types<T: IntoIterator<Item = (ExpandedName<'static>, BoundType)>>(
+    pub fn bind_types<N: Into<ExpandedNameBuf>, T: IntoIterator<Item = (N, BoundType)>>(
         &mut self,
         types: T,
     ) {
@@ -102,12 +102,13 @@ impl<'a> Generator<'a> {
         });
     }
 
-    pub fn bind_element(&mut self, name: ExpandedName<'static>, ty: TypeReference<'static>) {
-        self.bound_elements.insert(name, ty);
+    pub fn bind_element<N: Into<ExpandedNameBuf>>(&mut self, name: N, ty: TypeReference<'static>) {
+        self.bound_elements.insert(name.into(), ty);
     }
 
     pub fn bind_elements<
-        T: IntoIterator<Item = (ExpandedName<'static>, TypeReference<'static>)>,
+        N: Into<ExpandedNameBuf>,
+        T: IntoIterator<Item = (N, TypeReference<'static>)>,
     >(
         &mut self,
         types: T,
@@ -117,12 +118,17 @@ impl<'a> Generator<'a> {
             .for_each(|(name, bound_type)| self.bind_element(name, bound_type));
     }
 
-    pub fn bind_attribute(&mut self, name: ExpandedName<'static>, ty: TypeReference<'static>) {
-        self.bound_attributes.insert(name, ty);
+    pub fn bind_attribute<N: Into<ExpandedNameBuf>>(
+        &mut self,
+        name: N,
+        ty: TypeReference<'static>,
+    ) {
+        self.bound_attributes.insert(name.into(), ty);
     }
 
     pub fn bind_attributes<
-        T: IntoIterator<Item = (ExpandedName<'static>, TypeReference<'static>)>,
+        N: Into<ExpandedNameBuf>,
+        T: IntoIterator<Item = (N, TypeReference<'static>)>,
     >(
         &mut self,
         types: T,
@@ -132,11 +138,14 @@ impl<'a> Generator<'a> {
             .for_each(|(name, bound_type)| self.bind_attribute(name, bound_type));
     }
 
-    pub fn bind_group(&mut self, name: ExpandedName<'static>, ty: TypeReference<'static>) {
-        self.bound_groups.insert(name, ty);
+    pub fn bind_group<N: Into<ExpandedNameBuf>>(&mut self, name: N, ty: TypeReference<'static>) {
+        self.bound_groups.insert(name.into(), ty);
     }
 
-    pub fn bind_groups<T: IntoIterator<Item = (ExpandedName<'static>, TypeReference<'static>)>>(
+    pub fn bind_groups<
+        N: Into<ExpandedNameBuf>,
+        T: IntoIterator<Item = (N, TypeReference<'static>)>,
+    >(
         &mut self,
         types: T,
     ) {
@@ -187,17 +196,14 @@ impl<'a> Generator<'a> {
             .top_level_elements
             .keys()
             .map(|local_name| {
-                ExpandedName::new(
-                    local_name.as_ref(),
-                    compiled_namespace.target_namespace.clone(),
-                )
-                .into_owned()
+                ExpandedName::new(local_name, compiled_namespace.target_namespace.as_deref())
+                    .into_owned()
             })
         {
             if self.bound_elements.contains_key(&expanded_name) {
                 continue;
             }
-            let (mut ty, i) = self.generate_element(key, &expanded_name)?;
+            let (mut ty, i) = self.generate_element(key, &expanded_name.as_ref())?;
 
             let bound_namespace =
                 self.bound_namespaces
@@ -414,7 +420,7 @@ impl<'a> Generator<'a> {
             .iter()
             .filter_map(|(key, type_)| match type_ {
                 TopLevelTypeId::SimpleType(simple_type) => Some((
-                    ExpandedName::new(key.as_ref(), compiled_namespace.target_namespace.clone())
+                    ExpandedName::new(key, compiled_namespace.target_namespace.as_deref())
                         .into_owned(),
                     simple_type,
                 )),
@@ -427,7 +433,7 @@ impl<'a> Generator<'a> {
                 }
 
                 let (mut bound_type, i) =
-                    match self.generate_simple_type(key, &expanded_name, type_) {
+                    match self.generate_simple_type(key, &expanded_name.as_ref(), type_) {
                         Ok(ok) => ok,
                         Err(err) => return Some(Err(err)),
                     };
@@ -465,7 +471,7 @@ impl<'a> Generator<'a> {
             .iter()
             .filter_map(|(key, type_)| match type_ {
                 TopLevelTypeId::ComplexType(complex_type) => Some((
-                    ExpandedName::new(key.as_ref(), compiled_namespace.target_namespace.clone())
+                    ExpandedName::new(key, compiled_namespace.target_namespace.as_deref())
                         .into_owned(),
                     complex_type,
                 )),
@@ -482,7 +488,7 @@ impl<'a> Generator<'a> {
             })
             .map(|(expanded_name, complex_type)| {
                 let (mut bound_type, i) =
-                    self.generate_complex_type(key, &expanded_name, complex_type)?;
+                    self.generate_complex_type(key, &expanded_name.as_ref(), complex_type)?;
 
                 let bound_namespace = self.bound_namespaces.get(key).ok_or_else(|| {
                     Error::MissingBoundedNamespace {
@@ -612,14 +618,11 @@ impl<'a> Generator<'a> {
             .top_level_attributes
             .keys()
             .map(|local_name| {
-                ExpandedName::new(
-                    local_name.as_ref(),
-                    compiled_namespace.target_namespace.clone(),
-                )
-                .into_owned()
+                ExpandedName::new(local_name, compiled_namespace.target_namespace.as_deref())
+                    .into_owned()
             })
             .map(|expanded_name| {
-                let (mut bound_type, i) = self.generate_attribute(key, &expanded_name)?;
+                let (mut bound_type, i) = self.generate_attribute(key, &expanded_name.as_ref())?;
 
                 let bound_namespace = self.bound_namespaces.get(key).ok_or_else(|| {
                     Error::MissingBoundedNamespace {
@@ -801,14 +804,11 @@ impl<'a> Generator<'a> {
             .top_level_groups
             .keys()
             .map(|local_name| {
-                ExpandedName::new(
-                    local_name.as_ref(),
-                    compiled_namespace.target_namespace.clone(),
-                )
-                .into_owned()
+                ExpandedName::new(local_name, compiled_namespace.target_namespace.as_deref())
+                    .into_owned()
             })
             .map(|expanded_name| {
-                let (mut bound_type, i) = self.generate_group(key, &expanded_name)?;
+                let (mut bound_type, i) = self.generate_group(key, &expanded_name.as_ref())?;
 
                 let bound_namespace = self.bound_namespaces.get(key).ok_or_else(|| {
                     Error::MissingBoundedNamespace {

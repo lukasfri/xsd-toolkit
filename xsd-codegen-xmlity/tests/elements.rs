@@ -279,15 +279,15 @@ fn simple_reference_type_top_level_element_expected() -> File {
 
 #[rstest::rstest]
 #[case::empty_sequence_element(EMPTY_SEQUENCE_ELEMENT_INPUT, empty_sequence_element_expected(), ExpandedName::new(
-    LocalName::new_dangerous("SimpleSequence"),
-    Some(XmlNamespace::new_dangerous("http://example.com"))
+    LocalName::new("SimpleSequence").unwrap(),
+    Some(XmlNamespace::new("http://example.com").unwrap())
 ), syn::parse_quote!(SimpleSequence))]
 #[case::two_child_sequence_element(
     TWO_CHILD_SEQUENCE_ELEMENT_INPUT,
     two_child_sequence_element_expected(),
     ExpandedName::new(
-        LocalName::new_dangerous("SimpleSequence"),
-        Some(XmlNamespace::new_dangerous("http://example.com"))
+        LocalName::new("SimpleSequence").unwrap(),
+        Some(XmlNamespace::new("http://example.com").unwrap())
     ),
     syn::parse_quote!(SimpleSequence)
 )]
@@ -295,8 +295,8 @@ fn simple_reference_type_top_level_element_expected() -> File {
     TWO_ATTRIBUTE_SEQUENCE_ELEMENT_INPUT,
     two_attribute_sequence_element_expected(),
     ExpandedName::new(
-        LocalName::new_dangerous("SimpleSequence"),
-        Some(XmlNamespace::new_dangerous("http://example.com"))
+        LocalName::new("SimpleSequence").unwrap(),
+        Some(XmlNamespace::new("http://example.com").unwrap())
     ),
     syn::parse_quote!(SimpleSequence)
 )]
@@ -304,8 +304,8 @@ fn simple_reference_type_top_level_element_expected() -> File {
     TWO_SEQUENCE_DEEP_ELEMENT_INPUT,
     two_sequence_deep_element_expected(),
     ExpandedName::new(
-        LocalName::new_dangerous("SimpleSequence"),
-        Some(XmlNamespace::new_dangerous("http://example.com"))
+        LocalName::new("SimpleSequence").unwrap(),
+        Some(XmlNamespace::new("http://example.com").unwrap())
     ),
     syn::parse_quote!(SimpleSequence)
 )]
@@ -313,8 +313,8 @@ fn simple_reference_type_top_level_element_expected() -> File {
     TWO_ATTRIBUTE_TWO_CHILDREN_SEQUENCE_ELEMENT_INPUT,
     two_attribute_two_children_sequence_element_expected(),
     ExpandedName::new(
-        LocalName::new_dangerous("SimpleSequence"),
-        Some(XmlNamespace::new_dangerous("http://example.com"))
+        LocalName::new("SimpleSequence").unwrap(),
+        Some(XmlNamespace::new("http://example.com").unwrap())
     ),
     syn::parse_quote!(SimpleSequence)
 )]
@@ -322,8 +322,8 @@ fn simple_reference_type_top_level_element_expected() -> File {
     SIMPLE_REFERENCE_TYPE_TOP_LEVEL_ELEMENT_INPUT,
     simple_reference_type_top_level_element_expected(),
     ExpandedName::new(
-        LocalName::new_dangerous("SimpleSequence"),
-        Some(XmlNamespace::new_dangerous("http://example.com"))
+        LocalName::new("SimpleSequence").unwrap(),
+        Some(XmlNamespace::new("http://example.com").unwrap())
     ),
     syn::parse_quote!(SimpleSequence)
 )]
@@ -374,7 +374,7 @@ fn element_generation(
 #[test]
 fn complex_reference_type_local_element() {
     let child_type_expanded_name = ExpandedName::new(
-        LocalName::new_dangerous("childType"),
+        LocalName::new("childType").unwrap(),
         XmlNamespace::XS.into(),
     );
 
@@ -426,8 +426,8 @@ fn complex_reference_type_local_element() {
         .generate_element(
             &ns_id,
             &ExpandedName::new(
-                LocalName::new_dangerous("SimpleSequence"),
-                Some(XmlNamespace::new_dangerous("http://example.com")),
+                LocalName::new("SimpleSequence").unwrap(),
+                Some(XmlNamespace::new("http://example.com").unwrap()),
             ),
         )
         .unwrap();
@@ -476,7 +476,7 @@ fn complex_reference_type_local_element() {
 #[test]
 fn complex_reference_type_top_level_element() {
     let child_type_expanded_name = ExpandedName::new(
-        LocalName::new_dangerous("childType"),
+        LocalName::new("childType").unwrap(),
         XmlNamespace::XS.into(),
     );
 
@@ -518,8 +518,8 @@ fn complex_reference_type_top_level_element() {
         .generate_element(
             &ns_id,
             &ExpandedName::new(
-                LocalName::new_dangerous("SimpleSequence"),
-                Some(XmlNamespace::new_dangerous("http://example.com")),
+                LocalName::new("SimpleSequence").unwrap(),
+                Some(XmlNamespace::new("http://example.com").unwrap()),
             ),
         )
         .unwrap();
@@ -552,7 +552,7 @@ fn complex_reference_type_top_level_element() {
 #[test]
 fn element_ref_element() {
     let child_element_expanded_name = ExpandedName::new(
-        LocalName::new_dangerous("ChildElement"),
+        LocalName::new("ChildElement").unwrap(),
         XmlNamespace::XS.into(),
     );
 
@@ -598,8 +598,8 @@ fn element_ref_element() {
         .generate_element(
             &ns_id,
             &ExpandedName::new(
-                LocalName::new_dangerous("SimpleSequence"),
-                Some(XmlNamespace::new_dangerous("http://example.com")),
+                LocalName::new("SimpleSequence").unwrap(),
+                Some(XmlNamespace::new("http://example.com").unwrap()),
             ),
         )
         .unwrap();

@@ -8,7 +8,7 @@ use crate::{
 };
 
 use syn::Ident;
-use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xmlity::{ExpandedName, ExpandedNameBuf, LocalName, LocalNameBuf, XmlNamespace};
 use xsd_fragments::fragments::{
     complex::{AllNNI, ComplexTypeFragmentCompiler},
     FragmentAccess, FragmentIdx, FragmentedXsdDocumentIdx,
@@ -24,9 +24,9 @@ pub trait ComplexContext {
 
     fn suggested_ident(&self) -> &Ident;
 
-    fn namespace(&self) -> &XmlNamespace<'_>;
+    fn namespace(&self) -> &XmlNamespace;
 
-    fn to_expanded_name(&self, name: LocalName<'static>) -> ExpandedName<'static>;
+    fn to_expanded_name(&self, name: LocalNameBuf) -> ExpandedNameBuf;
 
     fn get_fragment<F>(&self, fragment: &FragmentIdx<F>) -> Result<&F>
     where

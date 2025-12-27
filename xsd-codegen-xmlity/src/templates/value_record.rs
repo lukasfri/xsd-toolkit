@@ -2,7 +2,7 @@ use std::iter;
 
 use quote::quote;
 use syn::{parse_quote, Field, Ident, ItemStruct};
-use xmlity::ExpandedName;
+use xmlity::{ExpandedName, ExpandedNameBuf};
 
 use crate::{
     misc::TypeReference,
@@ -81,7 +81,7 @@ pub enum SingleChildMode {
 
 #[derive(Debug)]
 pub struct ItemFieldElement {
-    pub name: ExpandedName<'static>,
+    pub name: ExpandedNameBuf,
     pub ty: TypeReference<'static>,
     pub child_mode: SingleChildMode,
     pub optional: bool,

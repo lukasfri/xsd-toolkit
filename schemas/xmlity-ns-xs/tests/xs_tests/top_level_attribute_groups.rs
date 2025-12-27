@@ -65,21 +65,21 @@ const XSD_ANY_ATTR_GROUP: &str = r###"
 fn xsd_any_attr_group() -> xs::AttributeGroup {
     xs::AttributeGroup::AttributeGroup(Box::new(
         xs::types::NamedAttributeGroup::builder()
-            .name(LocalName::new_dangerous("anyAttrGroup"))
+            .name(LocalName::new("anyAttrGroup").unwrap().to_owned())
             .attr_decls(Box::new(
                 xs::groups::AttrDecls::builder()
                     .attribute(vec![
                         xs::types::Attribute::builder()
-                            .name(LocalName::new_dangerous("namespace"))
+                            .name(LocalName::new("namespace").unwrap().to_owned())
                             .type_(xs::types::QName(ExpandedName::new(
-                                LocalName::new_dangerous("namespaceList"),
+                                LocalName::new("namespaceList").unwrap(),
                                 Some(XmlNamespace::XS),
-                            )))
+                            ).into_owned()))
                             .use_(xs::types::attribute_items::UseValue::Optional)
                             .build()
                             .into(),
                         xs::types::Attribute::builder()
-                            .name(LocalName::new_dangerous("notNamespace"))
+                            .name(LocalName::new("notNamespace").unwrap().to_owned())
                             .use_(xs::types::attribute_items::UseValue::Optional)
                             .simple_type(
                                 xs::types::LocalSimpleType::builder()
@@ -87,9 +87,9 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                         xs::Restriction::from(
                                             xs::restriction_items::Restriction::builder()
                                                 .base(xs::types::QName(ExpandedName::new(
-                                                    LocalName::new_dangerous("basicNamespaceList"),
+                                                    LocalName::new("basicNamespaceList").unwrap(),
                                                     Some(XmlNamespace::XS),
-                                                )))
+                                                ).into_owned()))
                                                 .simple_restriction_model(
                                                     xs::groups::SimpleRestrictionModel::builder()
                                                         .child_1(vec![xs::Facet::from(
@@ -115,7 +115,7 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                             .build()
                             .into(),
                         xs::types::Attribute::builder()
-                            .name(LocalName::new_dangerous("processContents"))
+                            .name(LocalName::new("processContents").unwrap().to_owned())
                             .default("strict".to_string())
                             .use_(xs::types::attribute_items::UseValue::Optional)
                             .simple_type(
@@ -124,9 +124,9 @@ fn xsd_any_attr_group() -> xs::AttributeGroup {
                                         xs::Restriction::from(
                                             xs::restriction_items::Restriction::builder()
                                                 .base(xs::types::QName(ExpandedName::new(
-                                                    LocalName::new_dangerous("NMTOKEN"),
+                                                    LocalName::new("NMTOKEN").unwrap(),
                                                     Some(XmlNamespace::XS),
-                                                )))
+                                                ).into_owned()))
                                                 .simple_restriction_model(
                                                     xs::groups::SimpleRestrictionModel::builder()
                                                         .child_1(vec![

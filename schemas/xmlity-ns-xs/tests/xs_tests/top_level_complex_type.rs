@@ -584,7 +584,7 @@ const XSD_ALL: &str = r###"
 
 fn xsd_all() -> xs::ComplexType {
     xs::types::TopLevelComplexType::builder()
-            .name(LocalName::new_dangerous("all"))
+            .name(LocalName::new("all").unwrap().to_owned())
             .annotation(
                 xs::Annotation::from(xs::annotation_items::Annotation::builder()
                     .annotation_content(vec![xs::Documentation::from(xs::documentation_items::Documentation::builder()
@@ -604,18 +604,18 @@ fn xsd_all() -> xs::ComplexType {
                     .child_1(
                         xs::types::ComplexRestrictionType::builder()
                             .base(xs::types::QName(ExpandedName::new(
-                                LocalName::new_dangerous("explicitGroup"),
+                                LocalName::new("explicitGroup").unwrap(),
                                 Some(XmlNamespace::XS),
-                            )))
+                            ).into_owned()))
                             .child_1(
                               xs::types::complex_restriction_type_items::Child1
                               ::builder()
                               .type_def_particle(Box::new(
                                 xs::types::GroupRef::builder()
                                     .ref_(xs::types::QName(ExpandedName::new(
-                                        LocalName::new_dangerous("allModel"),
+                                        LocalName::new("allModel").unwrap(),
                                         Some(XmlNamespace::XS),
-                                    )))
+                                    ).into_owned()))
                                     .any_attributes(xmlity_ns::AnyAttributes::default())
                                     .build()
                                     .into(),
@@ -625,7 +625,7 @@ fn xsd_all() -> xs::ComplexType {
                                 xs::groups::AttrDecls::builder()
                                     .attribute(vec![
                                         xs::types::Attribute::builder()
-                                            .name(LocalName::new_dangerous("minOccurs"))
+                                            .name(LocalName::new("minOccurs").unwrap().to_owned())
                                             .default("1".to_string())
                                             .use_(xs::types::attribute_items::UseValue::Optional)
                                             .simple_type(
@@ -635,11 +635,9 @@ fn xsd_all() -> xs::ComplexType {
                                                       xs::Restriction::from(xs::restriction_items::Restriction::builder()
                                                             .base(xs::types::QName(
                                                                 ExpandedName::new(
-                                                                    LocalName::new_dangerous(
-                                                                        "nonNegativeInteger",
-                                                                    ),
+                                                                    LocalName::new("nonNegativeInteger").unwrap(),
                                                                     Some(XmlNamespace::XS),
-                                                                ),
+                                                                ).into_owned(),
                                                             ))
                                                             .simple_restriction_model(
                                                               xs::groups::SimpleRestrictionModel::builder()
@@ -672,7 +670,7 @@ fn xsd_all() -> xs::ComplexType {
                                             .build()
                                             .into(),
                                         xs::types::Attribute::builder()
-                                            .name(LocalName::new_dangerous("maxOccurs"))
+                                            .name(LocalName::new("maxOccurs").unwrap().to_owned())
                                             .default("1".to_string())
                                             .use_(xs::types::attribute_items::UseValue::Optional)
                                             .simple_type(
@@ -681,11 +679,9 @@ fn xsd_all() -> xs::ComplexType {
                                                         xs::Restriction::from(xs::restriction_items::Restriction::builder()
                                                             .base(xs::types::QName(
                                                                 ExpandedName::new(
-                                                                    LocalName::new_dangerous(
-                                                                        "allNNI",
-                                                                    ),
+                                                                    LocalName::new("allNNI").unwrap(),
                                                                     Some(XmlNamespace::XS),
-                                                                ),
+                                                                ).into_owned(),
                                                             ))
                                                             .simple_restriction_model(
                                                               xs::groups::SimpleRestrictionModel::builder()
@@ -828,7 +824,7 @@ const XSD_ANY_TYPE: &str = r###"
 
 fn xsd_any_type() -> xs::ComplexType {
     xs::types::TopLevelComplexType::builder()
-        .name(LocalName::new_dangerous("anyType"))
+        .name(LocalName::new("anyType").unwrap().to_owned())
         .mixed(true)
         .annotation(
             xs::Annotation::from(xs::annotation_items::Annotation::builder()

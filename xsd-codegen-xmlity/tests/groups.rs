@@ -109,8 +109,8 @@ fn two_sequence_deep_top_level() -> File {
     THREE_CHOICE_SEQUENCE_DEEP_COMPLEX_TYPE_INPUT,
     three_choice_sequence_deep_complex_type_expected(),
     ExpandedName::new(
-                LocalName::new_dangerous("SimpleSequence"),
-                Some(XmlNamespace::new_dangerous("http://example.com")),
+                LocalName::new("SimpleSequence").unwrap(),
+                Some(XmlNamespace::new("http://example.com").unwrap()),
             ),
     parse_quote!(::std::boxed::Box<SimpleSequence>)
 )]
@@ -118,8 +118,8 @@ fn two_sequence_deep_top_level() -> File {
     SIMPLE_SEQUENCE_DEEP_TOP_LEVEL_INPUT,
     two_sequence_deep_top_level(),
     ExpandedName::new(
-                LocalName::new_dangerous("SimpleSequence"),
-                Some(XmlNamespace::new_dangerous("http://example.com")),
+                LocalName::new("SimpleSequence").unwrap(),
+                Some(XmlNamespace::new("http://example.com").unwrap()),
             ),
     parse_quote!(::std::boxed::Box<SimpleSequence>)
 )]

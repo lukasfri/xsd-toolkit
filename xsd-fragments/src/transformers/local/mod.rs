@@ -112,14 +112,14 @@ impl XmlnsLocalTransformerContext<'_> {
     }
 
     /// Gets a named type by its local name within this namespace.
-    pub fn get_named_type<'a>(&'a self, name: &'a LocalName<'_>) -> Option<&'a TopLevelTypeId> {
+    pub fn get_named_type<'a>(&'a self, name: &'a LocalName) -> Option<&'a TopLevelTypeId> {
         self.current_namespace().top_level_types.get(name)
     }
 
     /// Gets a named attribute group by its local name within this namespace.
     pub fn get_named_attribute_group<'a>(
         &'a self,
-        name: &'a LocalName<'_>,
+        name: &'a LocalName,
     ) -> Option<&'a FragmentIdx<cx::TopLevelAttributeGroupFragment>> {
         self.current_namespace()
             .top_level_attribute_groups

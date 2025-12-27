@@ -57,8 +57,8 @@ fn substitution_group_test(#[case] input: &str, #[case] val: Root) {
     use pretty_assertions::assert_eq;
 
     let allowed_ns = ExpandedName::new(
-        LocalName::new_dangerous("d"),
-        Some(XmlNamespace::new_dangerous("http://example.com/ns")),
+        LocalName::new("d").unwrap(),
+        Some(XmlNamespace::new("http://example.com/ns").unwrap()),
     );
 
     let mut external_data = ExternalData::new();
@@ -91,16 +91,12 @@ fn test2() {
     let mut data = ExternalData::new();
     data.insert(SubstitutionGroupContext::<Part>::new(vec![
         ExpandedName::new(
-            LocalName::new_dangerous("Page"),
-            Some(XmlNamespace::new_dangerous(
-                "http://mycompany.com/xbrl/roleR",
-            )),
+            LocalName::new("Page").unwrap(),
+            Some(XmlNamespace::new("http://mycompany.com/xbrl/roleR").unwrap()),
         ),
         ExpandedName::new(
-            LocalName::new_dangerous("Paragraph"),
-            Some(XmlNamespace::new_dangerous(
-                "http://mycompany.com/xbrl/roleR",
-            )),
+            LocalName::new("Paragraph").unwrap(),
+            Some(XmlNamespace::new("http://mycompany.com/xbrl/roleR").unwrap()),
         ),
     ]));
 

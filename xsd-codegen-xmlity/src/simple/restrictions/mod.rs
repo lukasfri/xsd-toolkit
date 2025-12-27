@@ -101,9 +101,13 @@ impl SimpleToTypeTemplate<sm::RestrictionFragment> for RestrictionHandler {
         add_string_restriction!(xsn::DAY_TIME_DURATION, String);
         add_string_restriction!(xsn::ANY_URI, String);
 
-        let Some(builder) =
-            restriction_builders.get(&item.base.as_ref().unwrap_or_else(|| &xsd::xsn::STRING))
-        else {
+        let Some(builder) = restriction_builders.get(
+            &item
+                .base
+                .as_ref()
+                .map(|a| a.as_ref())
+                .unwrap_or_else(|| *xsd::xsn::STRING),
+        ) else {
             return Err(crate::Error::UnsupportedSimpleBase {
                 base: item.base.clone(),
             });

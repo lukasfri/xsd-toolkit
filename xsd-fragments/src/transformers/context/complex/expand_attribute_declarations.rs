@@ -249,7 +249,7 @@ impl ExpandAttributeDeclarations {
                 context
                     .get_named_attribute_group(
                         namespace_idx.unwrap_or(&fragment_idx.namespace_idx()),
-                        &child_group_fragment.ref_,
+                        &child_group_fragment.ref_.as_ref(),
                     )
                     .is_some_and(|a| *a == *group_fragment_idx)
             });

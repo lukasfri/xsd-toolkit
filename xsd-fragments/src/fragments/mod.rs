@@ -10,7 +10,7 @@ use std::fmt;
 use std::marker::PhantomData;
 
 use url::Url;
-use xmlity::XmlNamespace;
+use xmlity::{XmlNamespace, XmlNamespaceBuf};
 
 use crate::fragments::complex::ComplexOffsetable;
 use crate::fragments::simple::SimpleOffsetable;
@@ -137,8 +137,8 @@ impl<T: SimpleOffsetable + Clone> FragmentCollection<T> {
         target: &FragmentedXsdDocumentIdx,
         new: &FragmentedXsdDocumentIdx,
         merge_result: &simple::IdOffsets,
-        old_ns: &Option<XmlNamespace>,
-        new_ns: &Option<XmlNamespace<'static>>,
+        old_ns: &Option<&XmlNamespace>,
+        new_ns: &Option<XmlNamespaceBuf>,
     ) {
         use crate::fragments::simple::SimpleOffsetableExt;
 
@@ -163,8 +163,8 @@ impl<T: ComplexOffsetable + Clone> FragmentCollection<T> {
         target: &FragmentedXsdDocumentIdx,
         new: &FragmentedXsdDocumentIdx,
         merge_result: &complex::IdOffsets,
-        old_ns: &Option<XmlNamespace>,
-        new_ns: &Option<XmlNamespace<'static>>,
+        old_ns: &Option<&XmlNamespace>,
+        new_ns: &Option<XmlNamespaceBuf>,
         target_url: &Url,
         other_url: &Url,
     ) {
@@ -226,5 +226,5 @@ trait HasFragmentCollection<F> {
 }
 
 pub struct Context<'a> {
-    pub default_namespace: Option<&'a XmlNamespace<'static>>,
+    pub default_namespace: Option<&'a XmlNamespace>,
 }

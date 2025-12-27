@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use url::Url;
-use xmlity::XmlNamespace;
+use xmlity::{XmlNamespace, XmlNamespaceBuf};
 use xsd::{xs, UrlExt};
 
 use crate::{
@@ -27,7 +27,7 @@ pub struct XmlnsContext {
     pub namespace_idxs: BTreeMap<FragmentedXsdDocumentKey, FragmentedXsdDocumentIdx>,
     namespace_id_count: usize,
 
-    pub global_namespaces: BTreeMap<XmlNamespace<'static>, FragmentedXsdDocumentIdx>,
+    pub global_namespaces: BTreeMap<XmlNamespaceBuf, FragmentedXsdDocumentIdx>,
 }
 
 impl XmlnsContext {
@@ -100,11 +100,11 @@ impl XmlnsContext {
     pub fn resolve_ref_namespace<'a>(
         &'a self,
         resolve_from: &'a FragmentedXsdDocumentIdx,
-        referenced_namespace: &Option<XmlNamespace<'a>>,
+        referenced_namespace: &Option<&'a XmlNamespace>,
     ) -> Option<&'a FragmentedXsdDocumentIdx> {
         if let Some(global_namespace) = referenced_namespace
             .as_ref()
-            .and_then(|ns| self.global_namespaces.get(ns))
+            .and_then(|ns| self.global_namespaces.get(*ns))
         {
             return Some(global_namespace);
         }
@@ -118,7 +118,7 @@ impl XmlnsContext {
         })?;
         let compiled_namespace = self.namespaces.get(resolve_from)?;
 
-        if compiled_namespace.target_namespace == *referenced_namespace {
+        if compiled_namespace.target_namespace.as_deref() == *referenced_namespace {
             Some(resolve_from)
         } else {
             // let referenced_ns = compiled_namespace.imports.get(referenced_namespace?)?;
@@ -145,7 +145,7 @@ impl XmlnsContext {
                         .namespace_idxs
                         .get(&FragmentedXsdDocumentKey(location))?;
 
-                    if import.namespace == *referenced_namespace {
+                    if import.namespace.as_deref() == *referenced_namespace {
                         Some(referenced_ns)
                     } else {
                         let schema = self
@@ -153,7 +153,7 @@ impl XmlnsContext {
                             .get(referenced_ns)
                             .expect("Expected referenced namespace to be found");
 
-                        if schema.target_namespace == *referenced_namespace {
+                        if schema.target_namespace.as_deref() == *referenced_namespace {
                             Some(referenced_ns)
                         } else {
                             None

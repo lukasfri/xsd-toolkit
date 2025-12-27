@@ -149,7 +149,7 @@ const XSD_ANY_ATTRIBUTE: &str = r###"
 
 fn xsd_any_attribute() -> xs::Element {
     xs::types::TopLevelElement::builder()
-        .name(LocalName::new_dangerous("anyAttribute"))
+        .name(LocalName::new("anyAttribute").unwrap().to_owned())
         .id("anyAttribute".to_string())
         .annotation(
             xs::Annotation::from(
@@ -174,18 +174,26 @@ fn xsd_any_attribute() -> xs::Element {
                         xs::complex_content_items::ComplexContent::builder()
                             .child_1(
                                 xs::types::ExtensionType::builder()
-                                    .base(xs::types::QName(ExpandedName::new(
-                                        LocalName::new_dangerous("wildcard"),
-                                        Some(XmlNamespace::XS),
-                                    )))
+                                    .base(xs::types::QName(
+                                        ExpandedName::new(
+                                            LocalName::new("wildcard").unwrap(),
+                                            Some(XmlNamespace::XS),
+                                        )
+                                        .into_owned(),
+                                    ))
                                     .attr_decls(
                                         xs::groups::AttrDecls::builder()
                                             .attribute(vec![xs::types::Attribute::builder()
-                                                .name(LocalName::new_dangerous("notQName"))
-                                                .type_(xs::types::QName(ExpandedName::new(
-                                                    LocalName::new_dangerous("qnameListA"),
-                                                    Some(XmlNamespace::XS),
-                                                )))
+                                                .name(
+                                                    LocalName::new("notQName").unwrap().to_owned(),
+                                                )
+                                                .type_(xs::types::QName(
+                                                    ExpandedName::new(
+                                                        LocalName::new("qnameListA").unwrap(),
+                                                        Some(XmlNamespace::XS),
+                                                    )
+                                                    .into_owned(),
+                                                ))
                                                 .use_(
                                                     xs::types::attribute_items::UseValue::Optional,
                                                 )
@@ -793,13 +801,13 @@ const XSD_TOTAL_DIGITS: &str = r###"
 
 fn xsd_total_digits() -> xs::Element {
     xs::types::TopLevelElement::builder()
-        .name(LocalName::new_dangerous("totalDigits"))
+        .name(LocalName::new("totalDigits").unwrap().to_owned())
         .id("totalDigits".to_string())
         .substitution_group(xmlity_ns::List(vec![
           xs::types::QName(ExpandedName::new(
-            LocalName::new_dangerous("facet"),
+            LocalName::new("facet").unwrap(),
             Some(XmlNamespace::XS),
-          )),
+          ).into_owned()),
         ]))
         .annotation(
             xs::Annotation::from(xs::annotation_items::Annotation::builder()
@@ -818,9 +826,9 @@ fn xsd_total_digits() -> xs::Element {
                         .child_1(
                             xs::types::ComplexRestrictionType::builder()
                                 .base(xs::types::QName(ExpandedName::new(
-                                    LocalName::new_dangerous("numFacet"),
+                                    LocalName::new("numFacet").unwrap(),
                                     Some(XmlNamespace::XS),
-                                )))
+                                ).into_owned()))
                                 .child_1(
                                     xs::types::complex_restriction_type_items::Child1::builder()
                                         .type_def_particle(Box::new(
@@ -830,11 +838,9 @@ fn xsd_total_digits() -> xs::Element {
                                                         xs::types::LocalElement::builder()
                                                             .ref_(xs::types::QName(
                                                                 ExpandedName::new(
-                                                                    LocalName::new_dangerous(
-                                                                        "annotation",
-                                                                    ),
+                                                                    LocalName::new("annotation").unwrap(),
                                                                     Some(XmlNamespace::XS),
-                                                                ),
+                                                                ).into_owned(),
                                                             ))
                                                             .min_occurs(0)
                                                             .any_attributes(xmlity_ns::AnyAttributes::default())
@@ -851,11 +857,11 @@ fn xsd_total_digits() -> xs::Element {
                                 .attr_decls(
                                     xs::groups::AttrDecls::builder()
                                         .attribute(vec![xs::types::Attribute::builder()
-                                            .name(LocalName::new_dangerous("value"))
+                                            .name(LocalName::new("value").unwrap().to_owned())
                                             .type_(xs::types::QName(ExpandedName::new(
-                                                LocalName::new_dangerous("positiveInteger"),
+                                                LocalName::new("positiveInteger").unwrap(),
                                                 Some(XmlNamespace::XS),
-                                            )))
+                                            ).into_owned()))
                                             .use_(xs::types::attribute_items::UseValue::Required)
                                             .build()
                                             .into()])
@@ -971,13 +977,13 @@ const XSD_WHITE_SPACE: &str = r###"
 
 fn xsd_white_space() -> xs::Element {
     xs::types::TopLevelElement::builder()
-            .name(LocalName::new_dangerous("whiteSpace"))
+            .name(LocalName::new("whiteSpace").unwrap().to_owned())
             .id("whiteSpace".to_string())
             .substitution_group(xmlity_ns::List(vec![
           xs::types::QName(ExpandedName::new(
-            LocalName::new_dangerous("facet"),
+            LocalName::new("facet").unwrap(),
             Some(XmlNamespace::XS),
-          )),
+          ).into_owned()),
         ]))
             .annotation(
                 xs::Annotation::from(xs::annotation_items::Annotation::builder()
@@ -999,9 +1005,9 @@ fn xsd_white_space() -> xs::Element {
                                 .child_1(
                                     xs::types::ComplexRestrictionType::builder()
                                         .base(xs::types::QName(ExpandedName::new(
-                                            LocalName::new_dangerous("facet"),
+                                            LocalName::new("facet").unwrap(),
                                             Some(XmlNamespace::XS),
-                                        )))
+                                        ).into_owned()))
                                         .child_1(
                                           xs::types::complex_restriction_type_items::Child1::builder()
                                           .type_def_particle(
@@ -1011,9 +1017,9 @@ fn xsd_white_space() -> xs::Element {
                                                     .nested_particle(vec![
                                                       xs::types::LocalElement::builder()
                                                           .ref_(xs::types::QName(ExpandedName::new(
-                                                              LocalName::new_dangerous("annotation"),
+                                                              LocalName::new("annotation").unwrap(),
                                                               Some(XmlNamespace::XS),
-                                                          )))
+                                                          ).into_owned()))
                                                           .min_occurs(0)
                                                           .any_attributes(xmlity_ns::AnyAttributes::default())
                                                           .build()
@@ -1029,7 +1035,7 @@ fn xsd_white_space() -> xs::Element {
                                         .attr_decls(
                                             xs::groups::AttrDecls::builder()
                                                 .attribute(vec![xs::types::Attribute::builder()
-                                                    .name(LocalName::new_dangerous("value"))
+                                                    .name(LocalName::new("value").unwrap().to_owned())
                                                     .use_(xs::types::attribute_items::UseValue::Required)
                                                     .simple_type(
                                                         xs::types::LocalSimpleType::builder()
@@ -1037,11 +1043,11 @@ fn xsd_white_space() -> xs::Element {
                                                               Box::new(
                                                                   xs::Restriction::from(xs::restriction_items::Restriction::builder()
                                                                   .base(xs::types::QName(ExpandedName::new(
-                                                                      LocalName::new_dangerous(
+                                                                      LocalName::new(
                                                                           "NMTOKEN",
-                                                                      ),
+                                                                      ).unwrap(),
                                                                       Some(XmlNamespace::XS),
-                                                                  )))
+                                                                  ).into_owned()))
                                                                   .simple_restriction_model(
                                                                     xs::groups::SimpleRestrictionModel::builder()
                                                                     .child_1(vec![

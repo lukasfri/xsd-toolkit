@@ -98,7 +98,8 @@ impl ComplexToTypeTemplate<(FragmentedXsdDocumentIdx, &cx::DeclaredElementFragme
 
         match &item.type_ {
             xsd_fragments::NamedOrAnonymous::Named(expanded_name) => {
-                let bound_type = context.resolve_named_type(namespace_idx, expanded_name)?;
+                let bound_type =
+                    context.resolve_named_type(namespace_idx, &expanded_name.as_ref())?;
 
                 let field = type_to_element_field(bound_type.ty, bound_type.ty_type, false, None);
 
@@ -141,7 +142,7 @@ impl ComplexToTypeTemplate<(FragmentedXsdDocumentIdx, &cx::ReferenceElementFragm
         _scope: &mut S,
         (namespace_idx, item): &(FragmentedXsdDocumentIdx, &cx::ReferenceElementFragment),
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let ty = context.resolve_named_element(namespace_idx, &item.ref_)?;
+        let ty = context.resolve_named_element(namespace_idx, &item.ref_.as_ref())?;
 
         let template = ItemFieldItem {
             ty,
@@ -279,13 +280,14 @@ impl ComplexToTypeTemplate<FragmentIdx<cx::TopLevelElementFragment>> for TopLeve
         let ident = item.name.to_item_ident();
 
         let type_ = item.type_.as_ref();
-        let self_type = context.resolve_named_element(&fragment_idx.namespace_idx(), &name)?;
+        let self_type =
+            context.resolve_named_element(&fragment_idx.namespace_idx(), &name.as_ref())?;
 
         let mut substitution_choices = Vec::new();
 
         substitution_choices.extend(
             context
-                .substitution_group_members(&name)?
+                .substitution_group_members(&name.as_ref())?
                 .map(|(id, a)| {
                     let element_type = context.resolve_named_element(&id, &a)?;
                     Ok((
@@ -325,8 +327,10 @@ impl ComplexToTypeTemplate<FragmentIdx<cx::TopLevelElementFragment>> for TopLeve
         let mut element_record = (!item.abstract_)
             .then(|| match type_ {
                 Some(xsd_fragments::NamedOrAnonymous::Named(expanded_name)) => {
-                    let bound_type =
-                        context.resolve_named_type(&fragment_idx.namespace_idx(), expanded_name)?;
+                    let bound_type = context.resolve_named_type(
+                        &fragment_idx.namespace_idx(),
+                        &expanded_name.as_ref(),
+                    )?;
 
                     let field =
                         type_to_element_field(bound_type.ty, bound_type.ty_type, false, None);

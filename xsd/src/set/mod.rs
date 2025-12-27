@@ -3,7 +3,7 @@ use std::{collections::HashMap, future::Future, ops::Deref, path::PathBuf};
 
 use crate::{link::UrlExt, xs, XmlSchema};
 use url::Url;
-use xmlity::{ExpandedName, XmlNamespace};
+use xmlity::{ExpandedName, ExpandedNameBuf, XmlNamespace, XmlNamespaceBuf};
 
 /// A schema location containing its loaded schema.
 #[derive(Debug, Clone, PartialEq)]
@@ -128,10 +128,10 @@ impl XmlSchemaSet {
                 let namespace = a
                     .namespace
                     .as_ref()
-                    .map(|ns| XmlNamespace::new(ns.to_owned()))
+                    .map(|ns| XmlNamespace::new(ns))
                     .transpose()
                     .expect("Failed to parse namespace")
-                    .unwrap_or_else(|| XmlNamespace::new_dangerous(""));
+                    .unwrap_or_else(|| XmlNamespace::new("").unwrap());
 
                 let location = a
                     .schema_location
@@ -280,7 +280,7 @@ impl XmlSchemaSet {
             .find_map(|a| match a {
                 xmlity_ns_xs::groups::Redefinable::SimpleType(simple_type) => {
                     match simple_type.deref() {
-                        xmlity_ns_xs::SimpleType::SimpleType(simple_type) => (simple_type.name
+                        xmlity_ns_xs::SimpleType::SimpleType(simple_type) => (*simple_type.name
                             == *name.local_name())
                         .then(|| TopLevelType::SimpleType(simple_type.deref())),
                         _ => None,
@@ -288,9 +288,10 @@ impl XmlSchemaSet {
                 }
                 xmlity_ns_xs::groups::Redefinable::ComplexType(complex_type) => {
                     match complex_type.deref() {
-                        xmlity_ns_xs::ComplexType::ComplexType(complex_type) => (complex_type.name
-                            == *name.local_name())
-                        .then(|| TopLevelType::ComplexType(complex_type.deref())),
+                        xmlity_ns_xs::ComplexType::ComplexType(complex_type) => {
+                            (*complex_type.name == *name.local_name())
+                                .then(|| TopLevelType::ComplexType(complex_type.deref()))
+                        }
                         _ => None,
                     }
                 }
@@ -300,26 +301,26 @@ impl XmlSchemaSet {
 
     fn namespace_schemas<'a>(
         &'a self,
-        namespace: Option<XmlNamespace<'static>>,
+        namespace: Option<XmlNamespaceBuf>,
     ) -> impl Iterator<Item = &'a XmlSchema> + 'a {
         self.locations
             .values()
             .filter_map(|location| location.as_ref().map(|loc| &loc.schema))
-            .filter(move |schema| schema.namespace().as_ref() == namespace.as_ref())
+            .filter(move |schema| schema.namespace() == namespace.as_deref())
     }
 
     /// Resolves type inheritance chain for a given type name.
     pub fn resolve_type_inheritance<'a>(
         &'a self,
         name: &'a ExpandedName<'a>,
-    ) -> impl Iterator<Item = (&'a ExpandedName<'a>, TopLevelType<'a>)> + 'a {
+    ) -> impl Iterator<Item = (ExpandedName<'a>, TopLevelType<'a>)> + 'a {
         struct ResolveRecursiveBase<'a> {
-            name: Option<&'a ExpandedName<'a>>,
+            name: Option<ExpandedName<'a>>,
             xsd: &'a XmlSchemaSet,
         }
 
         impl<'a> Iterator for ResolveRecursiveBase<'a> {
-            type Item = (&'a ExpandedName<'a>, TopLevelType<'a>);
+            type Item = (ExpandedName<'a>, TopLevelType<'a>);
 
             fn next(&mut self) -> Option<Self::Item> {
                 let current_name = self.name.take()?;
@@ -327,7 +328,7 @@ impl XmlSchemaSet {
 
                 let (type_, base) = self
                     .xsd
-                    .namespace_schemas(namespace.map(|a| a.into_owned()))
+                    .namespace_schemas(namespace.map(|a| a.to_owned()))
                     .flat_map(|a| a.redefinable())
                     .find_map(move |redefinable| {
                         use xmlity_ns_xs::complex_content_items::Child1 as CCC1;
@@ -339,7 +340,7 @@ impl XmlSchemaSet {
                             xs::groups::Redefinable::SimpleType(simple_type) => {
                                 match simple_type.deref() {
                                     xs::SimpleType::SimpleType(simple_type) => {
-                                        (simple_type.name == local_name).then(|| {
+                                        (*simple_type.name == *local_name).then(|| {
                                             let type_ =
                                                 TopLevelType::SimpleType(simple_type.deref());
 
@@ -360,7 +361,7 @@ impl XmlSchemaSet {
                                                 SimpleDerivation::Union(_) => None,
                                             };
 
-                                            (type_, base)
+                                            (type_, base.as_ref().map(|a| a.as_ref()))
                                         })
                                     }
                                     _ => None,
@@ -369,7 +370,7 @@ impl XmlSchemaSet {
                             xs::groups::Redefinable::ComplexType(complex_type) => {
                                 match complex_type.deref() {
                                     xs::ComplexType::ComplexType(complex_type) => {
-                                        (complex_type.name == local_name).then(|| {
+                                        (*complex_type.name == *local_name).then(|| {
                                             let type_ =
                                                 TopLevelType::ComplexType(complex_type.deref());
 
@@ -408,7 +409,7 @@ impl XmlSchemaSet {
                                                 ComplexTypeModel::Variant2(_) => None,
                                             };
 
-                                            (type_, base)
+                                            (type_, base.as_ref().map(|a| a.as_ref()))
                                         })
                                     }
                                     _ => None,
@@ -425,7 +426,7 @@ impl XmlSchemaSet {
         }
 
         ResolveRecursiveBase {
-            name: Some(name),
+            name: Some(*name),
             xsd: self,
         }
     }
@@ -438,20 +439,17 @@ impl XmlSchemaSet {
             .filter(|schema| schema.namespace() == *name.namespace())
             .flat_map(|schema| schema.top_level_elements())
             .find_map(|element| match element {
-                xs::Element::Element(el) if el.name == *name.local_name() => Some(el.deref()),
+                xs::Element::Element(el) if *el.name == *name.local_name() => Some(el.deref()),
                 _ => None,
             })
     }
 
     /// Resolves an attribute by its expanded name.
-    pub fn resolve_attribute(
-        &self,
-        name: &ExpandedName<'_>,
-    ) -> Option<&xs::types::TopLevelAttribute> {
-        self.namespace_schemas(name.namespace().as_ref().map(|a| a.clone().into_owned()))
+    pub fn resolve_attribute(&self, name: &ExpandedName) -> Option<&xs::types::TopLevelAttribute> {
+        self.namespace_schemas(name.namespace().map(|a| a.to_owned()))
             .flat_map(|schema| schema.top_level_attributes())
             .find_map(|attribute| match attribute {
-                xs::Attribute::Attribute(attr) if attr.name == *name.local_name() => {
+                xs::Attribute::Attribute(attr) if *attr.name == *name.local_name() => {
                     Some(attr.deref())
                 }
                 _ => None,

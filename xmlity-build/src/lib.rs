@@ -15,7 +15,7 @@ pub mod reexports {
 use url::Url;
 
 use xmlity::types::utils::XmlRoot;
-use xmlity::{ExpandedName, XmlNamespace};
+use xmlity::{ExpandedName, XmlNamespaceBuf};
 use xsd::set::XmlSchemaSet;
 use xsd::{xs, xsn};
 use xsd_codegen_xmlity::CodegenTransformer;
@@ -46,7 +46,7 @@ pub struct BuildEngine {
     pub bound_namespaces: Vec<(FragmentedXsdDocumentKey, syn::Path)>,
     /// A map of globally bound namespaces to their keys.
     #[builder(default)]
-    pub globally_bound_namespaces: Vec<(XmlNamespace<'static>, FragmentedXsdDocumentKey)>,
+    pub globally_bound_namespaces: Vec<(XmlNamespaceBuf, FragmentedXsdDocumentKey)>,
     /// A list of types to bind to specific types.
     #[builder(default)]
     pub bound_types: Vec<(ExpandedName<'static>, BoundType)>,

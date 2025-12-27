@@ -5,7 +5,7 @@ use crate::{
 use complex::ComplexToTypeTemplate;
 use quote::format_ident;
 use syn::{parse_quote, Ident};
-use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xmlity::{ExpandedName, ExpandedNameBuf, LocalName, LocalNameBuf, XmlNamespace};
 use xsd_fragments::fragments::complex::SchemaFragment;
 use xsd_fragments::fragments::{
     complex::ComplexTypeFragmentCompiler, simple::SimpleTypeFragmentCompiler, FragmentAccess,
@@ -18,7 +18,7 @@ use crate::Result;
 #[derive(Debug)]
 pub struct GeneratorContext<'a> {
     generator: &'a Generator<'a>,
-    namespace: &'a XmlNamespace<'a>,
+    namespace: &'a XmlNamespace,
     key: &'a FragmentedXsdDocumentIdx,
     suggested_ident: Ident,
 }
@@ -26,7 +26,7 @@ pub struct GeneratorContext<'a> {
 impl<'a> GeneratorContext<'a> {
     pub fn new(
         generator: &'a Generator<'a>,
-        namespace: &'a XmlNamespace<'a>,
+        namespace: &'a XmlNamespace,
         key: &'a FragmentedXsdDocumentIdx,
         suggested_ident: Ident,
     ) -> Self {
@@ -59,12 +59,12 @@ impl<'a> GeneratorContext<'a> {
 impl<'c> simple::SimpleContext for GeneratorContext<'c> {
     type SubContext = GeneratorContext<'c>;
 
-    fn namespace(&self) -> &XmlNamespace<'_> {
+    fn namespace(&self) -> &XmlNamespace {
         self.namespace
     }
 
-    fn to_expanded_name(&self, local_name: xmlity::LocalName<'static>) -> ExpandedName<'static> {
-        ExpandedName::new(local_name, Some(self.namespace().clone().into_owned()))
+    fn to_expanded_name(&self, local_name: xmlity::LocalNameBuf) -> ExpandedNameBuf {
+        ExpandedNameBuf::new(local_name, Some(self.namespace().to_owned()))
     }
 
     fn sub_context(&self, suggested_ident: Ident) -> Self::SubContext {
@@ -106,9 +106,9 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
     fn resolve_named_type(
         &self,
         document_idx: &FragmentedXsdDocumentIdx,
-        name: &ExpandedName<'_>,
+        name: &ExpandedName,
     ) -> Result<BoundType> {
-        if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
+        if let Some(bound_type) = self.generator.bound_types.get(&name.into_owned()) {
             return Ok(bound_type.clone());
         }
 
@@ -133,7 +133,7 @@ impl<'c> simple::SimpleContext for GeneratorContext<'c> {
                     .find(|(_, ns)| *ns == referenced_namespace_idx)
                     .map(|(key, _)| key.clone())
                     .expect("Should find namespace"),
-                namespace: name.namespace().clone().map(|a| a.into_owned()),
+                namespace: name.namespace().clone().map(|a| a.to_owned()),
             })?;
 
         let name = name.local_name().to_item_ident();
@@ -171,11 +171,11 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         <Self as simple::SimpleContext>::suggested_ident(self)
     }
 
-    fn namespace(&self) -> &XmlNamespace<'_> {
+    fn namespace(&self) -> &XmlNamespace {
         <Self as simple::SimpleContext>::namespace(self)
     }
 
-    fn to_expanded_name(&self, name: LocalName<'static>) -> ExpandedName<'static> {
+    fn to_expanded_name(&self, name: LocalNameBuf) -> ExpandedNameBuf {
         <Self as simple::SimpleContext>::to_expanded_name(self, name)
     }
 
@@ -215,9 +215,9 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
     fn resolve_named_type(
         &self,
         document_idx: &FragmentedXsdDocumentIdx,
-        name: &ExpandedName<'_>,
+        name: &ExpandedName,
     ) -> Result<BoundType> {
-        if let Some(bound_type) = self.generator.bound_types.get(&name.as_ref()) {
+        if let Some(bound_type) = self.generator.bound_types.get(&name.into_owned()) {
             return Ok(bound_type.clone());
         }
 
@@ -242,7 +242,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
                     .find(|(_, ns)| *ns == referenced_namespace_idx)
                     .map(|(key, _)| key.clone())
                     .expect("Should find namespace"),
-                namespace: name.namespace().clone().map(|a| a.into_owned()),
+                namespace: name.namespace().clone().map(|a| a.to_owned()),
             })?;
 
         let name = name.local_name().to_item_ident();
@@ -264,7 +264,12 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         namespace_idx: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<TypeReference<'static>> {
-        if let Some(ty) = self.generator.bound_elements.get(&name.as_ref()).cloned() {
+        if let Some(ty) = self
+            .generator
+            .bound_elements
+            .get(&name.into_owned())
+            .cloned()
+        {
             return Ok(ty);
         }
 
@@ -300,7 +305,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
                     .find(|(_, ns)| *ns == referenced_namespace_idx)
                     .map(|(key, _)| key.clone())
                     .expect("Should find namespace"),
-                namespace: name.namespace().clone().map(|a| a.into_owned()),
+                namespace: name.namespace().clone().map(|a| a.to_owned()),
             })?;
 
         let name = name.local_name().to_item_ident();
@@ -316,7 +321,12 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         namespace_idx: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<TypeReference<'static>> {
-        if let Some(ty) = self.generator.bound_attributes.get(&name.as_ref()).cloned() {
+        if let Some(ty) = self
+            .generator
+            .bound_attributes
+            .get(&name.into_owned())
+            .cloned()
+        {
             return Ok(ty);
         }
 
@@ -341,7 +351,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
                     .find(|(_, ns)| *ns == referenced_namespace_idx)
                     .map(|(key, _)| key.clone())
                     .expect("Should find namespace"),
-                namespace: name.namespace().clone().map(|a| a.into_owned()),
+                namespace: name.namespace().clone().map(|a| a.to_owned()),
             })?;
 
         let name = name.local_name().to_item_ident();
@@ -357,7 +367,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
         namespace_idx: &FragmentedXsdDocumentIdx,
         name: &ExpandedName<'_>,
     ) -> Result<TypeReference<'static>> {
-        if let Some(ty) = self.generator.bound_groups.get(&name.as_ref()).cloned() {
+        if let Some(ty) = self.generator.bound_groups.get(&name.into_owned()).cloned() {
             return Ok(ty);
         }
 
@@ -382,7 +392,7 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
                     .find(|(_, ns)| *ns == referenced_namespace_idx)
                     .map(|(key, _)| key.clone())
                     .expect("Should find namespace"),
-                namespace: name.namespace().clone().map(|a| a.into_owned()),
+                namespace: name.namespace().clone().map(|a| a.to_owned()),
             })?;
 
         let name = name.local_name().to_item_ident();
@@ -409,13 +419,10 @@ impl<'c> complex::ComplexContext for GeneratorContext<'c> {
                     .filter_map(|(key, fragment_id)| {
                         let fragment = namespace.compiler.get_fragment(&fragment_id)?;
 
-                        if fragment.substitution_groups.contains(name) {
+                        if fragment.substitution_groups.contains(&name.into_owned()) {
                             Some((
                                 *id,
-                                ExpandedName::new(
-                                    key.as_ref(),
-                                    namespace.target_namespace.as_ref().map(|a| a.as_ref()),
-                                ),
+                                ExpandedName::new(&key, namespace.target_namespace.as_deref()),
                             ))
                         } else {
                             None

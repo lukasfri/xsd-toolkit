@@ -1,5 +1,5 @@
 use syn::{parse_quote, Field, Ident, ItemStruct};
-use xmlity::ExpandedName;
+use xmlity::ExpandedNameBuf;
 
 use crate::templates::element_record::{AllowUnknown, ElementFieldType};
 
@@ -134,7 +134,7 @@ impl GroupRecord {
         }
     }
 
-    pub fn into_element_record(self, name: ExpandedName<'static>) -> ElementRecord {
+    pub fn into_element_record(self, name: ExpandedNameBuf) -> ElementRecord {
         ElementRecord {
             name,
             attribute_order: self.attribute_order,

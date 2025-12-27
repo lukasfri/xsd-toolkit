@@ -25,28 +25,27 @@ const DIMENSION_ITEM: &str = r###"
   substitutionGroup="xbrli:item" type="xbrli:stringItemType" xbrli:periodType="duration" />
 "###;
 
-const XBRLI_NAMESPACE: XmlNamespace<'static> =
-    XmlNamespace::new_dangerous("http://www.xbrl.org/2003/instance");
+const XBRLI_NAMESPACE: &'static XmlNamespace =
+    unsafe { XmlNamespace::new_unchecked("http://www.xbrl.org/2003/instance") };
 
 fn dimension_item() -> xs::Element {
     xs::types::TopLevelElement::builder()
-        .name(LocalName::new_dangerous("dimensionItem"))
+        .name(LocalName::new("dimensionItem").unwrap().to_owned())
         .id("xbrldt_dimensionItem".to_string())
         .abstract_(true)
-        .substitution_group(List::from_iter([xs::types::QName(ExpandedName::new(
-            LocalName::new_dangerous("item"),
-            Some(XBRLI_NAMESPACE),
-        ))]))
-        .type_attribute(xs::types::QName(ExpandedName::new(
-            LocalName::new_dangerous("stringItemType"),
-            Some(XBRLI_NAMESPACE),
-        )))
+        .substitution_group(List::from_iter([xs::types::QName(
+            ExpandedName::new(LocalName::new("item").unwrap(), Some(XBRLI_NAMESPACE)).into_owned(),
+        )]))
+        .type_attribute(xs::types::QName(
+            ExpandedName::new(
+                LocalName::new("stringItemType").unwrap(),
+                Some(XBRLI_NAMESPACE),
+            )
+            .into_owned(),
+        ))
         .any_attributes(xmlity_ns::AnyAttributes {
             attributes: vec![XmlAttribute::new(
-                ExpandedName::new(
-                    LocalName::new_dangerous("periodType"),
-                    Some(XBRLI_NAMESPACE),
-                ),
+                ExpandedName::new(LocalName::new("periodType").unwrap(), Some(XBRLI_NAMESPACE)),
                 XmlText::new("duration"),
             )],
         })

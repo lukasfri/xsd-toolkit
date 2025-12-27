@@ -3,7 +3,7 @@ use std::iter;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
 use syn::{parse_quote, Field, Ident, ItemStruct};
-use xmlity::ExpandedName;
+use xmlity::{ExpandedName, ExpandedNameBuf};
 
 use crate::misc::TypeReference;
 
@@ -38,7 +38,7 @@ impl ToTokens for AllowUnknown {
 
 #[derive(Debug)]
 pub struct ElementFieldAttribute {
-    pub name: Option<ExpandedName<'static>>,
+    pub name: Option<ExpandedNameBuf>,
     pub ty: TypeReference<'static>,
     pub deferred: bool,
     pub optional: bool,
@@ -56,7 +56,7 @@ impl ElementFieldAttribute {
         let namespace_option: Option<syn::Meta> = self
             .name
             .as_ref()
-            .and_then(|en| en.namespace().as_ref())
+            .and_then(|en| en.namespace())
             .map(ToString::to_string)
             .map(|ns| parse_quote! { namespace = #ns });
 
@@ -255,7 +255,7 @@ impl ElementFieldType {
 
 #[derive(Debug)]
 pub struct ElementRecord {
-    pub name: ExpandedName<'static>,
+    pub name: ExpandedNameBuf,
     pub attribute_order: ItemOrder,
     pub allow_unknown_attributes: AllowUnknown,
     pub children_order: ItemOrder,
@@ -264,7 +264,7 @@ pub struct ElementRecord {
 }
 
 impl ElementRecord {
-    pub fn new_empty(name: ExpandedName<'static>) -> Self {
+    pub fn new_empty(name: ExpandedNameBuf) -> Self {
         Self {
             name,
             attribute_order: ItemOrder::None,
@@ -276,7 +276,7 @@ impl ElementRecord {
     }
 
     pub fn new_single_field(
-        name: ExpandedName<'static>,
+        name: ExpandedNameBuf,
         field_ident: Option<syn::Ident>,
         field: ElementField,
     ) -> Self {
@@ -476,8 +476,9 @@ mod tests {
 
     #[test]
     fn generate_empty_element() {
-        let record =
-            ElementRecord::new_empty(ExpandedName::new(LocalName::new_dangerous("test"), None));
+        let record = ElementRecord::new_empty(
+            ExpandedName::new(LocalName::new("test").unwrap(), None).into_owned(),
+        );
 
         let ident = format_ident!("Test");
 
@@ -504,7 +505,7 @@ mod tests {
     #[test]
     fn generate_element_with_single_child_named() {
         let record = ElementRecord {
-            name: ExpandedName::new(LocalName::new_dangerous("test"), None),
+            name: ExpandedName::new(LocalName::new("test").unwrap(), None).into_owned(),
             attribute_order: ItemOrder::None,
             children_order: ItemOrder::None,
             fields: ElementFieldType::Named(vec![(
@@ -546,7 +547,7 @@ mod tests {
     #[test]
     fn generate_element_with_single_child_unnamed() {
         let record = ElementRecord {
-            name: ExpandedName::new(LocalName::new_dangerous("test"), None),
+            name: ExpandedName::new(LocalName::new("test").unwrap(), None).into_owned(),
             attribute_order: ItemOrder::None,
             children_order: ItemOrder::None,
             fields: ElementFieldType::Unnamed(vec![ElementField::Item(ItemFieldItem {
@@ -583,13 +584,13 @@ mod tests {
     #[test]
     fn generate_element_with_single_attribute_named() {
         let record = ElementRecord {
-            name: ExpandedName::new(LocalName::new_dangerous("test"), None),
+            name: ExpandedName::new(LocalName::new("test").unwrap(), None).into_owned(),
             attribute_order: ItemOrder::None,
             children_order: ItemOrder::None,
             fields: ElementFieldType::Named(vec![(
                 format_ident!("a"),
                 ElementField::Attribute(ElementFieldAttribute {
-                    name: Some(ExpandedName::new(LocalName::new_dangerous("a"), None)),
+                    name: Some(ExpandedName::new(LocalName::new("a").unwrap(), None).into_owned()),
                     ty: TypeReference::new_static(parse_quote!(::std::string::String)),
                     deferred: false,
                     optional: false,

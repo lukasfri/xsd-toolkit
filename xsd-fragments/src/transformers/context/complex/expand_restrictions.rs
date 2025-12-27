@@ -12,6 +12,7 @@ use crate::fragments::complex::RestrictionFragment;
 use crate::fragments::complex::TopLevelTypeId;
 use crate::fragments::FragmentIdx;
 use xmlity::ExpandedName;
+use xmlity::ExpandedNameBuf;
 use xsd::xsn;
 
 use crate::transformers::TransformChange;
@@ -41,34 +42,36 @@ pub enum Error {
     )]
     CannotHandleAttributeGroupRef {},
     /// Cannot restrict a base type to a simple type, only complex types can be restricted.
-    #[error("Cannot restrict base type {base:?} to a simple type. Only complex types can be restricted.")]
+    #[error(
+        "Cannot restrict base type {base} to a simple type. Only complex types can be restricted."
+    )]
     BaseCannotBeSimpleType {
         /// The base type that was attempted to be restricted.
-        base: ExpandedName<'static>,
+        base: ExpandedNameBuf,
     },
     /// The base type that was attempted to be restricted cannot be simple content.
-    #[error("Base type {base:?} cannot be simple content. Only complex types with complex content can be restricted.")]
+    #[error("Base type {base} cannot be simple content. Only complex types with complex content can be restricted.")]
     BaseContentCannotBeSimpleContent {
         /// The base type that was attempted to be restricted.
-        base: ExpandedName<'static>,
+        base: ExpandedNameBuf,
     },
     /// The base type that was attempted to be restricted cannot be standalone.
-    #[error("Base type {base:?} cannot be standalone. Only complex types with complex content can be restricted.")]
+    #[error("Base type {base} cannot be standalone. Only complex types with complex content can be restricted.")]
     BaseContentCannotBeStandalone {
         /// The base type that was attempted to be restricted.
-        base: ExpandedName<'static>,
+        base: ExpandedNameBuf,
     },
     /// Cannot restrict a base type to an extension type, only complex types can be extended.
-    #[error("Cannot restrict base type {base:?} to an extension type. Only complex types can be extended.")]
+    #[error("Cannot restrict base type {base} to an extension type. Only complex types can be extended.")]
     BaseCannotBeExtensionType {
         /// The base type that was attempted to be restricted.
-        base: ExpandedName<'static>,
+        base: ExpandedNameBuf,
     },
     /// The base type does not exist in the namespace, so it cannot be expanded.
-    #[error("Base type {base:?} does not exist in the namespace. Cannot expand restriction.")]
+    #[error("Base type {base} does not exist in the namespace. Cannot expand restriction.")]
     BaseDoesNotExist {
         /// The base type that was attempted to be expanded.
-        base: ExpandedName<'static>,
+        base: ExpandedNameBuf,
     },
 }
 
@@ -128,13 +131,13 @@ impl ExpandRestrictionFragments {
         fn resolve_attr_name(
             ctx: &XmlnsContextTransformerContext,
             a: &FragmentIdx<LocalAttributeFragment>,
-        ) -> ExpandedName<'static> {
+        ) -> ExpandedNameBuf {
             let fragment = ctx
                 .get_complex_fragment(a)
                 .expect("Fragment not found in compiler.");
             match &fragment.type_mode {
                 LocalAttributeFragmentTypeMode::Declared(local) => {
-                    ExpandedName::new(local.name.clone(), None)
+                    ExpandedNameBuf::new(local.name.clone(), None)
                 }
                 LocalAttributeFragmentTypeMode::Reference(ref_) => ref_.ref_.clone(),
             }
@@ -235,12 +238,14 @@ impl ExpandRestrictionFragments {
 
         let base = child_fragment.base.clone();
 
-        if base == *xsn::ANY_TYPE {
+        if base.as_ref() == *xsn::ANY_TYPE {
             return Ok(TransformChange::Unchanged);
         }
 
+        let base_name = base.as_ref();
+
         let base_fragment = ctx
-            .get_named_type(&child_fragment_idx.namespace_idx(), &base)
+            .get_named_type(&child_fragment_idx.namespace_idx(), &base_name)
             .ok_or_else(|| Error::BaseDoesNotExist { base: base.clone() })?;
 
         let base_fragment = match base_fragment {

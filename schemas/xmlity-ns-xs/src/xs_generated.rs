@@ -7,7 +7,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_0_with)]
             pub enum Variant0 {
@@ -20,12 +20,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -35,12 +33,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -56,9 +51,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -70,11 +63,7 @@ pub mod types {
                 ) -> ::core::result::Result<Self, Self::Error> {
                     match ::std::string::String::as_str(&value) {
                         "unbounded" => Ok(Variant0::Unbounded),
-                        _ => {
-                            Err(Variant0ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant0ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -101,7 +90,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum AllNNI {
             NonNegativeInteger(::std::boxed::Box<usize>),
@@ -117,7 +106,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_0_with)]
             pub enum Variant0 {
@@ -131,12 +120,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -146,12 +133,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -167,9 +151,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -182,11 +164,7 @@ pub mod types {
                     match ::std::string::String::as_str(&value) {
                         "##targetNamespace" => Ok(Variant0::TargetNamespace),
                         "##local" => Ok(Variant0::Local),
-                        _ => {
-                            Err(Variant0ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant0ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -206,8 +184,7 @@ pub mod types {
                 BasicNamespaceList::AnyURI(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<basic_namespace_list_variants::Variant0>
-        for BasicNamespaceList {
+        impl ::core::convert::From<basic_namespace_list_variants::Variant0> for BasicNamespaceList {
             fn from(value: basic_namespace_list_variants::Variant0) -> Self {
                 BasicNamespaceList::Variant0(::std::boxed::Box::new(value))
             }
@@ -217,16 +194,14 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum BasicNamespaceList {
             AnyURI(::std::boxed::Box<String>),
             Variant0(::std::boxed::Box<basic_namespace_list_variants::Variant0>),
         }
     }
-    pub type BasicNamespaceList = ::xmlity_ns::List<
-        basic_namespace_list_items::BasicNamespaceList,
-    >;
+    pub type BasicNamespaceList = ::xmlity_ns::List<basic_namespace_list_items::BasicNamespaceList>;
     pub mod block_set_items {
         pub mod variant_variants {
             #[derive(
@@ -235,7 +210,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_0_with)]
             pub enum Variant0 {
@@ -248,12 +223,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -263,12 +236,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -284,9 +254,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -298,11 +266,7 @@ pub mod types {
                 ) -> ::core::result::Result<Self, Self::Error> {
                     match ::std::string::String::as_str(&value) {
                         "#all" => Ok(Variant0::All),
-                        _ => {
-                            Err(Variant0ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant0ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -319,7 +283,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_1_with)]
             pub enum Variant1 {
@@ -334,12 +298,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant1::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -349,12 +311,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -370,9 +329,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant1ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -386,11 +343,7 @@ pub mod types {
                         "extension" => Ok(Variant1::Extension),
                         "restriction" => Ok(Variant1::Restriction),
                         "substitution" => Ok(Variant1::Substitution),
-                        _ => {
-                            Err(Variant1ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant1ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -398,12 +351,8 @@ pub mod types {
                 fn from(value: Variant1) -> Self {
                     match value {
                         Variant1::Extension => ::std::string::String::from("extension"),
-                        Variant1::Restriction => {
-                            ::std::string::String::from("restriction")
-                        }
-                        Variant1::Substitution => {
-                            ::std::string::String::from("substitution")
-                        }
+                        Variant1::Restriction => ::std::string::String::from("restriction"),
+                        Variant1::Substitution => ::std::string::String::from("substitution"),
                     }
                 }
             }
@@ -413,8 +362,7 @@ pub mod types {
                 BlockSet::Variant0(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<::xmlity_ns::List<variant_variants::Variant1>>
-        for BlockSet {
+        impl ::core::convert::From<::xmlity_ns::List<variant_variants::Variant1>> for BlockSet {
             fn from(value: ::xmlity_ns::List<variant_variants::Variant1>) -> Self {
                 BlockSet::Variant1(::std::boxed::Box::new(value))
             }
@@ -424,7 +372,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum BlockSet {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
@@ -439,7 +387,7 @@ pub mod types {
             ::core::marker::Copy,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
-            ::core::cmp::PartialEq
+            ::core::cmp::PartialEq,
         )]
         #[xvalue(with = derivation_control_with)]
         pub enum DerivationControl {
@@ -456,14 +404,10 @@ pub mod types {
             where
                 D: ::xmlity::Deserializer<'de>,
             {
-                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                    deserializer,
-                )?;
-                let value: ::std::string::String = text
-                    .parse()
-                    .map_err(::xmlity::de::Error::custom)?;
-                super::DerivationControl::try_from(value)
-                    .map_err(::xmlity::de::Error::custom)
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+                let value: ::std::string::String =
+                    text.parse().map_err(::xmlity::de::Error::custom)?;
+                super::DerivationControl::try_from(value).map_err(::xmlity::de::Error::custom)
             }
             pub fn serialize<S>(
                 value: &super::DerivationControl,
@@ -472,12 +416,9 @@ pub mod types {
             where
                 S: ::xmlity::Serializer,
             {
-                let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                    .into();
+                let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                 ::xmlity::Serialize::serialize(
-                    ::std::string::String::as_str(
-                        &::std::string::ToString::to_string(&value),
-                    ),
+                    ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                     serializer,
                 )
             }
@@ -500,35 +441,23 @@ pub mod types {
         }
         impl ::core::convert::TryFrom<::std::string::String> for DerivationControl {
             type Error = DerivationControlParseError;
-            fn try_from(
-                value: ::std::string::String,
-            ) -> ::core::result::Result<Self, Self::Error> {
+            fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
                 match ::std::string::String::as_str(&value) {
                     "substitution" => Ok(DerivationControl::Substitution),
                     "extension" => Ok(DerivationControl::Extension),
                     "restriction" => Ok(DerivationControl::Restriction),
                     "list" => Ok(DerivationControl::List),
                     "union" => Ok(DerivationControl::Union),
-                    _ => {
-                        Err(DerivationControlParseError::NonExistent {
-                            value,
-                        })
-                    }
+                    _ => Err(DerivationControlParseError::NonExistent { value }),
                 }
             }
         }
         impl ::core::convert::From<DerivationControl> for ::std::string::String {
             fn from(value: DerivationControl) -> Self {
                 match value {
-                    DerivationControl::Substitution => {
-                        ::std::string::String::from("substitution")
-                    }
-                    DerivationControl::Extension => {
-                        ::std::string::String::from("extension")
-                    }
-                    DerivationControl::Restriction => {
-                        ::std::string::String::from("restriction")
-                    }
+                    DerivationControl::Substitution => ::std::string::String::from("substitution"),
+                    DerivationControl::Extension => ::std::string::String::from("extension"),
+                    DerivationControl::Restriction => ::std::string::String::from("restriction"),
                     DerivationControl::List => ::std::string::String::from("list"),
                     DerivationControl::Union => ::std::string::String::from("union"),
                 }
@@ -544,7 +473,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_0_with)]
             pub enum Variant0 {
@@ -557,12 +486,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -572,12 +499,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -593,9 +517,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -607,11 +529,7 @@ pub mod types {
                 ) -> ::core::result::Result<Self, Self::Error> {
                     match ::std::string::String::as_str(&value) {
                         "#all" => Ok(Variant0::All),
-                        _ => {
-                            Err(Variant0ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant0ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -628,13 +546,13 @@ pub mod types {
                 DerivationSet::Variant0(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<
-            ::xmlity_ns::List<::std::boxed::Box<crate::types::ReducedDerivationControl>>,
-        > for DerivationSet {
+        impl
+            ::core::convert::From<
+                ::xmlity_ns::List<::std::boxed::Box<crate::types::ReducedDerivationControl>>,
+            > for DerivationSet
+        {
             fn from(
-                value: ::xmlity_ns::List<
-                    ::std::boxed::Box<crate::types::ReducedDerivationControl>,
-                >,
+                value: ::xmlity_ns::List<::std::boxed::Box<crate::types::ReducedDerivationControl>>,
             ) -> Self {
                 DerivationSet::Variant1(::std::boxed::Box::new(value))
             }
@@ -644,15 +562,13 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum DerivationSet {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
             Variant1(
                 ::std::boxed::Box<
-                    ::xmlity_ns::List<
-                        ::std::boxed::Box<crate::types::ReducedDerivationControl>,
-                    >,
+                    ::xmlity_ns::List<::std::boxed::Box<crate::types::ReducedDerivationControl>>,
                 >,
             ),
         }
@@ -665,7 +581,7 @@ pub mod types {
             ::core::marker::Copy,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
-            ::core::cmp::PartialEq
+            ::core::cmp::PartialEq,
         )]
         #[xvalue(with = form_choice_with)]
         pub enum FormChoice {
@@ -679,12 +595,9 @@ pub mod types {
             where
                 D: ::xmlity::Deserializer<'de>,
             {
-                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                    deserializer,
-                )?;
-                let value: ::std::string::String = text
-                    .parse()
-                    .map_err(::xmlity::de::Error::custom)?;
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+                let value: ::std::string::String =
+                    text.parse().map_err(::xmlity::de::Error::custom)?;
                 super::FormChoice::try_from(value).map_err(::xmlity::de::Error::custom)
             }
             pub fn serialize<S>(
@@ -694,12 +607,9 @@ pub mod types {
             where
                 S: ::xmlity::Serializer,
             {
-                let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                    .into();
+                let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                 ::xmlity::Serialize::serialize(
-                    ::std::string::String::as_str(
-                        &::std::string::ToString::to_string(&value),
-                    ),
+                    ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                     serializer,
                 )
             }
@@ -722,17 +632,11 @@ pub mod types {
         }
         impl ::core::convert::TryFrom<::std::string::String> for FormChoice {
             type Error = FormChoiceParseError;
-            fn try_from(
-                value: ::std::string::String,
-            ) -> ::core::result::Result<Self, Self::Error> {
+            fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
                 match ::std::string::String::as_str(&value) {
                     "qualified" => Ok(FormChoice::Qualified),
                     "unqualified" => Ok(FormChoice::Unqualified),
-                    _ => {
-                        Err(FormChoiceParseError::NonExistent {
-                            value,
-                        })
-                    }
+                    _ => Err(FormChoiceParseError::NonExistent { value }),
                 }
             }
         }
@@ -754,7 +658,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_0_with)]
             pub enum Variant0 {
@@ -767,12 +671,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -782,12 +684,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -803,9 +702,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -817,11 +714,7 @@ pub mod types {
                 ) -> ::core::result::Result<Self, Self::Error> {
                     match ::std::string::String::as_str(&value) {
                         "#all" => Ok(Variant0::All),
-                        _ => {
-                            Err(Variant0ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant0ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -838,13 +731,13 @@ pub mod types {
                 FullDerivationSet::Variant0(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<
-            ::xmlity_ns::List<::std::boxed::Box<crate::types::TypeDerivationControl>>,
-        > for FullDerivationSet {
+        impl
+            ::core::convert::From<
+                ::xmlity_ns::List<::std::boxed::Box<crate::types::TypeDerivationControl>>,
+            > for FullDerivationSet
+        {
             fn from(
-                value: ::xmlity_ns::List<
-                    ::std::boxed::Box<crate::types::TypeDerivationControl>,
-                >,
+                value: ::xmlity_ns::List<::std::boxed::Box<crate::types::TypeDerivationControl>>,
             ) -> Self {
                 FullDerivationSet::Variant1(::std::boxed::Box::new(value))
             }
@@ -854,23 +747,20 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum FullDerivationSet {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
             Variant1(
                 ::std::boxed::Box<
-                    ::xmlity_ns::List<
-                        ::std::boxed::Box<crate::types::TypeDerivationControl>,
-                    >,
+                    ::xmlity_ns::List<::std::boxed::Box<crate::types::TypeDerivationControl>>,
                 >,
             ),
         }
     }
     pub type FullDerivationSet = full_derivation_set_items::FullDerivationSet;
     pub mod namespace_list_items {
-        impl ::core::convert::From<crate::types::SpecialNamespaceList>
-        for NamespaceList {
+        impl ::core::convert::From<crate::types::SpecialNamespaceList> for NamespaceList {
             fn from(value: crate::types::SpecialNamespaceList) -> Self {
                 NamespaceList::SpecialNamespaceList(::std::boxed::Box::new(value))
             }
@@ -885,7 +775,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum NamespaceList {
             SpecialNamespaceList(::std::boxed::Box<crate::types::SpecialNamespaceList>),
@@ -904,7 +794,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         #[xvalue(with = public_with)]
         pub struct Public(pub ::std::string::String);
@@ -915,12 +805,9 @@ pub mod types {
             where
                 D: ::xmlity::Deserializer<'de>,
             {
-                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                    deserializer,
-                )?;
-                let value: ::std::string::String = text
-                    .parse()
-                    .map_err(::xmlity::de::Error::custom)?;
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+                let value: ::std::string::String =
+                    text.parse().map_err(::xmlity::de::Error::custom)?;
                 super::Public::try_from(value).map_err(::xmlity::de::Error::custom)
             }
             pub fn serialize<S>(
@@ -930,12 +817,9 @@ pub mod types {
             where
                 S: ::xmlity::Serializer,
             {
-                let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                    .into();
+                let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                 ::xmlity::Serialize::serialize(
-                    ::std::string::String::as_str(
-                        &::std::string::ToString::to_string(&value),
-                    ),
+                    ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                     serializer,
                 )
             }
@@ -957,7 +841,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_0_with)]
             pub enum Variant0 {
@@ -971,12 +855,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -986,12 +868,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -1007,9 +886,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -1022,11 +899,7 @@ pub mod types {
                     match ::std::string::String::as_str(&value) {
                         "##defined" => Ok(Variant0::Defined),
                         "##definedSibling" => Ok(Variant0::DefinedSibling),
-                        _ => {
-                            Err(Variant0ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant0ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -1034,9 +907,7 @@ pub mod types {
                 fn from(value: Variant0) -> Self {
                     match value {
                         Variant0::Defined => ::std::string::String::from("##defined"),
-                        Variant0::DefinedSibling => {
-                            ::std::string::String::from("##definedSibling")
-                        }
+                        Variant0::DefinedSibling => ::std::string::String::from("##definedSibling"),
                     }
                 }
             }
@@ -1056,7 +927,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum QnameList {
             Qname(::std::boxed::Box<crate::types::QName>),
@@ -1072,7 +943,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_0_with)]
             pub enum Variant0 {
@@ -1085,12 +956,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -1100,12 +969,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -1121,9 +987,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -1135,11 +999,7 @@ pub mod types {
                 ) -> ::core::result::Result<Self, Self::Error> {
                     match ::std::string::String::as_str(&value) {
                         "##defined" => Ok(Variant0::Defined),
-                        _ => {
-                            Err(Variant0ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant0ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -1166,7 +1026,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum QnameListA {
             Qname(::std::boxed::Box<crate::types::QName>),
@@ -1181,7 +1041,7 @@ pub mod types {
             ::core::marker::Copy,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
-            ::core::cmp::PartialEq
+            ::core::cmp::PartialEq,
         )]
         #[xvalue(with = reduced_derivation_control_with)]
         pub enum ReducedDerivationControl {
@@ -1195,12 +1055,9 @@ pub mod types {
             where
                 D: ::xmlity::Deserializer<'de>,
             {
-                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                    deserializer,
-                )?;
-                let value: ::std::string::String = text
-                    .parse()
-                    .map_err(::xmlity::de::Error::custom)?;
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+                let value: ::std::string::String =
+                    text.parse().map_err(::xmlity::de::Error::custom)?;
                 super::ReducedDerivationControl::try_from(value)
                     .map_err(::xmlity::de::Error::custom)
             }
@@ -1211,12 +1068,9 @@ pub mod types {
             where
                 S: ::xmlity::Serializer,
             {
-                let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                    .into();
+                let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                 ::xmlity::Serialize::serialize(
-                    ::std::string::String::as_str(
-                        &::std::string::ToString::to_string(&value),
-                    ),
+                    ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                     serializer,
                 )
             }
@@ -1237,29 +1091,20 @@ pub mod types {
                 }
             }
         }
-        impl ::core::convert::TryFrom<::std::string::String>
-        for ReducedDerivationControl {
+        impl ::core::convert::TryFrom<::std::string::String> for ReducedDerivationControl {
             type Error = ReducedDerivationControlParseError;
-            fn try_from(
-                value: ::std::string::String,
-            ) -> ::core::result::Result<Self, Self::Error> {
+            fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
                 match ::std::string::String::as_str(&value) {
                     "extension" => Ok(ReducedDerivationControl::Extension),
                     "restriction" => Ok(ReducedDerivationControl::Restriction),
-                    _ => {
-                        Err(ReducedDerivationControlParseError::NonExistent {
-                            value,
-                        })
-                    }
+                    _ => Err(ReducedDerivationControlParseError::NonExistent { value }),
                 }
             }
         }
         impl ::core::convert::From<ReducedDerivationControl> for ::std::string::String {
             fn from(value: ReducedDerivationControl) -> Self {
                 match value {
-                    ReducedDerivationControl::Extension => {
-                        ::std::string::String::from("extension")
-                    }
+                    ReducedDerivationControl::Extension => ::std::string::String::from("extension"),
                     ReducedDerivationControl::Restriction => {
                         ::std::string::String::from("restriction")
                     }
@@ -1276,7 +1121,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_0_with)]
             pub enum Variant0 {
@@ -1289,12 +1134,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -1304,12 +1147,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -1325,9 +1165,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -1339,11 +1177,7 @@ pub mod types {
                 ) -> ::core::result::Result<Self, Self::Error> {
                     match ::std::string::String::as_str(&value) {
                         "#all" => Ok(Variant0::All),
-                        _ => {
-                            Err(Variant0ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant0ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -1360,7 +1194,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_1_with)]
             pub enum Variant1 {
@@ -1376,12 +1210,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant1::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -1391,12 +1223,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -1412,9 +1241,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant1ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -1429,11 +1256,7 @@ pub mod types {
                         "union" => Ok(Variant1::Union),
                         "restriction" => Ok(Variant1::Restriction),
                         "extension" => Ok(Variant1::Extension),
-                        _ => {
-                            Err(Variant1ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant1ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -1442,9 +1265,7 @@ pub mod types {
                     match value {
                         Variant1::List => ::std::string::String::from("list"),
                         Variant1::Union => ::std::string::String::from("union"),
-                        Variant1::Restriction => {
-                            ::std::string::String::from("restriction")
-                        }
+                        Variant1::Restriction => ::std::string::String::from("restriction"),
                         Variant1::Extension => ::std::string::String::from("extension"),
                     }
                 }
@@ -1455,8 +1276,7 @@ pub mod types {
                 SimpleDerivationSet::Variant0(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<::xmlity_ns::List<variant_variants::Variant1>>
-        for SimpleDerivationSet {
+        impl ::core::convert::From<::xmlity_ns::List<variant_variants::Variant1>> for SimpleDerivationSet {
             fn from(value: ::xmlity_ns::List<variant_variants::Variant1>) -> Self {
                 SimpleDerivationSet::Variant1(::std::boxed::Box::new(value))
             }
@@ -1466,7 +1286,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum SimpleDerivationSet {
             Variant0(::std::boxed::Box<variant_variants::Variant0>),
@@ -1481,7 +1301,7 @@ pub mod types {
             ::core::marker::Copy,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
-            ::core::cmp::PartialEq
+            ::core::cmp::PartialEq,
         )]
         #[xvalue(with = special_namespace_list_with)]
         pub enum SpecialNamespaceList {
@@ -1495,14 +1315,10 @@ pub mod types {
             where
                 D: ::xmlity::Deserializer<'de>,
             {
-                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                    deserializer,
-                )?;
-                let value: ::std::string::String = text
-                    .parse()
-                    .map_err(::xmlity::de::Error::custom)?;
-                super::SpecialNamespaceList::try_from(value)
-                    .map_err(::xmlity::de::Error::custom)
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+                let value: ::std::string::String =
+                    text.parse().map_err(::xmlity::de::Error::custom)?;
+                super::SpecialNamespaceList::try_from(value).map_err(::xmlity::de::Error::custom)
             }
             pub fn serialize<S>(
                 value: &super::SpecialNamespaceList,
@@ -1511,12 +1327,9 @@ pub mod types {
             where
                 S: ::xmlity::Serializer,
             {
-                let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                    .into();
+                let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                 ::xmlity::Serialize::serialize(
-                    ::std::string::String::as_str(
-                        &::std::string::ToString::to_string(&value),
-                    ),
+                    ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                     serializer,
                 )
             }
@@ -1539,17 +1352,11 @@ pub mod types {
         }
         impl ::core::convert::TryFrom<::std::string::String> for SpecialNamespaceList {
             type Error = SpecialNamespaceListParseError;
-            fn try_from(
-                value: ::std::string::String,
-            ) -> ::core::result::Result<Self, Self::Error> {
+            fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
                 match ::std::string::String::as_str(&value) {
                     "##any" => Ok(SpecialNamespaceList::Any),
                     "##other" => Ok(SpecialNamespaceList::Other),
-                    _ => {
-                        Err(SpecialNamespaceListParseError::NonExistent {
-                            value,
-                        })
-                    }
+                    _ => Err(SpecialNamespaceListParseError::NonExistent { value }),
                 }
             }
         }
@@ -1570,7 +1377,7 @@ pub mod types {
             ::core::marker::Copy,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
-            ::core::cmp::PartialEq
+            ::core::cmp::PartialEq,
         )]
         #[xvalue(with = type_derivation_control_with)]
         pub enum TypeDerivationControl {
@@ -1586,14 +1393,10 @@ pub mod types {
             where
                 D: ::xmlity::Deserializer<'de>,
             {
-                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                    deserializer,
-                )?;
-                let value: ::std::string::String = text
-                    .parse()
-                    .map_err(::xmlity::de::Error::custom)?;
-                super::TypeDerivationControl::try_from(value)
-                    .map_err(::xmlity::de::Error::custom)
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+                let value: ::std::string::String =
+                    text.parse().map_err(::xmlity::de::Error::custom)?;
+                super::TypeDerivationControl::try_from(value).map_err(::xmlity::de::Error::custom)
             }
             pub fn serialize<S>(
                 value: &super::TypeDerivationControl,
@@ -1602,12 +1405,9 @@ pub mod types {
             where
                 S: ::xmlity::Serializer,
             {
-                let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                    .into();
+                let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                 ::xmlity::Serialize::serialize(
-                    ::std::string::String::as_str(
-                        &::std::string::ToString::to_string(&value),
-                    ),
+                    ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                     serializer,
                 )
             }
@@ -1630,28 +1430,20 @@ pub mod types {
         }
         impl ::core::convert::TryFrom<::std::string::String> for TypeDerivationControl {
             type Error = TypeDerivationControlParseError;
-            fn try_from(
-                value: ::std::string::String,
-            ) -> ::core::result::Result<Self, Self::Error> {
+            fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
                 match ::std::string::String::as_str(&value) {
                     "extension" => Ok(TypeDerivationControl::Extension),
                     "restriction" => Ok(TypeDerivationControl::Restriction),
                     "list" => Ok(TypeDerivationControl::List),
                     "union" => Ok(TypeDerivationControl::Union),
-                    _ => {
-                        Err(TypeDerivationControlParseError::NonExistent {
-                            value,
-                        })
-                    }
+                    _ => Err(TypeDerivationControlParseError::NonExistent { value }),
                 }
             }
         }
         impl ::core::convert::From<TypeDerivationControl> for ::std::string::String {
             fn from(value: TypeDerivationControl) -> Self {
                 match value {
-                    TypeDerivationControl::Extension => {
-                        ::std::string::String::from("extension")
-                    }
+                    TypeDerivationControl::Extension => ::std::string::String::from("extension"),
                     TypeDerivationControl::Restriction => {
                         ::std::string::String::from("restriction")
                     }
@@ -1670,7 +1462,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_0_with)]
             pub enum Variant0 {
@@ -1685,12 +1477,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -1700,12 +1490,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -1721,9 +1508,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -1737,11 +1522,7 @@ pub mod types {
                         "##defaultNamespace" => Ok(Variant0::DefaultNamespace),
                         "##targetNamespace" => Ok(Variant0::TargetNamespace),
                         "##local" => Ok(Variant0::Local),
-                        _ => {
-                            Err(Variant0ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant0ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -1764,8 +1545,7 @@ pub mod types {
                 XpathDefaultNamespace::AnyURI(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<xpath_default_namespace_variants::Variant0>
-        for XpathDefaultNamespace {
+        impl ::core::convert::From<xpath_default_namespace_variants::Variant0> for XpathDefaultNamespace {
             fn from(value: xpath_default_namespace_variants::Variant0) -> Self {
                 XpathDefaultNamespace::Variant0(::std::boxed::Box::new(value))
             }
@@ -1775,7 +1555,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum XpathDefaultNamespace {
             AnyURI(::std::boxed::Box<String>),
@@ -1790,7 +1570,7 @@ pub mod types {
             ::core::marker::Copy,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
-            ::core::cmp::PartialEq
+            ::core::cmp::PartialEq,
         )]
         #[xvalue(with = test_enum_with)]
         #[repr(usize)]
@@ -1805,12 +1585,9 @@ pub mod types {
             where
                 D: ::xmlity::Deserializer<'de>,
             {
-                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                    deserializer,
-                )?;
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
                 let value: usize = text.parse().map_err(::xmlity::de::Error::custom)?;
-                super::MinOccursValue::try_from(value)
-                    .map_err(::xmlity::de::Error::custom)
+                super::MinOccursValue::try_from(value).map_err(::xmlity::de::Error::custom)
             }
             pub fn serialize<S>(
                 value: &super::MinOccursValue,
@@ -1821,9 +1598,7 @@ pub mod types {
             {
                 let value: usize = ::core::clone::Clone::clone(value).into();
                 ::xmlity::Serialize::serialize(
-                    ::std::string::String::as_str(
-                        &::std::string::ToString::to_string(&value),
-                    ),
+                    ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                     serializer,
                 )
             }
@@ -1850,11 +1625,7 @@ pub mod types {
                 match value {
                     0usize => Ok(MinOccursValue::U0),
                     1usize => Ok(MinOccursValue::U1),
-                    _ => {
-                        Err(TestEnumParseError::NonExistent {
-                            value,
-                        })
-                    }
+                    _ => Err(TestEnumParseError::NonExistent { value }),
                 }
             }
         }
@@ -1873,7 +1644,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_0_with)]
             pub enum Variant0 {
@@ -1886,12 +1657,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -1901,12 +1670,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -1922,9 +1688,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -1936,11 +1700,7 @@ pub mod types {
                 ) -> ::core::result::Result<Self, Self::Error> {
                     match ::std::string::String::as_str(&value) {
                         "unbounded" => Ok(Variant0::Unbounded),
-                        _ => {
-                            Err(Variant0ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant0ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -1957,8 +1717,7 @@ pub mod types {
                 MaxOccursValue::NonNegativeInteger(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<max_occurs_value_variants::Variant0>
-        for MaxOccursValue {
+        impl ::core::convert::From<max_occurs_value_variants::Variant0> for MaxOccursValue {
             fn from(value: max_occurs_value_variants::Variant0) -> Self {
                 MaxOccursValue::Variant0(::std::boxed::Box::new(value))
             }
@@ -1968,7 +1727,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum MaxOccursValue {
             NonNegativeInteger(::std::boxed::Box<usize>),
@@ -1981,7 +1740,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub struct All {
         #[xattribute(name = "id", optional)]
@@ -2010,7 +1769,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum Type {
             #[xelement(
@@ -2033,7 +1792,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct AltType {
@@ -2044,9 +1803,8 @@ pub mod types {
         #[xattribute(name = "type", optional)]
         pub type_attribute: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "xpathDefaultNamespace", optional)]
-        pub xpath_default_namespace: ::core::option::Option<
-            ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
-        >,
+        pub xpath_default_namespace:
+            ::core::option::Option<::std::boxed::Box<crate::types::XpathDefaultNamespace>>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
@@ -2058,7 +1816,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Annotated {
@@ -2073,7 +1831,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct AnyType {
@@ -2087,7 +1845,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Assertion {
@@ -2096,9 +1854,8 @@ pub mod types {
         #[xattribute(name = "test", optional)]
         pub test: ::core::option::Option<String>,
         #[xattribute(name = "xpathDefaultNamespace", optional)]
-        pub xpath_default_namespace: ::core::option::Option<
-            ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
-        >,
+        pub xpath_default_namespace:
+            ::core::option::Option<::std::boxed::Box<crate::types::XpathDefaultNamespace>>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
@@ -2109,7 +1866,7 @@ pub mod types {
             ::core::marker::Copy,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
-            ::core::cmp::PartialEq
+            ::core::cmp::PartialEq,
         )]
         #[xvalue(with = use_value_with)]
         pub enum UseValue {
@@ -2124,12 +1881,9 @@ pub mod types {
             where
                 D: ::xmlity::Deserializer<'de>,
             {
-                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                    deserializer,
-                )?;
-                let value: ::std::string::String = text
-                    .parse()
-                    .map_err(::xmlity::de::Error::custom)?;
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+                let value: ::std::string::String =
+                    text.parse().map_err(::xmlity::de::Error::custom)?;
                 super::UseValue::try_from(value).map_err(::xmlity::de::Error::custom)
             }
             pub fn serialize<S>(
@@ -2139,12 +1893,9 @@ pub mod types {
             where
                 S: ::xmlity::Serializer,
             {
-                let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                    .into();
+                let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                 ::xmlity::Serialize::serialize(
-                    ::std::string::String::as_str(
-                        &::std::string::ToString::to_string(&value),
-                    ),
+                    ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                     serializer,
                 )
             }
@@ -2167,18 +1918,12 @@ pub mod types {
         }
         impl ::core::convert::TryFrom<::std::string::String> for UseValue {
             type Error = UseValueParseError;
-            fn try_from(
-                value: ::std::string::String,
-            ) -> ::core::result::Result<Self, Self::Error> {
+            fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
                 match ::std::string::String::as_str(&value) {
                     "prohibited" => Ok(UseValue::Prohibited),
                     "optional" => Ok(UseValue::Optional),
                     "required" => Ok(UseValue::Required),
-                    _ => {
-                        Err(UseValueParseError::NonExistent {
-                            value,
-                        })
-                    }
+                    _ => Err(UseValueParseError::NonExistent { value }),
                 }
             }
         }
@@ -2198,14 +1943,14 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Attribute {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name", optional)]
-        pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
+        pub name: ::core::option::Option<::xmlity::LocalNameBuf>,
         #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "type", optional)]
@@ -2230,9 +1975,7 @@ pub mod types {
             group,
             optional
         )]
-        pub simple_type: ::core::option::Option<
-            ::std::boxed::Box<crate::types::LocalSimpleType>,
-        >,
+        pub simple_type: ::core::option::Option<::std::boxed::Box<crate::types::LocalSimpleType>>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2240,7 +1983,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct AttributeGroupRef {
@@ -2260,14 +2003,12 @@ pub mod types {
             ::xmlity::Deserialize,
             ::bon::Builder,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         #[xvalue(order = "strict")]
         pub struct Child1 {
             #[xvalue(default)]
-            pub open_content: ::core::option::Option<
-                ::std::boxed::Box<crate::OpenContent>,
-            >,
+            pub open_content: ::core::option::Option<::std::boxed::Box<crate::OpenContent>>,
             pub type_def_particle: ::std::boxed::Box<crate::groups::TypeDefParticle>,
         }
     }
@@ -2277,7 +2018,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct ComplexRestrictionType {
@@ -2300,7 +2041,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct ExplicitGroup {
@@ -2324,7 +2065,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct ExtensionType {
@@ -2337,9 +2078,8 @@ pub mod types {
         #[xvalue(default)]
         pub open_content: ::core::option::Option<::std::boxed::Box<crate::OpenContent>>,
         #[xvalue(default)]
-        pub type_def_particle: ::core::option::Option<
-            ::std::boxed::Box<crate::groups::TypeDefParticle>,
-        >,
+        pub type_def_particle:
+            ::core::option::Option<::std::boxed::Box<crate::groups::TypeDefParticle>>,
         pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
         pub assertions: ::std::boxed::Box<crate::groups::Assertions>,
     }
@@ -2349,7 +2089,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Facet {
@@ -2368,7 +2108,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct GroupRef {
@@ -2391,7 +2131,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct IntFacet {
@@ -2413,7 +2153,7 @@ pub mod types {
             ::xmlity::Deserialize,
             ::bon::Builder,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         #[xvalue(order = "strict")]
         pub struct Child1 {
@@ -2429,14 +2169,14 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Keybase {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name", optional)]
-        pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
+        pub name: ::core::option::Option<::xmlity::LocalNameBuf>,
         #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::types::QName>,
         #[xvalue(default)]
@@ -2450,7 +2190,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct LocalComplexType {
@@ -2482,7 +2222,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum Type {
             #[xelement(
@@ -2508,7 +2248,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         #[xelement(
             name = "alternative",
@@ -2523,14 +2263,14 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct LocalElement {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name", optional)]
-        pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
+        pub name: ::core::option::Option<::xmlity::LocalNameBuf>,
         #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "type", optional)]
@@ -2570,7 +2310,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct LocalSimpleType {
@@ -2588,14 +2328,14 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct NamedAttributeGroup {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
-        pub name: ::xmlity::LocalName<'static>,
+        pub name: ::xmlity::LocalNameBuf,
         #[xgroup]
         pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
@@ -2608,7 +2348,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum Child1 {
             #[xelement(
@@ -2622,9 +2362,7 @@ pub mod types {
                 #[xattribute(name = "minOccurs", optional)]
                 min_occurs: ::core::option::Option<usize>,
                 #[xattribute(name = "maxOccurs", optional)]
-                max_occurs: ::core::option::Option<
-                    ::std::boxed::Box<crate::types::AllNNI>,
-                >,
+                max_occurs: ::core::option::Option<::std::boxed::Box<crate::types::AllNNI>>,
                 #[xgroup]
                 any_attributes: ::xmlity_ns::AnyAttributes,
                 all_model: ::std::boxed::Box<crate::groups::AllModel>,
@@ -2649,14 +2387,14 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct NamedGroup {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
-        pub name: ::xmlity::LocalName<'static>,
+        pub name: ::xmlity::LocalNameBuf,
         #[xgroup]
         pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
@@ -2669,7 +2407,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct NoFixedFacet {
@@ -2688,7 +2426,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct NumFacet {
@@ -2709,7 +2447,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub struct OpenAttrs {
         #[xgroup]
@@ -2736,7 +2474,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum Child1 {
             All(::std::boxed::Box<crate::All>),
@@ -2750,14 +2488,14 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct RealGroup {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name", optional)]
-        pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
+        pub name: ::core::option::Option<::xmlity::LocalNameBuf>,
         #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "minOccurs", optional)]
@@ -2779,14 +2517,12 @@ pub mod types {
                 ::xmlity::Deserialize,
                 ::bon::Builder,
                 ::core::cmp::PartialEq,
-                ::core::clone::Clone
+                ::core::clone::Clone,
             )]
             #[xvalue(order = "strict")]
             pub struct Variant0 {
                 #[xvalue(default)]
-                pub open_content: ::core::option::Option<
-                    ::std::boxed::Box<crate::OpenContent>,
-                >,
+                pub open_content: ::core::option::Option<::std::boxed::Box<crate::OpenContent>>,
                 pub type_def_particle: ::std::boxed::Box<crate::groups::TypeDefParticle>,
             }
         }
@@ -2805,13 +2541,11 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum Child1 {
             Variant0(::std::boxed::Box<child_1_variants::Variant0>),
-            SimpleRestrictionModel(
-                ::std::boxed::Box<crate::groups::SimpleRestrictionModel>,
-            ),
+            SimpleRestrictionModel(::std::boxed::Box<crate::groups::SimpleRestrictionModel>),
         }
     }
     #[derive(
@@ -2820,7 +2554,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct RestrictionType {
@@ -2841,7 +2575,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct SimpleExplicitGroup {
@@ -2861,7 +2595,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct SimpleExtensionType {
@@ -2883,13 +2617,11 @@ pub mod types {
             ::xmlity::Deserialize,
             ::bon::Builder,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         #[xvalue(order = "strict")]
         pub struct SimpleRestrictionModel {
-            pub simple_restriction_model: ::std::boxed::Box<
-                crate::groups::SimpleRestrictionModel,
-            >,
+            pub simple_restriction_model: ::std::boxed::Box<crate::groups::SimpleRestrictionModel>,
         }
     }
     #[derive(
@@ -2898,7 +2630,7 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct SimpleRestrictionType {
@@ -2911,9 +2643,8 @@ pub mod types {
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
         #[xvalue(default)]
-        pub simple_restriction_model: ::core::option::Option<
-            simple_restriction_type_items::SimpleRestrictionModel,
-        >,
+        pub simple_restriction_model:
+            ::core::option::Option<simple_restriction_type_items::SimpleRestrictionModel>,
         pub attr_decls: ::std::boxed::Box<crate::groups::AttrDecls>,
         pub assertions: ::std::boxed::Box<crate::groups::Assertions>,
     }
@@ -2923,14 +2654,14 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct TopLevelAttribute {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
-        pub name: ::xmlity::LocalName<'static>,
+        pub name: ::xmlity::LocalNameBuf,
         #[xattribute(name = "type", optional)]
         pub type_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "default", optional)]
@@ -2949,9 +2680,7 @@ pub mod types {
             group,
             optional
         )]
-        pub simple_type: ::core::option::Option<
-            ::std::boxed::Box<crate::types::LocalSimpleType>,
-        >,
+        pub simple_type: ::core::option::Option<::std::boxed::Box<crate::types::LocalSimpleType>>,
     }
     #[derive(
         ::core::fmt::Debug,
@@ -2959,26 +2688,22 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct TopLevelComplexType {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
-        pub name: ::xmlity::LocalName<'static>,
+        pub name: ::xmlity::LocalNameBuf,
         #[xattribute(name = "mixed", optional)]
         pub mixed: ::core::option::Option<bool>,
         #[xattribute(name = "abstract", optional)]
         pub abstract_: ::core::option::Option<bool>,
         #[xattribute(name = "final", optional)]
-        pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::types::DerivationSet>,
-        >,
+        pub final_: ::core::option::Option<::std::boxed::Box<crate::types::DerivationSet>>,
         #[xattribute(name = "block", optional)]
-        pub block: ::core::option::Option<
-            ::std::boxed::Box<crate::types::DerivationSet>,
-        >,
+        pub block: ::core::option::Option<::std::boxed::Box<crate::types::DerivationSet>>,
         #[xattribute(name = "defaultAttributesApply", optional)]
         pub default_attributes_apply: ::core::option::Option<bool>,
         #[xgroup]
@@ -3003,7 +2728,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum Type {
             #[xelement(
@@ -3029,7 +2754,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         #[xelement(
             name = "alternative",
@@ -3044,20 +2769,18 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct TopLevelElement {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
-        pub name: ::xmlity::LocalName<'static>,
+        pub name: ::xmlity::LocalNameBuf,
         #[xattribute(name = "type", optional)]
         pub type_attribute: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "substitutionGroup", optional)]
-        pub substitution_group: ::core::option::Option<
-            ::xmlity_ns::List<crate::types::QName>,
-        >,
+        pub substitution_group: ::core::option::Option<::xmlity_ns::List<crate::types::QName>>,
         #[xattribute(name = "default", optional)]
         pub default: ::core::option::Option<String>,
         #[xattribute(name = "fixed", optional)]
@@ -3067,9 +2790,7 @@ pub mod types {
         #[xattribute(name = "abstract", optional)]
         pub abstract_: ::core::option::Option<bool>,
         #[xattribute(name = "final", optional)]
-        pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::types::DerivationSet>,
-        >,
+        pub final_: ::core::option::Option<::std::boxed::Box<crate::types::DerivationSet>>,
         #[xattribute(name = "block", optional)]
         pub block: ::core::option::Option<::std::boxed::Box<crate::types::BlockSet>>,
         #[xgroup]
@@ -3091,18 +2812,16 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct TopLevelSimpleType {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "final", optional)]
-        pub final_: ::core::option::Option<
-            ::std::boxed::Box<crate::types::SimpleDerivationSet>,
-        >,
+        pub final_: ::core::option::Option<::std::boxed::Box<crate::types::SimpleDerivationSet>>,
         #[xattribute(name = "name")]
-        pub name: ::xmlity::LocalName<'static>,
+        pub name: ::xmlity::LocalNameBuf,
         #[xgroup]
         pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
@@ -3117,7 +2836,7 @@ pub mod types {
                 ::core::marker::Copy,
                 ::xmlity::Serialize,
                 ::xmlity::Deserialize,
-                ::core::cmp::PartialEq
+                ::core::cmp::PartialEq,
             )]
             #[xvalue(with = variant_0_with)]
             pub enum Variant0 {
@@ -3131,12 +2850,10 @@ pub mod types {
                 where
                     D: ::xmlity::Deserializer<'de>,
                 {
-                    let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                        deserializer,
-                    )?;
-                    let value: ::std::string::String = text
-                        .parse()
-                        .map_err(::xmlity::de::Error::custom)?;
+                    let text: ::std::string::String =
+                        ::xmlity::Deserialize::deserialize(deserializer)?;
+                    let value: ::std::string::String =
+                        text.parse().map_err(::xmlity::de::Error::custom)?;
                     super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
                 }
                 pub fn serialize<S>(
@@ -3146,12 +2863,9 @@ pub mod types {
                 where
                     S: ::xmlity::Serializer,
                 {
-                    let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                        .into();
+                    let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                     ::xmlity::Serialize::serialize(
-                        ::std::string::String::as_str(
-                            &::std::string::ToString::to_string(&value),
-                        ),
+                        ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                         serializer,
                     )
                 }
@@ -3167,9 +2881,7 @@ pub mod types {
                 ) -> ::core::result::Result<(), ::core::fmt::Error> {
                     match self {
                         Variant0ParseError::NonExistent { value } => {
-                            write!(
-                                f, "Value '{value:?}' does not exist in the enumeration"
-                            )
+                            write!(f, "Value '{value:?}' does not exist in the enumeration")
                         }
                     }
                 }
@@ -3182,11 +2894,7 @@ pub mod types {
                     match ::std::string::String::as_str(&value) {
                         "##targetNamespace" => Ok(Variant0::TargetNamespace),
                         "##local" => Ok(Variant0::Local),
-                        _ => {
-                            Err(Variant0ParseError::NonExistent {
-                                value,
-                            })
-                        }
+                        _ => Err(Variant0ParseError::NonExistent { value }),
                     }
                 }
             }
@@ -3206,8 +2914,7 @@ pub mod types {
                 NotNamespaceValue::AnyURI(::std::boxed::Box::new(value))
             }
         }
-        impl ::core::convert::From<not_namespace_value_variants::Variant0>
-        for NotNamespaceValue {
+        impl ::core::convert::From<not_namespace_value_variants::Variant0> for NotNamespaceValue {
             fn from(value: not_namespace_value_variants::Variant0) -> Self {
                 NotNamespaceValue::Variant0(::std::boxed::Box::new(value))
             }
@@ -3217,7 +2924,7 @@ pub mod types {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum NotNamespaceValue {
             AnyURI(::std::boxed::Box<String>),
@@ -3229,7 +2936,7 @@ pub mod types {
             ::core::marker::Copy,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
-            ::core::cmp::PartialEq
+            ::core::cmp::PartialEq,
         )]
         #[xvalue(with = process_contents_value_with)]
         pub enum ProcessContentsValue {
@@ -3244,14 +2951,10 @@ pub mod types {
             where
                 D: ::xmlity::Deserializer<'de>,
             {
-                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                    deserializer,
-                )?;
-                let value: ::std::string::String = text
-                    .parse()
-                    .map_err(::xmlity::de::Error::custom)?;
-                super::ProcessContentsValue::try_from(value)
-                    .map_err(::xmlity::de::Error::custom)
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+                let value: ::std::string::String =
+                    text.parse().map_err(::xmlity::de::Error::custom)?;
+                super::ProcessContentsValue::try_from(value).map_err(::xmlity::de::Error::custom)
             }
             pub fn serialize<S>(
                 value: &super::ProcessContentsValue,
@@ -3260,12 +2963,9 @@ pub mod types {
             where
                 S: ::xmlity::Serializer,
             {
-                let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                    .into();
+                let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                 ::xmlity::Serialize::serialize(
-                    ::std::string::String::as_str(
-                        &::std::string::ToString::to_string(&value),
-                    ),
+                    ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                     serializer,
                 )
             }
@@ -3288,18 +2988,12 @@ pub mod types {
         }
         impl ::core::convert::TryFrom<::std::string::String> for ProcessContentsValue {
             type Error = ProcessContentsValueParseError;
-            fn try_from(
-                value: ::std::string::String,
-            ) -> ::core::result::Result<Self, Self::Error> {
+            fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
                 match ::std::string::String::as_str(&value) {
                     "skip" => Ok(ProcessContentsValue::Skip),
                     "lax" => Ok(ProcessContentsValue::Lax),
                     "strict" => Ok(ProcessContentsValue::Strict),
-                    _ => {
-                        Err(ProcessContentsValueParseError::NonExistent {
-                            value,
-                        })
-                    }
+                    _ => Err(ProcessContentsValueParseError::NonExistent { value }),
                 }
             }
         }
@@ -3319,24 +3013,19 @@ pub mod types {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Wildcard {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "namespace", optional)]
-        pub namespace: ::core::option::Option<
-            ::std::boxed::Box<crate::types::NamespaceList>,
-        >,
+        pub namespace: ::core::option::Option<::std::boxed::Box<crate::types::NamespaceList>>,
         #[xattribute(name = "notNamespace", optional)]
-        pub not_namespace: ::core::option::Option<
-            ::xmlity_ns::List<wildcard_items::NotNamespaceValue>,
-        >,
+        pub not_namespace:
+            ::core::option::Option<::xmlity_ns::List<wildcard_items::NotNamespaceValue>>,
         #[xattribute(name = "processContents", optional)]
-        pub process_contents: ::core::option::Option<
-            wildcard_items::ProcessContentsValue,
-        >,
+        pub process_contents: ::core::option::Option<wildcard_items::ProcessContentsValue>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<::std::boxed::Box<crate::Annotation>>,
     }
@@ -3358,7 +3047,7 @@ pub mod groups {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum Child1 {
             #[xelement(
@@ -3394,7 +3083,7 @@ pub mod groups {
         ::xmlity::Deserialize,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xvalue(order = "strict")]
     pub struct AllModel {
@@ -3415,7 +3104,7 @@ pub mod groups {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         #[xelement(
             name = "assert",
@@ -3430,7 +3119,7 @@ pub mod groups {
         ::xmlity::Deserialize,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xvalue(order = "strict")]
     pub struct Assertions {
@@ -3454,7 +3143,7 @@ pub mod groups {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum Attribute {
             #[xelement(
@@ -3477,7 +3166,7 @@ pub mod groups {
         ::xmlity::Deserialize,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xvalue(order = "strict")]
     pub struct AttrDecls {
@@ -3485,9 +3174,7 @@ pub mod groups {
         #[builder(default)]
         pub attribute: ::std::vec::Vec<attr_decls_items::Attribute>,
         #[xvalue(default)]
-        pub any_attribute: ::core::option::Option<
-            ::std::boxed::Box<crate::AnyAttribute>,
-        >,
+        pub any_attribute: ::core::option::Option<::std::boxed::Box<crate::AnyAttribute>>,
     }
     pub mod complex_type_model_items {
         pub mod complex_type_model_variants {
@@ -3497,18 +3184,15 @@ pub mod groups {
                 ::xmlity::Deserialize,
                 ::bon::Builder,
                 ::core::cmp::PartialEq,
-                ::core::clone::Clone
+                ::core::clone::Clone,
             )]
             #[xvalue(order = "strict")]
             pub struct Variant2 {
                 #[xvalue(default)]
-                pub open_content: ::core::option::Option<
-                    ::std::boxed::Box<crate::OpenContent>,
-                >,
+                pub open_content: ::core::option::Option<::std::boxed::Box<crate::OpenContent>>,
                 #[xvalue(default)]
-                pub type_def_particle: ::core::option::Option<
-                    ::std::boxed::Box<crate::groups::TypeDefParticle>,
-                >,
+                pub type_def_particle:
+                    ::core::option::Option<::std::boxed::Box<crate::groups::TypeDefParticle>>,
                 pub attr_decls: crate::groups::AttrDecls,
                 pub assertions: crate::groups::Assertions,
             }
@@ -3519,15 +3203,13 @@ pub mod groups {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum ComplexTypeModel {
         SimpleContent(::std::boxed::Box<crate::SimpleContent>),
         ComplexContent(::std::boxed::Box<crate::ComplexContent>),
         Variant2(
-            ::std::boxed::Box<
-                complex_type_model_items::complex_type_model_variants::Variant2,
-            >,
+            ::std::boxed::Box<complex_type_model_items::complex_type_model_variants::Variant2>,
         ),
     }
     impl ::core::convert::From<crate::SimpleContent> for ComplexTypeModel {
@@ -3540,12 +3222,10 @@ pub mod groups {
             ComplexTypeModel::ComplexContent(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<
-        complex_type_model_items::complex_type_model_variants::Variant2,
-    > for ComplexTypeModel {
-        fn from(
-            value: complex_type_model_items::complex_type_model_variants::Variant2,
-        ) -> Self {
+    impl ::core::convert::From<complex_type_model_items::complex_type_model_variants::Variant2>
+        for ComplexTypeModel
+    {
+        fn from(value: complex_type_model_items::complex_type_model_variants::Variant2) -> Self {
             ComplexTypeModel::Variant2(::std::boxed::Box::new(value))
         }
     }
@@ -3554,7 +3234,7 @@ pub mod groups {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum Composition {
         Include(::std::boxed::Box<crate::Include>),
@@ -3593,7 +3273,7 @@ pub mod groups {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum IdentityConstraint {
         Unique(::std::boxed::Box<crate::Unique>),
@@ -3620,7 +3300,7 @@ pub mod groups {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum NestedParticle {
         #[xelement(
@@ -3669,7 +3349,7 @@ pub mod groups {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum Particle {
         #[xelement(
@@ -3724,7 +3404,7 @@ pub mod groups {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum Redefinable {
         SimpleType(::std::boxed::Box<crate::SimpleType>),
@@ -3757,7 +3437,7 @@ pub mod groups {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum SchemaTop {
         Redefinable(::std::boxed::Box<crate::groups::Redefinable>),
@@ -3790,7 +3470,7 @@ pub mod groups {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum SimpleDerivation {
         Restriction(::std::boxed::Box<crate::Restriction>),
@@ -3828,7 +3508,7 @@ pub mod groups {
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
             ::core::cmp::PartialEq,
-            ::core::clone::Clone
+            ::core::clone::Clone,
         )]
         pub enum Child1 {
             Facet(::std::boxed::Box<crate::Facet>),
@@ -3841,7 +3521,7 @@ pub mod groups {
         ::xmlity::Deserialize,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xvalue(order = "strict")]
     pub struct SimpleRestrictionModel {
@@ -3851,9 +3531,7 @@ pub mod groups {
             group,
             optional
         )]
-        pub simple_type: ::core::option::Option<
-            ::std::boxed::Box<crate::types::LocalSimpleType>,
-        >,
+        pub simple_type: ::core::option::Option<::std::boxed::Box<crate::types::LocalSimpleType>>,
         #[xvalue(default)]
         #[builder(default)]
         pub child_1: ::std::vec::Vec<simple_restriction_model_items::Child1>,
@@ -3863,7 +3541,7 @@ pub mod groups {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum TypeDefParticle {
         #[xelement(
@@ -3902,7 +3580,7 @@ pub mod groups {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum All {
     #[xelement(
@@ -3939,7 +3617,7 @@ pub mod annotation_items {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum AnnotationContent {
         Appinfo(::std::boxed::Box<crate::Appinfo>),
@@ -3951,7 +3629,7 @@ pub mod annotation_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub struct Annotation {
         #[xattribute(name = "id", optional)]
@@ -3966,7 +3644,7 @@ pub mod annotation_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Annotation {
     #[xelement(
@@ -3982,8 +3660,7 @@ impl ::core::convert::From<annotation_items::Annotation> for Annotation {
         Annotation::Annotation(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Annotation>>
-for Annotation {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Annotation>> for Annotation {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Annotation>) -> Self {
         Annotation::Dynamic(value)
     }
@@ -3996,7 +3673,7 @@ pub mod any_items {
             ::core::marker::Copy,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
-            ::core::cmp::PartialEq
+            ::core::cmp::PartialEq,
         )]
         #[xvalue(with = variant_0_with)]
         pub enum Variant0 {
@@ -4010,12 +3687,9 @@ pub mod any_items {
             where
                 D: ::xmlity::Deserializer<'de>,
             {
-                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                    deserializer,
-                )?;
-                let value: ::std::string::String = text
-                    .parse()
-                    .map_err(::xmlity::de::Error::custom)?;
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+                let value: ::std::string::String =
+                    text.parse().map_err(::xmlity::de::Error::custom)?;
                 super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
             }
             pub fn serialize<S>(
@@ -4025,12 +3699,9 @@ pub mod any_items {
             where
                 S: ::xmlity::Serializer,
             {
-                let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                    .into();
+                let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                 ::xmlity::Serialize::serialize(
-                    ::std::string::String::as_str(
-                        &::std::string::ToString::to_string(&value),
-                    ),
+                    ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                     serializer,
                 )
             }
@@ -4053,26 +3724,18 @@ pub mod any_items {
         }
         impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
             type Error = Variant0ParseError;
-            fn try_from(
-                value: ::std::string::String,
-            ) -> ::core::result::Result<Self, Self::Error> {
+            fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
                 match ::std::string::String::as_str(&value) {
                     "##targetNamespace" => Ok(Variant0::TargetNamespace),
                     "##local" => Ok(Variant0::Local),
-                    _ => {
-                        Err(Variant0ParseError::NonExistent {
-                            value,
-                        })
-                    }
+                    _ => Err(Variant0ParseError::NonExistent { value }),
                 }
             }
         }
         impl ::core::convert::From<Variant0> for ::std::string::String {
             fn from(value: Variant0) -> Self {
                 match value {
-                    Variant0::TargetNamespace => {
-                        ::std::string::String::from("##targetNamespace")
-                    }
+                    Variant0::TargetNamespace => ::std::string::String::from("##targetNamespace"),
                     Variant0::Local => ::std::string::String::from("##local"),
                 }
             }
@@ -4083,8 +3746,7 @@ pub mod any_items {
             NotNamespaceValue::AnyURI(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<not_namespace_value_variants::Variant0>
-    for NotNamespaceValue {
+    impl ::core::convert::From<not_namespace_value_variants::Variant0> for NotNamespaceValue {
         fn from(value: not_namespace_value_variants::Variant0) -> Self {
             NotNamespaceValue::Variant0(::std::boxed::Box::new(value))
         }
@@ -4094,7 +3756,7 @@ pub mod any_items {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum NotNamespaceValue {
         AnyURI(::std::boxed::Box<String>),
@@ -4106,7 +3768,7 @@ pub mod any_items {
         ::core::marker::Copy,
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
-        ::core::cmp::PartialEq
+        ::core::cmp::PartialEq,
     )]
     #[xvalue(with = process_contents_value_with)]
     pub enum ProcessContentsValue {
@@ -4121,14 +3783,9 @@ pub mod any_items {
         where
             D: ::xmlity::Deserializer<'de>,
         {
-            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                deserializer,
-            )?;
-            let value: ::std::string::String = text
-                .parse()
-                .map_err(::xmlity::de::Error::custom)?;
-            super::ProcessContentsValue::try_from(value)
-                .map_err(::xmlity::de::Error::custom)
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+            let value: ::std::string::String = text.parse().map_err(::xmlity::de::Error::custom)?;
+            super::ProcessContentsValue::try_from(value).map_err(::xmlity::de::Error::custom)
         }
         pub fn serialize<S>(
             value: &super::ProcessContentsValue,
@@ -4139,9 +3796,7 @@ pub mod any_items {
         {
             let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
             ::xmlity::Serialize::serialize(
-                ::std::string::String::as_str(
-                    &::std::string::ToString::to_string(&value),
-                ),
+                ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                 serializer,
             )
         }
@@ -4164,18 +3819,12 @@ pub mod any_items {
     }
     impl ::core::convert::TryFrom<::std::string::String> for ProcessContentsValue {
         type Error = ProcessContentsValueParseError;
-        fn try_from(
-            value: ::std::string::String,
-        ) -> ::core::result::Result<Self, Self::Error> {
+        fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
             match ::std::string::String::as_str(&value) {
                 "skip" => Ok(ProcessContentsValue::Skip),
                 "lax" => Ok(ProcessContentsValue::Lax),
                 "strict" => Ok(ProcessContentsValue::Strict),
-                _ => {
-                    Err(ProcessContentsValueParseError::NonExistent {
-                        value,
-                    })
-                }
+                _ => Err(ProcessContentsValueParseError::NonExistent { value }),
             }
         }
     }
@@ -4194,24 +3843,20 @@ pub mod any_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Any {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "namespace", optional)]
-        pub namespace: ::core::option::Option<
-            ::std::boxed::Box<crate::types::NamespaceList>,
-        >,
+        pub namespace: ::core::option::Option<::std::boxed::Box<crate::types::NamespaceList>>,
         #[xattribute(name = "notNamespace", optional)]
         pub not_namespace: ::core::option::Option<::xmlity_ns::List<NotNamespaceValue>>,
         #[xattribute(name = "processContents", optional)]
         pub process_contents: ::core::option::Option<ProcessContentsValue>,
         #[xattribute(name = "notQName", optional)]
-        pub not_q_name: ::core::option::Option<
-            ::std::boxed::Box<crate::types::QnameList>,
-        >,
+        pub not_q_name: ::core::option::Option<::std::boxed::Box<crate::types::QnameList>>,
         #[xattribute(name = "minOccurs", optional)]
         pub min_occurs: ::core::option::Option<usize>,
         #[xattribute(name = "maxOccurs", optional)]
@@ -4225,7 +3870,7 @@ pub mod any_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Any {
     #[xelement(
@@ -4254,7 +3899,7 @@ pub mod any_attribute_items {
             ::core::marker::Copy,
             ::xmlity::Serialize,
             ::xmlity::Deserialize,
-            ::core::cmp::PartialEq
+            ::core::cmp::PartialEq,
         )]
         #[xvalue(with = variant_0_with)]
         pub enum Variant0 {
@@ -4268,12 +3913,9 @@ pub mod any_attribute_items {
             where
                 D: ::xmlity::Deserializer<'de>,
             {
-                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                    deserializer,
-                )?;
-                let value: ::std::string::String = text
-                    .parse()
-                    .map_err(::xmlity::de::Error::custom)?;
+                let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+                let value: ::std::string::String =
+                    text.parse().map_err(::xmlity::de::Error::custom)?;
                 super::Variant0::try_from(value).map_err(::xmlity::de::Error::custom)
             }
             pub fn serialize<S>(
@@ -4283,12 +3925,9 @@ pub mod any_attribute_items {
             where
                 S: ::xmlity::Serializer,
             {
-                let value: ::std::string::String = ::core::clone::Clone::clone(value)
-                    .into();
+                let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
                 ::xmlity::Serialize::serialize(
-                    ::std::string::String::as_str(
-                        &::std::string::ToString::to_string(&value),
-                    ),
+                    ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                     serializer,
                 )
             }
@@ -4311,26 +3950,18 @@ pub mod any_attribute_items {
         }
         impl ::core::convert::TryFrom<::std::string::String> for Variant0 {
             type Error = Variant0ParseError;
-            fn try_from(
-                value: ::std::string::String,
-            ) -> ::core::result::Result<Self, Self::Error> {
+            fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
                 match ::std::string::String::as_str(&value) {
                     "##targetNamespace" => Ok(Variant0::TargetNamespace),
                     "##local" => Ok(Variant0::Local),
-                    _ => {
-                        Err(Variant0ParseError::NonExistent {
-                            value,
-                        })
-                    }
+                    _ => Err(Variant0ParseError::NonExistent { value }),
                 }
             }
         }
         impl ::core::convert::From<Variant0> for ::std::string::String {
             fn from(value: Variant0) -> Self {
                 match value {
-                    Variant0::TargetNamespace => {
-                        ::std::string::String::from("##targetNamespace")
-                    }
+                    Variant0::TargetNamespace => ::std::string::String::from("##targetNamespace"),
                     Variant0::Local => ::std::string::String::from("##local"),
                 }
             }
@@ -4341,8 +3972,7 @@ pub mod any_attribute_items {
             NotNamespaceValue::AnyURI(::std::boxed::Box::new(value))
         }
     }
-    impl ::core::convert::From<not_namespace_value_variants::Variant0>
-    for NotNamespaceValue {
+    impl ::core::convert::From<not_namespace_value_variants::Variant0> for NotNamespaceValue {
         fn from(value: not_namespace_value_variants::Variant0) -> Self {
             NotNamespaceValue::Variant0(::std::boxed::Box::new(value))
         }
@@ -4352,7 +3982,7 @@ pub mod any_attribute_items {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum NotNamespaceValue {
         AnyURI(::std::boxed::Box<String>),
@@ -4364,7 +3994,7 @@ pub mod any_attribute_items {
         ::core::marker::Copy,
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
-        ::core::cmp::PartialEq
+        ::core::cmp::PartialEq,
     )]
     #[xvalue(with = process_contents_value_with)]
     pub enum ProcessContentsValue {
@@ -4379,14 +4009,9 @@ pub mod any_attribute_items {
         where
             D: ::xmlity::Deserializer<'de>,
         {
-            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                deserializer,
-            )?;
-            let value: ::std::string::String = text
-                .parse()
-                .map_err(::xmlity::de::Error::custom)?;
-            super::ProcessContentsValue::try_from(value)
-                .map_err(::xmlity::de::Error::custom)
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+            let value: ::std::string::String = text.parse().map_err(::xmlity::de::Error::custom)?;
+            super::ProcessContentsValue::try_from(value).map_err(::xmlity::de::Error::custom)
         }
         pub fn serialize<S>(
             value: &super::ProcessContentsValue,
@@ -4397,9 +4022,7 @@ pub mod any_attribute_items {
         {
             let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
             ::xmlity::Serialize::serialize(
-                ::std::string::String::as_str(
-                    &::std::string::ToString::to_string(&value),
-                ),
+                ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                 serializer,
             )
         }
@@ -4422,18 +4045,12 @@ pub mod any_attribute_items {
     }
     impl ::core::convert::TryFrom<::std::string::String> for ProcessContentsValue {
         type Error = ProcessContentsValueParseError;
-        fn try_from(
-            value: ::std::string::String,
-        ) -> ::core::result::Result<Self, Self::Error> {
+        fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
             match ::std::string::String::as_str(&value) {
                 "skip" => Ok(ProcessContentsValue::Skip),
                 "lax" => Ok(ProcessContentsValue::Lax),
                 "strict" => Ok(ProcessContentsValue::Strict),
-                _ => {
-                    Err(ProcessContentsValueParseError::NonExistent {
-                        value,
-                    })
-                }
+                _ => Err(ProcessContentsValueParseError::NonExistent { value }),
             }
         }
     }
@@ -4452,23 +4069,19 @@ pub mod any_attribute_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub struct AnyAttribute {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "namespace", optional)]
-        pub namespace: ::core::option::Option<
-            ::std::boxed::Box<crate::types::NamespaceList>,
-        >,
+        pub namespace: ::core::option::Option<::std::boxed::Box<crate::types::NamespaceList>>,
         #[xattribute(name = "notNamespace", optional)]
         pub not_namespace: ::core::option::Option<::xmlity_ns::List<NotNamespaceValue>>,
         #[xattribute(name = "processContents", optional)]
         pub process_contents: ::core::option::Option<ProcessContentsValue>,
         #[xattribute(name = "notQName", optional)]
-        pub not_q_name: ::core::option::Option<
-            ::std::boxed::Box<crate::types::QnameListA>,
-        >,
+        pub not_q_name: ::core::option::Option<::std::boxed::Box<crate::types::QnameListA>>,
     }
 }
 #[derive(
@@ -4476,7 +4089,7 @@ pub mod any_attribute_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum AnyAttribute {
     #[xelement(
@@ -4492,8 +4105,7 @@ impl ::core::convert::From<any_attribute_items::AnyAttribute> for AnyAttribute {
         AnyAttribute::AnyAttribute(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::AnyAttribute>>
-for AnyAttribute {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::AnyAttribute>> for AnyAttribute {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::AnyAttribute>) -> Self {
         AnyAttribute::Dynamic(value)
     }
@@ -4505,7 +4117,7 @@ pub mod appinfo_items {
         ::xmlity::Deserialize,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xvalue(order = "strict")]
     pub struct Child0 {
@@ -4517,7 +4129,7 @@ pub mod appinfo_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub struct Appinfo {
         #[xattribute(name = "source", optional)]
@@ -4534,7 +4146,7 @@ pub mod appinfo_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Appinfo {
     #[xelement(
@@ -4560,7 +4172,7 @@ impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Appinfo>> for A
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Assertion {
     #[xelement(
@@ -4576,8 +4188,7 @@ impl ::core::convert::From<crate::types::Assertion> for Assertion {
         Assertion::Assertion(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Assertion>>
-for Assertion {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Assertion>> for Assertion {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Assertion>) -> Self {
         Assertion::Dynamic(value)
     }
@@ -4587,7 +4198,7 @@ for Assertion {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Attribute {
     #[xelement(
@@ -4603,8 +4214,7 @@ impl ::core::convert::From<crate::types::TopLevelAttribute> for Attribute {
         Attribute::Attribute(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Attribute>>
-for Attribute {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Attribute>> for Attribute {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Attribute>) -> Self {
         Attribute::Dynamic(value)
     }
@@ -4614,7 +4224,7 @@ for Attribute {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum AttributeGroup {
     #[xelement(
@@ -4631,7 +4241,8 @@ impl ::core::convert::From<crate::types::NamedAttributeGroup> for AttributeGroup
     }
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::AttributeGroup>>
-for AttributeGroup {
+    for AttributeGroup
+{
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::AttributeGroup>) -> Self {
         AttributeGroup::Dynamic(value)
     }
@@ -4641,7 +4252,7 @@ for AttributeGroup {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Choice {
     #[xelement(
@@ -4678,7 +4289,7 @@ pub mod complex_content_items {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum Child1 {
         #[xelement(
@@ -4700,7 +4311,7 @@ pub mod complex_content_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct ComplexContent {
@@ -4718,7 +4329,7 @@ pub mod complex_content_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum ComplexContent {
     #[xelement(
@@ -4735,7 +4346,8 @@ impl ::core::convert::From<complex_content_items::ComplexContent> for ComplexCon
     }
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::ComplexContent>>
-for ComplexContent {
+    for ComplexContent
+{
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::ComplexContent>) -> Self {
         ComplexContent::Dynamic(value)
     }
@@ -4745,7 +4357,7 @@ for ComplexContent {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum ComplexType {
     #[xelement(
@@ -4761,8 +4373,7 @@ impl ::core::convert::From<crate::types::TopLevelComplexType> for ComplexType {
         ComplexType::ComplexType(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::ComplexType>>
-for ComplexType {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::ComplexType>> for ComplexType {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::ComplexType>) -> Self {
         ComplexType::Dynamic(value)
     }
@@ -4774,7 +4385,7 @@ pub mod default_open_content_items {
         ::core::marker::Copy,
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
-        ::core::cmp::PartialEq
+        ::core::cmp::PartialEq,
     )]
     #[xvalue(with = mode_value_with)]
     pub enum ModeValue {
@@ -4788,12 +4399,8 @@ pub mod default_open_content_items {
         where
             D: ::xmlity::Deserializer<'de>,
         {
-            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                deserializer,
-            )?;
-            let value: ::std::string::String = text
-                .parse()
-                .map_err(::xmlity::de::Error::custom)?;
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+            let value: ::std::string::String = text.parse().map_err(::xmlity::de::Error::custom)?;
             super::ModeValue::try_from(value).map_err(::xmlity::de::Error::custom)
         }
         pub fn serialize<S>(
@@ -4805,9 +4412,7 @@ pub mod default_open_content_items {
         {
             let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
             ::xmlity::Serialize::serialize(
-                ::std::string::String::as_str(
-                    &::std::string::ToString::to_string(&value),
-                ),
+                ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                 serializer,
             )
         }
@@ -4830,17 +4435,11 @@ pub mod default_open_content_items {
     }
     impl ::core::convert::TryFrom<::std::string::String> for ModeValue {
         type Error = ModeValueParseError;
-        fn try_from(
-            value: ::std::string::String,
-        ) -> ::core::result::Result<Self, Self::Error> {
+        fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
             match ::std::string::String::as_str(&value) {
                 "interleave" => Ok(ModeValue::Interleave),
                 "suffix" => Ok(ModeValue::Suffix),
-                _ => {
-                    Err(ModeValueParseError::NonExistent {
-                        value,
-                    })
-                }
+                _ => Err(ModeValueParseError::NonExistent { value }),
             }
         }
     }
@@ -4858,7 +4457,7 @@ pub mod default_open_content_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct DefaultOpenContent {
@@ -4879,7 +4478,7 @@ pub mod default_open_content_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum DefaultOpenContent {
     #[xelement(
@@ -4890,14 +4489,14 @@ pub enum DefaultOpenContent {
     DefaultOpenContent(#[xgroup] default_open_content_items::DefaultOpenContent),
     Dynamic(::xmlity_ns::SubstitutionGroup<crate::DefaultOpenContent>),
 }
-impl ::core::convert::From<default_open_content_items::DefaultOpenContent>
-for DefaultOpenContent {
+impl ::core::convert::From<default_open_content_items::DefaultOpenContent> for DefaultOpenContent {
     fn from(value: default_open_content_items::DefaultOpenContent) -> Self {
         DefaultOpenContent::DefaultOpenContent(value)
     }
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::DefaultOpenContent>>
-for DefaultOpenContent {
+    for DefaultOpenContent
+{
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::DefaultOpenContent>) -> Self {
         DefaultOpenContent::Dynamic(value)
     }
@@ -4909,7 +4508,7 @@ pub mod documentation_items {
         ::xmlity::Deserialize,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xvalue(order = "strict")]
     pub struct Child0 {
@@ -4921,15 +4520,13 @@ pub mod documentation_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub struct Documentation {
         #[xattribute(name = "source", optional)]
         pub source: ::core::option::Option<String>,
         #[xattribute(deferred = true, optional)]
-        pub lang: ::core::option::Option<
-            ::std::boxed::Box<xmlity_ns_xml::attributes::Lang>,
-        >,
+        pub lang: ::core::option::Option<::std::boxed::Box<xmlity_ns_xml::attributes::Lang>>,
         #[xgroup]
         pub any_attributes: ::xmlity_ns::AnyAttributes,
         #[xvalue(default)]
@@ -4942,7 +4539,7 @@ pub mod documentation_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Documentation {
     #[xelement(
@@ -4958,8 +4555,7 @@ impl ::core::convert::From<documentation_items::Documentation> for Documentation
         Documentation::Documentation(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Documentation>>
-for Documentation {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Documentation>> for Documentation {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Documentation>) -> Self {
         Documentation::Dynamic(value)
     }
@@ -4969,7 +4565,7 @@ for Documentation {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Element {
     #[xelement(
@@ -4995,7 +4591,7 @@ impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Element>> for E
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Enumeration {
     #[xelement(
@@ -5011,8 +4607,7 @@ impl ::core::convert::From<crate::types::NoFixedFacet> for Enumeration {
         Enumeration::Enumeration(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Enumeration>>
-for Enumeration {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Enumeration>> for Enumeration {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Enumeration>) -> Self {
         Enumeration::Dynamic(value)
     }
@@ -5024,7 +4619,7 @@ pub mod explicit_timezone_items {
         ::core::marker::Copy,
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
-        ::core::cmp::PartialEq
+        ::core::cmp::PartialEq,
     )]
     #[xvalue(with = value_value_with)]
     pub enum ValueValue {
@@ -5039,12 +4634,8 @@ pub mod explicit_timezone_items {
         where
             D: ::xmlity::Deserializer<'de>,
         {
-            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                deserializer,
-            )?;
-            let value: ::std::string::String = text
-                .parse()
-                .map_err(::xmlity::de::Error::custom)?;
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+            let value: ::std::string::String = text.parse().map_err(::xmlity::de::Error::custom)?;
             super::ValueValue::try_from(value).map_err(::xmlity::de::Error::custom)
         }
         pub fn serialize<S>(
@@ -5056,9 +4647,7 @@ pub mod explicit_timezone_items {
         {
             let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
             ::xmlity::Serialize::serialize(
-                ::std::string::String::as_str(
-                    &::std::string::ToString::to_string(&value),
-                ),
+                ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                 serializer,
             )
         }
@@ -5081,18 +4670,12 @@ pub mod explicit_timezone_items {
     }
     impl ::core::convert::TryFrom<::std::string::String> for ValueValue {
         type Error = ValueValueParseError;
-        fn try_from(
-            value: ::std::string::String,
-        ) -> ::core::result::Result<Self, Self::Error> {
+        fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
             match ::std::string::String::as_str(&value) {
                 "optional" => Ok(ValueValue::Optional),
                 "required" => Ok(ValueValue::Required),
                 "prohibited" => Ok(ValueValue::Prohibited),
-                _ => {
-                    Err(ValueValueParseError::NonExistent {
-                        value,
-                    })
-                }
+                _ => Err(ValueValueParseError::NonExistent { value }),
             }
         }
     }
@@ -5111,7 +4694,7 @@ pub mod explicit_timezone_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct ExplicitTimezone {
@@ -5132,7 +4715,7 @@ pub mod explicit_timezone_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum ExplicitTimezone {
     #[xelement(
@@ -5143,14 +4726,14 @@ pub enum ExplicitTimezone {
     ExplicitTimezone(#[xgroup] explicit_timezone_items::ExplicitTimezone),
     Dynamic(::xmlity_ns::SubstitutionGroup<crate::ExplicitTimezone>),
 }
-impl ::core::convert::From<explicit_timezone_items::ExplicitTimezone>
-for ExplicitTimezone {
+impl ::core::convert::From<explicit_timezone_items::ExplicitTimezone> for ExplicitTimezone {
     fn from(value: explicit_timezone_items::ExplicitTimezone) -> Self {
         ExplicitTimezone::ExplicitTimezone(value)
     }
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::ExplicitTimezone>>
-for ExplicitTimezone {
+    for ExplicitTimezone
+{
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::ExplicitTimezone>) -> Self {
         ExplicitTimezone::Dynamic(value)
     }
@@ -5160,7 +4743,7 @@ for ExplicitTimezone {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Facet {
     Assertion(crate::Assertion),
@@ -5265,7 +4848,7 @@ pub mod field_items {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xvalue(with = xpath_value_with)]
     pub struct XpathValue(pub ::std::string::String);
@@ -5276,12 +4859,8 @@ pub mod field_items {
         where
             D: ::xmlity::Deserializer<'de>,
         {
-            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                deserializer,
-            )?;
-            let value: ::std::string::String = text
-                .parse()
-                .map_err(::xmlity::de::Error::custom)?;
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+            let value: ::std::string::String = text.parse().map_err(::xmlity::de::Error::custom)?;
             super::XpathValue::try_from(value).map_err(::xmlity::de::Error::custom)
         }
         pub fn serialize<S>(
@@ -5293,9 +4872,7 @@ pub mod field_items {
         {
             let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
             ::xmlity::Serialize::serialize(
-                ::std::string::String::as_str(
-                    &::std::string::ToString::to_string(&value),
-                ),
+                ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                 serializer,
             )
         }
@@ -5313,7 +4890,7 @@ pub mod field_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Field {
@@ -5322,9 +4899,8 @@ pub mod field_items {
         #[xattribute(name = "xpath")]
         pub xpath: XpathValue,
         #[xattribute(name = "xpathDefaultNamespace", optional)]
-        pub xpath_default_namespace: ::core::option::Option<
-            ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
-        >,
+        pub xpath_default_namespace:
+            ::core::option::Option<::std::boxed::Box<crate::types::XpathDefaultNamespace>>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<crate::Annotation>,
     }
@@ -5334,7 +4910,7 @@ pub mod field_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Field {
     #[xelement(
@@ -5360,7 +4936,7 @@ impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Field>> for Fie
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum FractionDigits {
     #[xelement(
@@ -5377,7 +4953,8 @@ impl ::core::convert::From<crate::types::NumFacet> for FractionDigits {
     }
 }
 impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::FractionDigits>>
-for FractionDigits {
+    for FractionDigits
+{
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::FractionDigits>) -> Self {
         FractionDigits::Dynamic(value)
     }
@@ -5387,7 +4964,7 @@ for FractionDigits {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Group {
     #[xelement(
@@ -5415,7 +4992,7 @@ pub mod import_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Import {
@@ -5434,7 +5011,7 @@ pub mod import_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Import {
     #[xelement(
@@ -5462,7 +5039,7 @@ pub mod include_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Include {
@@ -5479,7 +5056,7 @@ pub mod include_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Include {
     #[xelement(
@@ -5505,7 +5082,7 @@ impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Include>> for I
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Key {
     #[xelement(
@@ -5533,7 +5110,7 @@ pub mod keyref_items {
         ::xmlity::Deserialize,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xvalue(order = "strict")]
     pub struct Child1 {
@@ -5548,14 +5125,14 @@ pub mod keyref_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Keyref {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name", optional)]
-        pub name: ::core::option::Option<::xmlity::LocalName<'static>>,
+        pub name: ::core::option::Option<::xmlity::LocalNameBuf>,
         #[xattribute(name = "ref", optional)]
         pub ref_: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "refer", optional)]
@@ -5571,7 +5148,7 @@ pub mod keyref_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Keyref {
     #[xelement(
@@ -5597,7 +5174,7 @@ impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Keyref>> for Ke
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Length {
     #[xelement(
@@ -5625,7 +5202,7 @@ pub mod list_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct List {
@@ -5641,9 +5218,7 @@ pub mod list_items {
             group,
             optional
         )]
-        pub simple_type: ::core::option::Option<
-            ::std::boxed::Box<crate::types::LocalSimpleType>,
-        >,
+        pub simple_type: ::core::option::Option<::std::boxed::Box<crate::types::LocalSimpleType>>,
     }
 }
 #[derive(
@@ -5651,7 +5226,7 @@ pub mod list_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum List {
     #[xelement(
@@ -5677,7 +5252,7 @@ impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::List>> for List
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum MaxExclusive {
     #[xelement(
@@ -5693,8 +5268,7 @@ impl ::core::convert::From<crate::types::Facet> for MaxExclusive {
         MaxExclusive::MaxExclusive(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MaxExclusive>>
-for MaxExclusive {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MaxExclusive>> for MaxExclusive {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MaxExclusive>) -> Self {
         MaxExclusive::Dynamic(value)
     }
@@ -5704,7 +5278,7 @@ for MaxExclusive {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum MaxInclusive {
     #[xelement(
@@ -5720,8 +5294,7 @@ impl ::core::convert::From<crate::types::Facet> for MaxInclusive {
         MaxInclusive::MaxInclusive(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MaxInclusive>>
-for MaxInclusive {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MaxInclusive>> for MaxInclusive {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MaxInclusive>) -> Self {
         MaxInclusive::Dynamic(value)
     }
@@ -5731,7 +5304,7 @@ for MaxInclusive {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum MaxLength {
     #[xelement(
@@ -5747,8 +5320,7 @@ impl ::core::convert::From<crate::types::NumFacet> for MaxLength {
         MaxLength::MaxLength(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MaxLength>>
-for MaxLength {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MaxLength>> for MaxLength {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MaxLength>) -> Self {
         MaxLength::Dynamic(value)
     }
@@ -5758,7 +5330,7 @@ for MaxLength {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum MinExclusive {
     #[xelement(
@@ -5774,8 +5346,7 @@ impl ::core::convert::From<crate::types::Facet> for MinExclusive {
         MinExclusive::MinExclusive(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MinExclusive>>
-for MinExclusive {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MinExclusive>> for MinExclusive {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MinExclusive>) -> Self {
         MinExclusive::Dynamic(value)
     }
@@ -5785,7 +5356,7 @@ for MinExclusive {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum MinInclusive {
     #[xelement(
@@ -5801,8 +5372,7 @@ impl ::core::convert::From<crate::types::Facet> for MinInclusive {
         MinInclusive::MinInclusive(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MinInclusive>>
-for MinInclusive {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MinInclusive>> for MinInclusive {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MinInclusive>) -> Self {
         MinInclusive::Dynamic(value)
     }
@@ -5812,7 +5382,7 @@ for MinInclusive {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum MinLength {
     #[xelement(
@@ -5828,8 +5398,7 @@ impl ::core::convert::From<crate::types::NumFacet> for MinLength {
         MinLength::MinLength(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MinLength>>
-for MinLength {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::MinLength>> for MinLength {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::MinLength>) -> Self {
         MinLength::Dynamic(value)
     }
@@ -5841,14 +5410,14 @@ pub mod notation_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Notation {
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(name = "name")]
-        pub name: ::xmlity::LocalName<'static>,
+        pub name: ::xmlity::LocalNameBuf,
         #[xattribute(name = "public", optional)]
         pub public: ::core::option::Option<::std::boxed::Box<crate::types::Public>>,
         #[xattribute(name = "system", optional)]
@@ -5862,7 +5431,7 @@ pub mod notation_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Notation {
     #[xelement(
@@ -5878,8 +5447,7 @@ impl ::core::convert::From<notation_items::Notation> for Notation {
         Notation::Notation(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Notation>>
-for Notation {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Notation>> for Notation {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Notation>) -> Self {
         Notation::Dynamic(value)
     }
@@ -5891,7 +5459,7 @@ pub mod open_content_items {
         ::core::marker::Copy,
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
-        ::core::cmp::PartialEq
+        ::core::cmp::PartialEq,
     )]
     #[xvalue(with = mode_value_with)]
     pub enum ModeValue {
@@ -5906,12 +5474,8 @@ pub mod open_content_items {
         where
             D: ::xmlity::Deserializer<'de>,
         {
-            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                deserializer,
-            )?;
-            let value: ::std::string::String = text
-                .parse()
-                .map_err(::xmlity::de::Error::custom)?;
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+            let value: ::std::string::String = text.parse().map_err(::xmlity::de::Error::custom)?;
             super::ModeValue::try_from(value).map_err(::xmlity::de::Error::custom)
         }
         pub fn serialize<S>(
@@ -5923,9 +5487,7 @@ pub mod open_content_items {
         {
             let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
             ::xmlity::Serialize::serialize(
-                ::std::string::String::as_str(
-                    &::std::string::ToString::to_string(&value),
-                ),
+                ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                 serializer,
             )
         }
@@ -5948,18 +5510,12 @@ pub mod open_content_items {
     }
     impl ::core::convert::TryFrom<::std::string::String> for ModeValue {
         type Error = ModeValueParseError;
-        fn try_from(
-            value: ::std::string::String,
-        ) -> ::core::result::Result<Self, Self::Error> {
+        fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
             match ::std::string::String::as_str(&value) {
                 "none" => Ok(ModeValue::None),
                 "interleave" => Ok(ModeValue::Interleave),
                 "suffix" => Ok(ModeValue::Suffix),
-                _ => {
-                    Err(ModeValueParseError::NonExistent {
-                        value,
-                    })
-                }
+                _ => Err(ModeValueParseError::NonExistent { value }),
             }
         }
     }
@@ -5978,7 +5534,7 @@ pub mod open_content_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct OpenContent {
@@ -6002,7 +5558,7 @@ pub mod open_content_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum OpenContent {
     #[xelement(
@@ -6018,8 +5574,7 @@ impl ::core::convert::From<open_content_items::OpenContent> for OpenContent {
         OpenContent::OpenContent(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::OpenContent>>
-for OpenContent {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::OpenContent>> for OpenContent {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::OpenContent>) -> Self {
         OpenContent::Dynamic(value)
     }
@@ -6031,7 +5586,7 @@ pub mod override_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Override {
@@ -6051,7 +5606,7 @@ pub mod override_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Override {
     #[xelement(
@@ -6067,8 +5622,7 @@ impl ::core::convert::From<override_items::Override> for Override {
         Override::Override(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Override>>
-for Override {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Override>> for Override {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Override>) -> Self {
         Override::Dynamic(value)
     }
@@ -6080,7 +5634,7 @@ pub mod pattern_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Pattern {
@@ -6099,7 +5653,7 @@ pub mod pattern_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Pattern {
     #[xelement(
@@ -6136,7 +5690,7 @@ pub mod redefine_items {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum RedefineContent {
         Annotation(::std::boxed::Box<crate::Annotation>),
@@ -6148,7 +5702,7 @@ pub mod redefine_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub struct Redefine {
         #[xattribute(name = "schemaLocation")]
@@ -6165,7 +5719,7 @@ pub mod redefine_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Redefine {
     #[xelement(
@@ -6181,8 +5735,7 @@ impl ::core::convert::From<redefine_items::Redefine> for Redefine {
         Redefine::Redefine(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Redefine>>
-for Redefine {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Redefine>> for Redefine {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Redefine>) -> Self {
         Redefine::Dynamic(value)
     }
@@ -6194,7 +5747,7 @@ pub mod restriction_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Restriction {
@@ -6212,7 +5765,7 @@ pub mod restriction_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Restriction {
     #[xelement(
@@ -6228,8 +5781,7 @@ impl ::core::convert::From<restriction_items::Restriction> for Restriction {
         Restriction::Restriction(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Restriction>>
-for Restriction {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Restriction>> for Restriction {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Restriction>) -> Self {
         Restriction::Dynamic(value)
     }
@@ -6241,7 +5793,7 @@ pub mod schema_items {
         ::xmlity::Deserialize,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xvalue(order = "strict")]
     pub struct Child1 {
@@ -6256,7 +5808,7 @@ pub mod schema_items {
         ::xmlity::Deserialize,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xvalue(order = "strict")]
     pub struct Child2 {
@@ -6271,7 +5823,7 @@ pub mod schema_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Schema {
@@ -6280,33 +5832,25 @@ pub mod schema_items {
         #[xattribute(name = "version", optional)]
         pub version: ::core::option::Option<String>,
         #[xattribute(name = "finalDefault", optional)]
-        pub final_default: ::core::option::Option<
-            ::std::boxed::Box<crate::types::FullDerivationSet>,
-        >,
+        pub final_default:
+            ::core::option::Option<::std::boxed::Box<crate::types::FullDerivationSet>>,
         #[xattribute(name = "blockDefault", optional)]
-        pub block_default: ::core::option::Option<
-            ::std::boxed::Box<crate::types::BlockSet>,
-        >,
+        pub block_default: ::core::option::Option<::std::boxed::Box<crate::types::BlockSet>>,
         #[xattribute(name = "attributeFormDefault", optional)]
-        pub attribute_form_default: ::core::option::Option<
-            ::std::boxed::Box<crate::types::FormChoice>,
-        >,
+        pub attribute_form_default:
+            ::core::option::Option<::std::boxed::Box<crate::types::FormChoice>>,
         #[xattribute(name = "elementFormDefault", optional)]
-        pub element_form_default: ::core::option::Option<
-            ::std::boxed::Box<crate::types::FormChoice>,
-        >,
+        pub element_form_default:
+            ::core::option::Option<::std::boxed::Box<crate::types::FormChoice>>,
         #[xattribute(name = "defaultAttributes", optional)]
         pub default_attributes: ::core::option::Option<crate::types::QName>,
         #[xattribute(name = "xpathDefaultNamespace", optional)]
-        pub xpath_default_namespace: ::core::option::Option<
-            ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
-        >,
+        pub xpath_default_namespace:
+            ::core::option::Option<::std::boxed::Box<crate::types::XpathDefaultNamespace>>,
         #[xattribute(name = "id", optional)]
         pub id: ::core::option::Option<String>,
         #[xattribute(deferred = true, optional)]
-        pub lang: ::core::option::Option<
-            ::std::boxed::Box<xmlity_ns_xml::attributes::Lang>,
-        >,
+        pub lang: ::core::option::Option<::std::boxed::Box<xmlity_ns_xml::attributes::Lang>>,
         #[xvalue(default)]
         #[builder(default)]
         pub composition: ::std::vec::Vec<crate::groups::Composition>,
@@ -6322,7 +5866,7 @@ pub mod schema_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Schema {
     #[xelement(
@@ -6354,7 +5898,7 @@ pub mod selector_items {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xvalue(with = xpath_value_with)]
     pub struct XpathValue(pub ::std::string::String);
@@ -6365,12 +5909,8 @@ pub mod selector_items {
         where
             D: ::xmlity::Deserializer<'de>,
         {
-            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                deserializer,
-            )?;
-            let value: ::std::string::String = text
-                .parse()
-                .map_err(::xmlity::de::Error::custom)?;
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+            let value: ::std::string::String = text.parse().map_err(::xmlity::de::Error::custom)?;
             super::XpathValue::try_from(value).map_err(::xmlity::de::Error::custom)
         }
         pub fn serialize<S>(
@@ -6382,9 +5922,7 @@ pub mod selector_items {
         {
             let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
             ::xmlity::Serialize::serialize(
-                ::std::string::String::as_str(
-                    &::std::string::ToString::to_string(&value),
-                ),
+                ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                 serializer,
             )
         }
@@ -6402,7 +5940,7 @@ pub mod selector_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Selector {
@@ -6411,9 +5949,8 @@ pub mod selector_items {
         #[xattribute(name = "xpath")]
         pub xpath: XpathValue,
         #[xattribute(name = "xpathDefaultNamespace", optional)]
-        pub xpath_default_namespace: ::core::option::Option<
-            ::std::boxed::Box<crate::types::XpathDefaultNamespace>,
-        >,
+        pub xpath_default_namespace:
+            ::core::option::Option<::std::boxed::Box<crate::types::XpathDefaultNamespace>>,
         #[xvalue(default)]
         pub annotation: ::core::option::Option<crate::Annotation>,
     }
@@ -6423,7 +5960,7 @@ pub mod selector_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Selector {
     #[xelement(
@@ -6439,8 +5976,7 @@ impl ::core::convert::From<selector_items::Selector> for Selector {
         Selector::Selector(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Selector>>
-for Selector {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Selector>> for Selector {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Selector>) -> Self {
         Selector::Dynamic(value)
     }
@@ -6450,7 +5986,7 @@ for Selector {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Sequence {
     #[xelement(
@@ -6466,8 +6002,7 @@ impl ::core::convert::From<crate::types::ExplicitGroup> for Sequence {
         Sequence::Sequence(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Sequence>>
-for Sequence {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Sequence>> for Sequence {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::Sequence>) -> Self {
         Sequence::Dynamic(value)
     }
@@ -6488,7 +6023,7 @@ pub mod simple_content_items {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     pub enum Child1 {
         #[xelement(
@@ -6510,7 +6045,7 @@ pub mod simple_content_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct SimpleContent {
@@ -6526,7 +6061,7 @@ pub mod simple_content_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum SimpleContent {
     #[xelement(
@@ -6542,8 +6077,7 @@ impl ::core::convert::From<simple_content_items::SimpleContent> for SimpleConten
         SimpleContent::SimpleContent(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::SimpleContent>>
-for SimpleContent {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::SimpleContent>> for SimpleContent {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::SimpleContent>) -> Self {
         SimpleContent::Dynamic(value)
     }
@@ -6553,7 +6087,7 @@ for SimpleContent {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum SimpleType {
     #[xelement(
@@ -6569,8 +6103,7 @@ impl ::core::convert::From<crate::types::TopLevelSimpleType> for SimpleType {
         SimpleType::SimpleType(::std::boxed::Box::new(value))
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::SimpleType>>
-for SimpleType {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::SimpleType>> for SimpleType {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::SimpleType>) -> Self {
         SimpleType::Dynamic(value)
     }
@@ -6582,7 +6115,7 @@ pub mod total_digits_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct TotalDigits {
@@ -6603,7 +6136,7 @@ pub mod total_digits_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum TotalDigits {
     #[xelement(
@@ -6619,8 +6152,7 @@ impl ::core::convert::From<total_digits_items::TotalDigits> for TotalDigits {
         TotalDigits::TotalDigits(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::TotalDigits>>
-for TotalDigits {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::TotalDigits>> for TotalDigits {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::TotalDigits>) -> Self {
         TotalDigits::Dynamic(value)
     }
@@ -6636,24 +6168,21 @@ pub mod union_items {
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xelement(
         name = "simpleType",
         namespace = "http://www.w3.org/2001/XMLSchema",
         allow_unknown_attributes = "any"
     )]
-    pub struct SimpleType(
-        #[xgroup]
-        pub ::std::boxed::Box<crate::types::LocalSimpleType>,
-    );
+    pub struct SimpleType(#[xgroup] pub ::std::boxed::Box<crate::types::LocalSimpleType>);
     #[derive(
         ::core::fmt::Debug,
         ::xmlity::SerializationGroup,
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct Union {
@@ -6673,7 +6202,7 @@ pub mod union_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Union {
     #[xelement(
@@ -6699,7 +6228,7 @@ impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::Union>> for Uni
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum Unique {
     #[xelement(
@@ -6727,7 +6256,7 @@ pub mod white_space_items {
         ::core::marker::Copy,
         ::xmlity::Serialize,
         ::xmlity::Deserialize,
-        ::core::cmp::PartialEq
+        ::core::cmp::PartialEq,
     )]
     #[xvalue(with = value_value_with)]
     pub enum ValueValue {
@@ -6742,12 +6271,8 @@ pub mod white_space_items {
         where
             D: ::xmlity::Deserializer<'de>,
         {
-            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(
-                deserializer,
-            )?;
-            let value: ::std::string::String = text
-                .parse()
-                .map_err(::xmlity::de::Error::custom)?;
+            let text: ::std::string::String = ::xmlity::Deserialize::deserialize(deserializer)?;
+            let value: ::std::string::String = text.parse().map_err(::xmlity::de::Error::custom)?;
             super::ValueValue::try_from(value).map_err(::xmlity::de::Error::custom)
         }
         pub fn serialize<S>(
@@ -6759,9 +6284,7 @@ pub mod white_space_items {
         {
             let value: ::std::string::String = ::core::clone::Clone::clone(value).into();
             ::xmlity::Serialize::serialize(
-                ::std::string::String::as_str(
-                    &::std::string::ToString::to_string(&value),
-                ),
+                ::std::string::String::as_str(&::std::string::ToString::to_string(&value)),
                 serializer,
             )
         }
@@ -6784,18 +6307,12 @@ pub mod white_space_items {
     }
     impl ::core::convert::TryFrom<::std::string::String> for ValueValue {
         type Error = ValueValueParseError;
-        fn try_from(
-            value: ::std::string::String,
-        ) -> ::core::result::Result<Self, Self::Error> {
+        fn try_from(value: ::std::string::String) -> ::core::result::Result<Self, Self::Error> {
             match ::std::string::String::as_str(&value) {
                 "preserve" => Ok(ValueValue::Preserve),
                 "replace" => Ok(ValueValue::Replace),
                 "collapse" => Ok(ValueValue::Collapse),
-                _ => {
-                    Err(ValueValueParseError::NonExistent {
-                        value,
-                    })
-                }
+                _ => Err(ValueValueParseError::NonExistent { value }),
             }
         }
     }
@@ -6814,7 +6331,7 @@ pub mod white_space_items {
         ::xmlity::DeserializationGroup,
         ::bon::Builder,
         ::core::cmp::PartialEq,
-        ::core::clone::Clone
+        ::core::clone::Clone,
     )]
     #[xgroup(children_order = "strict")]
     pub struct WhiteSpace {
@@ -6835,7 +6352,7 @@ pub mod white_space_items {
     ::xmlity::Serialize,
     ::xmlity::Deserialize,
     ::core::cmp::PartialEq,
-    ::core::clone::Clone
+    ::core::clone::Clone,
 )]
 pub enum WhiteSpace {
     #[xelement(
@@ -6851,8 +6368,7 @@ impl ::core::convert::From<white_space_items::WhiteSpace> for WhiteSpace {
         WhiteSpace::WhiteSpace(value)
     }
 }
-impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::WhiteSpace>>
-for WhiteSpace {
+impl ::core::convert::From<::xmlity_ns::SubstitutionGroup<crate::WhiteSpace>> for WhiteSpace {
     fn from(value: ::xmlity_ns::SubstitutionGroup<crate::WhiteSpace>) -> Self {
         WhiteSpace::Dynamic(value)
     }

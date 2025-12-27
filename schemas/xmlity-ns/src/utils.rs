@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use derive_more::{Display, Error};
 use xmlity::{
     de::{self, DeserializeContext},
-    ser, DeserializeOwned, ExpandedName, NoopDeSerializer, Prefix, Serialize, Serializer,
-    XmlNamespace,
+    ser, DeserializeOwned, ExpandedName, ExpandedNameBuf, NoopDeSerializer, Prefix, Serialize,
+    Serializer, XmlNamespace,
 };
 
 #[derive(Debug, Clone, PartialEq, derive_more::Display, derive_more::Error, derive_more::From)]
@@ -28,11 +28,11 @@ impl<'a, C: DeserializeContext> RefContext<'a, C> {
 }
 
 impl<C: DeserializeContext> de::DeserializeContext for RefContext<'_, C> {
-    fn default_namespace(&self) -> Option<XmlNamespace<'_>> {
+    fn default_namespace(&self) -> Option<&XmlNamespace> {
         self.ctx.default_namespace()
     }
 
-    fn resolve_prefix(&self, prefix: Prefix<'_>) -> Option<XmlNamespace<'_>> {
+    fn resolve_prefix(&self, prefix: &Prefix) -> Option<&XmlNamespace> {
         self.ctx.resolve_prefix(prefix)
     }
 
@@ -54,10 +54,10 @@ pub struct SubStrDeserializer<'a, 'c, C: DeserializeContext + 'c, E: de::Error> 
 pub enum EmptyStrDeseralizeError {
     #[display("Custom error: {_0}")]
     Custom(#[error(not(source))] String),
-    #[display("Wrong name: expected {expected}, found {found}")]
+    #[display("Wrong name: expected {expected:?}, found {found:?}")]
     WrongName {
-        expected: ExpandedName<'static>,
-        found: ExpandedName<'static>,
+        expected: ExpandedNameBuf,
+        found: ExpandedNameBuf,
     },
     #[display("Unexpected visit")]
     UnexpectedVisit {},
@@ -83,8 +83,8 @@ impl de::Error for EmptyStrDeseralizeError {
 
     fn wrong_name(name: &ExpandedName<'_>, expected: &ExpandedName<'_>) -> Self {
         EmptyStrDeseralizeError::WrongName {
-            expected: expected.clone().into_owned(),
-            found: name.clone().into_owned(),
+            expected: expected.into_owned(),
+            found: name.into_owned(),
         }
     }
 

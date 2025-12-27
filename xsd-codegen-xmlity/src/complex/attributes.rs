@@ -129,7 +129,7 @@ impl ComplexToTypeTemplate<FragmentIdx<cx::LocalAttributeFragment>> for LocalAtt
 
         let (ident, template) = match &item.type_mode {
             cx::LocalAttributeFragmentTypeMode::Declared(local) => {
-                let name = ExpandedName::new(local.name.clone(), None);
+                let name = ExpandedName::new(&local.name, None);
                 let ident = local.name.to_item_ident();
 
                 let simple_context = context
@@ -144,7 +144,7 @@ impl ComplexToTypeTemplate<FragmentIdx<cx::LocalAttributeFragment>> for LocalAtt
                 let ty = ty.wrap_if(optional, |a| parse_quote!(::core::option::Option<#a>));
 
                 let template = ElementFieldAttribute {
-                    name: Some(name),
+                    name: Some(name.into_owned()),
                     ty,
                     deferred: false,
                     optional,
@@ -155,8 +155,10 @@ impl ComplexToTypeTemplate<FragmentIdx<cx::LocalAttributeFragment>> for LocalAtt
             }
             cx::LocalAttributeFragmentTypeMode::Reference(reference) => {
                 let ident = reference.ref_.local_name().to_item_ident();
-                let ty = context
-                    .resolve_named_attribute(&fragment_idx.namespace_idx(), &reference.ref_)?;
+                let ty = context.resolve_named_attribute(
+                    &fragment_idx.namespace_idx(),
+                    &reference.ref_.as_ref(),
+                )?;
 
                 let ty = ty.wrap_if(optional, |a| parse_quote!(::core::option::Option<#a>));
 
@@ -217,10 +219,7 @@ impl ComplexToTypeTemplate<cx::TopLevelAttributeFragment> for TopLevelAttributeH
         scope: &mut S,
         item: &cx::TopLevelAttributeFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let name = ExpandedName::new(
-            item.name.clone(),
-            Some(context.namespace().clone().into_owned()),
-        );
+        let name = ExpandedName::new(&item.name, Some(context.namespace()));
         let ident = item.name.to_item_ident();
 
         let ty = self
@@ -229,7 +228,7 @@ impl ComplexToTypeTemplate<cx::TopLevelAttributeFragment> for TopLevelAttributeH
             .template;
 
         let template = ElementFieldAttribute {
-            name: Some(name),
+            name: Some(name.into_owned()),
             ty,
             deferred: false,
             default: false,

@@ -6,6 +6,8 @@ mod naming_strategies;
 mod simple;
 pub mod templates;
 mod transformer;
+use std::ops::Deref;
+
 pub use transformer::{CodegenTransformer, Error as CodegenTransformerError};
 mod generator;
 pub use generator::{Generator, GeneratorContext, GeneratorScope};
@@ -14,7 +16,9 @@ use inflector::Inflector;
 use misc::TypeReference;
 use quote::format_ident;
 use syn::Ident;
-use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xmlity::{
+    ExpandedName, ExpandedNameBuf, LocalName, LocalNameBuf, XmlNamespace, XmlNamespaceBuf,
+};
 use xsd_fragments::FragmentedXsdDocumentKey;
 
 use crate::augments::ItemAugmentation;
@@ -29,22 +33,22 @@ pub enum Error {
     },
     NoNamespace,
     MissingElement {
-        name: ExpandedName<'static>,
+        name: ExpandedNameBuf,
     },
     MissingAttribute {
-        name: ExpandedName<'static>,
+        name: ExpandedNameBuf,
     },
     MissingGroup {
-        name: ExpandedName<'static>,
+        name: ExpandedNameBuf,
     },
     MissingType {
-        name: ExpandedName<'static>,
+        name: ExpandedNameBuf,
     },
     UnsupportedFragment {
         fragment: String,
     },
     UnsupportedSimpleBase {
-        base: Option<ExpandedName<'static>>,
+        base: Option<ExpandedNameBuf>,
     },
     HandlerDoesNotExist {
         origin: &'static str,
@@ -55,7 +59,7 @@ pub enum Error {
     },
     UnboundNamespace {
         document: FragmentedXsdDocumentKey,
-        namespace: Option<XmlNamespace<'static>>,
+        namespace: Option<XmlNamespaceBuf>,
     },
     UnsupportedItemType {
         item_type: String,
@@ -204,7 +208,7 @@ pub trait ToIdentTypesExt {
     fn to_path_ident(&self) -> Ident;
 }
 
-impl ToIdentTypesExt for LocalName<'_> {
+impl ToIdentTypesExt for LocalName {
     fn to_item_ident(&self) -> Ident {
         format_ident!(
             "{}",
@@ -230,6 +234,23 @@ impl ToIdentTypesExt for LocalName<'_> {
             "{}",
             misc::unkeywordify(self.to_string().to_snake_case().as_str())
         )
+    }
+}
+
+impl ToIdentTypesExt for LocalNameBuf {
+    fn to_item_ident(&self) -> Ident {
+        self.deref().to_item_ident()
+    }
+    fn to_field_ident(&self) -> Ident {
+        self.deref().to_field_ident()
+    }
+
+    fn to_variant_ident(&self) -> Ident {
+        self.deref().to_variant_ident()
+    }
+
+    fn to_path_ident(&self) -> Ident {
+        self.deref().to_path_ident()
     }
 }
 

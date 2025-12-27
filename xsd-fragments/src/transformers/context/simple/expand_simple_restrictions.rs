@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use xmlity::ExpandedName;
+use xmlity::{ExpandedName, ExpandedNameBuf};
 
 use crate::fragments::{
     complex::TopLevelTypeId,
@@ -22,13 +22,13 @@ pub enum Error {
     #[error("Base {base} not found in the context")]
     BaseNotFound {
         /// The base type name that was not found.
-        base: ExpandedName<'static>,
+        base: ExpandedNameBuf,
     },
     /// Base type is not a simple type.
     #[error("Base {base} is not a simple type")]
     BaseNotSimpleType {
         /// The base type name that is not simple.
-        base: ExpandedName<'static>,
+        base: ExpandedNameBuf,
     },
 }
 
@@ -181,13 +181,15 @@ impl<'a> ExpandSimpleRestriction<'a> {
             return Ok(TransformChange::default());
         };
 
-        if self.allowed_bases.iter().any(|b| b == base) {
+        if self.allowed_bases.iter().any(|b| *b == base.as_ref()) {
             // If the base is not in the allowed bases, we skip it
             return Ok(TransformChange::default());
         }
 
+        let base_name = base.as_ref();
+
         let TopLevelTypeId::SimpleType(base_simple_type) = *ctx
-            .get_named_type(&fragment_idx.namespace_idx(), base)
+            .get_named_type(&fragment_idx.namespace_idx(), &base_name)
             .ok_or(Error::BaseNotFound { base: base.clone() })?
         else {
             return Err(Error::BaseNotSimpleType { base: base.clone() });

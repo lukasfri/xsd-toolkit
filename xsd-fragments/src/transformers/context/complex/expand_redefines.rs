@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use xmlity::ExpandedName;
 use xsd::UrlExt;
 
@@ -104,11 +106,13 @@ impl ExpandRedefineFragments {
 
         let group_ref_fragment = fragment.clone();
 
-        if &group_ref_fragment.ref_ != allowed_name {
+        if group_ref_fragment.ref_.as_ref() != *allowed_name {
             return Ok(NestedParticleId::Group(*fragment_idx));
         }
 
-        let Some(named_group) = ctx.get_named_group(target, &group_ref_fragment.ref_) else {
+        let ref_name = group_ref_fragment.ref_.as_ref();
+
+        let Some(named_group) = ctx.get_named_group(target, &ref_name) else {
             return Ok(NestedParticleId::Group(*fragment_idx));
         };
 
@@ -399,7 +403,7 @@ impl ExpandRedefineFragments {
 
         let offsets = target_document.compiler.merge_with(
             &redefined_document.compiler,
-            &redefined_document.target_namespace,
+            &redefined_document.target_namespace.as_deref(),
             &target_document.target_namespace,
             old_base_url,
             new_base_url,
@@ -418,7 +422,7 @@ impl ExpandRedefineFragments {
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &redefined_document.target_namespace,
+                            &redefined_document.target_namespace.as_deref(),
                             &target_document.target_namespace,
                         )
                 });
@@ -437,7 +441,7 @@ impl ExpandRedefineFragments {
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &redefined_document.target_namespace,
+                            &redefined_document.target_namespace.as_deref(),
                             &target_document.target_namespace,
                         )
                 });
@@ -456,7 +460,7 @@ impl ExpandRedefineFragments {
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &redefined_document.target_namespace,
+                            &redefined_document.target_namespace.as_deref(),
                             &target_document.target_namespace,
                         )
                 });
@@ -475,7 +479,7 @@ impl ExpandRedefineFragments {
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &redefined_document.target_namespace,
+                            &redefined_document.target_namespace.as_deref(),
                             &target_document.target_namespace,
                         )
                 });
@@ -494,7 +498,7 @@ impl ExpandRedefineFragments {
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &redefined_document.target_namespace,
+                            &redefined_document.target_namespace.as_deref(),
                             &target_document.target_namespace,
                         )
                 });
@@ -511,7 +515,7 @@ impl ExpandRedefineFragments {
                     &offsets,
                 )
                 .with_remapped_namespace(
-                    &redefined_document.target_namespace,
+                    &redefined_document.target_namespace.as_deref(),
                     &target_document.target_namespace,
                 )
             })
@@ -600,7 +604,7 @@ impl ExpandRedefineFragments {
                     &offsets,
                 )
                 .with_remapped_namespace(
-                    &redefined_document.target_namespace,
+                    &redefined_document.target_namespace.as_deref(),
                     &target_document.target_namespace,
                 )
             })
@@ -694,11 +698,11 @@ impl ExpandRedefineFragments {
                                             .get_fragment(&extension_idx)
                                             .expect("Expected extension fragment to be found");
 
-                                        assert_eq!(*extension.base.namespace(), redefined_document.target_namespace, "Right now we're assuming that the base is in the same namespace as the redefine fragment");
+                                        assert_eq!(extension.base.namespace(), redefined_document.target_namespace.as_deref(), "Right now we're assuming that the base is in the same namespace as the redefine fragment");
 
                                         let TopLevelTypeId::ComplexType(base_fragment_idx) = *redefined_document
                                             .top_level_types
-                                            .get(&extension.base.local_name())
+                                            .get(extension.base.local_name())
                                             .expect("Expected base fragment with same local name to be found")
                                         else {
                                             panic!("Expected base fragment to also be a complex type");
@@ -709,7 +713,7 @@ impl ExpandRedefineFragments {
                                             &target_document.compiler.namespace_idx,
                                             &offsets,
                                         ).with_remapped_namespace(
-                                            &redefined_document.target_namespace,
+                                            &redefined_document.target_namespace.as_deref(),
                                             &target_document.target_namespace,
                                         );
 
@@ -725,7 +729,7 @@ impl ExpandRedefineFragments {
                                             .get_fragment(&restriction_idx)
                                             .expect("Expected restriction fragment to be found");
 
-                                        assert_eq!(*restriction.base.namespace(), redefined_document.target_namespace, "Right now we're assuming that the base is in the same namespace as the redefine fragment");
+                                        assert_eq!(restriction.base.namespace(), redefined_document.target_namespace.as_deref(), "Right now we're assuming that the base is in the same namespace as the redefine fragment");
 
                                         let TopLevelTypeId::ComplexType(base_fragment_idx) = *redefined_document
                                             .top_level_types
@@ -740,7 +744,7 @@ impl ExpandRedefineFragments {
                                             &target_document.compiler.namespace_idx,
                                             &offsets,
                                         ).with_remapped_namespace(
-                                            &redefined_document.target_namespace,
+                                            &redefined_document.target_namespace.as_deref(),
                                             &target_document.target_namespace,
                                         );
 
@@ -800,7 +804,7 @@ impl ExpandRedefineFragments {
                             &target_document.compiler.namespace_idx,
                             &offsets,
                         ).with_remapped_namespace(
-                            &redefined_document.target_namespace,
+                            &redefined_document.target_namespace.as_deref(),
                             &target_document.target_namespace,
                         );
 
@@ -848,7 +852,7 @@ impl ExpandRedefineFragments {
                             (i, &fragment.ref_)
                         })
                         .find_map(|(i, name)| {
-                            (name.local_name() == this_name).then_some(i)
+                            (name.local_name() == this_name.deref()).then_some(i)
                         });
 
                         let Some(index) = possible_index else {
@@ -895,11 +899,12 @@ impl ExpandRedefineFragments {
                             .get_fragment(&root_fragment_idx)
                             .expect("Expected fragment to be found");
 
-                        let this_name = root_fragment.name.clone();
-
                         let content_id = root_fragment.content;
 
-                        let allowed_name = ExpandedName::new(this_name, redefined_document.target_namespace.clone());
+                        let local_name = root_fragment.name.clone();
+                        let ns = redefined_document.target_namespace.clone();
+
+                        let allowed_name = ExpandedName::new(&local_name, ns.as_deref());
 
                         // TODO: Transform node to change all references to the redefined group to the content of the redefined group.
                         let transformed_content_id = Self::expand_group_references(ctx, &content_id, &allowed_name, &schema_location, target_idx, &offsets).expect("Expected to expand group references");

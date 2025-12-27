@@ -28,7 +28,10 @@ reqwest = { version = "0.12.22", features = ["blocking"] }
 rstest.workspace = true
 pretty_assertions.workspace = true
 tokio = { version = "1.46.1", features = ["full"] }
-
+xsd-codegen-xmlity-xsd-types.workspace = true
+xmlity-ns-xsd-types.workspace = true
+xmlity-ns.workspace = true
+xmlity-ns-xml.workspace = true
 
 [lints]
 workspace = true

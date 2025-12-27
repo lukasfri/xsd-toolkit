@@ -3,11 +3,11 @@
 use std::{any::type_name, num::NonZeroUsize};
 use xsd::{ns, xs};
 
-use xmlity::{ExpandedName, LocalName, XmlNamespace};
+use xmlity::{ExpandedNameBuf, LocalNameBuf, XmlNamespace, XmlNamespaceBuf};
 
 use crate::{
     fragments::{
-        complex::XmlNamespaceExt, Context, FragmentAccess, FragmentCollection, FragmentIdx,
+        complex::XmlNamespaceBufExt, Context, FragmentAccess, FragmentCollection, FragmentIdx,
         FragmentedXsdDocumentIdx, HasFragmentCollection,
     },
     NamedOrAnonymous,
@@ -22,7 +22,7 @@ pub trait SimpleOffsetable {
         offsets: &IdOffsets,
     );
 
-    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>);
+    fn remap_namespace(&mut self, old: &Option<&XmlNamespace>, new: &Option<XmlNamespaceBuf>);
 }
 
 pub trait SimpleOffsetableExt: SimpleOffsetable + Sized {
@@ -38,8 +38,8 @@ pub trait SimpleOffsetableExt: SimpleOffsetable + Sized {
 
     fn with_remapped_namespace(
         mut self,
-        old: &Option<XmlNamespace>,
-        new: &Option<XmlNamespace<'static>>,
+        old: &Option<&XmlNamespace>,
+        new: &Option<XmlNamespaceBuf>,
     ) -> Self {
         self.remap_namespace(old, new);
         self
@@ -61,12 +61,12 @@ impl SimpleOffsetable for NamedOrAnonymous<FragmentIdx<SimpleTypeRootFragment>> 
         }
     }
 
-    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+    fn remap_namespace(&mut self, old: &Option<&XmlNamespace>, new: &Option<XmlNamespaceBuf>) {
         match self {
             NamedOrAnonymous::Named(expanded_name) => {
-                if expanded_name.namespace() == old {
+                if expanded_name.namespace() == *old {
                     *expanded_name =
-                        ExpandedName::new(expanded_name.local_name().clone(), new.clone());
+                        ExpandedNameBuf::new(expanded_name.local_name().to_owned(), new.clone());
                 }
             }
             NamedOrAnonymous::Anonymous(_) => {}
@@ -91,11 +91,7 @@ impl<T: HasOffset> SimpleOffsetable for FragmentIdx<T> {
         }
     }
 
-    fn remap_namespace(
-        &mut self,
-        _old: &Option<XmlNamespace>,
-        _new: &Option<XmlNamespace<'static>>,
-    ) {
+    fn remap_namespace(&mut self, _old: &Option<&XmlNamespace>, _new: &Option<XmlNamespaceBuf>) {
         // No namespace remapping needed for simple fragments.
     }
 }
@@ -140,7 +136,7 @@ impl HasOffset for GroupRefFragment {
 #[derive(Debug, Clone, PartialEq)]
 pub struct RestrictionFragment {
     /// The base type being restricted.
-    pub base: Option<ExpandedName<'static>>,
+    pub base: Option<ExpandedNameBuf>,
     /// Facets applied in this restriction.
     pub facets: VecDeque<FragmentIdx<FacetFragment>>,
     /// Inline simple type definition.
@@ -165,10 +161,10 @@ impl SimpleOffsetable for RestrictionFragment {
         }
     }
 
-    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+    fn remap_namespace(&mut self, old: &Option<&XmlNamespace>, new: &Option<XmlNamespaceBuf>) {
         if let Some(ref mut base) = self.base {
-            if base.namespace() == old {
-                *base = ExpandedName::new(base.local_name().clone(), new.clone());
+            if base.namespace() == *old {
+                *base = ExpandedNameBuf::new(base.local_name().to_owned(), new.clone());
             }
         }
         self.facets
@@ -184,7 +180,7 @@ impl SimpleOffsetable for RestrictionFragment {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleTypeRootFragment {
     /// Name of the simple type (None for anonymous types).
-    pub name: Option<LocalName<'static>>,
+    pub name: Option<LocalNameBuf>,
     /// How the simple type is derived.
     pub simple_derivation: SimpleDerivation,
 }
@@ -200,7 +196,7 @@ impl SimpleOffsetable for SimpleTypeRootFragment {
         self.simple_derivation.offset(target, new, offsets);
     }
 
-    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+    fn remap_namespace(&mut self, old: &Option<&XmlNamespace>, new: &Option<XmlNamespaceBuf>) {
         self.simple_derivation.remap_namespace(old, new);
     }
 }
@@ -225,7 +221,7 @@ impl SimpleOffsetable for ListFragment {
         self.item_type.offset(target, new, offsets);
     }
 
-    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+    fn remap_namespace(&mut self, old: &Option<&XmlNamespace>, new: &Option<XmlNamespaceBuf>) {
         self.item_type.remap_namespace(old, new);
     }
 }
@@ -234,7 +230,7 @@ impl SimpleOffsetable for ListFragment {
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnionFragment {
     /// Named member types.
-    pub member_types: VecDeque<ExpandedName<'static>>,
+    pub member_types: VecDeque<ExpandedNameBuf>,
     /// Inline simple type definitions.
     pub simple_types: VecDeque<FragmentIdx<SimpleTypeRootFragment>>,
     /// ID attribute for the union.
@@ -254,11 +250,11 @@ impl SimpleOffsetable for UnionFragment {
             .for_each(|s| s.offset(target, new, offsets));
     }
 
-    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+    fn remap_namespace(&mut self, old: &Option<&XmlNamespace>, new: &Option<XmlNamespaceBuf>) {
         self.member_types.iter_mut().for_each(|m| {
-            if m.namespace() == old {
-                let local_name = m.local_name().clone();
-                *m = ExpandedName::new(local_name, new.clone());
+            if m.namespace() == *old {
+                let local_name = m.local_name().to_owned();
+                *m = ExpandedNameBuf::new(local_name, new.clone());
             }
         });
         self.simple_types
@@ -271,7 +267,7 @@ impl SimpleOffsetable for UnionFragment {
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupRefFragment {
     /// Reference to the group.
-    pub ref_: ExpandedName<'static>,
+    pub ref_: ExpandedNameBuf,
 }
 
 impl SimpleOffsetable for GroupRefFragment {
@@ -283,9 +279,9 @@ impl SimpleOffsetable for GroupRefFragment {
     ) {
     }
 
-    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
-        if self.ref_.namespace() == old {
-            self.ref_ = ExpandedName::new(self.ref_.local_name().clone(), new.clone());
+    fn remap_namespace(&mut self, old: &Option<&XmlNamespace>, new: &Option<XmlNamespaceBuf>) {
+        if self.ref_.namespace() == *old {
+            self.ref_ = ExpandedNameBuf::new(self.ref_.local_name().to_owned(), new.clone());
         }
     }
 }
@@ -452,11 +448,7 @@ impl SimpleOffsetable for FacetFragment {
     ) {
     }
 
-    fn remap_namespace(
-        &mut self,
-        _old: &Option<XmlNamespace>,
-        _new: &Option<XmlNamespace<'static>>,
-    ) {
+    fn remap_namespace(&mut self, _old: &Option<&XmlNamespace>, _new: &Option<XmlNamespaceBuf>) {
         // No namespace remapping needed for facets.
     }
 }
@@ -513,8 +505,8 @@ impl SimpleTypeFragmentCompiler {
     pub fn merge_with(
         &mut self,
         other: &Self,
-        old_target_namespace: &Option<XmlNamespace<'_>>,
-        new_target_namespace: &Option<XmlNamespace<'static>>,
+        old_target_namespace: &Option<&XmlNamespace>,
+        new_target_namespace: &Option<XmlNamespaceBuf>,
     ) -> Result<IdOffsets, Error> {
         let merge_result = IdOffsets {
             simple_type_roots_offset: self.simple_types.len(),
@@ -1598,8 +1590,9 @@ impl SimpleFragmentEquivalent for xs::Union {
                     .0
                     .iter()
                     .map(|a| {
-                        a.0.clone()
-                            .with_default_namespace(|| context.default_namespace.cloned())
+                        a.0.clone().with_default_namespace(|| {
+                            context.default_namespace.map(|a| a.to_owned())
+                        })
                     })
                     .collect()
             })
@@ -1770,7 +1763,7 @@ impl SimpleOffsetable for SimpleDerivation {
         }
     }
 
-    fn remap_namespace(&mut self, old: &Option<XmlNamespace>, new: &Option<XmlNamespace<'static>>) {
+    fn remap_namespace(&mut self, old: &Option<&XmlNamespace>, new: &Option<XmlNamespaceBuf>) {
         match self {
             SimpleDerivation::Restriction(fragment_id) => fragment_id.remap_namespace(old, new),
             SimpleDerivation::List(fragment_id) => fragment_id.remap_namespace(old, new),

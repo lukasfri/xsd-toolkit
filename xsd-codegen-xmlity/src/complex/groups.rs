@@ -400,7 +400,7 @@ impl ComplexToTypeTemplate<FragmentIdx<cx::GroupRefFragment>> for GroupRefFragme
         let min_occurs = item.min_occurs.unwrap_or(1);
         let max_occurs = item.max_occurs.unwrap_or_default();
 
-        let ty = context.resolve_named_group(&fragment_idx.namespace_idx(), &item.ref_)?;
+        let ty = context.resolve_named_group(&fragment_idx.namespace_idx(), &item.ref_.as_ref())?;
 
         let (ty, optional) = super::min_max_occurs_type(min_occurs, max_occurs, ty);
 
@@ -899,7 +899,7 @@ impl ComplexToTypeTemplate<cx::TopLevelGroupFragment> for TopLevelGroupHandler {
         scope: &mut S,
         item: &cx::TopLevelGroupFragment,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
-        let ident = item.name.as_ref().to_item_ident();
+        let ident = item.name.to_item_ident();
 
         let fragment = self.named_group_type_content_handler.to_type_template(
             &context.sub_context(ident.clone()),

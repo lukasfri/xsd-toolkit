@@ -189,8 +189,8 @@ fn three_sequence_deep_complex_type_expected() -> File {
     EMPTY_SEQUENCE_COMPLEX_TYPE_INPUT,
     empty_sequence_complex_type_expected(),
     ExpandedName::new(
-        LocalName::new_dangerous("SimpleSequence"),
-        Some(XmlNamespace::new_dangerous("http://example.com")),
+        LocalName::new("SimpleSequence").unwrap(),
+        Some(XmlNamespace::new("http://example.com").unwrap()),
     ),
     parse_quote! {
         ::std::boxed::Box<SimpleSequence>
@@ -200,8 +200,8 @@ fn three_sequence_deep_complex_type_expected() -> File {
     TWO_CHILD_SEQUENCE_COMPLEX_TYPE_INPUT,
     two_child_sequence_complex_type_expected(),
     ExpandedName::new(
-        LocalName::new_dangerous("SimpleSequence"),
-        Some(XmlNamespace::new_dangerous("http://example.com")),
+        LocalName::new("SimpleSequence").unwrap(),
+        Some(XmlNamespace::new("http://example.com").unwrap()),
     ),
     parse_quote! {
         ::std::boxed::Box<SimpleSequence>
@@ -211,8 +211,8 @@ fn three_sequence_deep_complex_type_expected() -> File {
     TWO_ATTRIBUTE_SEQUENCE_COMPLEX_TYPE_INPUT,
     two_attribute_sequence_complex_type_expected(),
     ExpandedName::new(
-        LocalName::new_dangerous("SimpleSequence"),
-        Some(XmlNamespace::new_dangerous("http://example.com")),
+        LocalName::new("SimpleSequence").unwrap(),
+        Some(XmlNamespace::new("http://example.com").unwrap()),
     ),
     parse_quote! {
         ::std::boxed::Box<SimpleSequence>
@@ -222,8 +222,8 @@ fn three_sequence_deep_complex_type_expected() -> File {
     TWO_SEQUENCE_DEEP_COMPLEX_TYPE_INPUT,
     two_sequence_deep_complex_type_expected(),
     ExpandedName::new(
-        LocalName::new_dangerous("SimpleSequence"),
-        Some(XmlNamespace::new_dangerous("http://example.com")),
+        LocalName::new("SimpleSequence").unwrap(),
+        Some(XmlNamespace::new("http://example.com").unwrap()),
     ),
     parse_quote! {
         ::std::boxed::Box<SimpleSequence>
@@ -233,8 +233,8 @@ fn three_sequence_deep_complex_type_expected() -> File {
     THREE_SEQUENCE_DEEP_COMPLEX_TYPE_INPUT,
     three_sequence_deep_complex_type_expected(),
     ExpandedName::new(
-        LocalName::new_dangerous("SimpleSequence"),
-        Some(XmlNamespace::new_dangerous("http://example.com")),
+        LocalName::new("SimpleSequence").unwrap(),
+        Some(XmlNamespace::new("http://example.com").unwrap()),
     ),
     parse_quote! {
         ::std::boxed::Box<SimpleSequence>

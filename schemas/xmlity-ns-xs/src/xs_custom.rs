@@ -1,7 +1,7 @@
 use core::fmt;
 
 use xmlity::{
-    de::DeserializeContext, Deserialize, ExpandedName, LocalName, Prefix, Serialize, XmlNamespace,
+    de::DeserializeContext, Deserialize, ExpandedName, LocalName, Prefix, Serialize, ExpandedNameBuf,
 };
 
 pub mod types {
@@ -9,16 +9,16 @@ pub mod types {
     use super::*;
 
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct QName(pub ExpandedName<'static>);
+    pub struct QName(pub ExpandedNameBuf);
 
-    impl From<QName> for ExpandedName<'static> {
+    impl From<QName> for ExpandedNameBuf {
         fn from(qname: QName) -> Self {
             qname.0
         }
     }
 
-    impl From<ExpandedName<'static>> for QName {
-        fn from(expanded_name: ExpandedName<'static>) -> Self {
+    impl From<ExpandedNameBuf> for QName {
+        fn from(expanded_name: ExpandedNameBuf) -> Self {
             Self(expanded_name)
         }
     }
@@ -46,20 +46,19 @@ pub mod types {
 
                     let expanded_name = match last_part {
                         Some(last_part) => {
-                            let local_name = LocalName::new(last_part).unwrap().into_owned();
+                            let local_name = LocalName::new(last_part).unwrap();
 
                             let prefix = Prefix::new(first_part).unwrap();
-                            let namespace = ctx.resolve_prefix(prefix).unwrap().into_owned();
+                            let namespace = ctx.resolve_prefix(prefix).unwrap();
 
-                            ExpandedName::new(local_name, Some(namespace))
+                            ExpandedName::new(local_name, Some(namespace)).into_owned()
                         }
                         None => {
-                            let local_name = LocalName::new(first_part).unwrap().into_owned();
+                            let local_name = LocalName::new(first_part).unwrap();
 
-                            let default_namespace =
-                                ctx.default_namespace().map(XmlNamespace::into_owned);
+                            let default_namespace = ctx.default_namespace();
 
-                            ExpandedName::new(local_name, default_namespace)
+                            ExpandedName::new(local_name, default_namespace).into_owned()
                         }
                     };
 

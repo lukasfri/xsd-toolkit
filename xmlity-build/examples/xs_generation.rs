@@ -49,7 +49,7 @@ fn main() {
         ])
         .bound_types(vec![
             (
-                ExpandedName::new(LocalName::new_dangerous("QName"), Some(XmlNamespace::XS)),
+                ExpandedName::new(LocalName::new("QName").unwrap(), Some(XmlNamespace::XS)),
                 BoundType {
                     ty: TypeReference::new_static(parse_quote!(crate::types::QName)),
                     ty_type: TypeType::Simple,
@@ -59,9 +59,9 @@ fn main() {
                 },
             ),
             (
-                ExpandedName::new(LocalName::new_dangerous("NCName"), Some(XmlNamespace::XS)),
+                ExpandedName::new(LocalName::new("NCName").unwrap(), Some(XmlNamespace::XS)),
                 BoundType {
-                    ty: TypeReference::new_static(parse_quote!(::xmlity::LocalName<'static>)),
+                    ty: TypeReference::new_static(parse_quote!(::xmlity::LocalNameBuf)),
                     ty_type: TypeType::Simple,
                     serialize_with: None,
                     deserialize_with: None,

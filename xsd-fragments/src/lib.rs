@@ -12,7 +12,7 @@
 //! (Top level complex types)[`fragments::complex::ComplexTypeRootFragment`] and (top level simple types)[`fragments::simple::SimpleTypeRootFragment`] are represented by the same data structure as their
 //! local counterparts when in fragment form due to ease of use when doing transformations and generation.
 
-use xmlity::{ExpandedName, XmlNamespace};
+use xmlity::{ExpandedNameBuf, XmlNamespaceBuf};
 
 pub mod fragments;
 
@@ -35,7 +35,7 @@ pub enum Error {
     #[display("Tried to import a namespace that does not exist")]
     NonExistentXmlNamespace {
         /// The namespace that was attempted to be accessed.
-        namespace: XmlNamespace<'static>,
+        namespace: XmlNamespaceBuf,
     },
     /// Tried to use an undefined namespace.
     #[display("Tried to use an undefined namespace")]
@@ -52,7 +52,7 @@ pub enum Error {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum NamedOrAnonymous<T> {
     /// A named type, represented by an [`ExpandedName`].
-    Named(ExpandedName<'static>),
+    Named(ExpandedNameBuf),
     /// An anonymous type, represented by a value of type `T`.
     Anonymous(T),
 }

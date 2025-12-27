@@ -92,7 +92,7 @@ const XSD_TYPE_DERIVATION_CONTROL: &str = r###"
 
 fn xsd_type_derivation_control() -> xs::SimpleType {
     xs::types::TopLevelSimpleType::builder()
-        .name(LocalName::new_dangerous("typeDerivationControl"))
+        .name(LocalName::new("typeDerivationControl").unwrap().to_owned())
         .annotation(
             xs::Annotation::from(
                 xs::annotation_items::Annotation::builder()
@@ -114,10 +114,13 @@ fn xsd_type_derivation_control() -> xs::SimpleType {
         .simple_derivation(Box::new(
             xs::Restriction::from(
                 xs::restriction_items::Restriction::builder()
-                    .base(xs::types::QName(ExpandedName::new(
-                        LocalName::new_dangerous("derivationControl"),
-                        Some(XmlNamespace::XS),
-                    )))
+                    .base(xs::types::QName(
+                        ExpandedName::new(
+                            LocalName::new("derivationControl").unwrap(),
+                            Some(XmlNamespace::XS),
+                        )
+                        .into_owned(),
+                    ))
                     .simple_restriction_model(
                         xs::groups::SimpleRestrictionModel::builder()
                             .child_1(vec![
@@ -234,7 +237,7 @@ const XSD_BLOCK_SET: &str = r###"
 
 fn xsd_block_set() -> xs::SimpleType {
     xs::types::TopLevelSimpleType::builder()
-    .name(LocalName::new_dangerous("blockSet"))
+    .name(LocalName::new("blockSet").unwrap().to_owned())
     .annotation(
         xs::Annotation::from(xs::annotation_items::Annotation::builder()
             .annotation_content(vec![
@@ -267,9 +270,9 @@ fn xsd_block_set() -> xs::SimpleType {
                     .simple_derivation(Box::new(
                         xs::Restriction::from(xs::restriction_items::Restriction::builder()
                             .base(xs::types::QName(ExpandedName::new(
-                                LocalName::new_dangerous("token"),
+                                LocalName::new("token").unwrap(),
                                 Some(XmlNamespace::XS),
-                            )))
+                            ).into_owned()))
                             .simple_restriction_model(
                                 xs::groups::SimpleRestrictionModel::builder()
                                     .child_1(vec![
@@ -298,9 +301,9 @@ fn xsd_block_set() -> xs::SimpleType {
                             .simple_derivation(Box::new(
                                 xs::Restriction::from(xs::restriction_items::Restriction::builder()
                                     .base(xs::types::QName(ExpandedName::new(
-                                        LocalName::new_dangerous("derivationControl"),
+                                        LocalName::new("derivationControl").unwrap(),
                                         Some(XmlNamespace::XS),
-                                    )))
+                                    ).into_owned()))
                                     .simple_restriction_model(
                                         xs::groups::SimpleRestrictionModel::builder()
                                             .child_1(vec![

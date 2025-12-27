@@ -202,7 +202,7 @@ impl ExpandOverrideFragments {
 
         let offsets = target_document.compiler.merge_with(
             &overriden_document.compiler,
-            &overriden_document.target_namespace,
+            &overriden_document.target_namespace.as_deref(),
             &target_document.target_namespace,
             old_base_url,
             new_base_url,
@@ -221,7 +221,7 @@ impl ExpandOverrideFragments {
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &overriden_document.target_namespace,
+                            &overriden_document.target_namespace.as_deref(),
                             &target_document.target_namespace,
                         )
                 });
@@ -240,7 +240,7 @@ impl ExpandOverrideFragments {
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &overriden_document.target_namespace,
+                            &overriden_document.target_namespace.as_deref(),
                             &target_document.target_namespace,
                         )
                 });
@@ -259,7 +259,7 @@ impl ExpandOverrideFragments {
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &overriden_document.target_namespace,
+                            &overriden_document.target_namespace.as_deref(),
                             &target_document.target_namespace,
                         )
                 });
@@ -278,7 +278,7 @@ impl ExpandOverrideFragments {
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &overriden_document.target_namespace,
+                            &overriden_document.target_namespace.as_deref(),
                             &target_document.target_namespace,
                         )
                 });
@@ -297,7 +297,7 @@ impl ExpandOverrideFragments {
                             &offsets,
                         )
                         .with_remapped_namespace(
-                            &overriden_document.target_namespace,
+                            &overriden_document.target_namespace.as_deref(),
                             &target_document.target_namespace,
                         )
                 });
@@ -314,7 +314,7 @@ impl ExpandOverrideFragments {
                     &offsets,
                 )
                 .with_remapped_namespace(
-                    &overriden_document.target_namespace,
+                    &overriden_document.target_namespace.as_deref(),
                     &target_document.target_namespace,
                 )
             })
@@ -422,7 +422,7 @@ impl ExpandOverrideFragments {
                     &offsets,
                 )
                 .with_remapped_namespace(
-                    &overriden_document.target_namespace,
+                    &overriden_document.target_namespace.as_deref(),
                     &target_document.target_namespace,
                 )
             })

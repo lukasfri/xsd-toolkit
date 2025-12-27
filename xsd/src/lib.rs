@@ -42,10 +42,10 @@ impl XmlSchema {
     }
 
     /// Returns the target namespace of the schema.
-    pub fn namespace(&self) -> Option<xmlity::XmlNamespace<'_>> {
+    pub fn namespace(&self) -> Option<&xmlity::XmlNamespace> {
         self.schema()
             .target_namespace
-            .as_ref()
+            .as_deref()
             .map(XmlNamespace::new)
             .transpose()
             .expect("Failed to parse namespace")

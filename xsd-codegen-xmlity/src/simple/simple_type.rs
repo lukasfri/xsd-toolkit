@@ -96,7 +96,7 @@ impl SimpleToTypeTemplate<sm::UnionFragment> for UnionHandler {
             .member_types
             .iter()
             .map(|name| {
-                let res = context.resolve_named_type(context.namespace_idx(), name)?;
+                let res = context.resolve_named_type(context.namespace_idx(), &name.as_ref())?;
 
                 assert_eq!(
                     res.ty_type,
@@ -257,7 +257,8 @@ impl SimpleToTypeTemplate<NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragmen
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
         match item {
             NamedOrAnonymous::Named(name) => {
-                let bound_type = context.resolve_named_type(context.namespace_idx(), name)?;
+                let bound_type =
+                    context.resolve_named_type(context.namespace_idx(), &name.as_ref())?;
 
                 assert_eq!(
                     bound_type.ty_type,
@@ -291,7 +292,7 @@ impl SimpleToTypeTemplate<Option<NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRoot
     ) -> crate::Result<crate::ToTypeTemplateData<Self::TypeTemplate>> {
         static SIMPLE_ANY_TYPE_NAMED: LazyLock<
             NamedOrAnonymous<FragmentIdx<sm::SimpleTypeRootFragment>>,
-        > = LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.clone()));
+        > = LazyLock::new(|| NamedOrAnonymous::Named(xsd::xsn::SIMPLE_ANY_TYPE.into_owned()));
 
         self.to_type_template(
             context,

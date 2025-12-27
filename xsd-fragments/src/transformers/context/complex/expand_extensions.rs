@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::collections::VecDeque;
 
 use xmlity::ExpandedName;
+use xmlity::ExpandedNameBuf;
 
 use crate::fragments::complex::AssertionsFragment;
 use crate::fragments::complex::AttributeDeclarationId;
@@ -34,13 +35,13 @@ pub enum Error {
     #[error("Base {base} not found in the context")]
     BaseNotFound {
         /// The base type that was not found.
-        base: ExpandedName<'static>,
+        base: ExpandedNameBuf,
     },
     /// Base type is not a complex type.
     #[error("Base {base} is not a complex type")]
     BaseNotComplexType {
         /// The base type that is not a complex type.
-        base: ExpandedName<'static>,
+        base: ExpandedNameBuf,
     },
     /// Base attribute group exists.
     #[error("Base attribute group exists")]
@@ -108,13 +109,13 @@ impl ExpandExtensionFragments {
         fn resolve_attr_name(
             ctx: &XmlnsContextTransformerContext,
             a: &FragmentIdx<LocalAttributeFragment>,
-        ) -> ExpandedName<'static> {
+        ) -> ExpandedNameBuf {
             let fragment = ctx
                 .get_complex_fragment(a)
                 .expect("Fragment not found in compiler.");
             match &fragment.type_mode {
                 LocalAttributeFragmentTypeMode::Declared(local) => {
-                    ExpandedName::new(local.name.clone(), None)
+                    ExpandedNameBuf::new(local.name.clone(), None)
                 }
                 LocalAttributeFragmentTypeMode::Reference(ref_) => ref_.ref_.clone(),
             }
@@ -257,7 +258,7 @@ impl ExpandExtensionFragments {
                     attr_decls,
                     assertions,
                     ..
-                } => (particle, xsn::ANY_TYPE.clone(), attr_decls, assertions),
+                } => (particle, xsn::ANY_TYPE.into_owned(), attr_decls, assertions),
                 ComplexTypeModelId::SimpleContent(_) => {
                     //TODO
                     return Ok(TransformChange::Unchanged);
@@ -286,7 +287,7 @@ impl ExpandExtensionFragments {
                                 .get_complex_fragment::<RestrictionFragment>(&fragment_idx)
                                 .expect("Fragment not found in compiler.");
 
-                            if base_restriction_fragment.base != *xsn::ANY_TYPE {
+                            if base_restriction_fragment.base.as_ref() != *xsn::ANY_TYPE {
                                 // Cannot expand a restriction of a non-anyType type.
                                 return Ok(TransformChange::Unchanged);
                             }
@@ -388,12 +389,14 @@ impl ExpandExtensionFragments {
 
         let base = child_fragment.base.clone();
 
-        if base == *xsn::ANY_TYPE {
+        if base.as_ref() == *xsn::ANY_TYPE {
             return Ok(TransformChange::Unchanged);
         }
 
+        let base_name = base.as_ref();
+
         let base_fragment = ctx
-            .get_named_type(&child_fragment_idx.namespace_idx(), &base)
+            .get_named_type(&child_fragment_idx.namespace_idx(), &base_name)
             .ok_or(Error::BaseNotFound { base: base.clone() })?;
 
         let base_fragment = match base_fragment {

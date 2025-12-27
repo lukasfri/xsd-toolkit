@@ -13,7 +13,7 @@ use xsd_codegen_xmlity::{BoundType, TypeType};
 macro_rules! xs_name {
     ($local_name:expr) => {
         ExpandedName::new(
-            LocalName::new_dangerous($local_name),
+            unsafe { LocalName::new_unchecked($local_name) },
             Some(XmlNamespace::XS),
         )
     };

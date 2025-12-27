@@ -71,7 +71,7 @@ impl ExpandShortFormComplexTypes {
         let compiler = &mut ctx.current_namespace_mut().compiler;
 
         let complex_content = compiler.push_fragment(RestrictionFragment {
-            base: xsn::ANY_TYPE.clone(),
+            base: xsn::ANY_TYPE.into_owned(),
             content_fragment,
             attribute_declarations,
             assertions,

@@ -160,7 +160,8 @@ impl ComplexToTypeTemplate<FragmentIdx<cx::SimpleExtensionFragment>>
         fragment_idx: &FragmentIdx<cx::SimpleExtensionFragment>,
     ) -> Result<ToTypeTemplateData<Self::TypeTemplate>> {
         let item = context.get_fragment(fragment_idx)?;
-        let simple_type = context.resolve_named_type(&fragment_idx.namespace_idx(), &item.base)?;
+        let simple_type =
+            context.resolve_named_type(&fragment_idx.namespace_idx(), &item.base.as_ref())?;
 
         if simple_type.ty_type != crate::TypeType::Simple {
             return Err(crate::Error::UnsupportedFragment {

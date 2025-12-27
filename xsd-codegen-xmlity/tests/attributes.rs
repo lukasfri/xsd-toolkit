@@ -26,7 +26,7 @@ fn simple_attribute_expected() -> File {
 
 #[rstest::rstest]
 #[case::one_attribute_group(SIMPLE_ATTRIBUTE_INPUT, simple_attribute_expected(), 
-    ExpandedName::new(LocalName::new_dangerous("SimpleAttribute"), Some(XmlNamespace::new_dangerous("http://example.com"))),
+    ExpandedName::new(LocalName::new("SimpleAttribute").unwrap(), Some(XmlNamespace::new("http://example.com").unwrap())),
     syn::parse_quote!(SimpleAttribute))]
 fn attribute_generation(#[case] input: &str,
     #[case] expected_code: File,

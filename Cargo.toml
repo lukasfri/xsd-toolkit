@@ -31,14 +31,16 @@ xmlity-ns-xml = { path = "schemas/xmlity-ns-xml" }
 xmlity-ns = { path = "schemas/xmlity-ns" }
 xmlity-build = { path = "xmlity-build" }
 xbrl-xsd = { path = "schemas/xbrl-xsd" }
+xsd-codegen-xmlity-xsd-types = { path = "schemas/xsd-codegen-xmlity-xsd-types" }
+xmlity-ns-xsd-types = { path = "schemas/xmlity-ns-xsd-types" }
 thiserror = "^2.0.4"
 pretty_assertions = "^1.4.1"
 rstest = "^0.25.0"
 ntest = "0.9.3"
-xmlity = { version = "0.0.8", features = [
+xmlity = { version = "0.0.9", features = [
   "derive",
-], git = "https://github.com/lukasfri/xmlity.git", rev = "c6cdccc611e063eb7bd9f46033dc44abe4e9ad08" }
-xmlity-quick-xml = { version = "0.0.8", git = "https://github.com/lukasfri/xmlity.git", rev = "c6cdccc611e063eb7bd9f46033dc44abe4e9ad08" }
+], git = "https://github.com/lukasfri/xmlity.git", rev = "0958e8a1d6a130dd0520375fb0e24d950554c940" }
+xmlity-quick-xml = { version = "0.0.9", git = "https://github.com/lukasfri/xmlity.git", rev = "0958e8a1d6a130dd0520375fb0e24d950554c940" }
 url = { version = "2.5.4" }
 derive_more = { version = "2.0.1", features = ["full"] }
 static_assertions = "1.1.0"

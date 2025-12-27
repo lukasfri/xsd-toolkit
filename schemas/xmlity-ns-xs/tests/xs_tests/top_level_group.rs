@@ -189,15 +189,15 @@ const XSD_ALL_MODEL: &str = r###"
 fn xsd_all_model() -> xs::Group {
     xs::Group::from(
     xs::types::NamedGroup::builder()
-        .name(LocalName::new_dangerous("allModel"))
+        .name(LocalName::new("allModel").unwrap().to_owned())
         .child_1(
             xs::types::named_group_items::Child1::Sequence(xs::types::SimpleExplicitGroup::builder()
                 .nested_particle(vec![
                     xs::types::LocalElement::builder()
                         .ref_(xs::types::QName(ExpandedName::new(
-                            LocalName::new_dangerous("annotation"),
+                            LocalName::new("annotation").unwrap(),
                             Some(XmlNamespace::XS),
-                        )))
+                        ).into_owned()))
                         .min_occurs(0)
                         .any_attributes(xmlity_ns::AnyAttributes::default())
                         .build()
@@ -218,35 +218,35 @@ fn xsd_all_model() -> xs::Group {
                         )
                         .nested_particle(vec![
                             xs::types::LocalElement::builder()
-                                .name(LocalName::new_dangerous("element"))
-                                .type_attribute(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("localElement"), Some(XmlNamespace::XS))))
+                                .name(LocalName::new("element").unwrap().to_owned())
+                                .type_attribute(xs::types::QName(ExpandedName::new(LocalName::new("localElement").unwrap(), Some(XmlNamespace::XS)).into_owned()))
                                 .any_attributes(xmlity_ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                             xs::types::LocalElement::builder()
                                 .ref_(xs::types::QName(ExpandedName::new(
-                                    LocalName::new_dangerous("any"),
+                                    LocalName::new("any").unwrap(),
                                     Some(XmlNamespace::XS),
-                                )))
+                                ).into_owned()))
                                 .any_attributes(xmlity_ns::AnyAttributes::default())
                                 .build()
                                 .into(),
                             xs::types::LocalElement::builder()
-                                .name(LocalName::new_dangerous("group"))
+                                .name(LocalName::new("group").unwrap().to_owned())
                                 .type_(
                                     xs::types::LocalComplexType::builder()
                                         .complex_type_model(Box::new(
                                             xs::ComplexContent::from(xs::complex_content_items::ComplexContent::builder()
                                                 .child_1(
                                                     xs::types::ComplexRestrictionType::builder()
-                                                    .base(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("groupRef"), Some(XmlNamespace::XS))))
+                                                    .base(xs::types::QName(ExpandedName::new(LocalName::new("groupRef").unwrap(), Some(XmlNamespace::XS)).into_owned()))
                                                     .child_1(
                                                       xs::types::complex_restriction_type_items::Child1::builder().type_def_particle(
                                                         Box::new(xs::Sequence::from(xs::types::ExplicitGroup::builder()
                                                             .nested_particle(vec![
                                                                 
                                                                     xs::types::LocalElement::builder()
-                                                                        .ref_(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("annotation"), Some(XmlNamespace::XS))))
+                                                                        .ref_(xs::types::QName(ExpandedName::new(LocalName::new("annotation").unwrap(), Some(XmlNamespace::XS)).into_owned()))
                                                                         .min_occurs(0)
                                                                         .any_attributes(xmlity_ns::AnyAttributes::default())
                                                                         .build().into()
@@ -258,15 +258,15 @@ fn xsd_all_model() -> xs::Group {
                                                     )
                                                     .attr_decls(xs::groups::AttrDecls::builder().attribute(vec![
                                                         xs::types::Attribute::builder()
-                                                        .name(LocalName::new_dangerous("minOccurs"))
+                                                        .name(LocalName::new("minOccurs").unwrap().to_owned())
                                                         .fixed("1".to_string()) 
-                                                        .type_(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("nonNegativeInteger"), Some(XmlNamespace::XS))))
+                                                        .type_(xs::types::QName(ExpandedName::new(LocalName::new("nonNegativeInteger").unwrap(), Some(XmlNamespace::XS)).into_owned()))
                                                         .build()
                                                         .into(),
                                                         xs::types::Attribute::builder()
-                                                        .name(LocalName::new_dangerous("maxOccurs"))
+                                                        .name(LocalName::new("maxOccurs").unwrap().to_owned())
                                                         .fixed("1".to_string())
-                                                        .type_(xs::types::QName(ExpandedName::new(LocalName::new_dangerous("nonNegativeInteger"), Some(XmlNamespace::XS))))
+                                                        .type_(xs::types::QName(ExpandedName::new(LocalName::new("nonNegativeInteger").unwrap(), Some(XmlNamespace::XS)).into_owned()))
                                                         .build()
                                                         .into(),
                                                     ]).build().into())
