@@ -1,0 +1,32 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="xml.xsd"/>
+  <xs:simpleType name="derivationControl">
+    <xs:restriction base="xs:NMTOKEN">
+      <xs:enumeration value="substitution"/>
+      <xs:enumeration value="extension"/>
+      <xs:enumeration value="restriction"/>
+      <xs:enumeration value="list"/>
+      <xs:enumeration value="union"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="blockSet">
+    <xs:union>
+      <xs:simpleType>
+        <xs:restriction base="xs:token">
+          <xs:enumeration value="#all"/>
+        </xs:restriction>
+      </xs:simpleType>
+      <xs:simpleType>
+        <xs:list>
+          <xs:simpleType>
+            <xs:restriction base="xs:NMTOKEN">
+              <xs:enumeration value="extension"/>
+              <xs:enumeration value="restriction"/>
+              <xs:enumeration value="substitution"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:list>
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+</xs:schema>

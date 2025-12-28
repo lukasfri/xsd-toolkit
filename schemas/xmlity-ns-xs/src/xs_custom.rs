@@ -1,7 +1,8 @@
 use core::fmt;
 
 use xmlity::{
-    de::DeserializeContext, Deserialize, ExpandedName, LocalName, Prefix, Serialize, ExpandedNameBuf,
+    de::DeserializeContext, Deserialize, ExpandedName, ExpandedNameBuf, LocalName, Prefix,
+    Serialize,
 };
 
 pub mod types {

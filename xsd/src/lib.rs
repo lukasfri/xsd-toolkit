@@ -9,7 +9,7 @@
 //! from a URL tree through the [`set`] module.
 use std::ops::Deref;
 
-use xmlity::XmlNamespace;
+use xmlity::{Deserialize, Serialize, XmlNamespace};
 pub use xmlity_ns_xs as xs;
 /// XSD schema names and common type references.
 pub mod xsn;
@@ -23,6 +23,25 @@ pub mod set;
 pub struct XmlSchema {
     /// The underlying XSD schema.
     pub underlying_schema: xs::Schema,
+}
+
+impl Serialize for XmlSchema {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: xmlity::Serializer,
+    {
+        self.underlying_schema.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for XmlSchema {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: xmlity::Deserializer<'de>,
+    {
+        let schema = xs::Schema::deserialize(deserializer)?;
+        Ok(XmlSchema::new(schema))
+    }
 }
 
 impl XmlSchema {

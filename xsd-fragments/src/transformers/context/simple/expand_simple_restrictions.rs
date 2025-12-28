@@ -99,6 +99,10 @@ impl<'a> ExpandSimpleRestriction<'a> {
 
                 fragment.base = base_restriction.base.clone();
 
+                let child_contains_enumerations = fragment_facets
+                    .iter()
+                    .any(|facet| matches!(facet, FacetFragment::Enumeration { .. }));
+
                 base_restriction_facets
                     .into_iter()
                     .rev()
@@ -125,6 +129,9 @@ impl<'a> ExpandSimpleRestriction<'a> {
                                     FacetFragment::WhiteSpace { .. },
                                     FacetFragment::WhiteSpace { .. },
                                 ) => false,
+                                (FacetFragment::Enumeration { .. }, _) => {
+                                    !child_contains_enumerations
+                                }
                                 _ => true,
                             }
                         })
