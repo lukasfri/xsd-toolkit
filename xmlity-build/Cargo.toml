@@ -32,6 +32,11 @@ xsd-codegen-xmlity-xsd-types.workspace = true
 xmlity-ns-xsd-types.workspace = true
 xmlity-ns.workspace = true
 xmlity-ns-xml.workspace = true
+insta = { version = "1.43.1" }
 
 [lints]
 workspace = true
+
+[profile.dev.package]
+insta.opt-level = 3
+similar.opt-level = 3

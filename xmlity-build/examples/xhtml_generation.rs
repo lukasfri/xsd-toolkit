@@ -51,8 +51,8 @@ fn main() {
                 .namespace(FragmentedXsdDocumentKey(xhtml_datatypes_url))
                 .enum_from_impls(true)
                 .struct_from_impls(true)
-                .output_file(out_dir.join("xhtml_datatypes.rs"))
                 .build(),
+            &out_dir.join("xhtml_datatypes.rs"),
         )
         .unwrap();
 
@@ -62,8 +62,8 @@ fn main() {
                 .namespace(FragmentedXsdDocumentKey(xhtml_url))
                 .enum_from_impls(true)
                 .struct_from_impls(true)
-                .output_file(out_dir.join("xhtml.rs"))
                 .build(),
+            &out_dir.join("xhtml.rs"),
         )
         .unwrap();
 }

@@ -1,7 +1,7 @@
 //! This example is used to generate the `xmlity-ns-xml` crate.
 //!
 //! The `xmlity-ns-xml` crate can not use `xmlity-build` as a dependency, because it is itself a dependency of `xmlity-build`. Therefore, this example is used to generate the `xmlity-ns-xml` crate.
-use std::env::current_dir;
+use std::{env::current_dir, path::PathBuf};
 
 use syn::parse_quote;
 use url::Url;
@@ -38,16 +38,14 @@ fn main() {
     engine
         .generate_namespace(
             xmlity_build::GenerateNamespaceConfig::builder()
-                .output_file(
-                    "schemas/xmlity-ns-xml/src/lib.rs"
-                        .parse()
-                        .expect("Failed to parse output file path"),
-                )
                 .namespace(xml_path)
                 .bon_builders(true)
                 .enum_from_impls(true)
                 .struct_from_impls(true)
                 .build(),
+            &"schemas/xmlity-ns-xml/src/lib.rs"
+                .parse::<PathBuf>()
+                .expect("Failed to parse output file path"),
         )
         .expect("Failed to generate namespace");
 

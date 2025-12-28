@@ -1,6 +1,7 @@
 //! This crate provides an easy API for generating XMLity-based Rust code from XSD schemas.
 //!
 //! It is designed to be able to be used in a build script, and provides a easy-to-use step-by-step API.
+use std::path::Path;
 use std::{collections::HashSet, path::PathBuf};
 
 use bon::Builder;
@@ -66,8 +67,6 @@ pub struct BuildEngine {
 pub struct GenerateNamespaceConfig {
     /// The XML namespace to generate code for.
     pub namespace: FragmentedXsdDocumentKey,
-    /// The output file where the generated code will be written.
-    pub output_file: PathBuf,
     /// Derive `bon::builders::Builder` for structs.
     #[builder(default = false)]
     pub bon_builders: bool,
@@ -282,11 +281,10 @@ pub struct StartedBuildEngine {
 }
 
 impl StartedBuildEngine {
-    /// Generates a namespace based on the provided configuration.
-    pub fn generate_namespace<N: Into<GenerateNamespaceConfig>>(
+    pub fn generate_namespace_output<N: Into<GenerateNamespaceConfig>>(
         &self,
         generate_namespace: N,
-    ) -> Result<(), Error> {
+    ) -> Result<String, Error> {
         let generate_namespace = generate_namespace.into();
 
         let mut generator = xsd_codegen_xmlity::Generator::new_with_augmenter(
@@ -349,8 +347,19 @@ impl StartedBuildEngine {
 
         let output = prettyplease::unparse(&file);
 
-        std::fs::write(&generate_namespace.output_file, output)
-            .map_err(|e| Error::FileWriteError(e, generate_namespace.output_file.clone()))?;
+        Ok(output)
+    }
+
+    /// Generates a namespace based on the provided configuration.
+    pub fn generate_namespace<N: Into<GenerateNamespaceConfig>>(
+        &self,
+        generate_namespace: N,
+        output_file: &Path,
+    ) -> Result<(), Error> {
+        let output = self.generate_namespace_output(generate_namespace)?;
+
+        std::fs::write(output_file, output)
+            .map_err(|e| Error::FileWriteError(e, output_file.to_path_buf()))?;
 
         Ok(())
     }

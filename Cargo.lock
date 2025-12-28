@@ -2774,6 +2774,7 @@ dependencies = [
  "bon",
  "derive_more",
  "glob",
+ "insta",
  "pretty_assertions",
  "prettyplease",
  "proc-macro2",
